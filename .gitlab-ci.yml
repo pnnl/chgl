@@ -7,4 +7,5 @@ test:
   image: chapel/chapel
   stage: test
   script:
+  - cd test
   - start_test
