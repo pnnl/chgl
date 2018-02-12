@@ -1,0 +1,7 @@
+# ignore files without an extension (binary builds)
+*
+!/**/
+!*.*
+
+# test output
+*.comp.out.tmp
