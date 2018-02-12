@@ -1,7 +1,3 @@
-before_script:
-  - docker info
-  - docker login -u gitlab-ci-token -p "$CI_BUILD_TOKEN" registry.gitlab.com
-
 test:
   image: chapel/chapel
   stage: test
