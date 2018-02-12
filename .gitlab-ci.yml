@@ -1,3 +1,7 @@
+before_script:
+  - cd /opt/chapel/1.16.0/
+  - make test-venv
+
 test:
   image: chapel/chapel
   stage: test
