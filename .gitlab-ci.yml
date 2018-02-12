@@ -1,6 +1,7 @@
 before_script:
-  - cd /opt/chapel/1.16.0/
+  - pushd /opt/chapel/1.16.0/
   - make test-venv
+  - popd
 
 test:
   image: chapel/chapel
