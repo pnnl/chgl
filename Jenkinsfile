@@ -3,8 +3,7 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                sh 'cd test'
-                sh 'start_test -junit-xml -numlocales 4'
+                sh 'cd test && start_test -junit-xml -junit-xml-file /var/lib/jenkins/jenkins-home/workspace/HPDA/AHM/chgl/Logs/chapel-tests.xml -numlocales 4'
             }
         }
     }
