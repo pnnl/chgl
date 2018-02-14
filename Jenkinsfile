@@ -5,6 +5,9 @@ pipeline {
             steps {
                 sh 'cd test && start_test -junit-xml -junit-xml-file /var/lib/jenkins/jenkins-home/workspace/HPDA/AHM/chgl/Logs/chapel-tests.xml -numlocales 4'
             }
+            post {
+                always { junit '/var/lib/jenkins/jenkins-home/workspace/HPDA/AHM/chgl/Logs/chapel-tests.xml' }
+            }
         }
     }
 }
