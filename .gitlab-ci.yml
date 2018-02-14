@@ -6,6 +6,13 @@ before_script:
 test:
   image: chapel/chapel
   stage: test
+  services:
+  - name: chapel/chapel-gasnet
+    alias: chapel-1
+  - name: chapel/chapel-gasnet
+    alias: chapel-2
+  - name: chapel/chapel-gasnet
+    alias: chapel-3
   script:
   - cd test
   - start_test
