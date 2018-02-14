@@ -4,15 +4,8 @@ before_script:
   - popd
 
 test:
-  image: chapel/chapel
+  image: chapel/chapel-gasnet
   stage: test
-  services:
-  - name: chapel/chapel-gasnet
-    alias: chapel-1
-  - name: chapel/chapel-gasnet
-    alias: chapel-2
-  - name: chapel/chapel-gasnet
-    alias: chapel-3
   script:
   - cd test
-  - start_test
+  - start_test -junit-xml -numlocales 4
