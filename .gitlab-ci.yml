@@ -5,7 +5,7 @@ before_script:
 
 test:
   image: chapel/chapel-gasnet:1.16.0
-  stage: test/unit
+  stage: test
   script:
   - cd test/unit
   - start_test -junit-xml -numlocales 4
