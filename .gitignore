@@ -5,3 +5,4 @@
 
 # test output
 *.comp.out.tmp
+/test/performance/dat/
