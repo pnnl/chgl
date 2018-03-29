@@ -15,7 +15,7 @@ pipeline {
         stage('Performance Test') {
             steps {
                 sh 'export CHPL_TEST_PERF_DIR=${WORKSPACE}/test/performance/dat && cd test/performance && start_test --performance -junit-xml -junit-xml-file ${WORKSPACE}/test/performance/Logs/chapel-perf-tests.xml -numlocales 4'
-                sh 'sed -i \'s|</head>|<meta http-equiv=\"Content-Security-Policy\" content=\"default-src *; style-src \'self\' \'unsafe-inline\'; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdnjs.cloudflare.com/ \"></head>\' ${WORKSPACE}/test/performance/dat/html/index.html\''
+                sh 'sed -i \'s|</head>|<meta http-equiv=\"Content-Security-Policy\" content=\"default-src *; style-src \'self\' \'unsafe-inline\'; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdnjs.cloudflare.com/ \"></head>\' ${WORKSPACE}/test/performance/dat/html/index.html'
             }
             post {
                 always { 
