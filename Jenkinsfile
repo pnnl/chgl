@@ -15,7 +15,7 @@ pipeline {
         stage('Performance Test') {
             steps {
                 sh 'export CHPL_TEST_PERF_DIR=${WORKSPACE}/test/performance/dat && cd test/performance && start_test --performance -junit-xml -junit-xml-file ${WORKSPACE}/test/performance/Logs/chapel-perf-tests.xml -numlocales 4'
-                sh 'cd test/performance && correctHtml.sh'
+                sh 'cd test/performance && ./correctHtml.sh'
             }
             post {
                 always { 
