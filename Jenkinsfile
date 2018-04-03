@@ -15,8 +15,10 @@ pipeline {
         stage('Performance Test') {
             steps {
                 sh 'export CHPL_TEST_PERF_DIR=${WORKSPACE}/test/performance/dat && cd test/performance && start_test --performance -junit-xml -junit-xml-file ${WORKSPACE}/test/performance/Logs/chapel-perf-tests.xml -numlocales 4'
-                sh '#!/bin/bash \n' +
-                   'sed -i \\"s|\\x3C/head\\x3E|\\x3Cmeta http-equiv=\\x22Content-Security-Policy\\x22 content=\\x22default-src \\*; style-src \\x27self\\x27 \\x27unsafe-inline\\x27; script-src \\x27self\\x27 \\x27unsafe-inline\\x27 \\x27unsafe-eval\\x27 https://cdnjs.cloudflare.com/ \\x22\\x3E\\x3C/head\\x3E|\\" ${WORKSPACE}/test/performance/dat/html/index.html'
+
+                // Generated HTML doesn't work from Jenkins, try to kludge a fix (unsuccessful)
+                //sh '#!/bin/bash \n' +
+                //   'sed -i \\"s|\\x3C/head\\x3E|\\x3Cmeta http-equiv=\\x22Content-Security-Policy\\x22 content=\\x22default-src \\*; style-src \\x27self\\x27 \\x27unsafe-inline\\x27; script-src \\x27self\\x27 \\x27unsafe-inline\\x27 \\x27unsafe-eval\\x27 https://cdnjs.cloudflare.com/ \\x22\\x3E\\x3C/head\\x3E|\\" ${WORKSPACE}/test/performance/dat/html/index.html'
             }
             post {
                 always { 
