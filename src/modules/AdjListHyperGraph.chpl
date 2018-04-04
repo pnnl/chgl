@@ -5,7 +5,6 @@
  */
 
 // TODO: Intents on arguments?
-// TODO: Bulk add of elements to an adjacency list.
 // TODO: Graph creation routines.
 
 module AdjListHyperGraph {
@@ -22,31 +21,17 @@ module AdjListHyperGraph {
     var neighborList: [ndom] nodeIdType;
 
     proc numNeighbors() return ndom.numIndices;
-    var firstAvail$: sync int = 0;
+    var lock$: sync bool = true;
 
-    proc addEdgeOnVertex(to:nodeIdType) {
-      on this do {
-	// todo: the compiler should make these values local automatically!
-	// MZ: The above annotation is from the original code and may be obsolete
-	const v = to;
-
-	local {
-	  const edgePos = firstAvail$;
-	  const prevNdomLen = ndom.high;
-	  if edgePos > prevNdomLen {
-	    // We grow the array to have exactly as many elements as needed. The original version of this code grew the array by a factor of 2, but that mey require better machinery to access the actually existing adjacencies.
-	    ndom = {0..edgePos};
-	    // bounds checking below will ensure (edgePos <= ndom.high)
-	  }
-	  // release the lock
-	  firstAvail$ = edgePos + 1;
-	  neighborList[edgePos] = v;
-	}
-      } // on
+    // This method is not parallel-safe
+    proc addNodes(vals) {
+      lock$; // acquire lock
+      neighborList.push_back(vals);
+      lock$ = true; // release the lock
     }
 
     proc readWriteThis(f) {
-      f <~> new ioLiteral("{ ndom = ") <~> ndom <~> new ioLiteral(", neighborlist = ") <~> neighborList <~> new ioLiteral(", firstAvail$ = ") <~> firstAvail$.readFF() <~> new ioLiteral(" }") <~>  new ioNewline();
+      f <~> new ioLiteral("{ ndom = ") <~> ndom <~> new ioLiteral(", neighborlist = ") <~> neighborList <~> new ioLiteral(", lock$ = ") <~> lock$.readFF() <~> new ioLiteral(" }") <~>  new ioNewline();
     }
   } // record VertexData
   
@@ -84,6 +69,9 @@ module AdjListHyperGraph {
     proc Neighbors ( v : vType ) {
       return vertices(v.id).neighborList;
     }
+
+    proc Neighbors ( e : eIndexType ) {
+      return edges(e).neighborList;
 
     /* proc readWriteThis(f) { */
     /*   f <~> new ioLiteral("Vertices domain: ") <~> vertices_dom <~> new ioNewline() */
