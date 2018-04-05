@@ -1,0 +1,21 @@
+{vertices_dom = {1..10}, edges_dom = {1..10}, vertices = { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+, edges = { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+ { ndom = {0..-1}, neighborlist = , lock$ = true }
+}
