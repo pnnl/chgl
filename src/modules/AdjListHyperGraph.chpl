@@ -51,8 +51,8 @@ module AdjListHyperGraph {
   /* store a hypergraph 
    */
   class AdjListHyperGraph {
-    const vertices_dom; // generic type - domain of vertices
-    const edges_dom; // generic type - domain of edges
+    var vertices_dom; // generic type - domain of vertices
+    var edges_dom; // generic type - domain of edges
     
     type vIndexType = index(vertices_dom);
     type eIndexType = index(edges_dom);
@@ -72,6 +72,7 @@ module AdjListHyperGraph {
 
     proc Neighbors ( e : eIndexType ) {
       return edges(e).neighborList;
+    }
 
     /* proc readWriteThis(f) { */
     /*   f <~> new ioLiteral("Vertices domain: ") <~> vertices_dom <~> new ioNewline() */
