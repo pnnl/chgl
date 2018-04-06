@@ -1,10 +1,10 @@
 before_script:
-  - pushd /opt/chapel/1.16.0/
+  - pushd $CHPL_HOME
   - make test-venv
   - popd
 
 test:
-  image: chapel/chapel-gasnet:1.16.0
+  image: chapel/chapel-gasnet:latest
   stage: test
   script:
   - cd test/unit
