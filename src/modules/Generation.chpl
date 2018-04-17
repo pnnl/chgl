@@ -19,6 +19,14 @@ module Generation {
     
     proc chung_lu_hypergraph(desired_degrees){}
     
-    proc bter_hypergraph(){}
+    proc bter_hypergraph(){
+        #calculate parameters
+        #divide nodes up into blocks (using the parameter values)
+        #while it is not possible to create any more subgraphs
+            #for each block
+                #erdos_renyi_hypergraph(block)
+            #update variables
+        #Chung-Lu
+    }
   
 }
