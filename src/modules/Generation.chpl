@@ -1,5 +1,6 @@
 module Generation {
   use IO;
+  use Random;
   use AdjListHyperGraph;
   
     proc random_boolean(p) {
@@ -10,13 +11,15 @@ module Generation {
       #return a random element of a domain based on a probability distribution over the elements
     }
 
-    proc erdos_renyi_naive_hypergraph(num_vertices, num_edges, p) {
-        const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
+    proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
+        var randStream: RandomStream(real) = new RandomStream(real);
+		const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
         const edge_domain = {1..num_edges} dmapped Cyclic(startIdx=0);
         var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge_domain);
         for vertex in vertex_domain do
             for edge in edge_domain do
-                if random_boolean(p) then
+                var nextRand = randStream.getNext();
+				if nextRand >= p then
                     graph.add_inclusion(vertex, edge);
         return graph;
     }
