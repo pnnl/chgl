@@ -19,7 +19,7 @@ module Generation {
         for vertex in vertex_domain do
             for edge in edge_domain do
                 var nextRand = randStream.getNext();
-				if nextRand >= p then
+                if nextRand >= p then
                     graph.add_inclusion(vertex, edge);
         return graph;
     }
