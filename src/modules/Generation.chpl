@@ -13,7 +13,7 @@ module Generation {
 
     proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
         var randStream: RandomStream(real) = new RandomStream(real);
-		const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
+        const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
         const edge_domain = {1..num_edges} dmapped Cyclic(startIdx=0);
         var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge_domain);
         for vertex in vertex_domain do
