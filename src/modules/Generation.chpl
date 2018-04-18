@@ -3,9 +3,9 @@ module Generation {
   use Random;
   use AdjListHyperGraph;
   
-    proc random_boolean(p) {
+    #proc random_boolean(p) {
       #return a random boolean accordingly to probability p
-    }
+    #}
     
     proc get_random_element(edge_domain, probabilities) {
       #return a random element of a domain based on a probability distribution over the elements
@@ -25,13 +25,15 @@ module Generation {
     }
     
     proc chung_lu_naive_hypergraph(desired_vertex_degrees, desired_edge_degrees, desired_num_edges){
+        var randStream: RandomStream(real) = new RandomStream(real);
         const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
         const edge_domain = {1..num_edges} dmapped Cyclic(startIdx=0);
         var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge_domain);
         for vertex in vertex_domain do
             for edge in edge_domain do
                 p = (desired_vertex_degrees[vertex]*desired_edge_degrees[edge])/(2*desired_num_edges); #this needs more work
-                if random_boolean(p) then
+                var nextRand = randStream.getNext();
+                if nextRand >= p then
                     graph.add_inclusion(vertex, edge);
         return graph;
     }
