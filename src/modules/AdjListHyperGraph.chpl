@@ -17,6 +17,18 @@
 // the Gitlab issues system.  In general, all but the tiniest todos should
 // become issues in Gitlab.
 
+
+/* 
+   Some assumptions:
+   
+   1. It is assumed that push_back increases the amount of available
+   memory by some factor.  The current implementation of push_back
+   supports this assumption.  Making this assumption allows us not to
+   worry about reallocating the array on every push_back.  If we
+   wanted to have more fine-grained control over memory, we will have
+   to investigate adding mechanisms to control it.
+ */
+
 module AdjListHyperGraph {
   use IO;
 
@@ -140,11 +152,37 @@ module AdjListHyperGraph {
     
     type vIndexType = index(vertices_dom);
     type eIndexType = index(edges_dom);
-    type vType = Wrapper(Vertex, vIndexType);
-    type eType = Wrapper(Edge, eIndexType);
+    type vDescType = Wrapper(Vertex, vIndexType);
+    type eDescType = Wrapper(Edge, eIndexType);
+
+    /* 
+       This method is a workaround for:
+
+       https://stackoverflow.com/q/49930764/594274
+       
+       What we really need is a constructor or cast for an
+       instantiated type, but until we have one, we have these
+       methods.
+    */
+    proc makeEdgeDesc(id) {
+      return new Wrapper(Edge, eIndexType, id);
+    }
+
+    /* 
+       This method is a workaround for:
+
+       https://stackoverflow.com/q/49930764/594274
+       
+       What we really need is a constructor or cast for an
+       instantiated type, but until we have one, we have these
+       methods.
+    */
+    proc makeVertDesc(id) {
+      return new Wrapper(Vertex, vIndexType, id);
+    }
     
-    var vertices: [vertices_dom] NodeData(vType);
-    var edges: [edges_dom] NodeData(eType);
+    var vertices: [vertices_dom] NodeData(eDescType);
+    var edges: [edges_dom] NodeData(vDescType);
 
     // Initialize a graph with initial domains
     proc init(vertices_dom, edges_dom) {
@@ -158,16 +196,18 @@ module AdjListHyperGraph {
       this.edges_dom = {0..-1};
     }
     
-    proc Neighbors ( e : eType ) {
+    /*
+      The inclusions access methods should not return a modifiable reference to
+      the internal array, or at least this should not be a part of a public
+      iterface.  I don't think that that there is a way to have private class
+      methods yet, so this is all exposed to the user.
+    */
+    proc inclusions ( e : eDescType ) ref {
       return edges(e.id).neighborList;
     }
 
-    proc Neighbors ( v : vType ) {
+    proc inclusions ( v : vDescType ) ref {
       return vertices(v.id).neighborList;
-    }
-
-    proc Neighbors ( e : eIndexType ) {
-      return edges(e).neighborList;
     }
 
     // Resize the edges array
@@ -182,6 +222,18 @@ module AdjListHyperGraph {
     // No checks are performed, and the number of vertices can be increased or decreased
     proc resize_vertices(size) {
       vertices_dom = {0..(size-1)};
+    }
+
+    proc add_inclusion(vertex: vDescType, edge: eDescType) {
+      this.inclusions(vertex).push_back(edge);
+      this.inclusions(edge).push_back(vertex);
+    }
+
+    proc add_inclusion(vertex, edge) {
+      const vDesc = makeVertDesc(vertex);
+      const eDesc = makeEdgeDesc(edge);
+      this.inclusions(vDesc).push_back(eDesc);
+      this.inclusions(eDesc).push_back(vDesc);
     }
       
     /* proc readWriteThis(f) { */
