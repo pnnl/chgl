@@ -128,6 +128,19 @@ module AdjListHyperGraph {
     type nodeType;
     type idType;
     var id: idType;
+
+    /*
+      Based on Brad's suggestion:
+
+      https://stackoverflow.com/a/49951164/594274
+
+      The idea is that we can call a function on the type.  In the
+      cases where type is instantiated, we will know `nodeType` and
+      `idType`, and we can just refer to them in our make method.
+    */
+    proc type make(id) {
+      return new Wrapper(nodeType, idType, id);
+    }
   }
 
   proc id ( wrapper ) {
@@ -155,32 +168,6 @@ module AdjListHyperGraph {
     type vDescType = Wrapper(Vertex, vIndexType);
     type eDescType = Wrapper(Edge, eIndexType);
 
-    /* 
-       This method is a workaround for:
-
-       https://stackoverflow.com/q/49930764/594274
-       
-       What we really need is a constructor or cast for an
-       instantiated type, but until we have one, we have these
-       methods.
-    */
-    proc makeEdgeDesc(id) {
-      return new Wrapper(Edge, eIndexType, id);
-    }
-
-    /* 
-       This method is a workaround for:
-
-       https://stackoverflow.com/q/49930764/594274
-       
-       What we really need is a constructor or cast for an
-       instantiated type, but until we have one, we have these
-       methods.
-    */
-    proc makeVertDesc(id) {
-      return new Wrapper(Vertex, vIndexType, id);
-    }
-    
     var vertices: [vertices_dom] NodeData(eDescType);
     var edges: [edges_dom] NodeData(vDescType);
 
@@ -217,6 +204,20 @@ module AdjListHyperGraph {
       edges_dom = {0..(size-1)};
     }
 
+    /*
+      A convenience method forwarding to the descriptor type.
+    */
+    proc makeVertDesc(id) {
+      return vDescType.make(id);
+    }
+
+    /*
+      A convenience method forwarding to the descriptor type.
+    */
+    proc makeEdgeDesc(id) {
+      return eDescType.make(id);
+    }
+
     // Resize the vertices array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
@@ -236,12 +237,6 @@ module AdjListHyperGraph {
       this.inclusions(eDesc).push_back(vDesc);
     }
       
-    /* proc readWriteThis(f) { */
-    /*   f <~> new ioLiteral("Vertices domain: ") <~> vertices_dom <~> new ioNewline() */
-    /* 	<~> new ioLiteral("Vertices: ") <~> vertices <~> new ioNewline() */
-    /*     <~> new ioLiteral("Edges domain: ") <~> edges_dom <~> new ioNewline() */
-    /* 	<~> new ioLiteral("Edges: ") <~> edges <~> new ioNewline(); */
-    /* } */
   } // class Graph
   
   /* /\* iterate over all neighbor IDs */
