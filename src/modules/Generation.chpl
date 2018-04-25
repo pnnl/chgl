@@ -4,14 +4,28 @@ module Generation {
   use CyclicDist;
   use AdjListHyperGraph;
   
-    // proc random_boolean(p) {
-    //   return a random boolean accordingly to probability p
-    // }
-    
-    // proc get_random_element(edge_domain, probabilities) {
-    //   return a random element of a domain based on a probability distribution over the elements
-    // }
 
+	//Pending: Take seed as input
+	//Returns index of the desired item
+	proc get_random_element(edge_domain, probabilities){
+		var sum_probs = + reduce probabilities:real;
+		var randStream: RandomStream(real) = new RandomStream(real);
+		var r = randStream.getNext()*sum_probs: real;
+		var temp_sum = 0.0: real;
+		var item = -99;
+		for i in probabilities.domain
+		{
+			temp_sum += probabilities[i];
+			if r <= temp_sum
+			{
+				item = i;
+				break;
+			}
+		}
+		return item;
+	}
+
+	//Pending: Take seed as input
     proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
         var randStream: RandomStream(real) = new RandomStream(real, 123);
         const vertex_domain = {1..num_vertices} dmapped Cyclic(startIdx=0);
@@ -25,9 +39,7 @@ module Generation {
 				if nextRand <= p then
 					graph.add_inclusion(vertex, edge);
 			}
-		}
-            
-                
+		}        
         return graph;
     }
     
