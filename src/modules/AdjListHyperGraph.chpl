@@ -143,6 +143,10 @@ module AdjListHyperGraph {
     }
   }
 
+  proc _cast(type t: Wrapper(?nodeType, ?idType), id) {
+    return t.make(id);
+  }
+
   proc id ( wrapper ) {
     return wrapper.id;
   }
@@ -204,20 +208,6 @@ module AdjListHyperGraph {
       edges_dom = {0..(size-1)};
     }
 
-    /*
-      A convenience method forwarding to the descriptor type.
-    */
-    proc makeVertDesc(id) {
-      return vDescType.make(id);
-    }
-
-    /*
-      A convenience method forwarding to the descriptor type.
-    */
-    proc makeEdgeDesc(id) {
-      return eDescType.make(id);
-    }
-
     // Resize the vertices array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
@@ -225,14 +215,9 @@ module AdjListHyperGraph {
       vertices_dom = {0..(size-1)};
     }
 
-    proc add_inclusion(vertex: vDescType, edge: eDescType) {
-      this.inclusions(vertex).push_back(edge);
-      this.inclusions(edge).push_back(vertex);
-    }
-
     proc add_inclusion(vertex, edge) {
-      const vDesc = makeVertDesc(vertex);
-      const eDesc = makeEdgeDesc(edge);
+      const vDesc = vertex: vDescType;
+      const eDesc = edge: eDescType;
       this.inclusions(vDesc).push_back(eDesc);
       this.inclusions(eDesc).push_back(vDesc);
     }
