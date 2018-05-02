@@ -22,7 +22,7 @@ module Generation {
 				break;
 			}
 		}
-		return item;
+		return edge_domain[item];
 	}
 
 	//Pending: Take seed as input
@@ -43,6 +43,25 @@ module Generation {
         return graph;
     }
     
+	//Following the pseudo code provided in the paper: Measuring and Modeling Bipartite Graphs with Community Structure
+	proc fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
+		var sum_degrees = + reduce desired_vertex_degrees:int;
+		var vertex_probabilities: [1..num_vertices] real;
+		var edge_probabilities: [1..num_edges] real;
+		
+		vertex_probabilities = desired_vertex_degrees/sum_degrees;
+		edge_probabilities = desired_edge_degrees/sum_degrees;
+		
+		forall k in [1..sum_degrees]
+		{
+			var vertex = get_random_element(desired_vertex_degrees, vertex_probabilities);
+			var edge = get_random_element(desired_edge_degrees, edge_probabilities);
+			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+		}
+		return graph;
+    }
+	
+	
     // proc chung_lu_naive_hypergraph(desired_vertex_degrees, desired_edge_degrees, desired_num_edges){
     //     var randStream: RandomStream(real) = new RandomStream(real);
     //     const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
