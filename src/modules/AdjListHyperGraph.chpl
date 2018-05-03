@@ -31,6 +31,7 @@
 
 module AdjListHyperGraph {
   use IO;
+  use CyclicDist;
 
   /*
     NodeData: stores the neighbor list of a node.
@@ -162,7 +163,7 @@ module AdjListHyperGraph {
      strictly CSC or CSR would allow cutting the storage in half, but for now
      the assumption is that having the storage go both ways should allow
      optimizations of certain operations.
-   */
+  */
   class AdjListHyperGraph {
     var vertices_dom; // generic type - domain of vertices
     var edges_dom; // generic type - domain of edges
@@ -176,17 +177,11 @@ module AdjListHyperGraph {
     var edges: [edges_dom] NodeData(vDescType);
 
     // Initialize a graph with initial domains
-    proc init(vertices_dom, edges_dom) {
-      this.vertices_dom = vertices_dom;
-      this.edges_dom = edges_dom;
+    proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
+      this.vertices_dom = {0..#num_verts} dmapped new dmap(map);
+      this.edges_dom = {0..#num_edges} dmapped new dmap(map);
     }
 
-    // Default initializer creates an empty graph
-    proc init() {
-      this.vertices_dom = {0..-1};
-      this.edges_dom = {0..-1};
-    }
-    
     /*
       The inclusions access methods should not return a modifiable reference to
       the internal array, or at least this should not be a part of a public
