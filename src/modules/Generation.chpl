@@ -49,13 +49,18 @@ module Generation {
 		var vertex_probabilities: [1..num_vertices] real;
 		var edge_probabilities: [1..num_edges] real;
 		
-		vertex_probabilities = desired_vertex_degrees/sum_degrees;
-		edge_probabilities = desired_edge_degrees/sum_degrees;
+		forall idx in desired_vertex_degrees.domain{
+			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
+		}
+		forall idx in desired_edge_degrees.domain{
+			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
+		}
 		
-		forall k in [1..sum_degrees]
+		forall k in 1..sum_degrees
 		{
 			var vertex = get_random_element(desired_vertex_degrees, vertex_probabilities);
 			var edge = get_random_element(desired_edge_degrees, edge_probabilities);
+			//writeln("vertex,edge: ",vertex, edge);
 			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
 		}
 		return graph;
