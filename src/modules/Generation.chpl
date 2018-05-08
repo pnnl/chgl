@@ -3,7 +3,7 @@ module Generation {
   use Random;
   use CyclicDist;
   use AdjListHyperGraph;
-  
+  use Math;
 
 	//Pending: Take seed as input
 	//Returns index of the desired item
@@ -25,7 +25,7 @@ module Generation {
 		return edge_domain[item];
 	}
 
-    proc fast_erdos_renyi_hypergraph(graph, num_vertices, num_edges, p) {
+    proc fast_adjusted_erdos_renyi_hypergraph(graph, num_vertices, num_edges, p) {
 	var desired_vertex_degrees = [0..num_vertices]: real;
 	var desired_edge_degrees = [0..num_edges]: real;
 	forall i in desired_vertex_degrees.domain{
@@ -34,8 +34,8 @@ module Generation {
 	forall i in desired_edge_degrees.domain{
 		desired_edge_degrees[i] = num_vertices*p;
 	}
-	//inclusions_needed = num_vertices*num_edges*log(p/(1-p));
-	graph = fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees);
+	var inclusions_to_add = num_vertices*num_edges*log(p/(1-p)): int;
+	graph = fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
 	return graph;
     }
 
@@ -56,7 +56,7 @@ module Generation {
     }
     
 	//Following the pseudo code provided in the paper: Measuring and Modeling Bipartite Graphs with Community Structure
-	proc fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
+	proc fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
 		var sum_degrees = + reduce desired_vertex_degrees:int;
 		var vertex_probabilities: [1..num_vertices] real;
 		var edge_probabilities: [1..num_edges] real;
@@ -68,7 +68,7 @@ module Generation {
 			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
 		}
 		
-		forall k in 1..sum_degrees
+		forall k in 1..inclusions_to_add
 		{
 			var vertex = get_random_element(desired_vertex_degrees, vertex_probabilities);
 			var edge = get_random_element(desired_edge_degrees, edge_probabilities);
@@ -78,7 +78,11 @@ module Generation {
 		return graph;
     }
 	
-	
+	//proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
+	//	var inclusions_to_add = ?
+	//	return fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+	//}
+
     // proc chung_lu_naive_hypergraph(desired_vertex_degrees, desired_edge_degrees, desired_num_edges){
     //     var randStream: RandomStream(real) = new RandomStream(real);
     //     const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
