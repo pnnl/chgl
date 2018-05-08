@@ -25,17 +25,19 @@ module Generation {
 		return elements[the_index];
 	}
 
-    proc fast_adjusted_erdos_renyi_hypergraph(graph, num_vertices, num_edges, p) {
-	var desired_vertex_degrees = [0..num_vertices]: real;
-	var desired_edge_degrees = [0..num_edges]: real;
-	forall i in desired_vertex_degrees.domain{
+    proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
+	var desired_vertex_degrees = [vertices_domain]: real;
+	var desired_edge_degrees = [edges_domain]: real;
+	var num_vertices = vertices_domain.size;
+	var num_edges = edges_domain.size;
+	forall i in vertices_domain{
 		desired_vertex_degrees[i] = num_edges*p;
 	}
-	forall i in desired_edge_degrees.domain{
+	forall i in edges_domain{
 		desired_edge_degrees[i] = num_vertices*p;
 	}
 	var inclusions_to_add = num_vertices*num_edges*log(p/(1-p)): int;
-	graph = fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+	graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
 	return graph;
     }
 
