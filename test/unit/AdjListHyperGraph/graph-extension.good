@@ -1,6 +1,6 @@
-{vertices_dom = {0..-1}, edges_dom = {0..-1}, vertices = , edges = }
+{vertices_dom = {1..0}, edges_dom = {1..0}, vertices = , edges = }
 graph.resize_edges(3)
-{vertices_dom = {0..-1}, edges_dom = {0..2}, vertices = , edges = { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) }}
+{vertices_dom = {1..0}, edges_dom = {0..2}, vertices = , edges = { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) }}
 graph.resize_vertices(3);
 {vertices_dom = {0..2}, edges_dom = {0..2}, vertices = { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) }, edges = { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) } { ndom = {0..-1}, neighborlist = , lock$ = true(isFull: true) }}
 graph.resize_edges(4);
