@@ -56,28 +56,48 @@ module Generation {
     }
     
 	//Following the pseudo code provided in the paper: Measuring and Modeling Bipartite Graphs with Community Structure
-	proc fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
+	//proc fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
+	//	var sum_degrees = + reduce desired_vertex_degrees:int;
+	//	var vertex_probabilities: [1..num_vertices] real;
+	//	var edge_probabilities: [1..num_edges] real;
+	//	
+	//	forall idx in desired_vertex_degrees.domain{
+	//		vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
+	//	}
+	//	forall idx in desired_edge_degrees.domain{
+	//		edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
+	//	}
+	//	
+	//	forall k in 1..inclusions_to_add
+	//	{
+	//		var vertex = get_random_element(desired_vertex_degrees, vertex_probabilities);
+	//		var edge = get_random_element(desired_edge_degrees, edge_probabilities);
+	//		//writeln("vertex,edge: ",vertex, edge);
+	//		graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+	//	}
+	//	return graph;
+    	//}
+	
+	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
 		var sum_degrees = + reduce desired_vertex_degrees:int;
-		var vertex_probabilities: [1..num_vertices] real;
-		var edge_probabilities: [1..num_edges] real;
-		
-		forall idx in desired_vertex_degrees.domain{
+		var vertex_probabilities: [vertices_domain] real;
+		var edge_probabilities: [edges_domain] real;
+		forall idx in vertices_domain{
 			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
 		}
-		forall idx in desired_edge_degrees.domain{
+		forall idx in edges_domain{
 			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
 		}
-		
 		forall k in 1..inclusions_to_add
 		{
-			var vertex = get_random_element(desired_vertex_degrees, vertex_probabilities);
-			var edge = get_random_element(desired_edge_degrees, edge_probabilities);
+			var vertex = get_random_element(vertices_domain, vertex_probabilities);
+			var edge = get_random_element(edges_domain, edge_probabilities);
 			//writeln("vertex,edge: ",vertex, edge);
 			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
 		}
-		return graph;
-    }
-	
+		return graph;	
+	}
+
 	//proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
 	//	var inclusions_to_add = ?
 	//	return fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
