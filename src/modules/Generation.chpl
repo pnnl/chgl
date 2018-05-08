@@ -7,22 +7,22 @@ module Generation {
 
 	//Pending: Take seed as input
 	//Returns index of the desired item
-	proc get_random_element(edge_domain, probabilities){
+	proc get_random_element(elements, probabilities){
 		var sum_probs = + reduce probabilities:real;
 		var randStream: RandomStream(real) = new RandomStream(real);
 		var r = randStream.getNext()*sum_probs: real;
 		var temp_sum = 0.0: real;
-		var item = -99;
+		var the_index = -99;
 		for i in probabilities.domain
 		{
 			temp_sum += probabilities[i];
 			if r <= temp_sum
 			{
-				item = i;
+				the_index = i;
 				break;
 			}
 		}
-		return edge_domain[item];
+		return elements[the_index];
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, num_vertices, num_edges, p) {
