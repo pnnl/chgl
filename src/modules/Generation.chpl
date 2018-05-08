@@ -25,6 +25,20 @@ module Generation {
 		return edge_domain[item];
 	}
 
+    proc fast_erdos_renyi_hypergraph(graph, num_vertices, num_edges, p) {
+	var desired_vertex_degrees = [0..num_vertices]: real;
+	var desired_edge_degrees = [0..num_edges]: real;
+	forall i in desired_vertex_degrees.domain{
+		desired_vertex_degrees[i] = num_edges*p;
+	}
+	forall i in desired_edge_degrees.domain{
+		desired_edge_degrees[i] = num_vertices*p;
+	}
+	//inclusions_needed = num_vertices*num_edges*log(p/(1-p));
+	graph = fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees);
+	return graph;
+    }
+
 	//Pending: Take seed as input
     proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
         var randStream: RandomStream(real) = new RandomStream(real, 123);
