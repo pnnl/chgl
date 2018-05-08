@@ -100,10 +100,10 @@ module Generation {
 		return graph;	
 	}
 
-	//proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
-	//	var inclusions_to_add = ?
-	//	return fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
-	//}
+	proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
+		var inclusions_to_add =  + reduce desired_vertex_degrees:int;
+		return fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+	}
 
     // proc chung_lu_naive_hypergraph(desired_vertex_degrees, desired_edge_degrees, desired_num_edges){
     //     var randStream: RandomStream(real) = new RandomStream(real);
@@ -148,23 +148,30 @@ module Generation {
 	
 	proc bter_hypergraph(input_file){
 		create_input_data_lists();
-		preprocess_bter();
-		var i : int = 0;
 		var idv: int;
 		var idE: int;
 		var numV: int;
 		var numE: int;
+		var nV : int;
+		var nE : int;
+		preprocess_bter();
+		var graph = AdjListHyperGraph(numV, numE);
 		while (idv <= numV && idE <= numE){
 			compute_params_for_affinity_blocks();
 			if (idv > numV || idE > numE){
 				break; //make sure the "break" statement is the correct syntax
 			}
 			else{
-				//we might need to modify our E-R procedure above. Please write here how we need to call the E-R procedure.
+				var vertices_domain : domain(int) = {idv..idv + nV};//check syntax
+				var edges_domain : domain(int) = {idE..idE + nE};//check syntax
+				//fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p);
 			}
-			//add the other stuff in the for loop
+			//idv += nV;
+			//idE += nE;
 		}
-		//add additional stuff after the for loop
+		// get excess degrees here and create desired_vertex_degrees and desired_edge_degress
+		//fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, desired_vertex_degrees, desired_edge_degrees);
+		return graph;
 	}
   
 }
