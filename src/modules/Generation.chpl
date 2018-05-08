@@ -42,12 +42,10 @@ module Generation {
 	//Pending: Take seed as input
     proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
         var randStream: RandomStream(real) = new RandomStream(real, 123);
-        const vertex_domain = {1..num_vertices} dmapped Cyclic(startIdx=0);
-        const edge_domain = {1..num_edges} dmapped Cyclic(startIdx=0);
-        var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge_domain);
-        forall vertex in vertex_domain
+        var graph = new AdjListHyperGraph(num_vertices, num_edges);
+        forall vertex in graph.vertices_dom
 		{
-			forall edge in edge_domain
+			forall edge in graph.edges_dom
 			{
 				var nextRand = randStream.getNext();
 				if nextRand <= p then
@@ -111,15 +109,36 @@ module Generation {
     //         graph.add_inclusion(vertex, edge);
     //     return graph;
     // }
-    
-    // proc bter_hypergraph(){
-    //     #calculate parameters
-    //     #divide nodes up into blocks (using the parameter values)
-    //     #while it is not possible to create any more subgraphs
-    //         #for each block
-    //             #erdos_renyi_hypergraph(block)
-    //         #update variables
-    //     #Chung-Lu
-    // #}
+    	proc create_input_data_lists(){
+		//do you want this proc to input a file or a graph object?
+	}
+
+	proc preprocess_bter(){
+		//implement this
+	}
+	
+	proc compute_params_for_affinity_blocks(){
+	}
+	
+	proc bter_hypergraph(input_file){
+		create_input_data_lists();
+		preprocess_bter();
+		var i : int = 0;
+		var idv: int;
+		var idE: int;
+		var numV: int;
+		var numE: int;
+		while (idv <= numV && idE <= numE){
+			compute_params_for_affinity_blocks();
+			if (idv > numV || idE > numE){
+				break; //make sure the "break" statement is the correct syntax
+			}
+			else{
+				//we might need to modify our E-R procedure above. Please write here how we need to call the E-R procedure.
+			}
+			//add the other stuff in the for loop
+		}
+		//add additional stuff after the for loop
+	}
   
 }
