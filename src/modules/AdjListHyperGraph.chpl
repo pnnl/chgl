@@ -18,9 +18,9 @@
 // become issues in Gitlab.
 
 
-/* 
+/*
    Some assumptions:
-   
+
    1. It is assumed that push_back increases the amount of available
    memory by some factor.  The current implementation of push_back
    supports this assumption.  Making this assumption allows us not to
@@ -32,6 +32,22 @@
 module AdjListHyperGraph {
   use IO;
   use CyclicDist;
+
+  // Determines whether or not we profile for contention...
+  config param ALHG_PROFILE_CONTENTION : bool;
+  // L.J: Keeps track of amount of *potential* contended accesses. It is not absolute
+  // as we check to see if the lock is held prior to attempting to acquire it.
+  var contentionCnt : atomic int;
+
+  inline proc contentionCheck(ref lock : sync bool) where ALHG_PROFILE_CONTENTION {
+    if !lock.isFull {
+      contentionCnt.fetchAdd(1);
+    }
+  }
+
+  inline proc contentionCheck(ref lock : sync bool) where !ALHG_PROFILE_CONTENTION {
+    // NOP
+  }
 
   /*
     NodeData: stores the neighbor list of a node.
@@ -52,6 +68,8 @@ module AdjListHyperGraph {
 
     proc numNeighbors() return ndom.numIndices;
 
+
+
     // Initializers are necessary:
     // https://stackoverflow.com/questions/49682634/domain-resizing-on-an-array-of-records-hangs
     // Since they are rather boring, it could be better if at some point they
@@ -69,11 +87,14 @@ module AdjListHyperGraph {
        initializer, copy constructors cause problems with the sync variable
        where it gets emptied by copy constructors.  If it was not for the sync
        variable, we probably do not need these initializers specified
-       explicitly. 
+       explicitly.
     */
     proc init(other: AdjListHyperGraph) {
       // Lock the other.  This makes the copy construction parallel-safe with
       // respect to ``other`` and may be a bit of an overkill.
+      if !other.lock$.isFull {
+        contentionCnt.fetchAdd(1);
+      }
       other.lock$;
       this.nodeIdType = other.nodeIdType;
       this.ndom = other.ndom;
@@ -88,24 +109,25 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
+      contentionCheck(lock$);
       lock$; // acquire lock
       neighborList.push_back(vals);
       lock$ = true; // release the lock
     }
 
     proc readWriteThis(f) {
-      f <~> new ioLiteral("{ ndom = ") 
-	<~> ndom 
-	<~> new ioLiteral(", neighborlist = ") 
-	<~> neighborList 
-	<~> new ioLiteral(", lock$ = ") 
-	<~> lock$.readXX() 
-	<~> new ioLiteral("(isFull: ") 
+      f <~> new ioLiteral("{ ndom = ")
+	<~> ndom
+	<~> new ioLiteral(", neighborlist = ")
+	<~> neighborList
+	<~> new ioLiteral(", lock$ = ")
+	<~> lock$.readXX()
+	<~> new ioLiteral("(isFull: ")
 	<~> lock$.isFull
 	<~> new ioLiteral(") }");
     }
   } // record
-  
+
   /*
     Assignment operator for NodeData.
 
@@ -114,6 +136,8 @@ module AdjListHyperGraph {
     deadlock (e.g., ``a = b`` in parallel with ``b = a``).
   */
   proc =(ref lhs: NodeData, ref rhs: NodeData) {
+    contentionCheck(lhs.lock$);
+    contentionCheck(rhs.lock$);
     lhs.lock$; // lock lhs
     rhs.lock$; // lock rhs
     lhs.ndom = rhs.ndom;
@@ -151,9 +175,9 @@ module AdjListHyperGraph {
   proc id ( wrapper ) {
     return wrapper.id;
   }
-  
-  /* 
-     Adjacency list hypergraph.  
+
+  /*
+     Adjacency list hypergraph.
 
      The storage is an array of NodeDatas.  The edges array stores edges, and
      the vertices array stores vertices.  The storage is similar to a
@@ -167,7 +191,7 @@ module AdjListHyperGraph {
   class AdjListHyperGraph {
     var vertices_dom; // generic type - domain of vertices
     var edges_dom; // generic type - domain of edges
-    
+
     type vIndexType = index(vertices_dom);
     type eIndexType = index(edges_dom);
     type vDescType = Wrapper(Vertex, vIndexType);
@@ -176,10 +200,38 @@ module AdjListHyperGraph {
     var vertices: [vertices_dom] NodeData(eDescType);
     var edges: [edges_dom] NodeData(vDescType);
 
+    pragma "fn returns iterator"
+    inline proc getEdges(param tag : iterKind) where tag == iterKind.standalone {
+      return edges_dom.these(tag);
+    }
+
+    pragma "fn returns iterator"
+    inline proc getEdges() {
+      return edges_dom.these();
+    }
+
+    pragma "fn returns iterator"
+    inline proc getVertices(param tag : iterKind) where tag == iterKind.standalone {
+      return vertices_dom.these(tag);
+    }
+
+    pragma "fn returns iterator"
+    inline proc getVertices() {
+      return vertices_dom.these();
+    }
+
     // Initialize a graph with initial domains
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
       this.vertices_dom = {0..#num_verts} dmapped new dmap(map);
       this.edges_dom = {0..#num_edges} dmapped new dmap(map);
+    }
+
+    proc numVertices {
+      return vertices_dom.size;
+    }
+
+    proc numEdges {
+      return edges_dom.size;
     }
 
     /*
@@ -213,19 +265,21 @@ module AdjListHyperGraph {
     proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-      this.inclusions(vDesc).push_back(eDesc);
-      this.inclusions(eDesc).push_back(vDesc);
+
+      // L.J: Changed to be thread-safe...
+      this.vertices(vDesc.id).addNodes(eDesc);
+      this.edges(eDesc.id).addNodes(vDesc);
     }
-      
+
   } // class Graph
-  
+
   /* /\* iterate over all neighbor IDs */
   /*  *\/ */
   /* private iter Neighbors( nodes, node : index (nodes.domain) ) { */
   /*   for nlElm in nodes(node).neighborList do */
   /*     yield nlElm(1); // todo -- use nid */
   /* } */
-  
+
   /* /\* iterate over all neighbor IDs */
   /*  *\/ */
   /* iter private Neighbors( nodes, node : index (nodes), param tag: iterKind) */
@@ -233,7 +287,7 @@ module AdjListHyperGraph {
   /*   for block in nodes(v).neighborList._value.these(tag) do */
   /*     yield block; */
   /* } */
-  
+
   /* /\* iterate over all neighbor IDs */
   /*  *\/ */
   /* iter private Neighbors( nodes, node : index (nodes), param tag: iterKind, followThis) */
@@ -246,7 +300,7 @@ module AdjListHyperGraph {
   /*  *\/ */
   /* proc n_Neighbors (nodes, node : index (nodes) )  */
   /*   {return Row (v).numNeighbors();} */
-  
+
 
   /*   /\* how to use Graph: e.g. */
   /*      const vertex_domain =  */
@@ -254,7 +308,7 @@ module AdjListHyperGraph {
   /*      {1..N_VERTICES} dmapped Block ( {1..N_VERTICES} ) */
   /*      else */
   /*      {1..N_VERTICES} ; */
-	
+
   /*      writeln("allocating Associative_Graph"); */
   /*      var G = new Graph (vertex_domain); */
   /*   *\/ */
@@ -333,4 +387,3 @@ module AdjListHyperGraph {
   /*     return G; */
   /*   } */
 }
-
