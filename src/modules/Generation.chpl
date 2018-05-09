@@ -146,7 +146,9 @@ module Generation {
 	proc compute_params_for_affinity_blocks(){
 	}
 	
-	proc bter_hypergraph(input_file){
+	proc bter_hypergraph(input_graph){
+		//var original_vertex_degrees: int = input_graph.get_vertex_degrees();
+		//var original_edge_degrees: int = input_graph.get_edge_degrees();
 		create_input_data_lists();
 		var idv: int;
 		var idE: int;
@@ -169,8 +171,15 @@ module Generation {
 			//idv += nV;
 			//idE += nE;
 		}
-		// get excess degrees here and create desired_vertex_degrees and desired_edge_degress
-		//fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, desired_vertex_degrees, desired_edge_degrees);
+		//var vertex_degrees: int = graph.get_vertex_degrees();
+		//var edge_degrees: int = graph.get_edge_degrees();
+		//var vertex_degree_diff = original_vertex_degrees - vertex_degrees;//check syntax
+		//var edge_degree_diff = original_edge_degrees - edge_degrees;//check syntax
+		//go through and replace negative values with 0s
+		//var sum_of_vertex_diff = + reduce vertex_degree_diff:int;
+		//var sum_of_edges_diff = + reduce edge_degree_diff:int;
+		//var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);//check with Sinan if taking max() is correct
+		//fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degree_diff, edge_degree_diff, inclusions_to_add);
 		return graph;
 	}
   
