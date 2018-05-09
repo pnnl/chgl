@@ -16,3 +16,4 @@ var half_width = expected_num_inclusions * 0.5;
 var test_passed = false: bool;
 test_passed = num_inclusions >= (expected_num_inclusions - half_width) && num_inclusions <= (expected_num_inclusions + half_width);
 writeln(test_passed);
+if ALHG_PROFILE_CONTENTION then writeln("Contended Access: " + contentionCnt.read());
