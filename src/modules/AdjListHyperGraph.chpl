@@ -18,9 +18,9 @@
 // become issues in Gitlab.
 
 
-/* 
+/*
    Some assumptions:
-   
+
    1. It is assumed that push_back increases the amount of available
    memory by some factor.  The current implementation of push_back
    supports this assumption.  Making this assumption allows us not to
@@ -39,7 +39,6 @@ module AdjListHyperGraph {
     This record should really be private, and its functionality should be
     exposed by public functions.
   */
-  /* private */
   record NodeData {
     type nodeIdType;
 
@@ -69,7 +68,7 @@ module AdjListHyperGraph {
        initializer, copy constructors cause problems with the sync variable
        where it gets emptied by copy constructors.  If it was not for the sync
        variable, we probably do not need these initializers specified
-       explicitly. 
+       explicitly.
     */
     proc init(other: AdjListHyperGraph) {
       // Lock the other.  This makes the copy construction parallel-safe with
@@ -94,18 +93,18 @@ module AdjListHyperGraph {
     }
 
     proc readWriteThis(f) {
-      f <~> new ioLiteral("{ ndom = ") 
-	<~> ndom 
-	<~> new ioLiteral(", neighborlist = ") 
-	<~> neighborList 
-	<~> new ioLiteral(", lock$ = ") 
-	<~> lock$.readXX() 
-	<~> new ioLiteral("(isFull: ") 
+      f <~> new ioLiteral("{ ndom = ")
+	<~> ndom
+	<~> new ioLiteral(", neighborlist = ")
+	<~> neighborList
+	<~> new ioLiteral(", lock$ = ")
+	<~> lock$.readXX()
+	<~> new ioLiteral("(isFull: ")
 	<~> lock$.isFull
 	<~> new ioLiteral(") }");
     }
   } // record
-  
+
   /*
     Assignment operator for NodeData.
 
@@ -130,6 +129,7 @@ module AdjListHyperGraph {
     type idType;
     var id: idType;
 
+
     /*
       Based on Brad's suggestion:
 
@@ -151,9 +151,9 @@ module AdjListHyperGraph {
   proc id ( wrapper ) {
     return wrapper.id;
   }
-  
-  /* 
-     Adjacency list hypergraph.  
+
+  /*
+     Adjacency list hypergraph.
 
      The storage is an array of NodeDatas.  The edges array stores edges, and
      the vertices array stores vertices.  The storage is similar to a
@@ -167,7 +167,7 @@ module AdjListHyperGraph {
   class AdjListHyperGraph {
     var vertices_dom; // generic type - domain of vertices
     var edges_dom; // generic type - domain of edges
-    
+
     type vIndexType = index(vertices_dom);
     type eIndexType = index(edges_dom);
     type vDescType = Wrapper(Vertex, vIndexType);
@@ -182,17 +182,22 @@ module AdjListHyperGraph {
       this.edges_dom = {0..#num_edges} dmapped new dmap(map);
     }
 
+    proc init(vertices_dom : domain, edges_dom : domain) {
+      this.vertices_dom = vertices_dom;
+      this.edges_dom = edges_dom;
+    }
+
     /*
       The inclusions access methods should not return a modifiable reference to
       the internal array, or at least this should not be a part of a public
       iterface.  I don't think that that there is a way to have private class
       methods yet, so this is all exposed to the user.
     */
-    proc inclusions ( e : eDescType ) ref {
+    proc _inclusions ( e : eDescType ) ref {
       return edges(e.id).neighborList;
     }
 
-    proc inclusions ( v : vDescType ) ref {
+    proc _inclusions ( v : vDescType ) ref {
       return vertices(v.id).neighborList;
     }
 
@@ -213,19 +218,49 @@ module AdjListHyperGraph {
     proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-      this.inclusions(vDesc).push_back(eDesc);
-      this.inclusions(eDesc).push_back(vDesc);
+      this._inclusions(vDesc).push_back(eDesc);
+      this._inclusions(eDesc).push_back(vDesc);
     }
-      
+
+    iter inclusions(desc) where desc.type == vDescType || desc.type == eDescType {
+      for _desc in _inclusions(desc) do yield _desc;
+    }
+
+
+    iter inclusions(desc, param tag : iterKind) where (desc.type == vDescType || desc.type == eDescType) && tag == iterKind.standalone {
+      forall _desc in _inclusions(desc) do yield _desc;
+    }
+
+    // for n in graph.neighbors(someEdge)
+    iter inclusions(arg) {
+      compilerError("inclusions(" + arg.type : string + ") not supported, "
+      + "argument must be of type " + vDescType : string + " or " + eDescType : string);
+    }
+
+    // forall n in graph.neighbors(someEdge)
+    iter inclusions(arg, param tag : iterKind) where tag == iterKind.standalone {
+      compilerError("inclusions(" + arg.type : string + ") not supported, "
+      + "argument must be of type " + vDescType : string + " or " + eDescType : string);
+    }
+
+    // for g in G do ...
+    proc these() {
+
+    }
+
+    proc this() {
+
+    }
+
   } // class Graph
-  
+
   /* /\* iterate over all neighbor IDs */
   /*  *\/ */
   /* private iter Neighbors( nodes, node : index (nodes.domain) ) { */
   /*   for nlElm in nodes(node).neighborList do */
   /*     yield nlElm(1); // todo -- use nid */
   /* } */
-  
+
   /* /\* iterate over all neighbor IDs */
   /*  *\/ */
   /* iter private Neighbors( nodes, node : index (nodes), param tag: iterKind) */
@@ -233,7 +268,7 @@ module AdjListHyperGraph {
   /*   for block in nodes(v).neighborList._value.these(tag) do */
   /*     yield block; */
   /* } */
-  
+
   /* /\* iterate over all neighbor IDs */
   /*  *\/ */
   /* iter private Neighbors( nodes, node : index (nodes), param tag: iterKind, followThis) */
@@ -246,7 +281,7 @@ module AdjListHyperGraph {
   /*  *\/ */
   /* proc n_Neighbors (nodes, node : index (nodes) )  */
   /*   {return Row (v).numNeighbors();} */
-  
+
 
   /*   /\* how to use Graph: e.g. */
   /*      const vertex_domain =  */
@@ -254,7 +289,7 @@ module AdjListHyperGraph {
   /*      {1..N_VERTICES} dmapped Block ( {1..N_VERTICES} ) */
   /*      else */
   /*      {1..N_VERTICES} ; */
-	
+
   /*      writeln("allocating Associative_Graph"); */
   /*      var G = new Graph (vertex_domain); */
   /*   *\/ */
@@ -333,4 +368,3 @@ module AdjListHyperGraph {
   /*     return G; */
   /*   } */
 }
-
