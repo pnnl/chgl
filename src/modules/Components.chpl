@@ -43,7 +43,7 @@ module Components {
     proc visitVertex(graph, vertex : Wrapper, components, component : int(64)) {
         if (components[vertex.id] == 0) {
             components[vertex.id] = component;
-            forall neighbor in graph.inclusions(vertex) { // TODO forall
+            for neighbor in graph.inclusions(vertex) { // TODO forall
                 visitVertex(graph, neighbor, components, component);
             }
         }
