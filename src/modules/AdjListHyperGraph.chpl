@@ -55,7 +55,6 @@ module AdjListHyperGraph {
     This record should really be private, and its functionality should be
     exposed by public functions.
   */
-  /* private */
   record NodeData {
     type nodeIdType;
 
@@ -154,6 +153,7 @@ module AdjListHyperGraph {
     type idType;
     var id: idType;
 
+
     /*
       Based on Brad's suggestion:
 
@@ -234,17 +234,22 @@ module AdjListHyperGraph {
       return edges_dom.size;
     }
 
+    proc init(vertices_dom : domain, edges_dom : domain) {
+      this.vertices_dom = vertices_dom;
+      this.edges_dom = edges_dom;
+    }
+
     /*
       The inclusions access methods should not return a modifiable reference to
       the internal array, or at least this should not be a part of a public
       iterface.  I don't think that that there is a way to have private class
       methods yet, so this is all exposed to the user.
     */
-    proc inclusions ( e : eDescType ) ref {
+    proc _inclusions ( e : eDescType ) ref {
       return edges(e.id).neighborList;
     }
 
-    proc inclusions ( v : vDescType ) ref {
+    proc _inclusions ( v : vDescType ) ref {
       return vertices(v.id).neighborList;
     }
 
@@ -265,12 +270,49 @@ module AdjListHyperGraph {
     proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-
-      // L.J: Changed to be thread-safe...
       this.vertices(vDesc.id).addNodes(eDesc);
       this.edges(eDesc.id).addNodes(vDesc);
     }
 
+    // for desc in graph.inclusions(nodeDesc) do ...
+    iter inclusions(desc) where desc.type == vDescType || desc.type == eDescType {
+      for _desc in _inclusions(desc) do yield _desc;
+    }
+
+    // forall desc in graph.inclusions(nodeDesc) do ...
+    iter inclusions(desc, param tag : iterKind) where
+      (desc.type == vDescType || desc.type == eDescType)
+        && tag == iterKind.standalone {
+      forall _desc in _inclusions(desc) do yield _desc;
+    }
+
+    // Bad argument
+    iter inclusions(arg) {
+      compilerError("inclusions(" + arg.type : string + ") not supported, "
+      + "argument must be of type " + vDescType : string + " or " + eDescType : string);
+    }
+
+    // Bad Argument
+    iter inclusions(arg, param tag : iterKind) where tag == iterKind.standalone {
+      compilerError("inclusions(" + arg.type : string + ") not supported, "
+      + "argument must be of type " + vDescType : string + " or " + eDescType : string);
+    }
+
+    // TODO: for something in graph do ...
+    iter these() {
+
+    }
+
+    // TODO: forall something in graph do ...
+    iter these(param tag : iterKind) where tag == iterKind.standalone {
+
+    }
+
+    // TODO: graph[something] = somethingElse;
+    // TODO: Make return ref, const-ref, or by-value versions?
+    proc this() {
+
+    }
   } // class Graph
 
   /* /\* iterate over all neighbor IDs */
