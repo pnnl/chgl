@@ -193,11 +193,11 @@ module AdjListHyperGraph {
       iterface.  I don't think that that there is a way to have private class
       methods yet, so this is all exposed to the user.
     */
-    proc _inclusions ( e : eDescType ) ref {
+    private proc _inclusions ( e : eDescType ) ref {
       return edges(e.id).neighborList;
     }
 
-    proc _inclusions ( v : vDescType ) ref {
+    private proc _inclusions ( v : vDescType ) ref {
       return vertices(v.id).neighborList;
     }
 
@@ -222,36 +222,45 @@ module AdjListHyperGraph {
       this._inclusions(eDesc).push_back(vDesc);
     }
 
+    // for desc in graph.inclusions(nodeDesc) do ...
     iter inclusions(desc) where desc.type == vDescType || desc.type == eDescType {
       for _desc in _inclusions(desc) do yield _desc;
     }
 
-
-    iter inclusions(desc, param tag : iterKind) where (desc.type == vDescType || desc.type == eDescType) && tag == iterKind.standalone {
+    // forall desc in graph.inclusions(nodeDesc) do ...
+    iter inclusions(desc, param tag : iterKind) where
+      (desc.type == vDescType || desc.type == eDescType)
+        && tag == iterKind.standalone {
       forall _desc in _inclusions(desc) do yield _desc;
     }
 
-    // for n in graph.neighbors(someEdge)
+    // Bad argument
     iter inclusions(arg) {
       compilerError("inclusions(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
-    // forall n in graph.neighbors(someEdge)
+    // Bad Argument
     iter inclusions(arg, param tag : iterKind) where tag == iterKind.standalone {
       compilerError("inclusions(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
-    // for g in G do ...
-    proc these() {
+    // TODO: for something in graph do ...
+    iter these() {
 
     }
 
-    proc this() {
+    // TODO: forall something in graph do ...
+    iter these(param tag : iterKind) where tag == iterKind.standalone {
 
     }
 
+    // TODO: graph[something] = somethingElse;
+    // TODO: Make one that returns only by-value or const-ref?
+    proc this() ref {
+
+    }
   } // class Graph
 
   /* /\* iterate over all neighbor IDs */
