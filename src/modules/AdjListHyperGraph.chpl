@@ -33,6 +33,22 @@ module AdjListHyperGraph {
   use IO;
   use CyclicDist;
 
+  // Determines whether or not we profile for contention...
+  config param ALHG_PROFILE_CONTENTION : bool;
+  // L.J: Keeps track of amount of *potential* contended accesses. It is not absolute
+  // as we check to see if the lock is held prior to attempting to acquire it.
+  var contentionCnt : atomic int;
+
+  inline proc contentionCheck(ref lock : sync bool) where ALHG_PROFILE_CONTENTION {
+    if !lock.isFull {
+      contentionCnt.fetchAdd(1);
+    }
+  }
+
+  inline proc contentionCheck(ref lock : sync bool) where !ALHG_PROFILE_CONTENTION {
+    // NOP
+  }
+
   /*
     NodeData: stores the neighbor list of a node.
 
@@ -50,6 +66,8 @@ module AdjListHyperGraph {
     var lock$: sync bool = true;
 
     proc numNeighbors() return ndom.numIndices;
+
+
 
     // Initializers are necessary:
     // https://stackoverflow.com/questions/49682634/domain-resizing-on-an-array-of-records-hangs
@@ -73,6 +91,9 @@ module AdjListHyperGraph {
     proc init(other: AdjListHyperGraph) {
       // Lock the other.  This makes the copy construction parallel-safe with
       // respect to ``other`` and may be a bit of an overkill.
+      if !other.lock$.isFull {
+        contentionCnt.fetchAdd(1);
+      }
       other.lock$;
       this.nodeIdType = other.nodeIdType;
       this.ndom = other.ndom;
@@ -87,6 +108,7 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
+      contentionCheck(lock$);
       lock$; // acquire lock
       neighborList.push_back(vals);
       lock$ = true; // release the lock
@@ -113,6 +135,8 @@ module AdjListHyperGraph {
     deadlock (e.g., ``a = b`` in parallel with ``b = a``).
   */
   proc =(ref lhs: NodeData, ref rhs: NodeData) {
+    contentionCheck(lhs.lock$);
+    contentionCheck(rhs.lock$);
     lhs.lock$; // lock lhs
     rhs.lock$; // lock rhs
     lhs.ndom = rhs.ndom;
@@ -176,10 +200,38 @@ module AdjListHyperGraph {
     var vertices: [vertices_dom] NodeData(eDescType);
     var edges: [edges_dom] NodeData(vDescType);
 
+    pragma "fn returns iterator"
+    inline proc getEdges(param tag : iterKind) where tag == iterKind.standalone {
+      return edges_dom.these(tag);
+    }
+
+    pragma "fn returns iterator"
+    inline proc getEdges() {
+      return edges_dom.these();
+    }
+
+    pragma "fn returns iterator"
+    inline proc getVertices(param tag : iterKind) where tag == iterKind.standalone {
+      return vertices_dom.these(tag);
+    }
+
+    pragma "fn returns iterator"
+    inline proc getVertices() {
+      return vertices_dom.these();
+    }
+
     // Initialize a graph with initial domains
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
       this.vertices_dom = {0..#num_verts} dmapped new dmap(map);
       this.edges_dom = {0..#num_edges} dmapped new dmap(map);
+    }
+
+    proc numVertices {
+      return vertices_dom.size;
+    }
+
+    proc numEdges {
+      return edges_dom.size;
     }
 
     proc init(vertices_dom : domain, edges_dom : domain) {
@@ -193,11 +245,11 @@ module AdjListHyperGraph {
       iterface.  I don't think that that there is a way to have private class
       methods yet, so this is all exposed to the user.
     */
-    private proc _inclusions ( e : eDescType ) ref {
+    proc _inclusions ( e : eDescType ) ref {
       return edges(e.id).neighborList;
     }
 
-    private proc _inclusions ( v : vDescType ) ref {
+    proc _inclusions ( v : vDescType ) ref {
       return vertices(v.id).neighborList;
     }
 
@@ -218,8 +270,8 @@ module AdjListHyperGraph {
     proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-      this._inclusions(vDesc).push_back(eDesc);
-      this._inclusions(eDesc).push_back(vDesc);
+      this.vertices(vDesc.id).addNodes(eDesc);
+      this.edges(eDesc.id).addNodes(vDesc);
     }
 
     // for desc in graph.inclusions(nodeDesc) do ...
@@ -257,8 +309,8 @@ module AdjListHyperGraph {
     }
 
     // TODO: graph[something] = somethingElse;
-    // TODO: Make one that returns only by-value or const-ref?
-    proc this() ref {
+    // TODO: Make return ref, const-ref, or by-value versions?
+    proc this() {
 
     }
   } // class Graph
