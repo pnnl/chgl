@@ -1,9 +1,11 @@
 module Generation {
-  use IO;
-  use Random;
-  use CyclicDist;
-  use AdjListHyperGraph;
-  use Math;
+  
+	use IO;
+  	use Random;
+  	use CyclicDist;
+  	use AdjListHyperGraph;
+  	use Math;
+	use Sort;
 
 	//Pending: Take seed as input
 	//Returns index of the desired item
@@ -176,10 +178,10 @@ module Generation {
 	proc bter_hypergraph(input_graph){
 		var original_vertex_degrees: int = input_graph.getVertexDegrees();
 		var original_edge_degrees: int = input_graph.getEdgeDegrees();
-		var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
-		var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();
-		//var sorted_vertex_degrees = 
-		//var sorted_edge_degrees = 
+		//var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
+		//var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();
+		var sorted_vertex_degrees = sort(original_vertex_degrees); 
+		var sorted_edge_degrees = sort(original_edge_degrees);
 		//var sorted_vertex_metamorphosis_coefs = 
 		//var sorted_edge_metamorphosis_coefs = 
 		var idv: int;
@@ -193,8 +195,10 @@ module Generation {
 		while (idv <= numV && idE <= numE){
 			var dv = sorted_vertex_degrees[idv];
 			var dE = sorted_edge_degrees[idE];
-			var mv = sorted_vertex_metamorphosis_coefs[dv];
-			var mE = sorted_edge_metamorphosis_coefs[dE];
+			var mv = 0.4;
+			var mE = 0.6;
+			//var mv = sorted_vertex_metamorphosis_coefs[dv];
+			//var mE = sorted_edge_metamorphosis_coefs[dE];
 			//nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
 			if (idv > numV || idE > numE){
 				break; //make sure the "break" statement is the correct syntax
