@@ -266,7 +266,17 @@ module AdjListHyperGraph {
     proc resize_vertices(size) {
       vertices_dom = {0..(size-1)};
     }
-
+    
+    proc check_unique(vertex,edge){
+        var Flag: bool = true;
+        for each in vertices(vertex).neighborList{
+	    if each.id == edge{
+	        Flag = false;
+	    }
+      }
+      return Flag;
+    }
+    
     proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;

@@ -129,7 +129,9 @@ module Generation {
 			var vertex = get_random_element(vertices_domain, vertex_probabilities);
 			var edge = get_random_element(edges_domain, edge_probabilities);
 			//writeln("vertex,edge: ",vertex, edge);
+			//if graph.check_unique(vertex,edge){
 			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+			//}
 		}
 		return graph;
 	}
