@@ -169,41 +169,41 @@ module Generation {
     //         graph.add_inclusion(vertex, edge);
     //     return graph;
     // }
-    	proc create_input_data_lists(){
-		//do you want this proc to input a file or a graph object?
-	}
 
-	proc preprocess_bter(){
-		//implement this
-	}
-
-	proc compute_params_for_affinity_blocks(){
-	}
 
 	proc bter_hypergraph(input_graph){
 		var original_vertex_degrees: int = input_graph.getVertexDegrees();
 		var original_edge_degrees: int = input_graph.getEdgeDegrees();
-		create_input_data_lists();
+		var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
+		var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();
+		//var sorted_vertex_degrees = 
+		//var sorted_edge_degrees = 
+		//var sorted_vertex_metamorphosis_coefs = 
+		//var sorted_edge_metamorphosis_coefs = 
 		var idv: int;
 		var idE: int;
 		var numV: int;
 		var numE: int;
 		var nV : int;
 		var nE : int;
-		preprocess_bter();
+		var rho: real;
 		var graph = AdjListHyperGraph(numV, numE);
 		while (idv <= numV && idE <= numE){
-			compute_params_for_affinity_blocks();
+			var dv = sorted_vertex_degrees[idv];
+			var dE = sorted_edge_degrees[idE];
+			var mv = sorted_vertex_metamorphosis_coefs[dv];
+			var mE = sorted_edge_metamorphosis_coefs[dE];
+			nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
 			if (idv > numV || idE > numE){
 				break; //make sure the "break" statement is the correct syntax
 			}
 			else{
 				var vertices_domain : domain(int) = {idv..idv + nV};//check syntax
 				var edges_domain : domain(int) = {idE..idE + nE};//check syntax
-				//fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p);
+				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
-			//idv += nV;
-			//idE += nE;
+			idv += nV;
+			idE += nE;
 		}
     		forall (v, vDeg) in graph.getVertexDegrees() {
       			var oldDeg = original_vertex_degrees[v.id];
@@ -216,8 +216,7 @@ module Generation {
 		var sum_of_vertex_diff = + reduce original_vertex_degrees:int;
 		var sum_of_edges_diff = + reduce original_edge_degrees:int;
 		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
-		fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
-		return graph;
+		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
 	}
 
 }
