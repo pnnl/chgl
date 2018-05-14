@@ -193,7 +193,7 @@ module Generation {
 			var dE = sorted_edge_degrees[idE];
 			var mv = sorted_vertex_metamorphosis_coefs[dv];
 			var mE = sorted_edge_metamorphosis_coefs[dE];
-			nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
+			//nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
 			if (idv > numV || idE > numE){
 				break; //make sure the "break" statement is the correct syntax
 			}
