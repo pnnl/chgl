@@ -318,7 +318,7 @@ module AdjListHyperGraph {
 
       // Note: If set of vertices or its domain has changed this may result in errors
       // hence this is not entirely thread-safe yet...
-      forall (degree, v) in zip(degreeDom, vertices) {
+      forall (degree, v) in zip(degreeArr, vertices) {
         degree = v.neighborList.size;
       }
 
@@ -348,7 +348,7 @@ module AdjListHyperGraph {
 
       // Note: If set of vertices or its domain has changed this may result in errors
       // hence this is not entirely thread-safe yet...
-      forall (degree, e) in zip(degreeDom, edges) {
+      forall (degree, e) in zip(degreeArr, edges) {
         degree = e.neighborList.size;
       }
 
