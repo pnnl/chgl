@@ -266,7 +266,7 @@ module AdjListHyperGraph {
     proc resize_vertices(size) {
       vertices_dom = {0..(size-1)};
     }
-    
+
     proc check_unique(vertex,edge){
         var Flag: bool = true;
         for each in vertices(vertex).neighborList{
@@ -276,7 +276,7 @@ module AdjListHyperGraph {
       }
       return Flag;
     }
-    
+
     proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
@@ -335,13 +335,13 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
-    iter getVertexDegrees() : (vDescType, int(64)) {
+    iter forEachVertexDegree() : (vDescType, int(64)) {
       for v in vertices {
         yield (v, v.neighborList.size);
       }
     }
 
-    iter getVertexDegrees(param tag : iterKind) : (vDescType, int(64))
+    iter forEachVertexDegree(param tag : iterKind) : (vDescType, int(64))
       where tag == iterKind.standalone {
         forall v in vertices {
           yield (v, v.neighborList.size);
@@ -365,13 +365,13 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
-    iter getEdgeDegrees() : (eDescType, int(64)) {
+    iter forEachEdgeDegree() : (eDescType, int(64)) {
       for e in edges {
         yield (e, e.neighborList.size);
       }
     }
 
-    iter getEdgeDegrees(param tag : iterKind) : (eDescType, int(64))
+    iter forEachEdgeDegree(param tag : iterKind) : (eDescType, int(64))
       where tag == iterKind.standalone {
         forall e in edges {
           yield (e, e.neighborList.size);

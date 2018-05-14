@@ -1,5 +1,5 @@
 module Generation {
-  
+
 	use IO;
   	use Random;
   	use CyclicDist;
@@ -176,14 +176,14 @@ module Generation {
 
 
 	proc bter_hypergraph(input_graph){
-		var original_vertex_degrees: int = input_graph.getVertexDegrees();
-		var original_edge_degrees: int = input_graph.getEdgeDegrees();
+		var original_vertex_degrees = input_graph.getVertexDegrees();
+		var original_edge_degrees = input_graph.getEdgeDegrees();
 		//var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
 		//var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();
-		var sorted_vertex_degrees = sort(original_vertex_degrees); 
+		var sorted_vertex_degrees = sort(original_vertex_degrees);
 		var sorted_edge_degrees = sort(original_edge_degrees);
-		//var sorted_vertex_metamorphosis_coefs = 
-		//var sorted_edge_metamorphosis_coefs = 
+		//var sorted_vertex_metamorphosis_coefs =
+		//var sorted_edge_metamorphosis_coefs =
 		var idv: int;
 		var idE: int;
 		var numV: int;
@@ -211,11 +211,11 @@ module Generation {
 			idv += nV;
 			idE += nE;
 		}
-    		forall (v, vDeg) in graph.getVertexDegrees() {
+    		forall (v, vDeg) in graph.forEachVertexDegrees() {
       			var oldDeg = original_vertex_degrees[v.id];
       			original_vertex_degrees[v.id] = max(0, oldDeg - vDeg);
     		}
-    		forall (e, eDeg) in graph.getEdgeDegrees() {
+    		forall (e, eDeg) in graph.forEachEdgeDegrees() {
       			var oldDeg = original_edge_degrees[e.id];
       			original_edge_degrees[e.id] = max(0, oldDeg - eDeg);
     		}
