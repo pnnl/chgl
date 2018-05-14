@@ -325,16 +325,17 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
-    iter getVertexDegrees() {
+    iter getVertexDegrees() : (vDescType, int(64)) {
       for v in vertices {
-        yield v.neighborList.size;
+        yield (v, v.neighborList.size);
       }
     }
 
-    iter getVertexDegrees(param tag : iterKind) where tag == iterKind.standalone {
-      forall v in vertices {
-        yield v.neighborList.size;
-      }
+    iter getVertexDegrees(param tag : iterKind) : (vDescType, int(64))
+      where tag == iterKind.standalone {
+        forall v in vertices {
+          yield (v, v.neighborList.size);
+        }
     }
 
     // Obtains list of all degrees; not thread-safe if resized
@@ -354,16 +355,17 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
-    iter getEdgeDegrees() {
+    iter getEdgeDegrees() : (eDescType, int(64)) {
       for e in edges {
-        yield e.neighborList.size;
+        yield (e, e.neighborList.size);
       }
     }
 
-    iter getEdgeDegrees(param tag : iterKind) where tag == iterKind.standalone {
-      forall e in edges {
-        yield e.neighborList.size;
-      }
+    iter getEdgeDegrees(param tag : iterKind) : (eDescType, int(64))
+      where tag == iterKind.standalone {
+        forall e in edges {
+          yield (e, e.neighborList.size);
+        }
     }
 
     // for desc in graph.inclusions(nodeDesc) do ...

@@ -205,15 +205,22 @@ module Generation {
 			//idv += nV;
 			//idE += nE;
 		}
-		//var vertex_degrees: int = graph.get_vertex_degrees();
-		//var edge_degrees: int = graph.get_edge_degrees();
-		//var vertex_degree_diff = original_vertex_degrees - vertex_degrees;//check syntax
-		//var edge_degree_diff = original_edge_degrees - edge_degrees;//check syntax
-		//go through and replace negative values with 0s
-		//var sum_of_vertex_diff = + reduce vertex_degree_diff:int;
-		//var sum_of_edges_diff = + reduce edge_degree_diff:int;
-		//var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);//check with Sinan if taking max() is correct
-		//fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degree_diff, edge_degree_diff, inclusions_to_add);
+    forall (v, vDeg) in graph.getVertexDegrees() {
+      var oldDeg = original_vertex_degrees[v.id];
+      original_vertex_degrees[v.id] = max(0, oldDeg - vDeg);
+    }
+    forall (e, eDeg) in graph.getEdgeDegrees() {
+      var oldDeg = original_edge_degrees[e.id];
+      original_edge_degrees[e.id] = max(0, oldDeg - eDeg);
+    }
+
+    //go through and replace negative values with 0s
+		var sum_of_vertex_diff = + reduce original_vertex_degrees:int;
+		var sum_of_edges_diff = + reduce original_edge_degrees:int;
+
+    //check with Sinan if taking max() is correct
+		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
+		fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
 		return graph;
 	}
 
