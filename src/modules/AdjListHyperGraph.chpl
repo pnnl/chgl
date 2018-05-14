@@ -274,10 +274,103 @@ module AdjListHyperGraph {
       this.edges(eDesc.id).addNodes(vDesc);
     }
 
+    // Compile-time version
+    inline proc toEdge(param desc : integral) param {
+      return desc : eDescType;
+    }
+
+
+    // Runtime version
+    inline proc toEdge(desc : integral) {
+      return desc : eDescType;
+    }
+
+    // Bad argument...
+    inline proc toEdge(desc) param {
+      compilerError("toEdge(" + desc.type : string + ") is not permitted, required"
+      + " 'integral' type ('int(8)', 'int(16)', 'int(32)', 'int(64)')");
+    }
+
+    // Compile-time version
+    inline proc toVertex(param desc : integral) param {
+      return desc : vDescType;
+    }
+
+
+    // Runtime version
+    inline proc toVertex(desc : integral) {
+      return desc : vDescType;
+    }
+
+    // Bad argument...
+    inline proc toVertex(desc) param {
+      compilerError("toVertex(" + desc.type : string + ") is not permitted, required"
+      + " 'integral' type ('int(8)', 'int(16)', 'int(32)', 'int(64)')");
+    }
+
+    // Obtains list of all degrees; not thread-safe if resized
+    proc getVertexDegrees() {
+      // The returned array is mapped over the same domain as the original
+      // As well a *copy* of the domain is returned so that any modifications to
+      // the original are isolated from the returned array.
+      var degreeDom = vertices_dom;
+      var degreeArr : [degreeDom] int(64);
+
+      // Note: If set of vertices or its domain has changed this may result in errors
+      // hence this is not entirely thread-safe yet...
+      forall (degree, v) in zip(degreeDom, vertices) {
+        degree = v.neighborList.size;
+      }
+
+      return degreeArr;
+    }
+
+    iter getVertexDegrees() {
+      for v in vertices {
+        yield v.neighborList.size;
+      }
+    }
+
+    iter getVertexDegrees(param tag : iterKind) where tag == iterKind.standalone {
+      forall v in vertices {
+        yield v.neighborList.size;
+      }
+    }
+
+    // Obtains list of all degrees; not thread-safe if resized
+    proc getEdgeDegrees() {
+      // The returned array is mapped over the same domain as the original
+      // As well a *copy* of the domain is returned so that any modifications to
+      // the original are isolated from the returned array.
+      var degreeDom = edges_dom;
+      var degreeArr : [degreeDom] int(64);
+
+      // Note: If set of vertices or its domain has changed this may result in errors
+      // hence this is not entirely thread-safe yet...
+      forall (degree, e) in zip(degreeDom, edges) {
+        degree = e.neighborList.size;
+      }
+
+      return degreeArr;
+    }
+
+    iter getEdgeDegrees() {
+      for e in edges {
+        yield e.neighborList.size;
+      }
+    }
+
+    iter getEdgeDegrees(param tag : iterKind) where tag == iterKind.standalone {
+      forall e in edges {
+        yield e.neighborList.size;
+      }
+    }
+
     // for desc in graph.inclusions(nodeDesc) do ...
     iter inclusions(desc) where desc.type == vDescType || desc.type == eDescType {
       for _desc in _inclusions(desc) do yield _desc;
     }
+
 
     // forall desc in graph.inclusions(nodeDesc) do ...
     iter inclusions(desc, param tag : iterKind) where

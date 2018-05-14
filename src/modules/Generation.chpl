@@ -179,10 +179,10 @@ module Generation {
 
 	proc compute_params_for_affinity_blocks(){
 	}
-	
+
 	proc bter_hypergraph(input_graph){
-		//var original_vertex_degrees: int = input_graph.get_vertex_degrees();
-		//var original_edge_degrees: int = input_graph.get_edge_degrees();
+		var original_vertex_degrees: int = input_graph.getVertexDegrees();
+		var original_edge_degrees: int = input_graph.getEdgeDegrees();
 		create_input_data_lists();
 		var idv: int;
 		var idE: int;
