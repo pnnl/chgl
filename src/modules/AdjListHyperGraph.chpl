@@ -268,13 +268,12 @@ module AdjListHyperGraph {
     }
 
     proc check_unique(vertex,edge){
-        var Flag: bool = true;
         for each in vertices(vertex).neighborList{
 	    if each.id == edge{
-	        Flag = false;
+	        return false;
 	    }
       }
-      return Flag;
+      return true;
     }
 
     proc add_inclusion(vertex, edge) {
