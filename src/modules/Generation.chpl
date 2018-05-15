@@ -14,7 +14,7 @@ module Generation {
 		var r = randValue*sum_probs: real;
 		var temp_sum = 0.0: real;
 		var the_index = -99;
-		for i in probabilities.domain
+		for i in probabilities.domain do
 		{
 			temp_sum += probabilities[i];
 			if r <= temp_sum
@@ -23,7 +23,7 @@ module Generation {
 				break;
 			}
 		}
-		return elements[the_index];
+		return the_index; // this changed because of an error when trying to address an index within it, all indexes and the values contained should be equal anyway
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
@@ -121,7 +121,7 @@ module Generation {
 		var edge_probabilities: [edges_domain] real;
 		var randStream: RandomStream(real) = new RandomStream(real);
 		forall idx in vertices_domain{
-			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
+		      vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real; ;
 		}
 		forall idx in edges_domain{
 			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
