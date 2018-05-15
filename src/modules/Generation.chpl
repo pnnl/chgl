@@ -175,24 +175,25 @@ module Generation {
     // }
 
 	proc bter_hypergraph(input_graph){
-		var original_vertex_degrees = input_graph.getVertexDegrees();
-		var original_edge_degrees = input_graph.getEdgeDegrees();
+		//var original_vertex_degrees = input_graph.getVertexDegrees();
+		//var original_edge_degrees = input_graph.getEdgeDegrees();
 		//var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
 		//var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();	
-		return bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef);
+		//return bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef);
 	
 	}
+
 	proc get_smallest_value_greater_than_one(sorted_array){
 	}
 
 	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
-		var sorted_vertex_degrees = sort(original_vertex_degrees);
-		var sorted_edge_degrees = sort(original_edge_degrees);
+		var sorted_vertex_degrees = sort(vertex_degrees);
+		var sorted_edge_degrees = sort(edge_degrees);
 		var sorted_vertex_metamorphosis_coefs = sort(vertex_metamorph_coef);
 		var sorted_edge_metamorphosis_coefs = sort(edge_metamorph_coef);
 		var idv: int = get_smallest_value_greater_than_one(sorted_vertex_degrees);
 		var idE: int = get_smallest_value_greater_than_one(sorted_edge_degrees);
-		var numV: int = vertex_degress.size;
+		var numV: int = vertex_degrees.size;
 		var numE: int = edge_degrees.size;
 		var nV : int;
 		var nE : int;
@@ -223,10 +224,10 @@ module Generation {
       			var oldDeg = edge_degrees[e.id];
       			edge_degrees[e.id] = max(0, oldDeg - eDeg);
     		}
-		var sum_of_vertex_diff = + reduce original_vertex_degrees:int;
-		var sum_of_edges_diff = + reduce original_edge_degrees:int;
+		var sum_of_vertex_diff = + reduce vertex_degrees:int;
+		var sum_of_edges_diff = + reduce edge_degrees:int;
 		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
-		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
+		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
 	}
 
 }
