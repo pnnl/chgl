@@ -9,10 +9,9 @@ module Generation {
 
 	//Pending: Take seed as input
 	//Returns index of the desired item
-	proc get_random_element(elements, probabilities){
+	proc get_random_element(elements, probabilities,randValue){
 		var sum_probs = + reduce probabilities:real;
-		var randStream: RandomStream(real) = new RandomStream(real);
-		var r = randStream.getNext()*sum_probs: real;
+		var r = randValue*sum_probs: real;
 		var temp_sum = 0.0: real;
 		var the_index = -99;
 		for i in probabilities.domain
@@ -120,6 +119,7 @@ module Generation {
 		var sum_degrees = + reduce desired_vertex_degrees:int;
 		var vertex_probabilities: [vertices_domain] real;
 		var edge_probabilities: [edges_domain] real;
+		var randStream: RandomStream(real) = new RandomStream(real);
 		forall idx in vertices_domain{
 			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
 		}
@@ -128,8 +128,8 @@ module Generation {
 		}
 		forall k in 1..inclusions_to_add
 		{
-			var vertex = get_random_element(vertices_domain, vertex_probabilities);
-			var edge = get_random_element(edges_domain, edge_probabilities);
+			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
+			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
 			//writeln("vertex,edge: ",vertex, edge);
 			//if graph.check_unique(vertex,edge){
 			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
