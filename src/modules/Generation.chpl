@@ -9,13 +9,12 @@ module Generation {
 
 	//Pending: Take seed as input
 	//Returns index of the desired item
-	proc get_random_element(elements, probabilities){
+	proc get_random_element(elements, probabilities,randValue){
 		var sum_probs = + reduce probabilities:real;
-		var randStream: RandomStream(real) = new RandomStream(real);
-		var r = randStream.getNext()*sum_probs: real;
+		var r = randValue*sum_probs: real;
 		var temp_sum = 0.0: real;
 		var the_index = -99;
-		for i in probabilities.domain
+		for i in probabilities.domain do
 		{
 			temp_sum += probabilities[i];
 			if r <= temp_sum
@@ -24,7 +23,7 @@ module Generation {
 				break;
 			}
 		}
-		return elements[the_index];
+		return the_index; // this changed because of an error when trying to address an index within it, all indexes and the values contained should be equal anyway
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
@@ -120,16 +119,17 @@ module Generation {
 		var sum_degrees = + reduce desired_vertex_degrees:int;
 		var vertex_probabilities: [vertices_domain] real;
 		var edge_probabilities: [edges_domain] real;
+		var randStream: RandomStream(real) = new RandomStream(real);
 		forall idx in vertices_domain{
-			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
+		      vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real; ;
 		}
 		forall idx in edges_domain{
 			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
 		}
 		forall k in 1..inclusions_to_add
 		{
-			var vertex = get_random_element(vertices_domain, vertex_probabilities);
-			var edge = get_random_element(edges_domain, edge_probabilities);
+			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
+			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
 			//writeln("vertex,edge: ",vertex, edge);
 			//if graph.check_unique(vertex,edge){
 			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
@@ -174,20 +174,27 @@ module Generation {
     //     return graph;
     // }
 
-
 	proc bter_hypergraph(input_graph){
-		var original_vertex_degrees = input_graph.getVertexDegrees();
-		var original_edge_degrees = input_graph.getEdgeDegrees();
+		//var original_vertex_degrees = input_graph.getVertexDegrees();
+		//var original_edge_degrees = input_graph.getEdgeDegrees();
 		//var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
 		//var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();
-		var sorted_vertex_degrees = sort(original_vertex_degrees);
-		var sorted_edge_degrees = sort(original_edge_degrees);
-		//var sorted_vertex_metamorphosis_coefs =
-		//var sorted_edge_metamorphosis_coefs =
-		var idv: int;
-		var idE: int;
-		var numV: int;
-		var numE: int;
+		//return bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef);
+
+	}
+
+	proc get_smallest_value_greater_than_one(sorted_array){
+	}
+
+	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
+		var sorted_vertex_degrees = sort(vertex_degrees);
+		var sorted_edge_degrees = sort(edge_degrees);
+		var sorted_vertex_metamorphosis_coefs = sort(vertex_metamorph_coef);
+		var sorted_edge_metamorphosis_coefs = sort(edge_metamorph_coef);
+		var idv: int = get_smallest_value_greater_than_one(sorted_vertex_degrees);
+		var idE: int = get_smallest_value_greater_than_one(sorted_edge_degrees);
+		var numV: int = vertex_degrees.size;
+		var numE: int = edge_degrees.size;
 		var nV : int;
 		var nE : int;
 		var rho: real;
@@ -195,34 +202,32 @@ module Generation {
 		while (idv <= numV && idE <= numE){
 			var dv = sorted_vertex_degrees[idv];
 			var dE = sorted_edge_degrees[idE];
-			var mv = 0.4;
-			var mE = 0.6;
-			//var mv = sorted_vertex_metamorphosis_coefs[dv];
-			//var mE = sorted_edge_metamorphosis_coefs[dE];
+			var mv = sorted_vertex_metamorphosis_coefs[dv];
+			var mE = sorted_edge_metamorphosis_coefs[dE];
 			//nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
 			if (idv > numV || idE > numE){
-				break; //make sure the "break" statement is the correct syntax
+				break;
 			}
 			else{
-				var vertices_domain : domain(int) = {idv..idv + nV};//check syntax
-				var edges_domain : domain(int) = {idE..idE + nE};//check syntax
+				var vertices_domain : domain(int) = {idv..idv + nV};
+				var edges_domain : domain(int) = {idE..idE + nE};
 				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
 			idv += nV;
 			idE += nE;
 		}
-    		forall (v, vDeg) in graph.forEachVertexDegree() {
-      			var oldDeg = original_vertex_degrees[v.id];
-      			original_vertex_degrees[v.id] = max(0, oldDeg - vDeg);
+    		forall (v, vDeg) in graph.forEachVertexDegrees() {
+      			var oldDeg = vertex_degrees[v.id];
+      			vertex_degrees[v.id] = max(0, oldDeg - vDeg);
     		}
-    		forall (e, eDeg) in graph.forEachEdgeDegree() {
-      			var oldDeg = original_edge_degrees[e.id];
-      			original_edge_degrees[e.id] = max(0, oldDeg - eDeg);
+    		forall (e, eDeg) in graph.forEachEdgeDegrees() {
+      			var oldDeg = edge_degrees[e.id];
+      			edge_degrees[e.id] = max(0, oldDeg - eDeg);
     		}
-		var sum_of_vertex_diff = + reduce original_vertex_degrees:int;
-		var sum_of_edges_diff = + reduce original_edge_degrees:int;
+		var sum_of_vertex_diff = + reduce vertex_degrees:int;
+		var sum_of_edges_diff = + reduce edge_degrees:int;
 		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
-		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
+		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
 	}
 
 }
