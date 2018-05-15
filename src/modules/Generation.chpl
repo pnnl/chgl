@@ -174,20 +174,26 @@ module Generation {
     //     return graph;
     // }
 
-
 	proc bter_hypergraph(input_graph){
 		var original_vertex_degrees = input_graph.getVertexDegrees();
 		var original_edge_degrees = input_graph.getEdgeDegrees();
 		//var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
-		//var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();
+		//var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();	
+		return bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef);
+	
+	}
+	proc get_smallest_value_greater_than_one(sorted_array){
+	}
+
+	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
 		var sorted_vertex_degrees = sort(original_vertex_degrees);
 		var sorted_edge_degrees = sort(original_edge_degrees);
-		//var sorted_vertex_metamorphosis_coefs =
-		//var sorted_edge_metamorphosis_coefs =
-		var idv: int;
-		var idE: int;
-		var numV: int;
-		var numE: int;
+		var sorted_vertex_metamorphosis_coefs = sort(vertex_metamorph_coef);
+		var sorted_edge_metamorphosis_coefs = sort(edge_metamorph_coef);
+		var idv: int = get_smallest_value_greater_than_one(sorted_vertex_degrees);
+		var idE: int = get_smallest_value_greater_than_one(sorted_edge_degrees);
+		var numV: int = vertex_degress.size;
+		var numE: int = edge_degrees.size;
 		var nV : int;
 		var nE : int;
 		var rho: real;
@@ -195,29 +201,27 @@ module Generation {
 		while (idv <= numV && idE <= numE){
 			var dv = sorted_vertex_degrees[idv];
 			var dE = sorted_edge_degrees[idE];
-			var mv = 0.4;
-			var mE = 0.6;
-			//var mv = sorted_vertex_metamorphosis_coefs[dv];
-			//var mE = sorted_edge_metamorphosis_coefs[dE];
+			var mv = sorted_vertex_metamorphosis_coefs[dv];
+			var mE = sorted_edge_metamorphosis_coefs[dE];
 			//nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
 			if (idv > numV || idE > numE){
-				break; //make sure the "break" statement is the correct syntax
+				break;
 			}
 			else{
-				var vertices_domain : domain(int) = {idv..idv + nV};//check syntax
-				var edges_domain : domain(int) = {idE..idE + nE};//check syntax
+				var vertices_domain : domain(int) = {idv..idv + nV};
+				var edges_domain : domain(int) = {idE..idE + nE};
 				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
 			idv += nV;
 			idE += nE;
 		}
     		forall (v, vDeg) in graph.forEachVertexDegrees() {
-      			var oldDeg = original_vertex_degrees[v.id];
-      			original_vertex_degrees[v.id] = max(0, oldDeg - vDeg);
+      			var oldDeg = vertex_degrees[v.id];
+      			vertex_degrees[v.id] = max(0, oldDeg - vDeg);
     		}
     		forall (e, eDeg) in graph.forEachEdgeDegrees() {
-      			var oldDeg = original_edge_degrees[e.id];
-      			original_edge_degrees[e.id] = max(0, oldDeg - eDeg);
+      			var oldDeg = edge_degrees[e.id];
+      			edge_degrees[e.id] = max(0, oldDeg - eDeg);
     		}
 		var sum_of_vertex_diff = + reduce original_vertex_degrees:int;
 		var sum_of_edges_diff = + reduce original_edge_degrees:int;
