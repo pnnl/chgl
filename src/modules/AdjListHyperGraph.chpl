@@ -276,7 +276,7 @@ module AdjListHyperGraph {
       return true;
     }
 
-    proc add_inclusion(vertex, edge) {
+    inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
       this.vertices(vDesc.id).addNodes(eDesc);
