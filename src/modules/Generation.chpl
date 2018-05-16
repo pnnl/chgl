@@ -27,8 +27,8 @@ module Generation {
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
-    	var desired_vertex_degrees = [vertices_domain]: real;
-    	var desired_edge_degrees = [edges_domain]: real;
+    	var desired_vertex_degrees: [vertices_domain] real;
+    	var desired_edge_degrees: [edges_domain] real;
     	var num_vertices = vertices_domain.size;
     	var num_edges = edges_domain.size;
     	forall i in vertices_domain{
@@ -38,8 +38,8 @@ module Generation {
     		desired_edge_degrees[i] = num_vertices*p;
     	}
     	var inclusions_to_add = num_vertices*num_edges*log(p/(1-p)): int;
-    	graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
-    	return graph;
+    	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+    	return new_graph;
   }
 
   iter getPairs(adjList) {
@@ -121,18 +121,18 @@ module Generation {
 		//var edge_probabilities: [edges_domain] real;
 		var randStream: RandomStream(real) = new RandomStream(real);
 		//forall idx in vertices_domain{
-		var vertex_probabilities = desired_vertex_degrees/sum_degrees;
+		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
 		//}
 		//forall idx in edges_domain{
-		var edge_probabilities = desired_edge_degrees/sum_degrees;
+		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
 		//}
 		forall k in 1..inclusions_to_add
 		{
-			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
-			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
+//			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
+//			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
 			//writeln("vertex,edge: ",vertex, edge);
 			//if graph.check_unique(vertex,edge){
-			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+//			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
 			//}
 		}
 		return graph;
@@ -272,8 +272,8 @@ module Generation {
 				var edges_domain : domain(int) = {idE..idE + nE_int};
 				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
-			idv += nV;
-			idE += nE;
+			idv += (nV:int);
+			idE += (nE:int);
 		}
     		forall (v, vDeg) in graph.forEachVertexDegrees() {
       			var oldDeg = vertex_degrees[v.id];
