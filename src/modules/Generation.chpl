@@ -198,6 +198,9 @@ module Generation {
 	
 	proc compute_params_for_affinity_blocks(dv, dE, mv, mE){
 		var params: [1..3] real;
+		var nV: real;
+		var nE: real;
+		var rho: real;		
 		
 		//determine the nV, nE, rho
 		if (mv/mE >= 1) {
@@ -237,23 +240,23 @@ module Generation {
 
 
 	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
-		var sorted_vertex_degrees = sort(vertex_degrees);
-		var sorted_edge_degrees = sort(edge_degrees);
-		var sorted_vertex_metamorphosis_coefs = sort(vertex_metamorph_coef);
-		var sorted_edge_metamorphosis_coefs = sort(edge_metamorph_coef);
-		var idv: int = get_smallest_value_greater_than_one(sorted_vertex_degrees);
-		var idE: int = get_smallest_value_greater_than_one(sorted_edge_degrees);
+		sort(vertex_degrees);
+		sort(edge_degrees);
+		sort(vertex_metamorph_coef);
+		sort(edge_metamorph_coef);
+		var idv: int = get_smallest_value_greater_than_one(vertex_degrees);
+		var idE: int = get_smallest_value_greater_than_one(edge_degrees);
 		var numV: int = vertex_degrees.size;
 		var numE: int = edge_degrees.size;
 		var nV : real;
 		var nE : real;
 		var rho: real;
-		var graph = AdjListHyperGraph(numV, numE);
+		var graph = new AdjListHyperGraph(numV, numE);
 		while (idv <= numV && idE <= numE){
-			var dv = sorted_vertex_degrees[idv];
-			var dE = sorted_edge_degrees[idE];
-			var mv = sorted_vertex_metamorphosis_coefs[dv];
-			var mE = sorted_edge_metamorphosis_coefs[dE];
+			var dv = vertex_degrees[idv];
+			var dE = edge_degrees[idE];
+			var mv = vertex_metamorph_coef[dv];
+			var mE = edge_metamorph_coef[dE];
 			var parameters = compute_params_for_affinity_blocks(dv, dE, mv, mE);
 			nV = parameters[1];
 			nE = parameters[2];
@@ -262,8 +265,11 @@ module Generation {
 				break;
 			}
 			else{
-				var vertices_domain : domain(int) = {idv..idv + nV};
-				var edges_domain : domain(int) = {idE..idE + nE};
+				var nV_int = nV:int;
+				var nE_int = nE:int;
+				
+				var vertices_domain : domain(int) = {idv..idv + nV_int};
+				var edges_domain : domain(int) = {idE..idE + nE_int};
 				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
 			idv += nV;
