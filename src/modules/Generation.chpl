@@ -275,11 +275,11 @@ module Generation {
 			idv += (nV:int);
 			idE += (nE:int);
 		}
-    		forall (v, vDeg) in graph.forEachVertexDegrees() {
+    		forall (v, vDeg) in graph.forEachVertexDegree() {
       			var oldDeg = vertex_degrees[v.id];
       			vertex_degrees[v.id] = max(0, oldDeg - vDeg);
     		}
-    		forall (e, eDeg) in graph.forEachEdgeDegrees() {
+    		forall (e, eDeg) in graph.forEachEdgeDegree() {
       			var oldDeg = edge_degrees[e.id];
       			edge_degrees[e.id] = max(0, oldDeg - eDeg);
     		}
