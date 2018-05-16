@@ -1,1 +1,1 @@
--M../../src/
+-M=../../src/modules -M=../../src --no-dead-code-elimination
