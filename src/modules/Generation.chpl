@@ -98,9 +98,9 @@ module Generation {
 	//	var vertex_probabilities: [1..num_vertices] real;
 	//	var edge_probabilities: [1..num_edges] real;
 	//
-	//	forall idx in desired_vertex_degrees.domain{
-	//		vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
-	//	}
+	//	forall idx in vertices_domain{
+			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
+		}
 	//	forall idx in desired_edge_degrees.domain{
 	//		edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
 	//	}
