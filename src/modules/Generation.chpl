@@ -10,25 +10,25 @@ module Generation {
 	//Pending: Take seed as input
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
-		var sum_probs = + reduce probabilities:real;
-		var r = randValue*sum_probs: real;
+		//var sum_probs = + reduce probabilities:real;
+		//var r = randValue*sum_probs: real;
 		var temp_sum = 0.0: real;
 		var the_index = -99;
 		for i in probabilities.domain do
 		{
 			temp_sum += probabilities[i];
-			if r <= temp_sum
+			if randValue <= temp_sum
 			{
 				the_index = i;
 				break;
 			}
 		}
-		return the_index; // this changed because of an error when trying to address an index within it, all indexes and the values contained should be equal anyway
+		return (elements : [0..(elements.size - 1)] real)[the_index - 1] : int;
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
-    	var desired_vertex_degrees = [vertices_domain]: real;
-    	var desired_edge_degrees = [edges_domain]: real;
+    	var desired_vertex_degrees: [vertices_domain] real;
+    	var desired_edge_degrees: [edges_domain] real;
     	var num_vertices = vertices_domain.size;
     	var num_edges = edges_domain.size;
     	forall i in vertices_domain{
@@ -38,8 +38,8 @@ module Generation {
     		desired_edge_degrees[i] = num_vertices*p;
     	}
     	var inclusions_to_add = num_vertices*num_edges*log(p/(1-p)): int;
-    	graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
-    	return graph;
+    	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+    	return new_graph;
   }
 
   iter getPairs(adjList) {
@@ -97,10 +97,10 @@ module Generation {
 	//	var sum_degrees = + reduce desired_vertex_degrees:int;
 	//	var vertex_probabilities: [1..num_vertices] real;
 	//	var edge_probabilities: [1..num_edges] real;
-	//
-	//	forall idx in desired_vertex_degrees.domain{
+	//  forall idx in desired_vertex_degrees.domain{
 	//		vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
 	//	}
+	//	
 	//	forall idx in desired_edge_degrees.domain{
 	//		edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
 	//	}
@@ -116,24 +116,24 @@ module Generation {
     	//}
 
 	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
-		var sum_degrees = + reduce desired_vertex_degrees:int;
-		var vertex_probabilities: [vertices_domain] real;
-		var edge_probabilities: [edges_domain] real;
+		var sum_degrees = + reduce desired_vertex_degrees:real;
+		//var vertex_probabilities: [vertices_domain] real;
+		//var edge_probabilities: [edges_domain] real;
 		var randStream: RandomStream(real) = new RandomStream(real);
-		forall idx in vertices_domain{
-		      vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real; ;
-		}
-		forall idx in edges_domain{
-			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
-		}
+		//forall idx in vertices_domain{
+		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
+		//}
+		//forall idx in edges_domain{
+		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
+		//}
 		forall k in 1..inclusions_to_add
 		{
 			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
 			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
 			//writeln("vertex,edge: ",vertex, edge);
-			//if graph.check_unique(vertex,edge){
-			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
-			//}
+			if graph.check_unique(vertex,edge){
+				graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+			}
 		}
 		return graph;
 	}
@@ -184,43 +184,102 @@ module Generation {
 	}
 
 	proc get_smallest_value_greater_than_one(sorted_array){
+	    var id: int;
+		for i in 1.. sorted_array.size
+		{
+			if sorted_array[i] > 1
+			{
+				id = i;
+				break;
+			}
+		}
+		return id;
+	}
+	
+	proc compute_params_for_affinity_blocks(dv, dE, mv, mE){
+		var params: [1..3] real;
+		var nV: real;
+		var nE: real;
+		var rho: real;		
+		
+		//determine the nV, nE, rho
+		if (mv/mE >= 1) {
+			nV = dE;
+			
+			if mE == 0{
+				nE = 0;
+			}
+			else{
+				nE = (mv/mE)*dv;
+			 
+			}
+			rho = (((dv-1)*(mE**2.0))/(mv*dv - mE))**(1/4.0);	
+				
+		}
+		else{
+			if mv == 0{
+				nV = 0;
+			}
+			else{
+				nV = (mE/mv)*dE;
+			}
+			nE = dv;
+			rho = (((dE-1)*(mv**2.0))/(mE*dE - mv))**(1/4.0);
+			
+		}
+
+		nV = round(nV);
+		nE = round(nE);
+		params[1] = nV;
+		params[2] = nE;
+		params[3] = rho;
+			
+		return params;
+		
 	}
 
+
 	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
-		var sorted_vertex_degrees = sort(vertex_degrees);
-		var sorted_edge_degrees = sort(edge_degrees);
-		var sorted_vertex_metamorphosis_coefs = sort(vertex_metamorph_coef);
-		var sorted_edge_metamorphosis_coefs = sort(edge_metamorph_coef);
-		var idv: int = get_smallest_value_greater_than_one(sorted_vertex_degrees);
-		var idE: int = get_smallest_value_greater_than_one(sorted_edge_degrees);
+		sort(vertex_degrees);
+		sort(edge_degrees);
+		sort(vertex_metamorph_coef);
+		sort(edge_metamorph_coef);
+		var idv: int = get_smallest_value_greater_than_one(vertex_degrees);
+		var idE: int = get_smallest_value_greater_than_one(edge_degrees);
 		var numV: int = vertex_degrees.size;
 		var numE: int = edge_degrees.size;
-		var nV : int;
-		var nE : int;
+		var nV : real;
+		var nE : real;
 		var rho: real;
-		var graph = AdjListHyperGraph(numV, numE);
+		var graph = new AdjListHyperGraph(numV, numE);
 		while (idv <= numV && idE <= numE){
-			var dv = sorted_vertex_degrees[idv];
-			var dE = sorted_edge_degrees[idE];
-			var mv = sorted_vertex_metamorphosis_coefs[dv];
-			var mE = sorted_edge_metamorphosis_coefs[dE];
-			//nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
+			var dv = vertex_degrees[idv];
+			var dE = edge_degrees[idE];
+			var mv = vertex_metamorph_coef[dv];
+			var mE = edge_metamorph_coef[dE];
+			var parameters = compute_params_for_affinity_blocks(dv, dE, mv, mE);
+			nV = parameters[1];
+			nE = parameters[2];
+			rho = parameters[3];
 			if (idv > numV || idE > numE){
 				break;
 			}
 			else{
-				var vertices_domain : domain(int) = {idv..idv + nV};
-				var edges_domain : domain(int) = {idE..idE + nE};
+				var nV_int = nV:int;
+				var nE_int = nE:int;
+				
+				var vertices_domain : domain(int) = {idv..idv + nV_int};
+				var edges_domain : domain(int) = {idE..idE + nE_int};
 				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
-			idv += nV;
-			idE += nE;
+			idv += (nV:int);
+			idE += (nE:int);
 		}
-    		forall (v, vDeg) in graph.forEachVertexDegrees() {
+    		forall (v, vDeg) in graph.forEachVertexDegree() {
       			var oldDeg = vertex_degrees[v.id];
       			vertex_degrees[v.id] = max(0, oldDeg - vDeg);
     		}
-    		forall (e, eDeg) in graph.forEachEdgeDegrees() {
+    		forall (e, eDeg) in graph.forEachEdgeDegree() {
       			var oldDeg = edge_degrees[e.id];
       			edge_degrees[e.id] = max(0, oldDeg - eDeg);
     		}
