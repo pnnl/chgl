@@ -23,7 +23,7 @@ module Generation {
 				break;
 			}
 		}
-		return (elements:[0..(elements.size)]: real)[the_index];
+		return (elements:[0..(elements.size - 1)] real)[the_index];
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
