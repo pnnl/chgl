@@ -23,7 +23,7 @@ module Generation {
 				break;
 			}
 		}
-		return the_index;
+		return (elements : [0..(elements.size - 1)] real)[the_index - 1] : int;
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
@@ -131,9 +131,9 @@ module Generation {
 			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
 			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
 			//writeln("vertex,edge: ",vertex, edge);
-			//if graph.check_unique(vertex,edge){
-//			graph.add_inclusion(vertex, edge);//How to check duplicate edge??
-			//}
+			if graph.check_unique(vertex,edge){
+				graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+			}
 		}
 		return graph;
 	}
