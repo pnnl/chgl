@@ -31,7 +31,7 @@ coforall loc in Locales do on loc {
     // Open file again and skip to portion of file we want...
     var file = open("../../baylor-nodupes.bin", iomode.r, style = new iostyle(binary=1));
     var reader = file.reader();
-    reader.advance(16 + (idx - 1) * 8);
+    reader.advance(16 + idx * 8);
 
     // Read our beginning offset...
     var beginOffset : uint(64);
@@ -43,9 +43,9 @@ coforall loc in Locales do on loc {
     // other nodes. However if the idx is at the end of the array, we need to
     // make the endOffset the end of the array.
     if idx == (numEdges + numVertices) {
-      endOffset = numVertices * 8;
+      endOffset = numVertices;
     } else {
-      endOffset = reader.read(endOffset);
+      reader.read(endOffset);
     }
     endOffset -= 1:uint;
 
@@ -59,28 +59,7 @@ coforall loc in Locales do on loc {
     for beginOffset..endOffset {
       var edge : uint(64);
       reader.read(edge);
-      graph.add_inclusion(idx, edge);
+      graph.add_inclusion(idx : int, (edge - numVertices) : int);
     }
   }
 }
-
-/*
-var verticesRange = 0..#numVertices;
-var vertexStart = vertexOffsets[..maxVertexIdx];
-var vertexEnd = vertexOffsets[1..];
-vertexEnd.push_back(vertex_domain.high * 8);
-for (vertex, start, end) in zip(verticesRange, vertexStart, vertexEnd) {
-  for pos in (start..#end) {
-    graph.vertices(vertex).push_back(data[pos]);
-  }
-}
-
-var edgesRange = 1..#numEdges;
-var edgeStart = edgeOffsets[..maxEdgeIdx];
-var edgeEnd = edgeOffsets[1..];
-edgeEnd.push_back(edge_domain.high * 8);
-forall (edge, start, end) in zip(edgesRange, edgeStart, edgeEnd) {
-  for pos in start..end {
-    graph.edges(edge).push_back(data[pos]);
-  }
-} */
