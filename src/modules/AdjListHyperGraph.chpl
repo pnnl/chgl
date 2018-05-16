@@ -334,16 +334,19 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
+    // TODO: Need a better way of getting vertex... right now a lot of casting has to
+    // be done and we need to return the index (from its domain) rather than the
+    // vertex itself...
     iter forEachVertexDegree() : (vDescType, int(64)) {
-      for v in vertices {
-        yield (v, v.neighborList.size);
+      for (vid, v) in zip(vertices_dom, vertices) {
+        yield (vid : vDescType, v.neighborList.size);
       }
     }
 
     iter forEachVertexDegree(param tag : iterKind) : (vDescType, int(64))
       where tag == iterKind.standalone {
-        forall v in vertices {
-          yield (v, v.neighborList.size);
+        forall (vid, v) in zip(vertices_dom, vertices) {
+          yield (vid : vDescType, v.neighborList.size);
         }
     }
 
@@ -365,15 +368,15 @@ module AdjListHyperGraph {
     }
 
     iter forEachEdgeDegree() : (eDescType, int(64)) {
-      for e in edges {
-        yield (e, e.neighborList.size);
+      for (eid, e) in zip(edges_dom, edges) {
+        yield (eid : eDescType, e.neighborList.size);
       }
     }
 
     iter forEachEdgeDegree(param tag : iterKind) : (eDescType, int(64))
       where tag == iterKind.standalone {
-        forall e in edges {
-          yield (e, e.neighborList.size);
+        forall (eid, e) in zip(edges_dom, edges) {
+          yield (eid : eDescType, e.neighborList.size);
         }
     }
 
