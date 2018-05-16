@@ -184,7 +184,57 @@ module Generation {
 	}
 
 	proc get_smallest_value_greater_than_one(sorted_array){
+	    var id: int;
+		for i in 1.. sorted_array.size
+		{
+			if sorted_array[i] > 1
+			{
+				id = i;
+				break;
+			}
+		}
+		return id;
 	}
+	
+	proc compute_params_for_affinity_blocks(dv, dE, mv, mE){
+		var params: [1..3] real;
+		
+		//determine the nV, nE, rho
+		if (mv/mE >= 1) {
+			nV = dE;
+			
+			if mE == 0{
+				nE = 0;
+			}
+			else{
+				nE = (mv/mE)*dv;
+			 
+			}
+			rho = (((dv-1)*(mE**2.0))/(mv*dv - mE))**(1/4.0);	
+				
+		}
+		else{
+			if mv == 0{
+				nV = 0;
+			}
+			else{
+				nV = (mE/mv)*dE;
+			}
+			nE = dv;
+			rho = (((dE-1)*(mv**2.0))/(mE*dE - mv))**(1/4.0);
+			
+		}
+
+		nV = round(nV);
+		nE = round(nE);
+		params[1] = nV;
+		params[2] = nE;
+		params[3] = rho;
+			
+		return params;
+		
+	}
+
 
 	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
 		var sorted_vertex_degrees = sort(vertex_degrees);
@@ -195,8 +245,8 @@ module Generation {
 		var idE: int = get_smallest_value_greater_than_one(sorted_edge_degrees);
 		var numV: int = vertex_degrees.size;
 		var numE: int = edge_degrees.size;
-		var nV : int;
-		var nE : int;
+		var nV : real;
+		var nE : real;
 		var rho: real;
 		var graph = AdjListHyperGraph(numV, numE);
 		while (idv <= numV && idE <= numE){
@@ -204,7 +254,10 @@ module Generation {
 			var dE = sorted_edge_degrees[idE];
 			var mv = sorted_vertex_metamorphosis_coefs[dv];
 			var mE = sorted_edge_metamorphosis_coefs[dE];
-			//nV, nE, rho = compute_params_for_affinity_blocks(dv, dE, mv, mE);
+			var parameters = compute_params_for_affinity_blocks(dv, dE, mv, mE);
+			nV = parameters[1];
+			nE = parameters[2];
+			rho = parameters[3];
 			if (idv > numV || idE > numE){
 				break;
 			}
