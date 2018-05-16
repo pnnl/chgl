@@ -23,7 +23,7 @@ module Generation {
 				break;
 			}
 		}
-		return the_index; // this changed because of an error when trying to address an index within it, all indexes and the values contained should be equal anyway
+		return (elements:[0..(elements.size)]: real)[the_index];
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
