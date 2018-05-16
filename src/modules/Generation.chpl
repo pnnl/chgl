@@ -97,10 +97,10 @@ module Generation {
 	//	var sum_degrees = + reduce desired_vertex_degrees:int;
 	//	var vertex_probabilities: [1..num_vertices] real;
 	//	var edge_probabilities: [1..num_edges] real;
-	//
-	//	forall idx in vertices_domain{
-			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
-		}
+	//  forall idx in desired_vertex_degrees.domain{
+	//		vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
+	//	}
+	//	
 	//	forall idx in desired_edge_degrees.domain{
 	//		edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
 	//	}
@@ -121,7 +121,7 @@ module Generation {
 		var edge_probabilities: [edges_domain] real;
 		var randStream: RandomStream(real) = new RandomStream(real);
 		forall idx in vertices_domain{
-		      vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real; ;
+			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
 		}
 		forall idx in edges_domain{
 			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
