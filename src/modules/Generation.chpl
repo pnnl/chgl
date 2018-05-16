@@ -10,14 +10,14 @@ module Generation {
 	//Pending: Take seed as input
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
-		var sum_probs = + reduce probabilities:real;
-		var r = randValue*sum_probs: real;
+		//var sum_probs = + reduce probabilities:real;
+		//var r = randValue*sum_probs: real;
 		var temp_sum = 0.0: real;
 		var the_index = -99;
 		for i in probabilities.domain do
 		{
 			temp_sum += probabilities[i];
-			if r <= temp_sum
+			if randValue <= temp_sum
 			{
 				the_index = i;
 				break;
@@ -116,16 +116,16 @@ module Generation {
     	//}
 
 	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
-		var sum_degrees = + reduce desired_vertex_degrees:int;
-		var vertex_probabilities: [vertices_domain] real;
-		var edge_probabilities: [edges_domain] real;
+		var sum_degrees = + reduce desired_vertex_degrees:real;
+		//var vertex_probabilities: [vertices_domain] real;
+		//var edge_probabilities: [edges_domain] real;
 		var randStream: RandomStream(real) = new RandomStream(real);
-		forall idx in vertices_domain{
-			vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
-		}
-		forall idx in edges_domain{
-			edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
-		}
+		//forall idx in vertices_domain{
+		var vertex_probabilities = desired_vertex_degrees/sum_degrees;
+		//}
+		//forall idx in edges_domain{
+		var edge_probabilities = desired_edge_degrees/sum_degrees;
+		//}
 		forall k in 1..inclusions_to_add
 		{
 			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
