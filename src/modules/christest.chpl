@@ -124,16 +124,15 @@ module Generation {
 		var vertex_probabilities : [0..(desired_vertex_degrees.size - 1)] real;
 		var count : int = 0;
 		for each in desired_vertex_degrees{
-			vertex_probabilities[count] = each/sum_degrees real;
+			vertex_probabilities[count] = each/sum_degrees;
 			count += 1;
 		}
-		vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
 		//}
 		//forall idx in edges_domain{
 		var edge_probabilities : [0..(desired_edge_degrees.size - 1)] real;
 		count = 0;
 		for each in desired_edge_degrees{
-			edge_probabilities[count] = each/sum_degrees real;
+			edge_probabilities[count] = each/sum_degrees;
 			count += 1;
 		}
 		//}
