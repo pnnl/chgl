@@ -10,8 +10,12 @@ module Generation {
 	//Pending: Take seed as input
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
-		//var sum_probs = + reduce probabilities:real;
-		//var r = randValue*sum_probs: real;
+		var elist : [1..elements.size] int;
+		var count = 0;
+		for each in elements{
+			count += 1;
+			elist[count] = each;
+		}
 		var temp_sum = 0.0: real;
 		var the_index = -99;
 		for i in probabilities.domain do
@@ -22,8 +26,14 @@ module Generation {
 				the_index = i;
 				break;
 			}
+			else{
+				count = i;
+			}
 		}
-		return (elements : [0..(elements.size - 1)] real)[the_index - 1] : int;
+		if the_index == -99 {
+			writeln(probabilities[1]);
+		}
+		return elist[the_index];
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
@@ -122,13 +132,11 @@ module Generation {
 		//forall idx in edges_domain{
 		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
 		//}
-		forall k in 1..inclusions_to_add
-		{
-			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
-			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
-			//writeln("vertex,edge: ",vertex, edge);
+		forall k in 1..inclusions_to_add{
+			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k)) - 1;
+			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add)) - 1;
 			if graph.check_unique(vertex,edge){
-				graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+				graph.add_inclusion(vertex, edge);
 			}
 		}
 		return graph;
@@ -263,27 +271,39 @@ module Generation {
 			else{
 				var nV_int = nV:int;
 				var nE_int = nE:int;
-
-				//var vertices_domain : domain(int) = {idv..idv + nV_int};
-				//var edges_domain : domain(int) = {idE..idE + nE_int};
-				
-				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
+				var vertices_domain : domain(int) = {idv..idv + nV_int};
+				var edges_domain : domain(int) = {idE..idE + nE_int};
+				if idv + nV_int <= numV && idE + nE_int <= numE && mv > 0{
+					writeln('here');
+					graph = fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
+				}
 			}
 			idv += (nV:int);
 			idE += (nE:int);
 		}
-    		forall (v, vDeg) in graph.forEachVertexDegree() {
-      			var oldDeg = vertex_degrees[v.id];
-      			vertex_degrees[v.id] = max(0, oldDeg - vDeg);
-    		}
-    		forall (e, eDeg) in graph.forEachEdgeDegree() {
-      			var oldDeg = edge_degrees[e.id];
-      			edge_degrees[e.id] = max(0, oldDeg - eDeg);
-    		}
+		var count : int = 1;
+		for each in graph.vertices {
+			vertex_degrees[count] = max(0, vertex_degrees[count] - each.neighborList.size);
+			count += 1;
+		}
+		count = 1;
+		for each in graph.edges {
+			edge_degrees[count] = max(0,edge_degrees[count] - each.neighborList.size);
+			count += 1;
+		}
+    		//forall (v, vDeg) in graph.forEachVertexDegree() { 
+      		//	var oldDeg = vertex_degrees[v.id];
+      		//	vertex_degrees[v.id] = max(0, oldDeg - vDeg);
+    		//}
+    		//forall (e, eDeg) in graph.forEachEdgeDegree() {
+      		//	var oldDeg = edge_degrees[e.id];
+      		//	edge_degrees[e.id] = max(0, oldDeg - eDeg);
+    		//}
 		var sum_of_vertex_diff = + reduce vertex_degrees:int;
 		var sum_of_edges_diff = + reduce edge_degrees:int;
 		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
-		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
+		var Vdom : domain(int) = {1..graph.vertices_dom.size};
+		var Edom : domain(int) = {1..graph.edges_dom.size};
+		return fast_hypergraph_chung_lu(graph, Vdom, Edom, vertex_degrees, edge_degrees, inclusions_to_add);
 	}
-
 }
