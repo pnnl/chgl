@@ -21,7 +21,9 @@ for e in 0..count-1{
     	initial += 1;
     }
 }
-graph = fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
+var Vdom : domain(int) = {1..graph.vertices_dom.size};
+var Edom : domain(int) = {1..graph.edges_dom.size};
+graph = fast_hypergraph_chung_lu(graph, Vdom, Edom, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
 count = 0;
 for e in graph.vertices{
     count += 1;
