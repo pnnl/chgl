@@ -226,6 +226,11 @@ module AdjListHyperGraph {
       this.edges_dom = {0..#num_edges} dmapped new dmap(map);
     }
 
+    proc init(vertices_dom : domain, edges_dom : domain) {
+      this.vertices_dom = vertices_dom;
+      this.edges_dom = edges_dom;
+    }
+
     proc numVertices {
       return vertices_dom.size;
     }
@@ -234,10 +239,6 @@ module AdjListHyperGraph {
       return edges_dom.size;
     }
 
-    proc init(vertices_dom : domain, edges_dom : domain) {
-      this.vertices_dom = vertices_dom;
-      this.edges_dom = edges_dom;
-    }
 
     /*
       The inclusions access methods should not return a modifiable reference to
