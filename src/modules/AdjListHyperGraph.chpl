@@ -261,7 +261,9 @@ module AdjListHyperGraph {
       complete();
 
       this.vertices._instance = other.vertices._instance;
+      this.vertices.pid = other.vertices.pid;
       this.edges._instance = other.edges._instance;
+      this.edges.pid = other.edges.pid;
     }
 
     pragma "no doc"
