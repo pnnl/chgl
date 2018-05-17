@@ -269,13 +269,12 @@ module Generation {
 				var vertices_domain : domain(int) = {idv..idv + nV_int};
 				var edges_domain : domain(int) = {idE..idE + nE_int};
 				if idv + nV_int <= numV && idE + nE_int <= numE{
-					fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
+					graph = fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 				}
 			}
 			idv += (nV:int);
 			idE += (nE:int);
 		}
-		var g2 = new AdjListHyperGraph(numV, numE);
 		var count : int = 0;
 		var vertex_degrees_existing : [0..graph.vertices.size] real;
 		for each in graph.vertices {
@@ -303,5 +302,4 @@ module Generation {
 		var Edom : domain(int) = {1..graph.edges_dom.size};
 		return fast_hypergraph_chung_lu(graph, Vdom, Edom, vertex_degrees_existing, edge_degrees_existing, inclusions_to_add);
 	}
-
 }
