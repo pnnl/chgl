@@ -32,8 +32,8 @@ module Generation {
     	var num_vertices = vertices_domain.size;
     	var num_edges = edges_domain.size;
     	desired_vertex_degrees = num_edges * p;
-			desired_edge_degrees = num_vertices * p;
-    	var inclusions_to_add = num_vertices*num_edges*log(p/(1-p)): int;
+	desired_edge_degrees = num_vertices * p;
+    	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
     	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
     	return new_graph;
   }
@@ -264,9 +264,10 @@ module Generation {
 				var nV_int = nV:int;
 				var nE_int = nE:int;
 
-				var vertices_domain : domain(int) = {idv..idv + nV_int};
-				var edges_domain : domain(int) = {idE..idE + nE_int};
-				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
+				//var vertices_domain : domain(int) = {idv..idv + nV_int};
+				//var edges_domain : domain(int) = {idE..idE + nE_int};
+				
+				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
 			}
 			idv += (nV:int);
 			idE += (nE:int);
