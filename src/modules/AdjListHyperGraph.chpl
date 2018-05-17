@@ -50,37 +50,6 @@ module AdjListHyperGraph {
   }
 
   /*
-    Record-Wrapped structure
-  */
-  record AdjListHyperGraph {
-    // Instance of our AdjListHyperGraphImpl from node that created the record
-    var instance;
-    // Privatization Id
-    var pid = -1;
-
-    proc _value {
-      if pid == -1 {
-        halt("AdjListHyperGraph is uninitialized...");
-      }
-
-      if instance.locale == here then return instance;
-      return chpl_getPrivatizedCopy(instance.type, pid);
-    }
-
-    proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
-      instance = new AdjListHyperGraphImpl(num_verts, num_edges, map);
-      pid = instance.pid;
-    }
-
-    proc init(vertices_dom : domain, edges_dom : domain) {
-      instance = new AdjListHyperGraphImpl(vertices_dom, edges_dom);
-      pid = instance.pid;
-    }
-
-    forwarding _value;
-  }
-
-  /*
     NodeData: stores the neighbor list of a node.
 
     This record should really be private, and its functionality should be
@@ -219,12 +188,9 @@ module AdjListHyperGraph {
      the assumption is that having the storage go both ways should allow
      optimizations of certain operations.
   */
-  class AdjListHyperGraphImpl {
+  class AdjListHyperGraph {
     var vertices_dom; // generic type - domain of vertices
     var edges_dom; // generic type - domain of edges
-
-    // Privatization id
-    var pid = -1;
 
     type vIndexType = index(vertices_dom);
     type eIndexType = index(edges_dom);
@@ -234,68 +200,35 @@ module AdjListHyperGraph {
     var vertices: [vertices_dom] NodeData(eDescType);
     var edges: [edges_dom] NodeData(vDescType);
 
+    pragma "fn returns iterator"
+    inline proc getEdges(param tag : iterKind) where tag == iterKind.standalone {
+      return edges_dom.these(tag);
+    }
+
+    pragma "fn returns iterator"
+    inline proc getEdges() {
+      return edges_dom.these();
+    }
+
+    pragma "fn returns iterator"
+    inline proc getVertices(param tag : iterKind) where tag == iterKind.standalone {
+      return vertices_dom.these(tag);
+    }
+
+    pragma "fn returns iterator"
+    inline proc getVertices() {
+      return vertices_dom.these();
+    }
+
     // Initialize a graph with initial domains
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
       this.vertices_dom = {0..#num_verts} dmapped new dmap(map);
       this.edges_dom = {0..#num_edges} dmapped new dmap(map);
-
-      complete();
-
-      this.pid = _newPrivatizedClass(this);
     }
 
     proc init(vertices_dom : domain, edges_dom : domain) {
       this.vertices_dom = vertices_dom;
       this.edges_dom = edges_dom;
-
-      complete();
-
-      this.pid = _newPrivatizedClass(this);
-    }
-
-    proc init(other, pid) {
-      this.vertices_dom = other.vertices_dom;
-      this.edges_dom = other.edges_dom;
-      this.pid = pid;
-
-      complete();
-
-      this.vertices._instance = other.vertices._instance;
-      this.vertices.pid = other.vertices.pid;
-      this.edges._instance = other.edges._instance;
-      this.edges.pid = other.edges.pid;
-    }
-
-    pragma "no doc"
-    proc dsiPrivatize(pid) {
-      return new AdjListHyperGraphImpl(this, pid);
-    }
-
-    pragma "no doc"
-    proc dsiGetPrivatizeData() {
-      return pid;
-    }
-
-    pragma "no doc"
-    inline proc getPrivatizedThis {
-      return chpl_getPrivatizedCopy(this.type, pid);
-    }
-
-
-    iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
-      forall e in edges_dom do yield e;
-    }
-
-    iter getEdges() {
-      for e in edges_dom do yield e;
-    }
-
-    iter getVertices(param tag : iterKind) where tag == iterKind.standalone {
-      forall v in vertices_dom do yield v;
-    }
-
-    iter getVertices() {
-      for v in vertices_dom do yield v;
     }
 
     proc numVertices {
