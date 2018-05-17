@@ -26,6 +26,12 @@ module Generation {
 				the_index = i;
 				break;
 			}
+			else{
+				count = i;
+			}
+		}
+		if the_index == -99 {
+			writeln(probabilities[1]);
 		}
 		return elist[the_index];
 	}
@@ -126,8 +132,7 @@ module Generation {
 		//forall idx in edges_domain{
 		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
 		//}
-		forall k in 1..inclusions_to_add
-		{
+		forall k in 1..inclusions_to_add{
 			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k)) - 1;
 			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add)) - 1;
 			if graph.check_unique(vertex,edge){
@@ -268,23 +273,22 @@ module Generation {
 				var nE_int = nE:int;
 				var vertices_domain : domain(int) = {idv..idv + nV_int};
 				var edges_domain : domain(int) = {idE..idE + nE_int};
-				if idv + nV_int <= numV && idE + nE_int <= numE{
+				if idv + nV_int <= numV && idE + nE_int <= numE && mv > 0{
+					writeln('here');
 					graph = fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 				}
 			}
 			idv += (nV:int);
 			idE += (nE:int);
 		}
-		var count : int = 0;
-		var vertex_degrees_existing : [0..graph.vertices.size] real;
+		var count : int = 1;
 		for each in graph.vertices {
-			vertex_degrees_existing[count] = each.neighborList.size;
+			vertex_degrees[count] = max(0, vertex_degrees[count] - each.neighborList.size);
 			count += 1;
 		}
-		count = 0;
-		var edge_degrees_existing : [0..graph.edges.size] real;
+		count = 1;
 		for each in graph.edges {
-			edge_degrees_existing[count] = each.neighborList.size;
+			edge_degrees[count] = max(0,edge_degrees[count] - each.neighborList.size);
 			count += 1;
 		}
     		//forall (v, vDeg) in graph.forEachVertexDegree() { 
@@ -300,6 +304,6 @@ module Generation {
 		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
 		var Vdom : domain(int) = {1..graph.vertices_dom.size};
 		var Edom : domain(int) = {1..graph.edges_dom.size};
-		return fast_hypergraph_chung_lu(graph, Vdom, Edom, vertex_degrees_existing, edge_degrees_existing, inclusions_to_add);
+		return fast_hypergraph_chung_lu(graph, Vdom, Edom, vertex_degrees, edge_degrees, inclusions_to_add);
 	}
 }
