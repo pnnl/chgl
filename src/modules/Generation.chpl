@@ -11,6 +11,9 @@ module Generation {
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
 		var elist : [1..elements.size] int;
+		if + reduce probabilities : real < 1.0 {
+			probabilities = probabilities* 1/(+ reduce probabilities : real);
+		}
 		var count = 0;
 		for each in elements{
 			count += 1;
@@ -30,9 +33,7 @@ module Generation {
 				count = i;
 			}
 		}
-		if the_index == -99 {
-			writeln(probabilities[1]);
-		}
+		
 		return elist[the_index];
 	}
 
