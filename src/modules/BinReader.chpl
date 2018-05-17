@@ -89,9 +89,16 @@ proc readFile(f : file) throws {
 
 
 proc main() {
-  var graph = readFile("../../baylor-nodupes.bin");
+  var graph = readFile("../../lesmis-nodupes.bin");
   writeln("Vertices: ", graph.getVertices());
   writeln("Edges: ", graph.getEdges());
-  writeln("Vertex Degrees: ", graph.forEachVertexDegree());
-  writeln("Edge Degrees: ", graph.forEachEdgeDegree());
+  writeln("Vertex Degrees: {");
+  forall (v, vdeg) in graph.forEachVertexDegree() {
+    writeln("\tdegree(", v.id, ") = ", vdeg);
+  }
+  writeln("}\nEdge Degrees: {");
+  forall (e, edeg) in graph.forEachEdgeDegree() {
+    writeln("\tdegree(", e.id, ") = ", edeg);
+  }
+  writeln("}");
 }
