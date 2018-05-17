@@ -1,5 +1,6 @@
 use Benchmark;
 use AdjListHyperGraph;
+use CommDiagnostics;
 use Generation;
 use BinReader;
 
@@ -15,6 +16,8 @@ runBenchmarkMultiplePlotted(
     initFn = lambda(bmd : BenchmarkMetaData) : object {
       const vertex_domain = {0..#bmd.totalOps} dmapped Cyclic(startIdx=0, targetLocales = bmd.targetLocales);
       const edge_domain = {0..#(bmd.totalOps * 2)} dmapped Cyclic(startIdx=0, targetLocales = bmd.targetLocales);
+      resetCommDiagnostics();
+      startCommDiagnostics();
       return new AdjListHyperGraph(vertex_domain, edge_domain);
     },
     benchFn = lambda(bd : BenchmarkData) {
@@ -24,6 +27,8 @@ runBenchmarkMultiplePlotted(
     },
     deinitFn = lambda(obj : object) {
       delete obj;
+      stopCommDiagnostics();
+      writeln(getCommDiagnostics);
     },
     targetLocales=(1,2,4,8,16,32),
     benchName = "Adjacency List",
