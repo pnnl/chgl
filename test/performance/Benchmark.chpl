@@ -48,7 +48,7 @@ config param benchmarkLogN = false;
 // Runs a benchmark and returns the result for the target number of locales.
 proc runBenchmark(
   benchFn : func(BenchmarkData, void),
-  benchTime : real = 5,
+  benchTime : real = 1,
   unit: TimeUnits = TimeUnits.seconds,
   initFn : func(BenchmarkMetaData, object) = nil,
   deinitFn : func(object, void) = nil,
@@ -110,7 +110,7 @@ proc runBenchmark(
 // Runs multiple benchmarks for the specified tuple of targetLocales and and returns an array of results.
 proc runBenchmarkMultiple(
   benchFn : func(BenchmarkData, void),
-  benchTime : real = 5,
+  benchTime : real = 1,
   unit: TimeUnits = TimeUnits.seconds,
   initFn : func(BenchmarkMetaData, object) = nil,
   deinitFn : func(object, void) = nil,
@@ -133,7 +133,7 @@ proc runBenchmarkMultiple(
 
 proc runBenchmarkMultiplePlotted(
   benchFn : func(BenchmarkData, void),
-  benchTime : real = 5,
+  benchTime : real = 1,
   unit: TimeUnits = TimeUnits.seconds,
   initFn : func(BenchmarkMetaData, object) = nil,
   deinitFn : func(object, void) = nil,

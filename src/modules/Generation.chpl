@@ -31,12 +31,8 @@ module Generation {
     	var desired_edge_degrees: [edges_domain] real;
     	var num_vertices = vertices_domain.size;
     	var num_edges = edges_domain.size;
-    	forall i in vertices_domain{
-    		desired_vertex_degrees[i] = num_edges*p;
-    	}
-    	forall i in edges_domain{
-    		desired_edge_degrees[i] = num_vertices*p;
-    	}
+    	desired_vertex_degrees = num_edges * p;
+			desired_edge_degrees = num_vertices * p;
     	var inclusions_to_add = num_vertices*num_edges*log(p/(1-p)): int;
     	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
     	return new_graph;
@@ -100,7 +96,7 @@ module Generation {
 	//  forall idx in desired_vertex_degrees.domain{
 	//		vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
 	//	}
-	//	
+	//
 	//	forall idx in desired_edge_degrees.domain{
 	//		edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
 	//	}
@@ -195,26 +191,26 @@ module Generation {
 		}
 		return id;
 	}
-	
+
 	proc compute_params_for_affinity_blocks(dv, dE, mv, mE){
 		var params: [1..3] real;
 		var nV: real;
 		var nE: real;
-		var rho: real;		
-		
+		var rho: real;
+
 		//determine the nV, nE, rho
 		if (mv/mE >= 1) {
 			nV = dE;
-			
+
 			if mE == 0{
 				nE = 0;
 			}
 			else{
 				nE = (mv/mE)*dv;
-			 
+
 			}
-			rho = (((dv-1)*(mE**2.0))/(mv*dv - mE))**(1/4.0);	
-				
+			rho = (((dv-1)*(mE**2.0))/(mv*dv - mE))**(1/4.0);
+
 		}
 		else{
 			if mv == 0{
@@ -225,7 +221,7 @@ module Generation {
 			}
 			nE = dv;
 			rho = (((dE-1)*(mv**2.0))/(mE*dE - mv))**(1/4.0);
-			
+
 		}
 
 		nV = round(nV);
@@ -233,9 +229,9 @@ module Generation {
 		params[1] = nV;
 		params[2] = nE;
 		params[3] = rho;
-			
+
 		return params;
-		
+
 	}
 
 
@@ -267,7 +263,7 @@ module Generation {
 			else{
 				var nV_int = nV:int;
 				var nE_int = nE:int;
-				
+
 				var vertices_domain : domain(int) = {idv..idv + nV_int};
 				var edges_domain : domain(int) = {idE..idE + nE_int};
 				fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
