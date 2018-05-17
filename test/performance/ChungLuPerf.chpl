@@ -13,8 +13,8 @@ delete dummyGraph;
 var plotter : Plotter(int, real);
 runBenchmarkMultiplePlotted(
     initFn = lambda(bmd : BenchmarkMetaData) : object {
-      const vertex_domain = {0..#bmd.totalOps} dmapped Cyclic(startIdx=0);
-      const edge_domain = {0..#(bmd.totalOps * 2)} dmapped Cyclic(startIdx=0);
+      const vertex_domain = {0..#bmd.totalOps} dmapped Cyclic(startIdx=0, targetLocales = bmd.targetLocales);
+      const edge_domain = {0..#(bmd.totalOps * 2)} dmapped Cyclic(startIdx=0, targetLocales = bmd.targetLocales);
       return new AdjListHyperGraph(vertex_domain, edge_domain);
     },
     benchFn = lambda(bd : BenchmarkData) {
