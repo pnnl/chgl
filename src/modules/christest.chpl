@@ -27,7 +27,7 @@ module Generation {
 				break;
 			}
 		}
-		return elist[1];
+		return elist[the_index];
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
