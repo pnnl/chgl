@@ -33,7 +33,7 @@ module Generation {
     	var num_edges = edges_domain.size;
     	desired_vertex_degrees = num_edges * p;
 	desired_edge_degrees = num_vertices * p;
-    	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): imt'
+    	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
     	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
     	return new_graph;
   }
