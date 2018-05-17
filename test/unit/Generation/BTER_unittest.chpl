@@ -8,4 +8,15 @@ var edges_metamorphosis = [0.0, 0.33828, 0.29778, 0.28709, 0.27506, 0.25868, 0.2
 
 var graph = bter_hypergraph(vertices_degree, edges_degree, vertices_metamorphosis, edges_metamorphosis);
 
-writeln("done");
+var count = 0;
+for e in graph.vertices{
+    count += 1;
+}
+var edgecount: int = 0;
+for e in 0..count-1{
+    //writeln(graph.vertices(e).neighborList);
+    for o in graph.vertices(e).neighborList{
+    	edgecount += 1;
+    }
+}
+writeln(edgecount > 0);
