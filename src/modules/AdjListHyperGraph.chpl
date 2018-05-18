@@ -341,9 +341,11 @@ module AdjListHyperGraph {
 
     proc check_unique(vertex,edge){
       var retval = true;
-      on vertex do (retval, _) = vertices(vertex).neighborList.find(edge : eDescType);
+      ref vertexData = vertices(vertex);
+      on vertexData do (retval, _) = vertexData.neighborList.find(toEdge(edge));
       return retval;
     }
+
 
     inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;

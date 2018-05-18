@@ -64,16 +64,28 @@ module Generation {
 		return elements.low + idx;
 	}
 
-    proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
-    	var desired_vertex_degrees: [vertices_domain] real;
-    	var desired_edge_degrees: [edges_domain] real;
-    	var num_vertices = vertices_domain.size;
-    	var num_edges = edges_domain.size;
-    	desired_vertex_degrees = num_edges * p;
-	desired_edge_degrees = num_vertices * p;
-    	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
-    	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
-    	return new_graph;
+  proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, param useDistributedDomains = false) where !useDistributedDomains {
+		var desired_vertex_degrees: [vertices_domain.low..vertices_domain.high] real;
+  	var desired_edge_degrees: [edges_domain.low..edges_domain.high] real;
+  	var num_vertices = vertices_domain.size;
+  	var num_edges = edges_domain.size;
+  	desired_vertex_degrees = num_edges * p;
+		desired_edge_degrees = num_vertices * p;
+  	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
+  	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+  	return new_graph;
+  }
+
+	proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, param useDistributedDomains = false) where useDistributedDomains {
+		var desired_vertex_degrees: [vertices_domain] real;
+  	var desired_edge_degrees: [edges_domain] real;
+  	var num_vertices = vertices_domain.size;
+  	var num_edges = edges_domain.size;
+  	desired_vertex_degrees = num_edges * p;
+		desired_edge_degrees = num_vertices * p;
+  	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
+  	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+  	return new_graph;
   }
 
 
@@ -122,17 +134,45 @@ module Generation {
 		var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
 		var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
 
-		forall k in 1..inclusions_to_add
+		// TODO: Need to normalize and localize computations...
+		coforall loc in Locales do on loc {
+			// Obtain localized probabilities
+			var localVertexProbabilities = vertex_probabilities[vertex_probabilities.localSubdomain()];
+			var localEdgeProbabilities = edge_probabilities[edge_probabilities.localSubdomain()];
+			//writeln(here, ": Pre:", localVertexProbabilities, ",", localEdgeProbabilities);
+
+			// Normalize both probabilities
+			localVertexProbabilities /= (+ reduce localVertexProbabilities);
+			localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
+			//writeln(here, ": Normalized:", localVertexProbabilities, ",", localEdgeProbabilities);
+
+			// Scan both probabilities
+			localVertexProbabilities = (+ scan localVertexProbabilities);
+			localEdgeProbabilities = (+ scan localEdgeProbabilities);
+			//writeln(here, ": Scanned:", localVertexProbabilities, ",", localEdgeProbabilities);
+
+			var perLocaleInclusions = inclusions_to_add / numLocales;
+			coforall 1..here.maxTaskPar {
+				var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
+				var randStream = new RandomStream(real);
+				for 1..perTaskInclusions {
+					var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
+					var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
+					graph.add_inclusion(vertex, edge);
+				}
+			}
+		}
+
+		/* forall k in 1..inclusions_to_add
 		{
 			// Note: RandomStream uses a sync variable if we have concurrent access
 			// so just create one each time. TODO: Find a way to give one to each task
 			var randStream: RandomStream(real) = new RandomStream(real);
 			var vertex = get_random_element(vertices_domain, vertexScan,randStream.getNth(k));
 			var edge = get_random_element(edges_domain, edgeScan,randStream.getNth(k+inclusions_to_add));
-			if graph.check_unique(vertex,edge){
-				graph.add_inclusion(vertex, edge);//How to check duplicate edge??
-			}
-		}
+			graph.add_inclusion(vertex, edge);
+		} */
+		// TODO: Remove duplicate edges...
 		return graph;
 	}
 
@@ -237,7 +277,7 @@ module Generation {
 	}
 
 
-	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
+	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef, useDistributedDomains = false){
 		sort(vertex_degrees);
 		sort(edge_degrees);
 		sort(vertex_metamorph_coef);
@@ -266,10 +306,11 @@ module Generation {
 				var nV_int = nV:int;
 				var nE_int = nE:int;
 
-				//var vertices_domain : domain(int) = {idv..idv + nV_int};
-				//var edges_domain : domain(int) = {idE..idE + nE_int};
-
-				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
+				if useDistributedDomains {
+					fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
+				} else {
+					fast_adjusted_erdos_renyi_hypergraph(graph, idv..idv + nV_int, idE..idE + nE_int, rho);
+				}
 			}
 			idv += (nV:int);
 			idE += (nE:int);
