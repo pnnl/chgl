@@ -351,12 +351,6 @@ module AdjListHyperGraph {
       this.edges(eDesc.id).addNodes(vDesc);
     }
 
-    // Compile-time version
-    inline proc toEdge(param desc : integral) param {
-      return desc : eDescType;
-    }
-
-
     // Runtime version
     inline proc toEdge(desc : integral) {
       return desc : eDescType;
@@ -367,12 +361,6 @@ module AdjListHyperGraph {
       compilerError("toEdge(" + desc.type : string + ") is not permitted, required"
       + " 'integral' type ('int(8)', 'int(16)', 'int(32)', 'int(64)')");
     }
-
-    // Compile-time version
-    inline proc toVertex(param desc : integral) param {
-      return desc : vDescType;
-    }
-
 
     // Runtime version
     inline proc toVertex(desc : integral) {
