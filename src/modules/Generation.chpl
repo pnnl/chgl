@@ -293,24 +293,24 @@ module Generation {
 			idv += (nV:int);
 			idE += (nE:int);
 		}
-		var count : int = 1;
-		for each in graph.vertices {
-			vertex_degrees[count] = max(0, vertex_degrees[count] - each.neighborList.size);
-			count += 1;
-		}
-		count = 1;
-		for each in graph.edges {
-			edge_degrees[count] = max(0,edge_degrees[count] - each.neighborList.size);
-			count += 1;
-		}
-    		//forall (v, vDeg) in graph.forEachVertexDegree() { 
-      		//	var oldDeg = vertex_degrees[v.id];
-      		//	vertex_degrees[v.id] = max(0, oldDeg - vDeg);
-    		//}
-    		//forall (e, eDeg) in graph.forEachEdgeDegree() {
-      		//	var oldDeg = edge_degrees[e.id];
-      		//	edge_degrees[e.id] = max(0, oldDeg - eDeg);
-    		//}
+		//var count : int = 1;
+		//for each in graph.vertices {
+		//	vertex_degrees[count] = max(0, vertex_degrees[count] - each.neighborList.size);
+		//	count += 1;
+		//}
+		//count = 1;
+		//for each in graph.edges {
+		//	edge_degrees[count] = max(0,edge_degrees[count] - each.neighborList.size);
+		//	count += 1;
+		//}
+    		forall (v, vDeg) in graph.forEachVertexDegree() { 
+      			var oldDeg = vertex_degrees[v.id+1];
+      			vertex_degrees[v.id+1] = max(0, oldDeg - vDeg);
+    		}
+    		forall (e, eDeg) in graph.forEachEdgeDegree() {
+      			var oldDeg = edge_degrees[e.id+1];
+      			edge_degrees[e.id+1] = max(0, oldDeg - eDeg);
+    		}
 		var sum_of_vertex_diff = + reduce vertex_degrees:int;
 		var sum_of_edges_diff = + reduce edge_degrees:int;
 		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
