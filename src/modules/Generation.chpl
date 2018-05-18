@@ -284,8 +284,8 @@ module Generation {
 				else{
 					var eVal = idE + nE_int : int;
 				}
-				var vertices_domain : domain(int) = {idv..idv + nV_int};
-				var edges_domain : domain(int) = {idE..idE + nE_int};
+				var vertices_domain : domain(int) = {idv..vVal};
+				var edges_domain : domain(int) = {idE..eVal};
 				if idv + nV_int <= numV && idE + nE_int <= numE{
 					graph = fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 				}
