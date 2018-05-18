@@ -119,17 +119,8 @@ module Generation {
 		var sum_degrees = + reduce desired_vertex_degrees:real;
 		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
 		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
-		var vertexScan : [vertex_probabilities.domain] real;
-		var edgeScan : [edge_probabilities.domain] real;
-
-		// Note: Has to be done this way as you cannot promote an iterator into an array
-		// nor use vector assignment
-		for (vs, val) in zip(vertexScan, + scan vertex_probabilities) {
-			vs = val;
-		}
-		for (es, val) in zip(edgeScan, + scan edge_probabilities) {
-			es = val;
-		}
+		var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
+		var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
 
 		forall k in 1..inclusions_to_add
 		{
