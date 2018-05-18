@@ -122,7 +122,7 @@ module AdjListHyperGraph {
     proc init(other: AdjListHyperGraph) {
       // Lock the other.  This makes the copy construction parallel-safe with
       // respect to ``other`` and may be a bit of an overkill.
-      if !other.lock$.isFull {
+      if ALHG_PROFILE_CONTENTION && !other.lock$.isFull {
         contentionCnt.fetchAdd(1);
       }
       other.lock$;
@@ -139,22 +139,26 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
-      contentionCheck(lock$);
-      lock$; // acquire lock
-      neighborList.push_back(vals);
-      lock$ = true; // release the lock
+      on this {
+        contentionCheck(lock$);
+        lock$; // acquire lock
+        neighborList.push_back(vals);
+        lock$ = true; // release the lock
+      }
     }
 
     proc readWriteThis(f) {
-      f <~> new ioLiteral("{ ndom = ")
-	<~> ndom
-	<~> new ioLiteral(", neighborlist = ")
-	<~> neighborList
-	<~> new ioLiteral(", lock$ = ")
-	<~> lock$.readXX()
-	<~> new ioLiteral("(isFull: ")
-	<~> lock$.isFull
-	<~> new ioLiteral(") }");
+      on this {
+        f <~> new ioLiteral("{ ndom = ")
+        	<~> ndom
+        	<~> new ioLiteral(", neighborlist = ")
+        	<~> neighborList
+        	<~> new ioLiteral(", lock$ = ")
+        	<~> lock$.readXX()
+        	<~> new ioLiteral("(isFull: ")
+        	<~> lock$.isFull
+        	<~> new ioLiteral(") }");
+      }
     }
   } // record
 
@@ -260,9 +264,9 @@ module AdjListHyperGraph {
 
       complete();
 
-      this.vertices._instance = other.vertices._instance;
+      this.vertices._instance = chpl_getPrivatizedCopy(other.vertices._instance.type, other.vertices.pid);
       this.vertices.pid = other.vertices.pid;
-      this.edges._instance = other.edges._instance;
+      this.edges._instance = chpl_getPrivatizedCopy(other.edges._instance.type, other.edges.pid);
       this.edges.pid = other.edges.pid;
     }
 
@@ -336,12 +340,9 @@ module AdjListHyperGraph {
     }
 
     proc check_unique(vertex,edge){
-        for each in vertices(vertex).neighborList{
-	    if each.id == edge{
-	        return false;
-	    }
-      }
-      return true;
+      var retval = true;
+      on vertex do (retval, _) = vertices(vertex).neighborList.find(edge : eDescType);
+      return retval;
     }
 
     inline proc add_inclusion(vertex, edge) {
