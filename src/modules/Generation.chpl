@@ -1,29 +1,67 @@
 module Generation {
 
 	use IO;
-  	use Random;
-  	use CyclicDist;
-  	use AdjListHyperGraph;
-  	use Math;
+	use Random;
+	use CyclicDist;
+	use AdjListHyperGraph;
+	use Math;
 	use Sort;
+
+	iter getPairs(adjList) {
+		// Only iterate over smaller of vertices or edges in parallel...
+		if adjList.numVertices > adjList.numEdges {
+			for v in adjList.getVertices() {
+				for e in adjList.getEdges() {
+					yield (v,e);
+				}
+			}
+		} else {
+			for e in adjList.getEdges() {
+				for v in adjList.getVertices() {
+					yield (v,e);
+				}
+			}
+		}
+	}
+
+	// Return a pair of all vertices and nodes in parallel
+	iter getPairs(adjList, param tag : iterKind) where tag == iterKind.standalone {
+		// Only iterate over smaller of vertices or edges in parallel...
+		if adjList.numVertices > adjList.numEdges {
+			forall v in adjList.getVertices() {
+				for e in adjList.getEdges() {
+					yield (v,e);
+				}
+			}
+		} else {
+			forall e in adjList.getEdges() {
+				for v in adjList.getVertices() {
+					yield (v,e);
+				}
+			}
+		}
+	}
 
 	//Pending: Take seed as input
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
-		//var sum_probs = + reduce probabilities:real;
-		//var r = randValue*sum_probs: real;
-		var temp_sum = 0.0: real;
-		var the_index = -99;
-		for i in probabilities.domain do
-		{
-			temp_sum += probabilities[i];
-			if randValue <= temp_sum
-			{
-				the_index = i;
+		var idx = 0;
+		while idx < elements.size {
+			// Found an idx with a value greater than our own, but we need the smallest
+			// value that does so.
+			if probabilities[probabilities.domain.low + idx] > randValue {
+				while idx >= 0 && probabilities[probabilities.domain.low + idx] > randValue {
+					idx -= 1;
+				}
+				idx += 1;
 				break;
 			}
+			if idx == elements.size - 1 {
+				halt("Bad probability randValue: ", randValue, ", requires one between ", probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
+			}
+			idx = max(1, min(idx * 2, elements.size - 1));
 		}
-		return (elements : [0..(elements.size - 1)] real)[the_index - 1] : int;
+		return elements.low + idx;
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
@@ -38,40 +76,6 @@ module Generation {
     	return new_graph;
   }
 
-  iter getPairs(adjList) {
-    // Only iterate over smaller of vertices or edges in parallel...
-    if adjList.numVertices > adjList.numEdges {
-      for v in adjList.getVertices() {
-        for e in adjList.getEdges() {
-          yield (v,e);
-        }
-      }
-    } else {
-      for e in adjList.getEdges() {
-        for v in adjList.getVertices() {
-          yield (v,e);
-        }
-      }
-    }
-  }
-
-  // Return a pair of all vertices and nodes in parallel
-  iter getPairs(adjList, param tag : iterKind) where tag == iterKind.standalone {
-    // Only iterate over smaller of vertices or edges in parallel...
-    if adjList.numVertices > adjList.numEdges {
-      forall v in adjList.getVertices() {
-        for e in adjList.getEdges() {
-          yield (v,e);
-        }
-      }
-    } else {
-      forall e in adjList.getEdges() {
-        for v in adjList.getVertices() {
-          yield (v,e);
-        }
-      }
-    }
-  }
 
 //Pending: Take seed as input
   proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
@@ -113,20 +117,27 @@ module Generation {
 
 	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
 		var sum_degrees = + reduce desired_vertex_degrees:real;
-		//var vertex_probabilities: [vertices_domain] real;
-		//var edge_probabilities: [edges_domain] real;
-		var randStream: RandomStream(real) = new RandomStream(real);
-		//forall idx in vertices_domain{
 		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
-		//}
-		//forall idx in edges_domain{
 		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
-		//}
+		var vertexScan : [vertex_probabilities.domain] real;
+		var edgeScan : [edge_probabilities.domain] real;
+
+		// Note: Has to be done this way as you cannot promote an iterator into an array
+		// nor use vector assignment
+		for (vs, val) in zip(vertexScan, + scan vertex_probabilities) {
+			vs = val;
+		}
+		for (es, val) in zip(edgeScan, + scan edge_probabilities) {
+			es = val;
+		}
+
 		forall k in 1..inclusions_to_add
 		{
-			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
-			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
-			//writeln("vertex,edge: ",vertex, edge);
+			// Note: RandomStream uses a sync variable if we have concurrent access
+			// so just create one each time. TODO: Find a way to give one to each task
+			var randStream: RandomStream(real) = new RandomStream(real);
+			var vertex = get_random_element(vertices_domain, vertexScan,randStream.getNth(k));
+			var edge = get_random_element(edges_domain, edgeScan,randStream.getNth(k+inclusions_to_add));
 			if graph.check_unique(vertex,edge){
 				graph.add_inclusion(vertex, edge);//How to check duplicate edge??
 			}
@@ -266,7 +277,7 @@ module Generation {
 
 				//var vertices_domain : domain(int) = {idv..idv + nV_int};
 				//var edges_domain : domain(int) = {idE..idE + nE_int};
-				
+
 				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
 			}
 			idv += (nV:int);
