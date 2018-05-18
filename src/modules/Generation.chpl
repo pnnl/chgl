@@ -6,19 +6,12 @@ module Generation {
   	use AdjListHyperGraph;
   	use Math;
 	use Sort;
-
+/*
 	//Pending: Take seed as input
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
-		var elist : [1..elements.size] int;
-		if + reduce probabilities : real < 1.0 {
-			probabilities = probabilities* 1/(+ reduce probabilities : real);
-		}
-		var count = 0;
-		for each in elements{
-			count += 1;
-			elist[count] = each;
-		}
+		//var sum_probs = + reduce probabilities:real;
+		//var r = randValue*sum_probs: real;
 		var temp_sum = 0.0: real;
 		var the_index = -99;
 		for i in probabilities.domain do
@@ -29,12 +22,36 @@ module Generation {
 				the_index = i;
 				break;
 			}
-			else{
-				count = i;
-			}
 		}
-		
-		return elist[the_index];
+		writeln(elements);
+		writeln(elements.size);
+		writeln(the_index);
+		writeln((elements : [0..(elements.size - 1)] real));
+		return 1;
+		//return (elements : [0..(elements.size - 1)] real)[the_index - 1] : int;
+	}
+*/
+
+	proc get_random_element(elements, probabilities, randValue){
+		var idx = 0;
+		while idx < elements.size {
+			// Found an idx with a value greater than our own, but we need the smallest
+			// value that does so
+			if probabilities[probabilities.domain.low + idx] > randValue {
+				while idx >= 0 && probabilities[probabilities.domain.low + idx] > randValue {
+					idx -= 1;
+				}
+				idx += 1;
+				break;
+			}
+			if idx == elements.size - 1{
+				//halt("Bad probability randValue: ", randValue, " requires one between ", probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
+				return idx;
+			}
+			idx = max(1, min(idx * 2, elements.size - 1));
+		}
+		//return elements.low + idx;
+		return idx; // Did this for debugging purposes. elements.low was throwing an error
 	}
 
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
@@ -124,20 +141,20 @@ module Generation {
 
 	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
 		var sum_degrees = + reduce desired_vertex_degrees:real;
-		//var vertex_probabilities: [vertices_domain] real;
-		//var edge_probabilities: [edges_domain] real;
-		var randStream: RandomStream(real) = new RandomStream(real);
-		//forall idx in vertices_domain{
 		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
-		//}
-		//forall idx in edges_domain{
 		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
-		//}
-		forall k in 1..inclusions_to_add{
-			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k)) - 1;
-			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add)) - 1;
+		var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
+		var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
+
+		forall k in 1..inclusions_to_add
+		{
+			// Note: RandomStream uses a sync variable if we have concurrent access
+			// so just create one each time. TODO: Find a way to give one to each task
+			var randStream : RandomStream(real) = new RandomStream(real);
+			var vertex = get_random_element(vertices_domain, vertexScan, randStream.getNth(k));
+			var edge = get_random_element(edges_domain, edgeScan, randStream.getNth(k+inclusions_to_add));
 			if graph.check_unique(vertex,edge){
-				graph.add_inclusion(vertex, edge);
+				graph.add_inclusion(vertex, edge);//How to check duplicate edge??
 			}
 		}
 		return graph;
@@ -192,9 +209,11 @@ module Generation {
 	    var id: int;
 		for i in 1.. sorted_array.size
 		{
+			//writeln(sorted_array[i]);
 			if sorted_array[i] > 1
 			{
 				id = i;
+				//writeln("break");
 				break;
 			}
 		}
@@ -202,6 +221,7 @@ module Generation {
 	}
 
 	proc compute_params_for_affinity_blocks(dv, dE, mv, mE){
+		//writeln("COMPUTING PARAMS");
 		var params: [1..3] real;
 		var nV: real;
 		var nE: real;
@@ -210,16 +230,22 @@ module Generation {
 		//determine the nV, nE, rho
 		if (mv/mE >= 1) {
 			nV = dE;
+			//writeln("nV = dE");
+			//writeln("in which dE = ", dE, " and nV is now = ", nV);
 
 			if mE == 0{
 				nE = 0;
 			}
 			else{
 				nE = (mv/mE)*dv;
-
+				//writeln("nE = (mv/mE)*dv");
+				//writeln("in which mv = ", mv, " mE = ", mE, " and dv = ", dv);
+				//writeln("resulting in nE = ", nE);
 			}
 			rho = (((dv-1)*(mE**2.0))/(mv*dv - mE))**(1/4.0);
-
+			//writeln("(((dv-1)*(mE**2.0))/(mv*dv - mE))**(1/4.0)");
+			//writeln("dv = ", dv, " mE = ", mE, " mv = ", mv);
+			//writeln("resulting in rho = ", rho);
 		}
 		else{
 			if mv == 0{
@@ -227,10 +253,19 @@ module Generation {
 			}
 			else{
 				nV = (mE/mv)*dE;
+				//if mE == 0.0 {
+				//	writeln("(mE/mv)*dE");
+				//	writeln("mE = ", mE, " mv = ", mv, " dE = ", dE);
+				//	writeln("resuling in nV = ", nV);
+				//}
 			}
 			nE = dv;
 			rho = (((dE-1)*(mv**2.0))/(mE*dE - mv))**(1/4.0);
-
+			//if mE == 0.0{
+			//	writeln("(((dE-1)*(mv**2.0))/(mE*dE - mv))**(1/4.0)");
+			//	writeln("dE = ", dE, " mv = ", mv, " mE = ", mE);
+			//	writeln("resulting in rho = ", rho);
+			//}
 		}
 
 		nV = round(nV);
@@ -239,6 +274,7 @@ module Generation {
 		params[2] = nE;
 		params[3] = rho;
 
+		//writeln("FINAL: ", params);
 		return params;
 
 	}
@@ -247,8 +283,8 @@ module Generation {
 	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
 		sort(vertex_degrees);
 		sort(edge_degrees);
-		sort(vertex_metamorph_coef);
-		sort(edge_metamorph_coef);
+		//sort(vertex_metamorph_coef);
+		//sort(edge_metamorph_coef);
 		var idv: int = get_smallest_value_greater_than_one(vertex_degrees);
 		var idE: int = get_smallest_value_greater_than_one(edge_degrees);
 		var numV: int = vertex_degrees.size;
@@ -257,6 +293,10 @@ module Generation {
 		var nE : real;
 		var rho: real;
 		var graph = new AdjListHyperGraph(numV, numE);
+		//for e in graph.vertices{
+		//	writeln(e);
+		//}
+		//writeln("NEXT");
 		while (idv <= numV && idE <= numE){
 			var dv = vertex_degrees[idv];
 			var dE = edge_degrees[idE];
@@ -272,48 +312,29 @@ module Generation {
 			else{
 				var nV_int = nV:int;
 				var nE_int = nE:int;
-				if idv + nV_int >= numV{
-					var vVal = numV : int;
-				}
-				else{
-					var vVal = idv + nV_int : int;
-				}
-				if idE + nE_int >= numE{
-					var eVal = numE : int;
-				}
-				else{
-					var eVal = idE + nE_int : int;
-				}
-				var vertices_domain : domain(int) = {idv..vVal};
-				var edges_domain : domain(int) = {idE..eVal};
+
+				var vertices_domain : domain(int) = {idv..idv + nV_int};
+				var edges_domain : domain(int) = {idE..idE + nE_int};
+				
 				graph = fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
 			idv += (nV:int);
 			idE += (nE:int);
 		}
-		//var count : int = 1;
-		//for each in graph.vertices {
-		//	vertex_degrees[count] = max(0, vertex_degrees[count] - each.neighborList.size);
-		//	count += 1;
+		//for e in graph.vertices{
+		//	writeln(e.neighborList);
 		//}
-		//count = 1;
-		//for each in graph.edges {
-		//	edge_degrees[count] = max(0,edge_degrees[count] - each.neighborList.size);
-		//	count += 1;
-		//}
-    		forall (v, vDeg) in graph.forEachVertexDegree() { 
+    		forall (v, vDeg) in graph.forEachVertexDegree() {
       			var oldDeg = vertex_degrees[v.id+1];
-      			vertex_degrees[v.id+1] = max(0, oldDeg - vDeg);
+      			vertex_degrees[v.id+1] = max(0, oldDeg - (vDeg));
     		}
     		forall (e, eDeg) in graph.forEachEdgeDegree() {
       			var oldDeg = edge_degrees[e.id+1];
-      			edge_degrees[e.id+1] = max(0, oldDeg - eDeg);
+      			edge_degrees[e.id+1] = max(0, oldDeg - (eDeg));
     		}
 		var sum_of_vertex_diff = + reduce vertex_degrees:int;
 		var sum_of_edges_diff = + reduce edge_degrees:int;
 		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
-		var Vdom : domain(int) = {1..graph.vertices_dom.size};
-		var Edom : domain(int) = {1..graph.edges_dom.size};
-		return fast_hypergraph_chung_lu(graph, Vdom, Edom, vertex_degrees, edge_degrees, inclusions_to_add);
+		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
 	}
 }
