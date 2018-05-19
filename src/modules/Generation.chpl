@@ -45,38 +45,15 @@ module Generation {
 	//Pending: Take seed as input
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
-		var idx = 0;
-		while idx < elements.size {
-			// Found an idx with a value greater than our own, but we need the smallest
-			// value that does so.
-			if probabilities[probabilities.domain.low + idx] > randValue {
-				while idx >= 0 && probabilities[probabilities.domain.low + idx] > randValue {
-					idx -= 1;
-				}
-				idx += 1;
-				break;
-			}
-			if idx == elements.size - 1 {
-				halt("Bad probability randValue: ", randValue, ", requires one between ", probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
-			}
-			idx = max(1, min(idx * 2, elements.size - 1));
+		for (idx, probability) in zip(0..#probabilities.size, probabilities) {
+			if probability > randValue then return elements.low + idx;
 		}
-		return elements.low + idx;
+		halt("Bad probability randValue: ", randValue, ", requires one between ",
+			probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
+
 	}
 
-  proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, param useDistributedDomains = false) where !useDistributedDomains {
-		var desired_vertex_degrees: [vertices_domain.low..vertices_domain.high] real;
-  	var desired_edge_degrees: [edges_domain.low..edges_domain.high] real;
-  	var num_vertices = vertices_domain.size;
-  	var num_edges = edges_domain.size;
-  	desired_vertex_degrees = num_edges * p;
-		desired_edge_degrees = num_vertices * p;
-  	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
-  	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
-  	return new_graph;
-  }
-
-	proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, param useDistributedDomains = false) where useDistributedDomains {
+	proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
 		var desired_vertex_degrees: [vertices_domain] real;
   	var desired_edge_degrees: [edges_domain] real;
   	var num_vertices = vertices_domain.size;
@@ -84,7 +61,7 @@ module Generation {
   	desired_vertex_degrees = num_edges * p;
 		desired_edge_degrees = num_vertices * p;
   	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
-  	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+  	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
   	return new_graph;
   }
 
@@ -127,51 +104,41 @@ module Generation {
 	//	return graph;
     	//}
 
-	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
+	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
 		var sum_degrees = + reduce desired_vertex_degrees:real;
 		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
 		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
 		var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
 		var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
 
-		// TODO: Need to normalize and localize computations...
-		coforall loc in Locales do on loc {
-			// Obtain localized probabilities
-			var localVertexProbabilities = vertex_probabilities[vertex_probabilities.localSubdomain()];
-			var localEdgeProbabilities = edge_probabilities[edge_probabilities.localSubdomain()];
-			//writeln(here, ": Pre:", localVertexProbabilities, ",", localEdgeProbabilities);
+		coforall loc in targetLocales do on loc {
+			// If the current node has local work...
+			if vertex_probabilities.localSubdomain().size != 0 {
+				// Obtain localized probabilities
+				var localVertexProbabilities = vertex_probabilities[vertex_probabilities.localSubdomain()];
+				var localEdgeProbabilities = edge_probabilities[edge_probabilities.localSubdomain()];
 
-			// Normalize both probabilities
-			localVertexProbabilities /= (+ reduce localVertexProbabilities);
-			localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
-			//writeln(here, ": Normalized:", localVertexProbabilities, ",", localEdgeProbabilities);
+				// Normalize both probabilities
+				localVertexProbabilities /= (+ reduce localVertexProbabilities);
+				localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
 
-			// Scan both probabilities
-			localVertexProbabilities = (+ scan localVertexProbabilities);
-			localEdgeProbabilities = (+ scan localEdgeProbabilities);
-			//writeln(here, ": Scanned:", localVertexProbabilities, ",", localEdgeProbabilities);
+				// Scan both probabilities
+				localVertexProbabilities = (+ scan localVertexProbabilities);
+				localEdgeProbabilities = (+ scan localEdgeProbabilities);
 
-			var perLocaleInclusions = inclusions_to_add / numLocales;
-			coforall 1..here.maxTaskPar {
-				var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
-				var randStream = new RandomStream(real);
-				for 1..perTaskInclusions {
-					var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
-					var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-					graph.add_inclusion(vertex, edge);
+				var perLocaleInclusions = inclusions_to_add / numLocales;
+				coforall 1..here.maxTaskPar {
+					var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
+					var randStream = new RandomStream(real);
+					for 1..perTaskInclusions {
+						var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
+						var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
+						graph.add_inclusion(vertex, edge);
+					}
 				}
 			}
 		}
 
-		/* forall k in 1..inclusions_to_add
-		{
-			// Note: RandomStream uses a sync variable if we have concurrent access
-			// so just create one each time. TODO: Find a way to give one to each task
-			var randStream: RandomStream(real) = new RandomStream(real);
-			var vertex = get_random_element(vertices_domain, vertexScan,randStream.getNth(k));
-			var edge = get_random_element(edges_domain, edgeScan,randStream.getNth(k+inclusions_to_add));
-			graph.add_inclusion(vertex, edge);
-		} */
 		// TODO: Remove duplicate edges...
 		return graph;
 	}
@@ -277,7 +244,7 @@ module Generation {
 	}
 
 
-	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef, useDistributedDomains = false){
+	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
 		sort(vertex_degrees);
 		sort(edge_degrees);
 		sort(vertex_metamorph_coef);
@@ -306,11 +273,7 @@ module Generation {
 				var nV_int = nV:int;
 				var nE_int = nE:int;
 
-				if useDistributedDomains {
-					fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
-				} else {
-					fast_adjusted_erdos_renyi_hypergraph(graph, idv..idv + nV_int, idE..idE + nE_int, rho);
-				}
+				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
 			}
 			idv += (nV:int);
 			idE += (nE:int);
