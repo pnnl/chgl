@@ -448,6 +448,25 @@ module AdjListHyperGraph {
         }
     }
 
+    proc getVertexButterflies() {
+      	var butterflyDom = vertices_dom;
+      	var butterflyArr : [butterflyDom] int(64);
+      // Note: If set of vertices or its domain has changed this may result in errors
+      // hence this is not entirely thread-safe yet...
+    	var dist_two_mults : [vertices_dom] int(64);
+	forall (num_butterflies, v) in zip(butterflyArr, vertices) {
+        	forall u in v.neighborList {
+			forall w in u.neighboList {
+				dist_two_mults[w] += 1;
+			}
+		}
+		forall w in vertices_dom {
+			num_butterflies += 1;//replace with "dist_two_mults[w] choose 2"
+		}
+     	}	
+    	return butterflyArr;
+    }
+
     // for desc in graph.inclusions(nodeDesc) do ...
     iter inclusions(desc) where desc.type == vDescType || desc.type == eDescType {
       for _desc in _inclusions(desc) do yield _desc;
