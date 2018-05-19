@@ -74,7 +74,7 @@ module AdjListHyperGraph {
       if _lock.testAndSet() == false {
         return;
       }
-      
+
       if Debug.ALHG_PROFILE_CONTENTION {
         contentionCnt.fetchAdd(1);
       }
@@ -85,7 +85,7 @@ module AdjListHyperGraph {
         if val == false && _lock.testAndSet() == false {
           break;
         }
-        
+
         chpl_task_yield();
       }
     }
@@ -113,7 +113,7 @@ module AdjListHyperGraph {
 
     //  Keeps track of whether or not the neighborList is sorted; any insertion must set this to false
     var isSorted : bool;
-    
+
     // As neighborList is protected by a lock, the size would normally have to be computed in a mutually exclusive way.
     // By keeping a separate counter, it makes it fast and parallel-safe to check for the size of the neighborList.
     var neighborListSize : atomic int;
@@ -128,12 +128,12 @@ module AdjListHyperGraph {
 
       on other {
         other.lock.acquire();
-        
+
         this.neighborListDom = other.neighborListDom;
         this.neighborList = other.neighborList;
         this.isSorted = other.isSorted;
         this.neighborListSize.write(other.neighborListSize.read());
-        
+
         other.lock.release();
       }
     }
@@ -142,13 +142,13 @@ module AdjListHyperGraph {
       var retval : bool;
       on this {
         lock.acquire();
-        
+
         // Sort if not already
         if !isSorted {
           sort(neighborList);
           isSorted = true;
         }
-        
+
         // Search to determine if it exists...
         retval = search(neighborList, n, sorted = true)[1];
 
@@ -167,7 +167,7 @@ module AdjListHyperGraph {
     proc addNodes(vals) {
       on this {
         lock.acquire(); // acquire lock
-        
+
         neighborList.push_back(vals);
         isSorted = false;
 
@@ -193,14 +193,14 @@ module AdjListHyperGraph {
   proc =(ref lhs: NodeData, ref rhs: NodeData) {
     if lhs == rhs then return;
 
-    lhs.lock.acquire(); 
-    rhs.lock.acquire(); 
-    
+    lhs.lock.acquire();
+    rhs.lock.acquire();
+
     lhs.neighborListDom = rhs.neighborListDom;
     lhs.neighborList = rhs.neighborList;
-    
-    rhs.lock.release(); 
-    lhs.lock.release(); 
+
+    rhs.lock.release();
+    lhs.lock.release();
   }
 
   record Vertex {}
@@ -619,13 +619,6 @@ module AdjListHyperGraph {
         forall (eid, e) in zip(edgesDomain, edges) {
           yield (eid : eDescType, e.neighborList.size);
         }
-    }
-
-    /*
-      Yields adjacent vertices or hyperedges depending on the input type
-    */
-    iter neighbors(e : eDescType) ref {
-      for v in edges[e.id].neighborList do yield v;
     }
 
     iter neighbors(e : eDescType, param tag : iterKind) ref
