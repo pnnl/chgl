@@ -139,12 +139,10 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
-      on this {
-        contentionCheck(lock$);
-        lock$; // acquire lock
-        neighborList.push_back(vals);
-        lock$ = true; // release the lock
-      }
+      contentionCheck(lock$);
+      lock$; // acquire lock
+      neighborList.push_back(vals);
+      lock$ = true; // release the lock
     }
 
     proc readWriteThis(f) {
@@ -347,11 +345,14 @@ module AdjListHyperGraph {
     }
 
 
+    // TODO: Need add_inclusion_bulk!
     inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-      this.vertices(vDesc.id).addNodes(eDesc);
-      this.edges(eDesc.id).addNodes(vDesc);
+      ref v = vertices(vDesc.id);
+      ref e = edges(eDesc.id);
+      v.addNodes(eDesc);
+      e.addNodes(vDesc);
     }
 
     // Runtime version
