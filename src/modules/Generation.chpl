@@ -1,77 +1,70 @@
 module Generation {
 
 	use IO;
-  	use Random;
-  	use CyclicDist;
-  	use AdjListHyperGraph;
-  	use Math;
+	use Random;
+	use CyclicDist;
+	use AdjListHyperGraph;
+	use Math;
 	use Sort;
+
+	iter getPairs(adjList) {
+		// Only iterate over smaller of vertices or edges in parallel...
+		if adjList.numVertices > adjList.numEdges {
+			for v in adjList.getVertices() {
+				for e in adjList.getEdges() {
+					yield (v,e);
+				}
+			}
+		} else {
+			for e in adjList.getEdges() {
+				for v in adjList.getVertices() {
+					yield (v,e);
+				}
+			}
+		}
+	}
+
+	// Return a pair of all vertices and nodes in parallel
+	iter getPairs(adjList, param tag : iterKind) where tag == iterKind.standalone {
+		// Only iterate over smaller of vertices or edges in parallel...
+		if adjList.numVertices > adjList.numEdges {
+			forall v in adjList.getVertices() {
+				for e in adjList.getEdges() {
+					yield (v,e);
+				}
+			}
+		} else {
+			forall e in adjList.getEdges() {
+				for v in adjList.getVertices() {
+					yield (v,e);
+				}
+			}
+		}
+	}
 
 	//Pending: Take seed as input
 	//Returns index of the desired item
 	proc get_random_element(elements, probabilities,randValue){
-		//var sum_probs = + reduce probabilities:real;
-		//var r = randValue*sum_probs: real;
-		var temp_sum = 0.0: real;
-		var the_index = -99;
-		for i in probabilities.domain do
-		{
-			temp_sum += probabilities[i];
-			if randValue <= temp_sum
-			{
-				the_index = i;
-				break;
-			}
+		for (idx, probability) in zip(0..#probabilities.size, probabilities) {
+			if probability > randValue then return elements.low + idx;
 		}
-		return (elements : [0..(elements.size - 1)] real)[the_index - 1] : int;
+		halt("Bad probability randValue: ", randValue, ", requires one between ",
+			probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
+
 	}
 
-    proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p) {
-    	var desired_vertex_degrees: [vertices_domain] real;
-    	var desired_edge_degrees: [edges_domain] real;
-    	var num_vertices = vertices_domain.size;
-    	var num_edges = edges_domain.size;
-    	desired_vertex_degrees = num_edges * p;
-	desired_edge_degrees = num_vertices * p;
-    	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
-    	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
-    	return new_graph;
+	proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
+		var desired_vertex_degrees: [vertices_domain] real;
+  	var desired_edge_degrees: [edges_domain] real;
+  	var num_vertices = vertices_domain.size;
+  	var num_edges = edges_domain.size;
+  	desired_vertex_degrees = num_edges * p;
+		desired_edge_degrees = num_vertices * p;
+  	var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
+  	var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
+  	return new_graph;
   }
 
-  iter getPairs(adjList) {
-    // Only iterate over smaller of vertices or edges in parallel...
-    if adjList.numVertices > adjList.numEdges {
-      for v in adjList.getVertices() {
-        for e in adjList.getEdges() {
-          yield (v,e);
-        }
-      }
-    } else {
-      for e in adjList.getEdges() {
-        for v in adjList.getVertices() {
-          yield (v,e);
-        }
-      }
-    }
-  }
-
-  // Return a pair of all vertices and nodes in parallel
-  iter getPairs(adjList, param tag : iterKind) where tag == iterKind.standalone {
-    // Only iterate over smaller of vertices or edges in parallel...
-    if adjList.numVertices > adjList.numEdges {
-      forall v in adjList.getVertices() {
-        for e in adjList.getEdges() {
-          yield (v,e);
-        }
-      }
-    } else {
-      forall e in adjList.getEdges() {
-        for v in adjList.getVertices() {
-          yield (v,e);
-        }
-      }
-    }
-  }
 
 //Pending: Take seed as input
   proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
@@ -111,26 +104,42 @@ module Generation {
 	//	return graph;
     	//}
 
-	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
+	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
 		var sum_degrees = + reduce desired_vertex_degrees:real;
-		//var vertex_probabilities: [vertices_domain] real;
-		//var edge_probabilities: [edges_domain] real;
-		var randStream: RandomStream(real) = new RandomStream(real);
-		//forall idx in vertices_domain{
 		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
-		//}
-		//forall idx in edges_domain{
 		var edge_probabilities = desired_edge_degrees/sum_degrees: real;
-		//}
-		forall k in 1..inclusions_to_add
-		{
-			var vertex = get_random_element(vertices_domain, vertex_probabilities,randStream.getNth(k));
-			var edge = get_random_element(edges_domain, edge_probabilities,randStream.getNth(k+inclusions_to_add));
-			//writeln("vertex,edge: ",vertex, edge);
-			if graph.check_unique(vertex,edge){
-				graph.add_inclusion(vertex, edge);//How to check duplicate edge??
+		var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
+		var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
+
+		coforall loc in targetLocales do on loc {
+			// If the current node has local work...
+			if vertex_probabilities.localSubdomain().size != 0 {
+				// Obtain localized probabilities
+				var localVertexProbabilities = vertex_probabilities[vertex_probabilities.localSubdomain()];
+				var localEdgeProbabilities = edge_probabilities[edge_probabilities.localSubdomain()];
+
+				// Normalize both probabilities
+				localVertexProbabilities /= (+ reduce localVertexProbabilities);
+				localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
+
+				// Scan both probabilities
+				localVertexProbabilities = (+ scan localVertexProbabilities);
+				localEdgeProbabilities = (+ scan localEdgeProbabilities);
+
+				var perLocaleInclusions = inclusions_to_add / numLocales;
+				coforall 1..here.maxTaskPar {
+					var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
+					var randStream = new RandomStream(real);
+					for 1..perTaskInclusions {
+						var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
+						var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
+						graph.add_inclusion(vertex, edge);
+					}
+				}
 			}
 		}
+
+		// TODO: Remove duplicate edges...
 		return graph;
 	}
 
@@ -264,21 +273,18 @@ module Generation {
 				var nV_int = nV:int;
 				var nE_int = nE:int;
 
-				//var vertices_domain : domain(int) = {idv..idv + nV_int};
-				//var edges_domain : domain(int) = {idE..idE + nE_int};
-				
 				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
 			}
 			idv += (nV:int);
 			idE += (nE:int);
 		}
     		forall (v, vDeg) in graph.forEachVertexDegree() {
-      			var oldDeg = vertex_degrees[v.id];
-      			vertex_degrees[v.id] = max(0, oldDeg - vDeg);
+      			var oldDeg = vertex_degrees[v.id+vertex_degrees.domain.low];
+      			vertex_degrees[v.id+vertex_degrees.domain.low] = max(0, oldDeg - vDeg);
     		}
     		forall (e, eDeg) in graph.forEachEdgeDegree() {
-      			var oldDeg = edge_degrees[e.id];
-      			edge_degrees[e.id] = max(0, oldDeg - eDeg);
+      			var oldDeg = edge_degrees[e.id+edge_degrees.domain.low];
+      			edge_degrees[e.id+edge_degrees.domain.low] = max(0, oldDeg - eDeg);
     		}
 		var sum_of_vertex_diff = + reduce vertex_degrees:int;
 		var sum_of_edges_diff = + reduce edge_degrees:int;

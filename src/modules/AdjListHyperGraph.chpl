@@ -122,7 +122,7 @@ module AdjListHyperGraph {
     proc init(other: AdjListHyperGraph) {
       // Lock the other.  This makes the copy construction parallel-safe with
       // respect to ``other`` and may be a bit of an overkill.
-      if !other.lock$.isFull {
+      if ALHG_PROFILE_CONTENTION && !other.lock$.isFull {
         contentionCnt.fetchAdd(1);
       }
       other.lock$;
@@ -139,22 +139,26 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
-      contentionCheck(lock$);
-      lock$; // acquire lock
-      neighborList.push_back(vals);
-      lock$ = true; // release the lock
+      on this {
+        contentionCheck(lock$);
+        lock$; // acquire lock
+        neighborList.push_back(vals);
+        lock$ = true; // release the lock
+      }
     }
 
     proc readWriteThis(f) {
-      f <~> new ioLiteral("{ ndom = ")
-	<~> ndom
-	<~> new ioLiteral(", neighborlist = ")
-	<~> neighborList
-	<~> new ioLiteral(", lock$ = ")
-	<~> lock$.readXX()
-	<~> new ioLiteral("(isFull: ")
-	<~> lock$.isFull
-	<~> new ioLiteral(") }");
+      on this {
+        f <~> new ioLiteral("{ ndom = ")
+        	<~> ndom
+        	<~> new ioLiteral(", neighborlist = ")
+        	<~> neighborList
+        	<~> new ioLiteral(", lock$ = ")
+        	<~> lock$.readXX()
+        	<~> new ioLiteral("(isFull: ")
+        	<~> lock$.isFull
+        	<~> new ioLiteral(") }");
+      }
     }
   } // record
 
@@ -260,6 +264,8 @@ module AdjListHyperGraph {
 
       complete();
 
+      // We need to update each node's privatized instance to use the same handle
+      // for the distributed array. TODO: Need to cleanup current node's old array
       this.vertices._instance = other.vertices._instance;
       this.vertices.pid = other.vertices.pid;
       this.edges._instance = other.edges._instance;
@@ -336,26 +342,20 @@ module AdjListHyperGraph {
     }
 
     proc check_unique(vertex,edge){
-        for each in vertices(vertex).neighborList{
-	    if each.id == edge{
-	        return false;
-	    }
-      }
-      return true;
+      var retval = true;
+      ref vertexData = vertices(vertex);
+      on vertexData do (retval, _) = vertexData.neighborList.find(toEdge(edge));
+      return retval;
     }
 
+
+    // TODO: Need add_inclusion_bulk!
     inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-      this.vertices(vDesc.id).addNodes(eDesc);
-      this.edges(eDesc.id).addNodes(vDesc);
+      vertices(vDesc.id).addNodes(eDesc);
+      edges(eDesc.id).addNodes(vDesc);
     }
-
-    // Compile-time version
-    inline proc toEdge(param desc : integral) param {
-      return desc : eDescType;
-    }
-
 
     // Runtime version
     inline proc toEdge(desc : integral) {
@@ -367,12 +367,6 @@ module AdjListHyperGraph {
       compilerError("toEdge(" + desc.type : string + ") is not permitted, required"
       + " 'integral' type ('int(8)', 'int(16)', 'int(32)', 'int(64)')");
     }
-
-    // Compile-time version
-    inline proc toVertex(param desc : integral) param {
-      return desc : vDescType;
-    }
-
 
     // Runtime version
     inline proc toVertex(desc : integral) {
