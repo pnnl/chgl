@@ -139,10 +139,12 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
-      contentionCheck(lock$);
-      lock$; // acquire lock
-      neighborList.push_back(vals);
-      lock$ = true; // release the lock
+      on this {
+        contentionCheck(lock$);
+        lock$; // acquire lock
+        neighborList.push_back(vals);
+        lock$ = true; // release the lock
+      }
     }
 
     proc readWriteThis(f) {
@@ -262,8 +264,6 @@ module AdjListHyperGraph {
 
       complete();
 
-      writeln("Init...");
-
       // We need to update each node's privatized instance to use the same handle
       // for the distributed array. TODO: Need to cleanup current node's old array
       this.vertices._instance = other.vertices._instance;
@@ -353,10 +353,8 @@ module AdjListHyperGraph {
     inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-      ref v = vertices(vDesc.id);
-      ref e = edges(eDesc.id);
-      v.addNodes(eDesc);
-      e.addNodes(vDesc);
+      vertices(vDesc.id).addNodes(eDesc);
+      edges(eDesc.id).addNodes(vDesc);
     }
 
     // Runtime version
