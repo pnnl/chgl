@@ -264,9 +264,13 @@ module AdjListHyperGraph {
 
       complete();
 
-      this.vertices._instance = chpl_getPrivatizedCopy(other.vertices._instance.type, other.vertices.pid);
+      writeln("Init...");
+
+      // We need to update each node's privatized instance to use the same handle
+      // for the distributed array. TODO: Need to cleanup current node's old array
+      this.vertices._instance = other.vertices._instance;
       this.vertices.pid = other.vertices.pid;
-      this.edges._instance = chpl_getPrivatizedCopy(other.edges._instance.type, other.edges.pid);
+      this.edges._instance = other.edges._instance;
       this.edges.pid = other.edges.pid;
     }
 
