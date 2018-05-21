@@ -1,0 +1,7 @@
+perfkeys: Time:, Nodes:, NumVertices:, NumEdges:, Probability:
+graphkeys: Performance
+files: ChungLu.dat
+graphtitle: Performance of ChungLu
+ylabel: Time (seconds)
+xlabel: Nodes
+graphname: ChungLu Performance
