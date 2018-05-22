@@ -118,22 +118,38 @@ module Generation {
 				var localVertexProbabilities = vertex_probabilities[vertex_probabilities.localSubdomain()];
 				var localEdgeProbabilities = edge_probabilities[edge_probabilities.localSubdomain()];
 
-				// Normalize both probabilities
-				localVertexProbabilities /= (+ reduce localVertexProbabilities);
-				localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
+				// If the entire array is 0, then we do not have any work to do...
+				// N.B: We end up generating less inclusions than asked if one of
+				// the probabilities are all zero while the other is not. In the future
+				// we would want to actually keep track of the amount of inclusions we did
+				// not generate and handle it at the end.
+				var hasWork : bool;
+				forall (vProb, eProb) in zip(localVertexProbabilities, localEdgeProbabilities) {
+					if vProb != 0 || eProb != 0 {
+						hasWork = true;
+						break;
+					}
+				}
 
-				// Scan both probabilities
-				localVertexProbabilities = (+ scan localVertexProbabilities);
-				localEdgeProbabilities = (+ scan localEdgeProbabilities);
+				// There is at least one element in either probabilities array...
+				if hasWork {
+					// Normalize both probabilities
+					localVertexProbabilities /= (+ reduce localVertexProbabilities);
+					localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
 
-				var perLocaleInclusions = inclusions_to_add / numLocales;
-				coforall 1..here.maxTaskPar {
-					var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
-					var randStream = new RandomStream(real);
-					for 1..perTaskInclusions {
-						var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
-						var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-						graph.add_inclusion(vertex, edge);
+					// Scan both probabilities
+					localVertexProbabilities = (+ scan localVertexProbabilities);
+					localEdgeProbabilities = (+ scan localEdgeProbabilities);
+
+					var perLocaleInclusions = inclusions_to_add / numLocales;
+					coforall 1..here.maxTaskPar {
+						var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
+						var randStream = new RandomStream(real);
+						for 1..perTaskInclusions {
+							var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
+							var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
+							graph.add_inclusion(vertex, edge);
+						}
 					}
 				}
 			}
@@ -202,7 +218,6 @@ module Generation {
 	}
 
 	proc compute_params_for_affinity_blocks(dv, dE, mv, mE){
-		var params: [1..3] real;
 		var nV: real;
 		var nE: real;
 		var rho: real;
@@ -235,11 +250,8 @@ module Generation {
 
 		nV = round(nV);
 		nE = round(nE);
-		params[1] = nV;
-		params[2] = nE;
-		params[3] = rho;
 
-		return params;
+		return (nV, nE, rho);
 
 	}
 
@@ -249,24 +261,23 @@ module Generation {
 		sort(edge_degrees);
 		sort(vertex_metamorph_coef);
 		sort(edge_metamorph_coef);
-		var idv: int = get_smallest_value_greater_than_one(vertex_degrees);
-		var idE: int = get_smallest_value_greater_than_one(edge_degrees);
-		var numV: int = vertex_degrees.size;
-		var numE: int = edge_degrees.size;
-		var nV : real;
-		var nE : real;
-		var rho: real;
+
+		var (idV, idE, numV, numE) = (
+			get_smallest_value_greater_than_one(vertex_degrees),
+			get_smallest_value_greater_than_one(edge_degrees),
+			vertex_degrees.size,
+			edge_degrees.size
+		);
+		var (nV, nE, rho) : 3 * real;
 		var graph = new AdjListHyperGraph(numV, numE);
-		while (idv <= numV && idE <= numE){
-			var dv = vertex_degrees[idv];
+
+		while (idV <= numV && idE <= numE){
+			var dv = vertex_degrees[idV];
 			var dE = edge_degrees[idE];
-			var mv = vertex_metamorph_coef[dv];
+			var mV = vertex_metamorph_coef[dv];
 			var mE = edge_metamorph_coef[dE];
-			var parameters = compute_params_for_affinity_blocks(dv, dE, mv, mE);
-			nV = parameters[1];
-			nE = parameters[2];
-			rho = parameters[3];
-			if (idv > numV || idE > numE){
+			(nV, nE, rho) = compute_params_for_affinity_blocks(dv, dE, mV, mE);
+			if (idV > numV || idE > numE){
 				break;
 			}
 			else{
@@ -275,7 +286,7 @@ module Generation {
 
 				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
 			}
-			idv += (nV:int);
+			idV += (nV:int);
 			idE += (nE:int);
 		}
     		forall (v, vDeg) in graph.forEachVertexDegree() {
