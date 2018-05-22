@@ -172,39 +172,35 @@ module Generation {
 			cobegin {
 				sort(vd);
 				sort(ed);
-				sort(vmc);
-				sort(emc);
 			}
 
 			var (nV, nE, rho) : 3 * real;
 			var (idV, idE, numV, numE) = (
-				minimalGreaterThanOne(vertex_degrees),
-				minimalGreaterThanOne(edge_degrees),
+				minimalGreaterThanOne(vd),
+				minimalGreaterThanOne(ed),
 				vdDom.size,
 				edDom.size
 			);
-			var graph = new AdjListHyperGraph(vertex_degrees.domain, edge_degrees.domain);
+			var graph = new AdjListHyperGraph(vdDom, edDom);
 
 			while (idV <= numV && idE <= numE){
 				var (dV, dE) = (vd[idV], ed[idE]);
 				var (mV, mE) = (vmc[dV], emc[dE]);
-				(nV, nE, rho) = computeAffinityBlocks(dv, dE, mV, mE);
+				(nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
 				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
 				idV += round(nV);
 				idE += round(nE);
 			}
 
 			forall (v, vDeg) in graph.forEachVertexDegree() {
-	  			var oldDeg = vertex_degrees[v.id+vertex_degrees.domain.low];
-	  			vertex_degrees[v.id+vertex_degrees.domain.low] = max(0, oldDeg - vDeg);
+	  			var oldDeg = vd[v.id+vdDom.low];
+	  			vd[v.id+vdDom.low] = max(0, oldDeg - vDeg);
 			}
 			forall (e, eDeg) in graph.forEachEdgeDegree() {
-	  			var oldDeg = edge_degrees[e.id+edge_degrees.domain.low];
-	  			edge_degrees[e.id+edge_degrees.domain.low] = max(0, oldDeg - eDeg);
+	  			var oldDeg = ed[e.id+edDom.low];
+	  			ed[e.id+edDom.low] = max(0, oldDeg - eDeg);
 			}
-			var sum_of_vertex_diff = + reduce vertex_degrees:int;
-			var sum_of_edges_diff = + reduce edge_degrees:int;
-			var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
-			return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
+			var nInclusions = round(max(+ reduce vd, + reduce ed));
+			return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vd, ed, nInclusions);
 	}
 }
