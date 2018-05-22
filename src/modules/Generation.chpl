@@ -124,7 +124,7 @@ module Generation {
 				// we would want to actually keep track of the amount of inclusions we did
 				// not generate and handle it at the end.
 				var hasWork : bool;
-				forall (vProb, eProb) in zip(localVertexProbabilities, localEdgeProbabilities) {
+				for (vProb, eProb) in zip(localVertexProbabilities, localEdgeProbabilities) {
 					if vProb != 0 || eProb != 0 {
 						hasWork = true;
 						break;
