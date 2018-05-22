@@ -204,106 +204,71 @@ module Generation {
 
 	}
 
-	proc get_smallest_value_greater_than_one(sorted_array){
-	    var id: int;
-		for i in 1.. sorted_array.size
-		{
-			if sorted_array[i] > 1
-			{
-				id = i;
-				break;
+	proc generateBTER(
+		vd : [?vdDom] integral, /* Vertex Degrees */
+		ed : [?edDom] integral, /* Edge Degrees */
+		vmc : [?vmcDom] real, /* Vertex Metamorphosis Coefficient */
+		emc : [?emcDom] real /* Edge Metamorphosis Coefficient */
+		) {
+			// Obtains the minimum value that exceeds one
+			proc minimalGreaterThanOne(arr) for a in arr do if a > 1 then return a;
+
+			// Computes the triple (nV, nE, rho) which are used to determine affinity blocks
+			proc computeAffinityBlocks(dV, dE, mV, mE){
+				var (nV, nE, rho) : 3 * real;
+
+				//determine the nV, nE, rho
+				if (mV / mE >= 1) {
+					nV = dE;
+					nE = round((mV / mE) * dV) if mE != 0 else 0;
+					rho = (((dV - 1) * (mE ** 2.0)) / (mV * dV - mE)) ** (1 / 4.0);
+				} else {
+					nE = dV;
+					nV = round((mE / mV) * dE) if mV != 0 else 0;
+					rho = (((dE - 1) * (mV ** 2.0))/(mE * dE - mV)) ** (1 / 4.0);
+				}
+
+				return (nV, nE, rho);
 			}
-		}
-		return id;
-	}
 
-	proc compute_params_for_affinity_blocks(dv, dE, mv, mE){
-		var nV: real;
-		var nE: real;
-		var rho: real;
-
-		//determine the nV, nE, rho
-		if (mv/mE >= 1) {
-			nV = dE;
-
-			if mE == 0{
-				nE = 0;
+			// Ensure that all arrays are sorted (in parallel)
+			cobegin {
+				sort(vd);
+				sort(ed);
+				sort(vmc);
+				sort(emc);
 			}
-			else{
-				nE = (mv/mE)*dv;
 
+			var (nV, nE, rho) : 3 * real;
+			var (idV, idE, numV, numE) = (
+				minimalGreaterThanOne(vertex_degrees),
+				minimalGreaterThanOne(edge_degrees),
+				vdDom.size,
+				edDom.size
+			);
+			var graph = new AdjListHyperGraph(vertex_degrees.domain, edge_degrees.domain);
+
+			while (idV <= numV && idE <= numE){
+				var (dV, dE) = (vd[idV], ed[idE]);
+				var (mV, mE) = (vmc[dV], emc[dE]);
+				(nV, nE, rho) = computeAffinityBlocks(dv, dE, mV, mE);
+				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
+				idV += round(nV);
+				idE += round(nE);
 			}
-			rho = (((dv-1)*(mE**2.0))/(mv*dv - mE))**(1/4.0);
 
-		}
-		else{
-			if mv == 0{
-				nV = 0;
+			forall (v, vDeg) in graph.forEachVertexDegree() {
+	  			var oldDeg = vertex_degrees[v.id+vertex_degrees.domain.low];
+	  			vertex_degrees[v.id+vertex_degrees.domain.low] = max(0, oldDeg - vDeg);
 			}
-			else{
-				nV = (mE/mv)*dE;
+			forall (e, eDeg) in graph.forEachEdgeDegree() {
+	  			var oldDeg = edge_degrees[e.id+edge_degrees.domain.low];
+	  			edge_degrees[e.id+edge_degrees.domain.low] = max(0, oldDeg - eDeg);
 			}
-			nE = dv;
-			rho = (((dE-1)*(mv**2.0))/(mE*dE - mv))**(1/4.0);
-
-		}
-
-		nV = round(nV);
-		nE = round(nE);
-
-		return (nV, nE, rho);
-
-	}
-
-
-	proc bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef){
-		sort(vertex_degrees);
-		sort(edge_degrees);
-		sort(vertex_metamorph_coef);
-		sort(edge_metamorph_coef);
-
-		var (idV, idE, numV, numE) = (
-			get_smallest_value_greater_than_one(vertex_degrees),
-			get_smallest_value_greater_than_one(edge_degrees),
-			vertex_degrees.size,
-			edge_degrees.size
-		);
-		var (nV, nE, rho) : 3 * real;
-		var graph = new AdjListHyperGraph(numV, numE);
-
-		while (idV <= numV && idE <= numE){
-			var dv = vertex_degrees[idV];
-			var dE = edge_degrees[idE];
-			var mV = vertex_metamorph_coef[dv];
-			var mE = edge_metamorph_coef[dE];
-			(nV, nE, rho) = compute_params_for_affinity_blocks(dv, dE, mV, mE);
-			if (idV > numV || idE > numE){
-				break;
-			}
-			else{
-				var nV_int = nV:int;
-				var nE_int = nE:int;
-
-				var vertices_domain : domain(int) = {idv..idv + nV_int};
-				var edges_domain : domain(int) = {idE..idE + nE_int};
-
-				graph = fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
-			}
-			idV += (nV:int);
-			idE += (nE:int);
-		}
-    		forall (v, vDeg) in graph.forEachVertexDegree() {
-      			var oldDeg = vertex_degrees[v.id+vertex_degrees.domain.low];
-      			vertex_degrees[v.id+vertex_degrees.domain.low] = max(0, oldDeg - vDeg);
-    		}
-    		forall (e, eDeg) in graph.forEachEdgeDegree() {
-      			var oldDeg = edge_degrees[e.id+edge_degrees.domain.low];
-      			edge_degrees[e.id+edge_degrees.domain.low] = max(0, oldDeg - eDeg);
-    		}
-		var sum_of_vertex_diff = + reduce vertex_degrees:int;
-		var sum_of_edges_diff = + reduce edge_degrees:int;
-		var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
-		return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
+			var sum_of_vertex_diff = + reduce vertex_degrees:int;
+			var sum_of_edges_diff = + reduce edge_degrees:int;
+			var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
+			return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
 	}
 
 }
