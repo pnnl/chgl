@@ -157,11 +157,11 @@ module Generation {
 				//determine the nV, nE, rho
 				if (mV / mE >= 1) {
 					nV = dE;
-					nE = round((mV / mE) * dV) if mE != 0 else 0;
+					nE = if mE != 0  then round((mV / mE) * dV) else 0;
 					rho = (((dV - 1) * (mE ** 2.0)) / (mV * dV - mE)) ** (1 / 4.0);
 				} else {
 					nE = dV;
-					nV = round((mE / mV) * dE) if mV != 0 else 0;
+					nV = if mV != 0 then round((mE / mV) * dE) else 0;
 					rho = (((dE - 1) * (mV ** 2.0))/(mE * dE - mV)) ** (1 / 4.0);
 				}
 
