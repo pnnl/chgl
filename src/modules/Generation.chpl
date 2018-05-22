@@ -81,29 +81,6 @@ module Generation {
       return graph;
   }
 
-	//Following the pseudo code provided in the paper: Measuring and Modeling Bipartite Graphs with Community Structure
-	//proc fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add){
-	//	var sum_degrees = + reduce desired_vertex_degrees:int;
-	//	var vertex_probabilities: [1..num_vertices] real;
-	//	var edge_probabilities: [1..num_edges] real;
-	//  forall idx in desired_vertex_degrees.domain{
-	//		vertex_probabilities[idx] = desired_vertex_degrees[idx]/sum_degrees:real;
-	//	}
-	//
-	//	forall idx in desired_edge_degrees.domain{
-	//		edge_probabilities[idx] = desired_edge_degrees[idx]/sum_degrees:real;
-	//	}
-	//
-	//	forall k in 1..inclusions_to_add
-	//	{
-	//		var vertex = get_random_element(desired_vertex_degrees, vertex_probabilities);
-	//		var edge = get_random_element(desired_edge_degrees, edge_probabilities);
-	//		//writeln("vertex,edge: ",vertex, edge);
-	//		graph.add_inclusion(vertex, edge);//How to check duplicate edge??
-	//	}
-	//	return graph;
-    	//}
-
 	proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
 		var sum_degrees = + reduce desired_vertex_degrees:real;
 		var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
@@ -164,46 +141,6 @@ module Generation {
 		return fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
 	}
 
-    // proc chung_lu_naive_hypergraph(desired_vertex_degrees, desired_edge_degrees, desired_num_edges){
-    //     var randStream: RandomStream(real) = new RandomStream(real);
-    //     const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
-    //     const edge_domain = {1..num_edges} dmapped Cyclic(startIdx=0);
-    //     var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge_domain);
-    //     for vertex in vertex_domain do
-    //         for edge in edge_domain do
-    //             p = (desired_vertex_degrees[vertex]*desired_edge_degrees[edge])/(2*desired_num_edges); #this needs more work
-    //             var nextRand = randStream.getNext();
-    //             if nextRand <= p then
-    //                 graph.add_inclusion(vertex, edge);
-    //     return graph;
-    // }
-
-    // proc chung_lu_fast_hypergraph(desired_vertex_degrees, desired_edge_degrees, desired_num_edges){
-    //     const vertex_domain = {1..num_nodes} dmapped Cyclic(startIdx=0);
-    //     const edge_domain = {1..num_edges} dmapped Cyclic(startIdx=0);
-    //     var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge_domain);
-    //     var vertex_probabilities: [1..num_nodes] real;
-    //     forall vertex in vertex_domain do
-    //         p = desired_vertex_degrees[vertex]/desired_num_edges;
-    //     var edge_probabilities: [1..num_edges] real;
-    //     forall edge in edge_domain do
-    //         p = desired_edge_degrees[edge]/desired_num_edges
-    //     for k in {1..desired_num_edges} do
-    //         vertex = get_random_element(vertex_domain, vertex_probabilities);
-    //         edge = get_random_element(edge_domain, edge_probabilities);
-    //         graph.add_inclusion(vertex, edge);
-    //     return graph;
-    // }
-
-	proc bter_hypergraph(input_graph){
-		//var original_vertex_degrees = input_graph.getVertexDegrees();
-		//var original_edge_degrees = input_graph.getEdgeDegrees();
-		//var original_vertex_metamorphosis_coefficient: real = input_graph.getVertexMetamorphosisCoef();
-		//var original_edge_metamorphosis_coefficient: real = input_graph.getEdgeMetamorphosisCoef();
-		//return bter_hypergraph(vertex_degrees, edge_degrees, vertex_metamorph_coef, edge_metamorph_coef);
-
-	}
-
 	proc generateBTER(
 		vd : [?vdDom] integral, /* Vertex Degrees */
 		ed : [?edDom] integral, /* Edge Degrees */
@@ -211,7 +148,7 @@ module Generation {
 		emc : [?emcDom] real /* Edge Metamorphosis Coefficient */
 		) {
 			// Obtains the minimum value that exceeds one
-			proc minimalGreaterThanOne(arr) for a in arr do if a > 1 then return a;
+			proc minimalGreaterThanOne(arr) { for a in arr do if a > 1 then return a; }
 
 			// Computes the triple (nV, nE, rho) which are used to determine affinity blocks
 			proc computeAffinityBlocks(dV, dE, mV, mE){
@@ -270,5 +207,4 @@ module Generation {
 			var inclusions_to_add = max(sum_of_vertex_diff, sum_of_edges_diff);
 			return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vertex_degrees, edge_degrees, inclusions_to_add);
 	}
-
 }
