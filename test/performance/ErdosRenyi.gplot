@@ -1,0 +1,14 @@
+set terminal postscript eps color 'Helvetica' 28
+set output 'ErdosRenyi.eps'
+set title 'Erdos Renyi'
+set style data linespoints
+set pointsize 2
+set key top left
+set key width -3
+set ytic auto
+set ylabel 'time (seconds)' font 'Helvetica,28'
+set xlabel 'nodes' font 'Helvetica,28'
+set logscale x 2
+
+plot \
+  'ErdosRenyi.dat' u 1:2:xtic(1) ls 7 lc rgb "red" t 'Adjacency List'
