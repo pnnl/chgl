@@ -142,13 +142,21 @@ module Generation {
 	}
 
 	proc generateBTER(
-		vd : [?vdDom] integral, /* Vertex Degrees */
-		ed : [?edDom] integral, /* Edge Degrees */
-		vmc : [?vmcDom] real, /* Vertex Metamorphosis Coefficient */
-		emc : [?emcDom] real /* Edge Metamorphosis Coefficient */
+		vd : [?vdDom], /* Vertex Degrees */
+		ed : [?edDom], /* Edge Degrees */
+		vmc : [?vmcDom], /* Vertex Metamorphosis Coefficient */
+		emc : [?emcDom] /* Edge Metamorphosis Coefficient */
 		) {
+			// Rounds a real into an int
+			proc _round(x : real) : int {
+				return round(x) : int;
+			}
+
 			// Obtains the minimum value that exceeds one
-			proc minimalGreaterThanOne(arr) { for a in arr do if a > 1 then return a; }
+			proc minimalGreaterThanOne(arr) { 
+				for a in arr do if a > 1 then return a; 
+				halt("No member found that is greater than 1...");
+			}
 
 			// Computes the triple (nV, nE, rho) which are used to determine affinity blocks
 			proc computeAffinityBlocks(dV, dE, mV, mE){
@@ -157,11 +165,11 @@ module Generation {
 				//determine the nV, nE, rho
 				if (mV / mE >= 1) {
 					nV = dE;
-					nE = if mE != 0  then round((mV / mE) * dV) else 0;
+					nE = if mE != 0  then _round((mV / mE) * dV) else 0;
 					rho = (((dV - 1) * (mE ** 2.0)) / (mV * dV - mE)) ** (1 / 4.0);
 				} else {
 					nE = dV;
-					nV = if mV != 0 then round((mE / mV) * dE) else 0;
+					nV = if mV != 0 then _round((mE / mV) * dE) else 0;
 					rho = (((dE - 1) * (mV ** 2.0))/(mE * dE - mV)) ** (1 / 4.0);
 				}
 
@@ -188,19 +196,19 @@ module Generation {
 				var (mV, mE) = (vmc[dV], emc[dE]);
 				(nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
 				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
-				idV += round(nV);
-				idE += round(nE);
+				idV += _round(nV);
+				idE += _round(nE);
 			}
 
 			forall (v, vDeg) in graph.forEachVertexDegree() {
-	  			var oldDeg = vd[v.id+vdDom.low];
-	  			vd[v.id+vdDom.low] = max(0, oldDeg - vDeg);
+	  			var oldDeg = vd[v.id];
+	  			vd[v.id] = max(0, oldDeg - vDeg);
 			}
 			forall (e, eDeg) in graph.forEachEdgeDegree() {
-	  			var oldDeg = ed[e.id+edDom.low];
-	  			ed[e.id+edDom.low] = max(0, oldDeg - eDeg);
+	  			var oldDeg = ed[e.id];
+	  			ed[e.id] = max(0, oldDeg - eDeg);
 			}
-			var nInclusions = round(max(+ reduce vd, + reduce ed));
+			var nInclusions = _round(max(+ reduce vd, + reduce ed));
 			return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vd, ed, nInclusions);
 	}
 }
