@@ -284,7 +284,10 @@ module Generation {
 				var nV_int = nV:int;
 				var nE_int = nE:int;
 
-				fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
+				var vertices_domain : domain(int) = {idv..idv + nV_int};
+				var edges_domain : domain(int) = {idE..idE + nE_int};
+
+				graph = fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, rho);
 			}
 			idV += (nV:int);
 			idE += (nE:int);
