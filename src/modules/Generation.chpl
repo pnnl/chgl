@@ -67,16 +67,18 @@ module Generation {
 
 
 //Pending: Take seed as input
-  proc erdos_renyi_hypergraph(num_vertices, num_edges, p) {
-      var randStream: RandomStream(real) = new RandomStream(real, 123);
-      var graph = new AdjListHyperGraph(num_vertices, num_edges);
+  proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
+      var graph = new AdjListHyperGraph(vertices_domain, edges_domain);
 
-      forall (vertex, edge) in getPairs(graph) {
-        // Note: Since currently we use a lock for NodeData, parallelism is stunted
-				var nextRand = randStream.getNext();
-				if nextRand <= p then
-					graph.add_inclusion(vertex, edge);
-			}
+      // Spawn a remote task on each node...
+      coforall loc in targetLocales do on loc {
+      	var randStream: RandomStream(real) = new RandomStream(real, 123);
+      	forall (v,e) in zip(graph.vertices_dom.localSubdomain(), graph.edges_dom.localSubdomain()) {
+      		if randStream.getNext() <= p {
+      			graph.add_inclusion(v,e);
+      		}
+      	}
+      }
 
       return graph;
   }

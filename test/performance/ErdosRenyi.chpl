@@ -4,10 +4,11 @@ use Generation;
 use Time;
 
 /* Performance Test for ChungLu algorithm */
-config param numVertices = 1024 * 1024;
-config param numEdges = numVertices * 2;
-config param profileCommunications = false;
-config param probability = 0.6;
+config const numVertices = 1024 * 1024;
+config const isNaive = false;
+config const numEdges = numVertices * 2;
+config const profileCommunications = false;
+config const probability = 0.6;
 
 if profileCommunications then startCommDiagnostics();
 
@@ -17,12 +18,15 @@ var graph = new AdjListHyperGraph(vertex_domain, edge_domain);
 
 var timer = new Timer();
 timer.start();
-fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, probability);
+if isNaive then erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, probability);
+else fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, probability);
 timer.stop();
+
 writeln("Time:", timer.elapsed());
 writeln("Nodes:", numLocales);
 writeln("NumVertices:", numVertices);
 writeln("NumEdges:", numEdges);
 writeln("Probability:", probability);
+writeln("Naive:", isNaive);
 
 if profileCommunications then writeln(getCommDiagnostics);
