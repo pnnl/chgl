@@ -61,6 +61,26 @@ module Generation {
 
     return graph;
   }
+  
+  proc remove_duplicates(g){
+    var offset = g.vertices_dom.low;
+    var g2 = new AdjListHyperGraph(g.vertices.size,g.edges.size);
+    forall v in g.vertices_dom.low..g.vertices_dom.high{
+        var adjList : [g.edges_dom.low .. g.edges_dom.high] int;
+        for e in g.vertices(v).neighborList{
+            adjList[e.id] = 1;
+        }
+        for e in 0..adjList.size-1{
+            if adjList[e] > 0{
+	        g2.add_inclusion(v,e);
+            }
+        }
+    }
+
+  return g2;
+}
+
+
 
     proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
         var sum_degrees = + reduce desired_vertex_degrees:real;
