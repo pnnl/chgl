@@ -1,54 +1,54 @@
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 1
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 2
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 32768 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 65536 --ProbabilityMultiple 3
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 131072 --ProbabilityMultiple 3
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 1
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 1
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 1
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 2
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 2
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 2
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 3
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 3
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 3
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 1
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 1
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 1
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 2
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 2
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 2
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 3
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 3
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 3
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 1
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 1
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 1 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 1
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 2
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 2
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 2 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 2
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 32768 --probabilityMultiple 3
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 65536 --probabilityMultiple 3
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 3 --isNaive
+--numVertices 16384 --numEdges 131072 --probabilityMultiple 3
