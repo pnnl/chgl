@@ -1,6 +1,6 @@
 --numEdges 100000 --numVertices 200000 --probability 0.1 --isNaive true
---numEdges 100000 --numVertices 200000 --probability 0.1 --isNaive false
+--numEdges 100000 --numVertices 200000 --probability 0.1
 --numEdges 100000 --numVertices 200000 --probability 0.2 --isNaive true
---numEdges 100000 --numVertices 200000 --probability 0.2 --isNaive false
+--numEdges 100000 --numVertices 200000 --probability 0.2
 --numEdges 100000 --numVertices 200000 --probability 0.3 --isNaive true
---numEdges 100000 --numVertices 200000 --probability 0.3 --isNaive false
+--numEdges 100000 --numVertices 200000 --probability 0.3
