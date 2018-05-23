@@ -1,54 +1,27 @@
---numVertices 16384 --numEdges 32768 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 1
---numVertices 16384 --numEdges 65536 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 1
---numVertices 16384 --numEdges 131072 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 1
---numVertices 16384 --numEdges 32768 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 2
---numVertices 16384 --numEdges 65536 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 2
---numVertices 16384 --numEdges 131072 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 2
---numVertices 16384 --numEdges 32768 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 3
---numVertices 16384 --numEdges 65536 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 3
---numVertices 16384 --numEdges 131072 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 3
---numVertices 16384 --numEdges 32768 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 1
---numVertices 16384 --numEdges 65536 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 1
---numVertices 16384 --numEdges 131072 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 1
---numVertices 16384 --numEdges 32768 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 2
---numVertices 16384 --numEdges 65536 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 2
---numVertices 16384 --numEdges 131072 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 2
---numVertices 16384 --numEdges 32768 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 3
---numVertices 16384 --numEdges 65536 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 3
---numVertices 16384 --numEdges 131072 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 3
---numVertices 16384 --numEdges 32768 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 1
---numVertices 16384 --numEdges 65536 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 1
---numVertices 16384 --numEdges 131072 --probabilityMultiple 1 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 1
---numVertices 16384 --numEdges 32768 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 2
---numVertices 16384 --numEdges 65536 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 2
---numVertices 16384 --numEdges 131072 --probabilityMultiple 2 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 2
---numVertices 16384 --numEdges 32768 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 32768 --probabilityMultiple 3
---numVertices 16384 --numEdges 65536 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 65536 --probabilityMultiple 3
---numVertices 16384 --numEdges 131072 --probabilityMultiple 3 --isNaive
---numVertices 16384 --numEdges 131072 --probabilityMultiple 3
+--numVertices 1048576 --numEdges 2097152 --probabilityMultiple 1
+--numVertices 1048576 --numEdges 3145728 --probabilityMultiple 1
+--numVertices 1048576 --numEdges 4194304 --probabilityMultiple 1
+--numVertices 1048576 --numEdges 2097152 --probabilityMultiple 2
+--numVertices 1048576 --numEdges 3145728 --probabilityMultiple 2
+--numVertices 1048576 --numEdges 4194304 --probabilityMultiple 2
+--numVertices 1048576 --numEdges 2097152 --probabilityMultiple 3
+--numVertices 1048576 --numEdges 3145728 --probabilityMultiple 3
+--numVertices 1048576 --numEdges 4194304 --probabilityMultiple 3
+--numVertices 2097152 --numEdges 4194304 --probabilityMultiple 1
+--numVertices 2097152 --numEdges 6291456 --probabilityMultiple 1
+--numVertices 2097152 --numEdges 8388608 --probabilityMultiple 1
+--numVertices 2097152 --numEdges 4194304 --probabilityMultiple 2
+--numVertices 2097152 --numEdges 6291456 --probabilityMultiple 2
+--numVertices 2097152 --numEdges 8388608 --probabilityMultiple 2
+--numVertices 2097152 --numEdges 4194304 --probabilityMultiple 3
+--numVertices 2097152 --numEdges 6291456 --probabilityMultiple 3
+--numVertices 2097152 --numEdges 8388608 --probabilityMultiple 3
+--numVertices 4194304 --numEdges 8388608 --probabilityMultiple 1
+--numVertices 4194304 --numEdges 12582912 --probabilityMultiple 1
+--numVertices 4194304 --numEdges 16777216 --probabilityMultiple 1
+--numVertices 4194304 --numEdges 8388608 --probabilityMultiple 2
+--numVertices 4194304 --numEdges 12582912 --probabilityMultiple 2
+--numVertices 4194304 --numEdges 16777216 --probabilityMultiple 2
+--numVertices 4194304 --numEdges 8388608 --probabilityMultiple 3
+--numVertices 4194304 --numEdges 12582912 --probabilityMultiple 3
+--numVertices 4194304 --numEdges 16777216 --probabilityMultiple 3
