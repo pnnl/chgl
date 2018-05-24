@@ -7,8 +7,6 @@ module Generation {
     use Math;
     use Sort;
 
-    record ArrayWrapper {var arr : [0..0] int; }
-    
     //Pending: Take seed as input
     //Returns index of the desired item
     proc get_random_element(elements, probabilities,randValue){
@@ -91,16 +89,6 @@ module Generation {
         var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
         var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
 
-	var adjMatrix : [vertices_domain.low..vertices_domain.high] ArrayWrapper;
-	// making the adjacency matrix the right size
-	forall e in 0..adjMatrix.size - 1 {
-		for i in 1..edges_domain.high{
-			adjMatrix[e].arr.push_back(0);
-		}
-	}
-	
-	
-
         coforall loc in targetLocales do on loc {
             // If the current node has local work...
             if vertex_probabilities.localSubdomain().size != 0 {
@@ -138,29 +126,16 @@ module Generation {
                         for 1..perTaskInclusions {
                             var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
                             var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-                            adjMatrix[vertex].arr[edge] = 1;
+                            graph.add_inclusion(vertex, edge);
                         }
                     }
                 }
             }
         }
-	//getting all of the existing values from graph into the adjacency matrix and ensuring that they are not added again
-	forall v in adjMatrix.domain.low..adjMatrix.domain.high{
-		for e in graph.vertices(v).neighborList{
-			adjMatrix[v].arr[e.id] = 0;
-		}
-	}
-	//add generated edges to graph
-	forall v in adjMatrix.domain.low..adjMatrix.domain.high{
-		for e in edges_domain.low..edges_domain.high{
-			if adjMatrix(v).arr[e] > 0 {
-				graph.add_inclusion(v,e);
-			}
-		}
-	}
-    return graph;
-    }
 
+        // TODO: Remove duplicate edges...
+        return graph;
+    }
 
     proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
         var inclusions_to_add =  + reduce desired_vertex_degrees:int;
