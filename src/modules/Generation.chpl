@@ -15,17 +15,16 @@ module Generation {
     }
     halt("Bad probability randValue: ", randValue, ", requires one between ",
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
-
   }
 
-  proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
+    proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
     var desired_vertex_degrees: [vertices_domain] real;
     var desired_edge_degrees: [edges_domain] real;
     var num_vertices = vertices_domain.size;
     var num_edges = edges_domain.size;
     desired_vertex_degrees = num_edges * p;
     desired_edge_degrees = num_vertices * p;
-    var inclusions_to_add = (num_vertices*num_edges*log(p/(1-p))): int;
+    var inclusions_to_add = (num_vertices*num_edges*log(1/(1-p))): int;
     var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
     return new_graph;
   }
@@ -196,7 +195,7 @@ module Generation {
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV], emc[dE]);
       (nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
-      fast_adjusted_erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, rho);
+      fast_adjusted_erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, rho, couponCollector = true);
       idV += _round(nV);
       idE += _round(nE);
     }
