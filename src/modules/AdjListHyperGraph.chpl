@@ -226,8 +226,6 @@ module AdjListHyperGraph {
   class AdjListHyperGraphImpl {
     var vertices_dom; // generic type - domain of vertices
     var edges_dom; // generic type - domain of edges
-    var _vertices_dom : vertices_dom.type; // based on the original domain of vertices
-    var _edges_dom : edges_dom.type; // based on the original domain of vertices
 
     // Privatization id
     var pid = -1;
@@ -244,8 +242,6 @@ module AdjListHyperGraph {
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
       this.vertices_dom = {0..#num_verts} dmapped new dmap(map);
       this.edges_dom = {0..#num_edges} dmapped new dmap(map);
-      this._vertices_dom = this.vertices_dom;
-      this._edges_dom = this.edges_dom;
 
       complete();
 
@@ -255,8 +251,6 @@ module AdjListHyperGraph {
     proc init(vertices_dom : domain, edges_dom : domain) {
       this.vertices_dom = vertices_dom;
       this.edges_dom = edges_dom;
-      this._vertices_dom = vertices_dom;
-      this._edges_dom = edges_dom;
 
       complete();
 
@@ -264,22 +258,14 @@ module AdjListHyperGraph {
     }
 
     proc init(other, pid) {
-      var vdom = other.vertices_dom;
-      var edom = other.edges_dom;
-      vdom.clear();
-      edom.clear();
-      this.vertices_dom = vdom;
-      this.edges_dom = edom;
-      this._vertices_dom = other.vertices_dom;
-      this._edges_dom = other.edges_dom;
+      this.vertices_dom = other.vertices_dom;
+      this.edges_dom = other.edges_dom;
       this.pid = pid;
 
       complete();
 
       // We need to update each node's privatized instance to use the same handle
       // for the distributed array. TODO: Need to cleanup current node's old array
-
-      
       this.vertices._instance = other.vertices._instance;
       this.vertices.pid = other.vertices.pid;
       this.edges._instance = other.edges._instance;
