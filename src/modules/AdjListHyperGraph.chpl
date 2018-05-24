@@ -33,22 +33,6 @@ module AdjListHyperGraph {
   use IO;
   use CyclicDist;
 
-  // Determines whether or not we profile for contention...
-  config param ALHG_PROFILE_CONTENTION : bool;
-  // L.J: Keeps track of amount of *potential* contended accesses. It is not absolute
-  // as we check to see if the lock is held prior to attempting to acquire it.
-  var contentionCnt : atomic int;
-
-  inline proc contentionCheck(ref lock : sync bool) where ALHG_PROFILE_CONTENTION {
-    if !lock.isFull {
-      contentionCnt.fetchAdd(1);
-    }
-  }
-
-  inline proc contentionCheck(ref lock : sync bool) where !ALHG_PROFILE_CONTENTION {
-    // NOP
-  }
-
   /*
     Record-Wrapped structure
   */
@@ -122,9 +106,7 @@ module AdjListHyperGraph {
     proc init(other: AdjListHyperGraph) {
       // Lock the other.  This makes the copy construction parallel-safe with
       // respect to ``other`` and may be a bit of an overkill.
-      if ALHG_PROFILE_CONTENTION && !other.lock$.isFull {
-        contentionCnt.fetchAdd(1);
-      }
+      Debug.contentionCheck(other.lock$.isFull);
       other.lock$;
       this.nodeIdType = other.nodeIdType;
       this.ndom = other.ndom;
@@ -140,7 +122,7 @@ module AdjListHyperGraph {
     */
     proc addNodes(vals) {
       on this {
-        contentionCheck(lock$);
+        Debug.contentionCheck(lock$);
         lock$; // acquire lock
         neighborList.push_back(vals);
         lock$ = true; // release the lock
@@ -170,8 +152,8 @@ module AdjListHyperGraph {
     deadlock (e.g., ``a = b`` in parallel with ``b = a``).
   */
   proc =(ref lhs: NodeData, ref rhs: NodeData) {
-    contentionCheck(lhs.lock$);
-    contentionCheck(rhs.lock$);
+    Debug.contentionCheck(lhs.lock$);
+    Debug.contentionCheck(rhs.lock$);
     lhs.lock$; // lock lhs
     rhs.lock$; // lock rhs
     lhs.ndom = rhs.ndom;
@@ -244,7 +226,7 @@ module AdjListHyperGraph {
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
       var vertices_dom = {0..#num_verts} dmapped new dmap(map);
       var edges_dom = {0..#num_edges} dmapped new dmap(map);
-      this.vertices_dom = vertices_dom; 
+      this.vertices_dom = vertices_dom;
       this.edges_dom = edges_dom;
       this._vertices_dom = vertices_dom;
       this._edges_dom = edges_dom;
@@ -281,7 +263,7 @@ module AdjListHyperGraph {
       // We need to update each node's privatized instance to use the same handle
       // for the distributed array. TODO: Need to cleanup current node's old array
 
-      
+
       this.vertices._instance = other.vertices._instance;
       this.vertices.pid = other.vertices.pid;
       this.edges._instance = other.edges._instance;
@@ -507,6 +489,24 @@ module AdjListHyperGraph {
 
     }
   } // class Graph
+
+  module Debug {
+    // Determines whether or not we profile for contention...
+    config param ALHG_PROFILE_CONTENTION : bool;
+    // L.J: Keeps track of amount of *potential* contended accesses. It is not absolute
+    // as we check to see if the lock is held prior to attempting to acquire it.
+    var contentionCnt : atomic int;
+
+    inline proc contentionCheck(ref lock : sync bool) where ALHG_PROFILE_CONTENTION {
+      if !lock.isFull {
+        contentionCnt.fetchAdd(1);
+      }
+    }
+
+    inline proc contentionCheck(ref lock : sync bool) where !ALHG_PROFILE_CONTENTION {
+      // NOP
+    }
+  }
 
   /* /\* iterate over all neighbor IDs */
   /*  *\/ */
