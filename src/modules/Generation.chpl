@@ -7,8 +7,6 @@ module Generation {
     use Math;
     use Sort;
 
-    record ArrayWrapper {var arr : [0..0] int; }
-
     //Pending: Take seed as input
     //Returns index of the desired item
     proc get_random_element(elements, probabilities,randValue){
@@ -43,16 +41,16 @@ module Generation {
         
         // Process either vertices of edges in parallel based on relative size.
         if graph.numVertices > graph.numEdges {
-            forall v in graph.vertices_dom.localSubdomain() {
-                for e in graph.edges_dom.localSubdomain() {
+            forall v in graph.verticesDomain.localSubdomain() {
+                for e in graph.edgesDomain.localSubdomain() {
                     if randStream.getNext() <= p {
                         graph.add_inclusion(v,e);
                     }
                 }
             }
         } else {
-            forall e in graph.edges_dom.localSubdomain() {
-                for v in graph.vertices_dom.localSubdomain() {
+            forall e in graph.edgesDomain.localSubdomain() {
+                for v in graph.verticesDomain.localSubdomain() {
                     if randStream.getNext() <= p {
                         graph.add_inclusion(v,e);
                     }
@@ -65,10 +63,10 @@ module Generation {
   }
   
   proc remove_duplicates(g){
-    var offset = g.vertices_dom.low;
+    var offset = g.verticesDomain.low;
     var g2 = new AdjListHyperGraph(g.vertices.size,g.edges.size);
-    forall v in g.vertices_dom.low..g.vertices_dom.high{
-        var adjList : [g.edges_dom.low .. g.edges_dom.high] int;
+    forall v in g.verticesDomain.low..g.verticesDomain.high{
+        var adjList : [g.edgesDomain.low .. g.edgesDomain.high] int;
         for e in g.vertices(v).neighborList{
             adjList[e.id] = 1;
         }
@@ -77,10 +75,11 @@ module Generation {
 	        g2.add_inclusion(v,e);
             }
         }
-        }
-
-    return g2;
     }
+
+  return g2;
+}
+
 
 
     proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
@@ -89,16 +88,6 @@ module Generation {
         var edge_probabilities = desired_edge_degrees/sum_degrees: real;
         var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
         var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
-
-	    var adjMatrix : [vertices_domain.low..vertices_domain.high] ArrayWrapper;
-	    // making the adjacency matrix the right size
-    	forall e in 0..adjMatrix.size - 1 {
-	    	for i in 1..edges_domain.high{
-	    		adjMatrix[e].arr.push_back(0);
-    		}
-    	}
-	
-	
 
         coforall loc in targetLocales do on loc {
             // If the current node has local work...
@@ -137,26 +126,14 @@ module Generation {
                         for 1..perTaskInclusions {
                             var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
                             var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-                            adjMatrix[vertex].arr[edge] = 1;
+                            graph.add_inclusion(vertex, edge);
                         }
                     }
                 }
             }
         }
-	    //getting all of the existing values from graph into the adjacency matrix and ensuring that they are not added again
-	    forall v in adjMatrix.domain.low..adjMatrix.domain.high{
-    		for e in graph.vertices(v).neighborList{
-    			adjMatrix[v].arr[e.id] = 0;
-        		}
-    	}
-    	//add generated edges to graph
-    	forall v in adjMatrix.domain.low..adjMatrix.domain.high{
-      		for e in edges_domain.low..edges_domain.high{
-    			if adjMatrix(v).arr[e] > 0 {
-	    			graph.add_inclusion(v,e);
-        		}
-	    	}
-	    }
+
+        // TODO: Remove duplicate edges...
         return graph;
     }
 
@@ -219,7 +196,7 @@ module Generation {
                 var (dV, dE) = (vd[idV], ed[idE]);
                 var (mV, mE) = (vmc[dV], emc[dE]);
                 (nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
-                fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
+                fast_adjusted_erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, rho);
                 idV += _round(nV);
                 idE += _round(nE);
             }
@@ -233,6 +210,6 @@ module Generation {
                 ed[e.id] = max(0, oldDeg - eDeg);
             }
             var nInclusions = _round(max(+ reduce vd, + reduce ed));
-            return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vd, ed, nInclusions);
+            return fast_hypergraph_chung_lu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
     }
 }
