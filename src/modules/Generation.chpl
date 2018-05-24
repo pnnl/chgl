@@ -41,16 +41,16 @@ module Generation {
         
         // Process either vertices of edges in parallel based on relative size.
         if graph.numVertices > graph.numEdges {
-            forall v in graph.vertices_dom.localSubdomain() {
-                for e in graph.edges_dom.localSubdomain() {
+            forall v in graph.verticesDomain.localSubdomain() {
+                for e in graph.edgesDomain.localSubdomain() {
                     if randStream.getNext() <= p {
                         graph.add_inclusion(v,e);
                     }
                 }
             }
         } else {
-            forall e in graph.edges_dom.localSubdomain() {
-                for v in graph.vertices_dom.localSubdomain() {
+            forall e in graph.edgesDomain.localSubdomain() {
+                for v in graph.verticesDomain.localSubdomain() {
                     if randStream.getNext() <= p {
                         graph.add_inclusion(v,e);
                     }
@@ -63,10 +63,10 @@ module Generation {
   }
   
   proc remove_duplicates(g){
-    var offset = g.vertices_dom.low;
+    var offset = g.verticesDomain.low;
     var g2 = new AdjListHyperGraph(g.vertices.size,g.edges.size);
-    forall v in g.vertices_dom.low..g.vertices_dom.high{
-        var adjList : [g.edges_dom.low .. g.edges_dom.high] int;
+    forall v in g.verticesDomain.low..g.verticesDomain.high{
+        var adjList : [g.edgesDomain.low .. g.edgesDomain.high] int;
         for e in g.vertices(v).neighborList{
             adjList[e.id] = 1;
         }
@@ -196,7 +196,7 @@ module Generation {
                 var (dV, dE) = (vd[idV], ed[idE]);
                 var (mV, mE) = (vmc[dV], emc[dE]);
                 (nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
-                fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, rho);
+                fast_adjusted_erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, rho);
                 idV += _round(nV);
                 idE += _round(nE);
             }
@@ -210,6 +210,6 @@ module Generation {
                 ed[e.id] = max(0, oldDeg - eDeg);
             }
             var nInclusions = _round(max(+ reduce vd, + reduce ed));
-            return fast_hypergraph_chung_lu(graph, graph.vertices_dom, graph.edges_dom, vd, ed, nInclusions);
+            return fast_hypergraph_chung_lu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
     }
 }

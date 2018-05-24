@@ -242,10 +242,12 @@ module AdjListHyperGraph {
 
     // Initialize a graph with initial domains
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
-      this.vertices_dom = {0..#num_verts} dmapped new dmap(map);
-      this.edges_dom = {0..#num_edges} dmapped new dmap(map);
-      this._vertices_dom = this.vertices_dom;
-      this._edges_dom = this.edges_dom;
+      var vertices_dom = {0..#num_verts} dmapped new dmap(map);
+      var edges_dom = {0..#num_edges} dmapped new dmap(map);
+      this.vertices_dom = vertices_dom; 
+      this.edges_dom = edges_dom;
+      this._vertices_dom = vertices_dom;
+      this._edges_dom = edges_dom;
 
       complete();
 
@@ -284,6 +286,14 @@ module AdjListHyperGraph {
       this.vertices.pid = other.vertices.pid;
       this.edges._instance = other.edges._instance;
       this.edges.pid = other.edges.pid;
+    }
+
+    proc verticesDomain {
+      return this._vertices_dom;
+    }
+
+    proc edgesDomain {
+      return this._edges_dom;
     }
 
     pragma "no doc"
