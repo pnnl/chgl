@@ -256,15 +256,13 @@ module AdjListHyperGraph {
     }
 
     proc init(other, pid) {
-      var vdom = other.vertices_dom;
-      var edom = other.edges_dom;
-      vdom.clear();
-      edom.clear();
-      this.vertices_dom = vdom;
-      this.edges_dom = edom;
+      this.vertices_dom = other.vertices_dom;
+      this.edges_dom = other.edges_dom;
       this._vertices_dom = other.vertices_dom;
       this._edges_dom = other.edges_dom;
       this.pid = pid;
+      this.vertices = other.vertices[other.vertices_dom];
+      this.edges = other.edges[other.edges_dom];
 
       complete();
 
@@ -272,8 +270,7 @@ module AdjListHyperGraph {
       // for the distributed array. TODO: Need to cleanup current node's old array
 
 
-      this.vertices = other.vertices[other.vertices_dom];
-      this.edges = other.edges[other.edges_dom];
+      
     }
 
     proc verticesDomain {
