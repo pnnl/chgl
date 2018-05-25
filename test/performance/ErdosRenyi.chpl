@@ -13,7 +13,7 @@ var edgeProbability = probabilityMultiple * log(numEdges + numVertices) / (numEd
 
 if profileCommunications then startCommDiagnostics();
 
-var graph = new AdjListHyperGraph(num_vertices, num_edges, Cyclic(startIdx=0));
+var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0));
 
 var timer = new Timer();
 timer.start();
