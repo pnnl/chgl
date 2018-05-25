@@ -78,11 +78,19 @@ module AdjListHyperGraph {
 
     // This is purely a lock, and the boolean type is just an arbitrary choice.
     // TBD: Is there a better lock?
-    var lock$: sync bool = true;
+    var lock$: atomic bool;
 
     proc numNeighbors() return ndom.numIndices;
 
+    proc acquire() {
+      while lock$.testAndSet() {
+        chpl_task_yield();
+      }
+    }
 
+    proc release() {
+      lock$.clear();
+    }
 
     // Initializers are necessary:
     // https://stackoverflow.com/questions/49682634/domain-resizing-on-an-array-of-records-hangs
@@ -107,12 +115,12 @@ module AdjListHyperGraph {
       // Lock the other.  This makes the copy construction parallel-safe with
       // respect to ``other`` and may be a bit of an overkill.
       Debug.contentionCheck(other.lock$.isFull);
-      other.lock$;
+      other.acquire();
       this.nodeIdType = other.nodeIdType;
       this.ndom = other.ndom;
       this.neighborList = other.neighborList;
       // release the lock
-      other.lock$ = true;
+      other.clear();
       // this.lock$ will be assigned by the default initializer
     }
 
@@ -123,9 +131,9 @@ module AdjListHyperGraph {
     proc addNodes(vals) {
       on this {
         Debug.contentionCheck(lock$);
-        lock$; // acquire lock
+        lock$.acquire(); // acquire lock
         neighborList.push_back(vals);
-        lock$ = true; // release the lock
+        lock$.clear(); // release the lock
       }
     }
 
@@ -154,12 +162,12 @@ module AdjListHyperGraph {
   proc =(ref lhs: NodeData, ref rhs: NodeData) {
     Debug.contentionCheck(lhs.lock$);
     Debug.contentionCheck(rhs.lock$);
-    lhs.lock$; // lock lhs
-    rhs.lock$; // lock rhs
+    lhs.lock$.acquire(); // lock lhs
+    rhs.lock$.acquire(); // lock rhs
     lhs.ndom = rhs.ndom;
     lhs.neighborList = rhs.neighborList;
-    lhs.lock$ = true; // release lhs
-    rhs.lock$ = true; // release rhs
+    lhs.lock$.clear(); // release lhs
+    rhs.lock$.clear(); // release rhs
   }
 
   record Vertex {}
@@ -264,6 +272,7 @@ module AdjListHyperGraph {
       // for the distributed array. TODO: Need to cleanup current node's old array
 
 
+      this.vertices = other
       this.vertices._instance = other.vertices._instance;
       this.vertices.pid = other.vertices.pid;
       this.edges._instance = other.edges._instance;
