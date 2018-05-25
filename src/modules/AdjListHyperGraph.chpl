@@ -311,11 +311,11 @@ module AdjListHyperGraph {
     }
 
     proc numVertices {
-      return vertices_dom.size;
+      return _vertices_dom.size;
     }
 
     proc numEdges {
-      return edges_dom.size;
+      return _edges_dom.size;
     }
 
 
@@ -359,6 +359,8 @@ module AdjListHyperGraph {
     inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
+      // Privatization issue on multi-locale
+      //      writeln(here, ": vertices.size: ", vertices.size);
       vertices(vDesc.id).addNodes(eDesc);
       edges(eDesc.id).addNodes(vDesc);
     }

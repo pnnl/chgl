@@ -17,6 +17,29 @@ module Generation {
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
 
+  proc fast_simple_er(graph, probability, targetLocales = Locales){
+    var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
+    coforall loc in targetLocales do on loc {
+        // Normalize both probabilities
+        var perLocaleInclusions = (inclusionsToAdd / numLocales) + (if here.id == 0 then (inclusionsToAdd % numLocales) else 0);
+        coforall tid in  1..here.maxTaskPar {
+          var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 1 then (perLocaleInclusions % here.maxTaskPar) else 0);
+          var randStream = new RandomStream(int(64));
+          writeln("Task ", tid, " is running ", perTaskInclusions, " inclusions.");
+          for 1..perTaskInclusions {
+            // A better way to get the max and min values for this random gen?
+            var vertex = randStream.getNext(0, graph.numVertices - 1);
+            var edge = randStream.getNext(graph._edges_dom.localSubdomain().low, graph._edges_dom.localSubdomain().high);
+            //            writeln(here.id, " ", vertex, " ", edge);
+            graph.add_inclusion(vertex, edge);
+          }
+        }
+      }
+
+    // TODO: Remove duplicate edges...
+    return graph;
+  }
+
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
     var desired_vertex_degrees: [vertices_domain] real;
     var desired_edge_degrees: [edges_domain] real;
@@ -24,7 +47,9 @@ module Generation {
     var num_edges = edges_domain.size;
     desired_vertex_degrees = num_edges * p;
     desired_edge_degrees = num_vertices * p;
-    var inclusions_to_add = (num_vertices*num_edges*log(1/(1-p))): int;
+    // Adjust p for coupon collector
+    var adjusted_p = if couponCollector then log(1/(1-p)) else p;
+    var inclusions_to_add = (num_vertices*num_edges * adjusted_p): int;
     var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
     return new_graph;
   }
