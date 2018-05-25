@@ -131,9 +131,9 @@ module AdjListHyperGraph {
     proc addNodes(vals) {
       on this {
         Debug.contentionCheck(lock$);
-        lock$.acquire(); // acquire lock
+        acquire(); // acquire lock
         neighborList.push_back(vals);
-        lock$.clear(); // release the lock
+        release(); // release the lock
       }
     }
 
@@ -144,9 +144,9 @@ module AdjListHyperGraph {
         	<~> new ioLiteral(", neighborlist = ")
         	<~> neighborList
         	<~> new ioLiteral(", lock$ = ")
-        	<~> lock$.readXX()
+        	<~> lock$.read()
         	<~> new ioLiteral("(isFull: ")
-        	<~> lock$.isFull
+        	<~> lock$.read()
         	<~> new ioLiteral(") }");
       }
     }
@@ -162,12 +162,12 @@ module AdjListHyperGraph {
   proc =(ref lhs: NodeData, ref rhs: NodeData) {
     Debug.contentionCheck(lhs.lock$);
     Debug.contentionCheck(rhs.lock$);
-    lhs.lock$.acquire(); // lock lhs
-    rhs.lock$.acquire(); // lock rhs
+    lhs.acquire(); // lock lhs
+    rhs.acquire(); // lock rhs
     lhs.ndom = rhs.ndom;
     lhs.neighborList = rhs.neighborList;
-    lhs.lock$.clear(); // release lhs
-    rhs.lock$.clear(); // release rhs
+    lhs.release(); // release lhs
+    rhs.release(); // release rhs
   }
 
   record Vertex {}
@@ -272,11 +272,8 @@ module AdjListHyperGraph {
       // for the distributed array. TODO: Need to cleanup current node's old array
 
 
-      this.vertices = other
-      this.vertices._instance = other.vertices._instance;
-      this.vertices.pid = other.vertices.pid;
-      this.edges._instance = other.edges._instance;
-      this.edges.pid = other.edges.pid;
+      this.vertices = other.vertices[other.vertices_dom];
+      this.edges = other.edges[other.edges_dom];
     }
 
     proc verticesDomain {
@@ -508,13 +505,13 @@ module AdjListHyperGraph {
     // as we check to see if the lock is held prior to attempting to acquire it.
     var contentionCnt : atomic int;
 
-    inline proc contentionCheck(ref lock : sync bool) where ALHG_PROFILE_CONTENTION {
-      if !lock.isFull {
+    inline proc contentionCheck(ref lock : atomic bool) where ALHG_PROFILE_CONTENTION {
+      if lock.read() {
         contentionCnt.fetchAdd(1);
       }
     }
 
-    inline proc contentionCheck(ref lock : sync bool) where !ALHG_PROFILE_CONTENTION {
+    inline proc contentionCheck(ref lock : atomic bool) where !ALHG_PROFILE_CONTENTION {
       // NOP
     }
   }
