@@ -21,11 +21,17 @@ if isNaive then erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_do
 else fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, edgeProbability);
 timer.stop();
 
+var inclusions = 0;
+forall (_, vdeg) in graph.forEachVertexDegree() with (+ reduce inclusions) do inclusions += vdeg;
+
 writeln("Time:", timer.elapsed());
 writeln("Nodes:", numLocales);
 writeln("NumVertices:", numVertices);
 writeln("NumEdges:", numEdges);
 writeln("ProbabilityMultiple:", probabilityMultiple);
 writeln("Naive:", isNaive);
+writeln("Inclusions:", inclusions);
+writeln("Probability:", edgeProbability);
+
 
 if profileCommunications then writeln(getCommDiagnostics);
