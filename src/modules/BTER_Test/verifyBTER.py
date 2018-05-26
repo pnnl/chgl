@@ -37,8 +37,11 @@ for key, value in sorted(BTER_Node_Frequency.items()):
 	BTER_Y.append(math.log(value))
 
 for key, value in sorted(Node_Frequency.items()):
-	X.append(key)
-	Y.append(value)
+	if key != 0:
+		X.append(math.log(key))
+	else:
+		X.append(0)
+	Y.append(math.log(value))
 
 #plt.xlim(min(X), max(X))
 #plt.ylim(min(Y), max(Y))
