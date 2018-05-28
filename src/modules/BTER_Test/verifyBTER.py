@@ -60,7 +60,7 @@ for key, value in sorted(Node_Frequency.items()):
 #plt.ylim(min(Y), max(Y))
 plt.plot(X, Y, marker = 'o', linestyle = '--', color = 'r', label='Generated')
 plt.plot(BTER_X, BTER_Y, marker = 'o', linestyle = '--', color='b', label='Good BTER')
-plt.xlabel('log(Node DD)')
+plt.xlabel('log(Node Degree)')
 plt.ylabel('log(Frequency)')
 plt.title('compare')
 plt.legend()
