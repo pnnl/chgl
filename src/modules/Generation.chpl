@@ -23,15 +23,17 @@ module Generation {
         // Normalize both probabilities
         var perLocaleInclusions = (inclusionsToAdd / numLocales) + (if here.id == 0 then (inclusionsToAdd % numLocales) else 0);
         coforall tid in  1..here.maxTaskPar {
-          var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 1 then (perLocaleInclusions % here.maxTaskPar) else 0);
-          var randStream = new RandomStream(int(64));
-          writeln("Task ", tid, " is running ", perTaskInclusions, " inclusions.");
-          for 1..perTaskInclusions {
-            // A better way to get the max and min values for this random gen?
-            var vertex = randStream.getNext(0, graph.numVertices - 1);
-            var edge = randStream.getNext(graph._edges_dom.localSubdomain().low, graph._edges_dom.localSubdomain().high);
-            //            writeln(here.id, " ", vertex, " ", edge);
-            graph.add_inclusion(vertex, edge);
+          if graph.localEdgesDomain.size != 0 {
+            var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 1 then (perLocaleInclusions % here.maxTaskPar) else 0);
+            var randStream = new RandomStream(int(64));
+            writeln("Task ", tid, " is running ", perTaskInclusions, " inclusions.");
+            for 1..perTaskInclusions {
+              // A better way to get the max and min values for this random gen?
+              var vertex = randStream.getNext(0, graph.numVertices - 1);
+              var localEdgeIdx = randStream.getNext(0, graph.localEdgesDomain.size - 1);
+              var edge = graph.localEdgesDomain.low + localEdgeIdx * graph.localEdgesDomain.stride;
+              graph.add_inclusion(vertex, edge);
+            }
           }
         }
       }

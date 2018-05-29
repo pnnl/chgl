@@ -82,13 +82,13 @@ module AdjListHyperGraph {
 
     proc numNeighbors() return ndom.numIndices;
 
-    proc acquire() {
+    inline proc acquire() {
       while lock$.testAndSet() {
         chpl_task_yield();
       }
     }
 
-    proc release() {
+    inline proc release() {
       lock$.clear();
     }
 
@@ -129,12 +129,12 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
-      on this {
+      //on this {
         Debug.contentionCheck(lock$);
         acquire(); // acquire lock
         neighborList.push_back(vals);
         release(); // release the lock
-      }
+      //}
     }
 
     proc readWriteThis(f) {
@@ -214,10 +214,11 @@ module AdjListHyperGraph {
      optimizations of certain operations.
   */
   class AdjListHyperGraphImpl {
-    var vertices_dom; // generic type - domain of vertices
-    var edges_dom; // generic type - domain of edges
-    var _vertices_dom : vertices_dom.type; // based on the original domain of vertices
-    var _edges_dom : edges_dom.type; // based on the original domain of vertices
+    var vertices_dom : domain(1); // domain of vertices
+    var edges_dom : domain(1); // domain of edges
+
+    var localVerticesDom;
+    var localEdgesDom;
 
     // Privatization id
     var pid = -1;
@@ -234,21 +235,14 @@ module AdjListHyperGraph {
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
       var vertices_dom = {0..#num_verts} dmapped new dmap(map);
       var edges_dom = {0..#num_edges} dmapped new dmap(map);
-      this.vertices_dom = vertices_dom;
-      this.edges_dom = edges_dom;
-      this._vertices_dom = vertices_dom;
-      this._edges_dom = edges_dom;
-
-      complete();
-
-      this.pid = _newPrivatizedClass(this);
+      init(vertices_dom, edges_dom);
     }
 
     proc init(vertices_dom : domain, edges_dom : domain) {
       this.vertices_dom = vertices_dom;
       this.edges_dom = edges_dom;
-      this._vertices_dom = vertices_dom;
-      this._edges_dom = edges_dom;
+      this.localVerticesDom = vertices_dom.localSubdomain();
+      this.localEdgesDom = edges_dom.localSubdomain();
 
       complete();
 
@@ -256,29 +250,39 @@ module AdjListHyperGraph {
     }
 
     proc init(other, pid) {
-      this.vertices_dom = other.vertices_dom;
-      this.edges_dom = other.edges_dom;
-      this._vertices_dom = other.vertices_dom;
-      this._edges_dom = other.edges_dom;
+      this.localVerticesDom = other.localVerticesDom;
+      this.localEdgesDom = other.localEdgesDom;
+
+      complete();   
+
+      // Initialize arrays to point to the original's array instance
       this.pid = pid;
-      this.vertices = other.vertices[other.vertices_dom];
-      this.edges = other.edges[other.edges_dom];
+      this.vertices.pid = other.vertices.pid;
+      this.vertices._instance = other.vertices._instance;
+      this.edges.pid = other.edges.pid;
+      this.edges._instance = other.edges._instance;
+    }
 
-      complete();
-
-      // We need to update each node's privatized instance to use the same handle
-      // for the distributed array. TODO: Need to cleanup current node's old array
-
-
-      
+    proc postinit() {
+      writeln(here, ": Inside postinit...");
+      writeln(here, ": vertices.localSubdomain: ", this.localVerticesDomain);
+      writeln(here, ": edges.localSubdomain: ", this.localEdgesDomain);
     }
 
     proc verticesDomain {
-      return this._vertices_dom;
+      return this.vertices.domain;
+    }
+
+    proc localVerticesDomain {
+      return this.localVerticesDom;
     }
 
     proc edgesDomain {
-      return this._edges_dom;
+      return this.edges.domain;
+    }
+
+    proc localEdgesDomain {
+      return this.localEdgesDom;
     }
 
     pragma "no doc"
@@ -314,11 +318,11 @@ module AdjListHyperGraph {
     }
 
     proc numVertices {
-      return _vertices_dom.size;
+      return this.vertices.domain.size;
     }
 
     proc numEdges {
-      return _edges_dom.size;
+      return this.edges.domain.size;
     }
 
 
@@ -362,8 +366,6 @@ module AdjListHyperGraph {
     inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
-      // Privatization issue on multi-locale
-      //      writeln(here, ": vertices.size: ", vertices.size);
       vertices(vDesc.id).addNodes(eDesc);
       edges(eDesc.id).addNodes(vDesc);
     }
