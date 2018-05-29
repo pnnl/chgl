@@ -1,4 +1,4 @@
-perfkeys: Time:, Nodes:, NumVertices:, NumEdges:, ProbabilityMultiple:, Naive:
+perfkeys: Time:, Inclusions:, Nodes:, NumVertices:, NumEdges:, ProbabilityMultiple:, Naive:
 graphkeys: Performance
 files: ChungLu.dat
 graphtitle: Performance of ChungLu

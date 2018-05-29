@@ -47,7 +47,6 @@ module AdjListHyperGraph {
         halt("AdjListHyperGraph is uninitialized...");
       }
 
-      if instance.locale == here then return instance;
       return chpl_getPrivatizedCopy(instance.type, pid);
     }
 
@@ -129,12 +128,12 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     proc addNodes(vals) {
-      //on this {
+      on this {
         Debug.contentionCheck(lock$);
         acquire(); // acquire lock
         neighborList.push_back(vals);
         release(); // release the lock
-      //}
+      }
     }
 
     proc readWriteThis(f) {

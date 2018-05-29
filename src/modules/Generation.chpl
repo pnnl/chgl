@@ -22,7 +22,7 @@ module Generation {
     coforall loc in targetLocales do on loc {
         // Normalize both probabilities
         var perLocaleInclusions = (inclusionsToAdd / numLocales) + (if here.id == 0 then (inclusionsToAdd % numLocales) else 0);
-        coforall tid in  1..here.maxTaskPar {
+        coforall tid in  1..here.maxTaskPar with (in graph) {
           if graph.localEdgesDomain.size != 0 {
             var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 1 then (perLocaleInclusions % here.maxTaskPar) else 0);
             var randStream = new RandomStream(int(64));
