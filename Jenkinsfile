@@ -13,6 +13,7 @@ pipeline {
                     sh 'ssh jenkins@puma.pnl.gov "bash -s" < jenkins-build.sh'
 
                     // Get results back from puma.pnl.gov
+                    sh 'scp -r jenkins@puma.pnl.gov:chgl-workspace/test/unit/Logs $WORKSPACE/test/unit/Logs'
                     sh 'scp -r jenkins@puma.pnl.gov:chgl-workspace/test/performance/Logs $WORKSPACE/test/performance/Logs'
                     sh 'scp -r jenkins@puma.pnl.gov:chgl-workspace/test/performance/dat $WORKSPACE/test/performance/dat'
                 }

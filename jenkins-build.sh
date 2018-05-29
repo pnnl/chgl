@@ -8,6 +8,10 @@ WORKSPACE=/home/jenkins/chgl-workspace
 cd $CHAPEL_HOME
 source util/quickstart/setchplenv.bash
 
+# Execute unit tests
+cd $WORKSPACE/test/unit
+start_test -junit-xml -junit-xml-file $WORKSPACE/test/unit/Logs/chapel-unit-tests.xml -numlocales 4
+
 # Execute peformance tests
 export CHPL_TEST_PERF_DIR=$WORKSPACE/test/performance/dat
 cd $WORKSPACE/test/performance
