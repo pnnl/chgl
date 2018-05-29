@@ -262,12 +262,6 @@ module AdjListHyperGraph {
       this.edges._instance = other.edges._instance;
     }
 
-    proc postinit() {
-      writeln(here, ": Inside postinit...");
-      writeln(here, ": vertices.localSubdomain: ", this.localVerticesDomain);
-      writeln(here, ": edges.localSubdomain: ", this.localEdgesDomain);
-    }
-
     proc verticesDomain {
       return this.vertices.domain;
     }
@@ -495,6 +489,45 @@ module AdjListHyperGraph {
 
     }
   } // class Graph
+
+  config param AdjListHyperGraphBufferSize = 1024 * 1024;
+
+  // Buffer of (vertex, edge) tuples
+  record Buffer {
+    type vDescType;
+    type eDescType;
+
+    // Object called to handle emptying buffer when full...
+    var collectFn;
+
+    // Note: Tuples are significantly faster than arrays... See below link...
+    // https://chapel-lang.org/perf/chapcs/?graphs=arrayvstupleserialaccesses
+    var _buffer :  AdjListHyperGraphBufferSize * (vDescType, eDescType);
+    var size : atomic int;
+    var filled : atomic int;
+
+    proc buffer(v : vDescType, e : eDescType) {
+      // Get our buffer slot
+      var idx = size.fetchAdd() + 1;
+      while idx > AdjListHyperGraphBufferSize {
+        chpl_task_yield();
+        idx = size.fetchAdd() + 1;
+      }
+      assert(idx > 0);
+      
+      // Fill our buffer slot and notify as filled...
+      _buffer[idx] = (v,e);
+      var nFilled = filled.fetchAdd(1) + 1;
+
+      // Check if we filled the buffer...
+      if nFilled == AdjListHyperGraphBufferSize {
+        // Empty the buffer...
+        collectFn(_buffer);
+        filled.write(0);
+        size.write(0);
+      }
+    }
+  }
 
   module Debug {
     // Determines whether or not we profile for contention...
