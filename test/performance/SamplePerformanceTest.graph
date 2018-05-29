@@ -1,6 +1,0 @@
-perfkeys: Time:
-graphkeys: Performance
-files: SamplePerformanceTest.dat
-graphtitle: Sample Performance Test Time
-ylabel: Time (seconds)
-graphname: Performance
