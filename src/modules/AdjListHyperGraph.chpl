@@ -621,9 +621,35 @@ module AdjListHyperGraph {
         }
     }
 
+<<<<<<< HEAD
     iter neighbors(e : eDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
       forall v in edges[e.id].neighborList do yield v;
+=======
+    proc getVertexButterflies() {
+      var butterflyDom = vertices_dom;
+      var butterflyArr : [butterflyDom] int(64);
+      // Note: If set of vertices or its domain has changed this may result in errors
+      // hence this is not entirely thread-safe yet...
+      forall (num_butterflies, v) in zip(butterflyArr, vertices_dom) {
+        var dist_two_mults : [vertices_dom] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
+	//C[w] is equivalent to the number of edges that v and w are both connected to
+          forall u in v.neighborList {
+	    forall w in u.neighborList {
+	      if w != v {
+	        dist_two_mults[w] += 1;
+	      }
+	    }
+	  }
+	forall w in dist_two_mults.domain {
+	  if dist_two_mults[w] >0 {
+	    //combinations(dist_two_mults[w], 2) is the number of butterflies that include vertices v and w
+	    num_butterflies += combinations(dist_two_mults[w], 2);
+	  }
+	}
+      }
+      return butterflyArr;
+>>>>>>> modified getVertexButterflies()
     }
 
     iter neighbors(v : vDescType) ref {
