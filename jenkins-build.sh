@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# Build script for puma.pnl.gov
+
 # TODO parameterize vs hard-coded path?
 CHAPEL_HOME=/home/zale916/software/chapel/master-source
 WORKSPACE=/home/jenkins/chgl-workspace
 
-# Load newer GCC module
+# Load required modules
 module load gcc/7.1.0
+module load openmpi/2.1.1
 
 # Initialize Chapel environment
 cd $CHAPEL_HOME
