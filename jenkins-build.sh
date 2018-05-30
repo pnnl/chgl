@@ -4,6 +4,9 @@
 CHAPEL_HOME=/home/zale916/software/chapel/master-source
 WORKSPACE=/home/jenkins/chgl-workspace
 
+# Load newer GCC module
+module load gcc/7.1.0
+
 # Initialize Chapel environment
 cd $CHAPEL_HOME
 source util/quickstart/setchplenv.bash
