@@ -230,7 +230,6 @@ module AdjListHyperGraph {
 
       // Check if we filled the buffer...
       if nFilled == AdjListHyperGraphBufferSize {
-        writeln("Filled buffer...");
         return BUFFER_FULL;
       }
 
@@ -241,7 +240,6 @@ module AdjListHyperGraph {
       buffer = (0, 0, DescriptorType.None);
       filled.write(0);
       size.write(0);
-      writeln("Cleared");
     }
   }
 
@@ -369,7 +367,6 @@ module AdjListHyperGraph {
 
     // Note: this gets called on by a single task...
     proc emptyBuffer(locid, buffer) {
-      writeln("Emptying buffer for Locale#", locid);
       on Locales[locid] {
         var localBuf = buffer.buffer;
         var localThis = _this;
@@ -381,16 +378,13 @@ module AdjListHyperGraph {
           }
         }
       }
-      writeln("Buffer emptied for Locale#", locid);
     }
 
     proc flushBuffers() {
-      writeln("Flushing buffers...");
       forall (locid, buf) in zip(LocaleSpace, destBuffer) {
         emptyBuffer(locid, buf);
         buf.clear();
       }
-      writeln("Buffers flushed...");
     }
 
 
