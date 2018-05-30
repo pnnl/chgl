@@ -32,7 +32,7 @@
 module AdjListHyperGraph {
   use IO;
   use CyclicDist;
-
+  use Util;
   // Determines whether or not we profile for contention...
   config param ALHG_PROFILE_CONTENTION : bool;
   // L.J: Keeps track of amount of *potential* contended accesses. It is not absolute
@@ -449,22 +449,28 @@ module AdjListHyperGraph {
     }
 
     proc getVertexButterflies() {
-      	var butterflyDom = vertices_dom;
-      	var butterflyArr : [butterflyDom] int(64);
+      var butterflyDom = vertices_dom;
+      var butterflyArr : [butterflyDom] int(64);
       // Note: If set of vertices or its domain has changed this may result in errors
       // hence this is not entirely thread-safe yet...
-    	var dist_two_mults : [vertices_dom] int(64);
-	forall (num_butterflies, v) in zip(butterflyArr, vertices) {
-        	forall u in v.neighborList {
-			forall w in u.neighboList {
-				dist_two_mults[w] += 1;
-			}
-		}
-		forall w in vertices_dom {
-			num_butterflies += 1;//replace with "dist_two_mults[w] choose 2"
-		}
-     	}	
-    	return butterflyArr;
+      forall (num_butterflies, v) in zip(butterflyArr, vertices_dom) {
+        var dist_two_mults : [vertices_dom] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
+	//C[w] is equivalent to the number of edges that v and w are both connected to
+          forall u in v.neighborList {
+	    forall w in u.neighborList {
+	      if w != v {
+	        dist_two_mults[w] += 1;
+	      }
+	    }
+	  }
+	forall w in dist_two_mults.domain {
+	  if dist_two_mults[w] >0 {
+	    //combinations(dist_two_mults[w], 2) is the number of butterflies that include vertices v and w
+	    num_butterflies += combinations(dist_two_mults[w], 2);
+	  }		
+	}
+      }	
+      return butterflyArr;
     }
 
     // for desc in graph.inclusions(nodeDesc) do ...
