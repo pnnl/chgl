@@ -22,10 +22,11 @@ module Generation {
     coforall loc in targetLocales do on loc {
         // Normalize both probabilities
         var perLocaleInclusions = (inclusionsToAdd / numLocales) + (if here.id == 0 then (inclusionsToAdd % numLocales) else 0);
+        var seed$ : atomic int(64); seed$.write(0, memory_order_relaxed);
         coforall tid in  1..here.maxTaskPar with (in graph) {
           if graph.localEdgesDomain.size != 0 {
             var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 1 then (perLocaleInclusions % here.maxTaskPar) else 0);
-            var randStream = new RandomStream(int(64));
+            var randStream = new RandomStream(int(64), seed$.fetchAdd(1, memory_order_relaxed));
             writeln("Task ", tid, " is running ", perTaskInclusions, " inclusions.");
             for 1..perTaskInclusions {
               // A better way to get the max and min values for this random gen?

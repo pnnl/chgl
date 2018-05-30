@@ -35,5 +35,6 @@ writeln("NumEdges:", numEdges);
 writeln("ProbabilityMultiple:", probability);
 writeln("Naive:", isNaive);
 writeln("Contention:", Debug.contentionCnt);
+writeln("maxTaskPar:", here.maxTaskPar);
 
 if profileCommunications then writeln(getCommDiagnostics());
