@@ -32,10 +32,11 @@ module Generation {
               var vertex = randStream.getNext(0, graph.numVertices - 1);
               var localEdgeIdx = randStream.getNext(0, graph.localEdgesDomain.size - 1);
               var edge = graph.localEdgesDomain.low + localEdgeIdx * graph.localEdgesDomain.stride;
-              graph.add_inclusion(vertex, edge);
+              graph.add_inclusion_buffered(vertex, edge);
             }
           }
         }
+				graph.flushBuffers();
       }
 
     // TODO: Remove duplicate edges...
@@ -70,18 +71,20 @@ module Generation {
           forall v in graph.verticesDomain.localSubdomain() {
             for e in graph.edgesDomain.localSubdomain() {
               if randStream.getNext() <= p {
-                graph.add_inclusion(v,e);
+                graph.add_inclusion_buffered(v,e);
               }
             }
           }
+					graph.flushBuffers();
         } else {
           forall e in graph.edgesDomain.localSubdomain() {
             for v in graph.verticesDomain.localSubdomain() {
               if randStream.getNext() <= p {
-                graph.add_inclusion(v,e);
+                graph.add_inclusion_buffered(v,e);
               }
             }
           }
+					graph.flushBuffers();
         }
       }
 
@@ -152,9 +155,10 @@ module Generation {
               for 1..perTaskInclusions {
                 var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
                 var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-                graph.add_inclusion(vertex, edge);
+                graph.add_inclusion_buffered(vertex, edge);
               }
             }
+						graph.flushBuffers();
           }
         }
       }

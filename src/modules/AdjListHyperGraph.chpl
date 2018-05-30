@@ -203,6 +203,46 @@ module AdjListHyperGraph {
     return wrapper.id;
   }
 
+  param BUFFER_OK = 0;
+  param BUFFER_FULL = 1;
+
+  enum DescriptorType { None, Vertex, Edge };
+
+  record DestinationBuffer {
+    type vDescType;
+    type eDescType;
+    var buffer : [1..AdjListHyperGraphBufferSize] (int, int, DescriptorType);
+    var size : atomic int;
+    var filled : atomic int;
+
+    proc append(src, dest, srcType) : int {
+      // Get our buffer slot
+      var idx = size.fetchAdd(1) + 1;
+      while idx > AdjListHyperGraphBufferSize {
+        chpl_task_yield();
+        idx = size.fetchAdd(1) + 1;
+      }
+      assert(idx > 0);
+
+      // Fill our buffer slot and notify as filled...
+      buffer[idx] = (src, dest, srcType);
+      var nFilled = filled.fetchAdd(1) + 1;
+
+      // Check if we filled the buffer...
+      if nFilled == AdjListHyperGraphBufferSize {
+        return BUFFER_FULL;
+      }
+
+      return BUFFER_OK;
+    }
+
+    proc clear() {
+      buffer = (0, 0, DescriptorType.None);
+      filled.write(0);
+      size.write(0);
+    }
+  }
+
   /*
      Adjacency list hypergraph.
 
@@ -232,7 +272,7 @@ module AdjListHyperGraph {
 
     var vertices: [vertices_dom] NodeData(eDescType);
     var edges: [edges_dom] NodeData(vDescType);
-    var inclusionBuffer : Buffer(vDescType, eDescType);
+    var destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
 
     // Initialize a graph with initial domains
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
@@ -249,7 +289,7 @@ module AdjListHyperGraph {
 
       complete();
 
-      this.inclusionBuffer = new Buffer(vDescType, eDescType, this.combineBuffer);
+      forall buf in destBuffer do buf.clear();
       this.pid = _newPrivatizedClass(this);
     }
 
@@ -257,10 +297,11 @@ module AdjListHyperGraph {
       this.localVerticesDom = other.localVerticesDom;
       this.localEdgesDom = other.localEdgesDom;
 
-      complete();   
+      complete();
+
+      forall buf in destBuffer do buf.clear();
 
       // Initialize arrays to point to the original's array instance
-      this.inclusionBuffer = new Buffer(vDescType, eDescType, combineBuffer);
       this.pid = pid;
       this.vertices.pid = other.vertices.pid;
       this.vertices._instance = other.vertices._instance;
@@ -325,30 +366,23 @@ module AdjListHyperGraph {
     }
 
     // Note: this gets called on by a single task...
-    proc combineBuffer(buffer : AdjListHyperGraphBufferSize * (vDescType, eDescType)) {
-      // Group by vDescType and eDescType
-      var vDescDomain : domain(vDescType);
-      var eDescDomain : domain(eDescType);
-      var vDesc : [vDescDomain] list(eDescType);
-      var eDesc : [eDescDomain] list(vDescType);
-
-      for (v,e) in buffer {
-        vDescDomain += v;
-        eDescDomain += e;
-        vDesc[v].append(e);
-        eDesc[e].append(v);
+    proc emptyBuffer(locid, buffer) {
+      on Locales[locid] {
+        var localBuf = buffer.buffer;
+        forall (srcId, destId, srcType) in localBuf {
+          select srcType {
+            when DescriptorType.Vertex do _this.vertices[srcId].addNodes(toEdge(destId));
+            when DescriptorType.Edge do _this.edges[srcId].addNodes(toVertex(destId));
+            when DescriptorType.None do ;
+          }
+        }
       }
+    }
 
-      // Handle bulk push back...
-      forall (v, eList) in zip (vDescDomain, vDesc) {
-        var eData : [0..#eList.size] eDescType;
-        for (e, ee) in zip(eData, eList) do e = ee;
-        vertices(v).addNodes(eData);
-      }
-      forall (e, vList) in zip (eDescDomain, eDesc) {
-        var vData : [0..#vList.size] vDescType;
-        for (v, vv) in zip(vData, vList) do v = vv;
-        edges(e).addNodes(vData);
+    proc flushBuffers() {
+      forall (locid, buf) in zip(LocaleSpace, destBuffer) {
+        emptyBuffer(locid, buf);
+        buf.clear();
       }
     }
 
@@ -388,8 +422,30 @@ module AdjListHyperGraph {
       return retval;
     }
 
+    inline proc _this return chpl_getPrivatizedCopy(this.type, pid);
 
-    // TODO: Need add_inclusion_bulk!
+    inline proc add_inclusion_buffered(vertex, edge) {
+      const v = vertex: vDescType;
+      const e = edge: eDescType;
+
+      // Push on local buffers to send later...
+      var vLocId = vertices(v.id).locale.id;
+      var eLocId = edges(e.id).locale.id;
+      ref vBuf =  destBuffer[vLocId];
+      ref eBuf = destBuffer[eLocId];
+      var vStatus = vBuf.append(v.id, e.id, DescriptorType.Vertex);
+      var eStatus = eBuf.append(e.id, v.id, DescriptorType.Edge);
+
+      if vStatus == BUFFER_FULL {
+        emptyBuffer(vLocId, vBuf);
+        vBuf.clear();
+      }
+      if eStatus == BUFFER_FULL {
+        emptyBuffer(eLocId, eBuf);
+        eBuf.clear();
+      }
+    }
+
     inline proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
@@ -523,43 +579,6 @@ module AdjListHyperGraph {
 
     }
   } // class Graph
-
-  // Buffer of (vertex, edge) tuples
-  record Buffer {
-    type vDescType;
-    type eDescType;
-
-    // Object called to handle emptying buffer when full...
-    var collectFn : func(AdjListHyperGraphBufferSize * (vDescType, eDescType));
-
-    // Note: Tuples are significantly faster than arrays... See below link...
-    // https://chapel-lang.org/perf/chapcs/?graphs=arrayvstupleserialaccesses
-    var _buffer :  AdjListHyperGraphBufferSize * (vDescType, eDescType);
-    var size : atomic int;
-    var filled : atomic int;
-
-    proc buffer(v : vDescType, e : eDescType) {
-      // Get our buffer slot
-      var idx = size.fetchAdd() + 1;
-      while idx > AdjListHyperGraphBufferSize {
-        chpl_task_yield();
-        idx = size.fetchAdd() + 1;
-      }
-      assert(idx > 0);
-      
-      // Fill our buffer slot and notify as filled...
-      _buffer[idx] = (v,e);
-      var nFilled = filled.fetchAdd(1) + 1;
-
-      // Check if we filled the buffer...
-      if nFilled == AdjListHyperGraphBufferSize {
-        // Empty the buffer...
-        collectFn(_buffer);
-        filled.write(0);
-        size.write(0);
-      }
-    }
-  }
 
   module Debug {
     // Determines whether or not we profile for contention...
