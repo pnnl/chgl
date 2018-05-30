@@ -9,7 +9,7 @@ module load gcc/7.1.0
 
 # Initialize Chapel environment
 cd $CHAPEL_HOME
-source util/quickstart/setchplenv.bash
+source util/setchplenv.sh
 
 # Execute unit tests
 cd $WORKSPACE/test/unit
