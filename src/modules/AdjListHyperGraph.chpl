@@ -230,6 +230,7 @@ module AdjListHyperGraph {
 
       // Check if we filled the buffer...
       if nFilled == AdjListHyperGraphBufferSize {
+        writeln("Filled buffer...");
         return BUFFER_FULL;
       }
 
@@ -240,6 +241,7 @@ module AdjListHyperGraph {
       buffer = (0, 0, DescriptorType.None);
       filled.write(0);
       size.write(0);
+      writeln("Cleared");
     }
   }
 
@@ -367,23 +369,28 @@ module AdjListHyperGraph {
 
     // Note: this gets called on by a single task...
     proc emptyBuffer(locid, buffer) {
+      writeln("Emptying buffer for Locale#", locid);
       on Locales[locid] {
         var localBuf = buffer.buffer;
+        var localThis = _this;
         forall (srcId, destId, srcType) in localBuf {
           select srcType {
-            when DescriptorType.Vertex do _this.vertices[srcId].addNodes(toEdge(destId));
-            when DescriptorType.Edge do _this.edges[srcId].addNodes(toVertex(destId));
+            when DescriptorType.Vertex do localThis.vertices[srcId].addNodes(toEdge(destId));
+            when DescriptorType.Edge do localThis.edges[srcId].addNodes(toVertex(destId));
             when DescriptorType.None do ;
           }
         }
       }
+      writeln("Buffer emptied for Locale#", locid);
     }
 
     proc flushBuffers() {
+      writeln("Flushing buffers...");
       forall (locid, buf) in zip(LocaleSpace, destBuffer) {
         emptyBuffer(locid, buf);
         buf.clear();
       }
+      writeln("Buffers flushed...");
     }
 
 
@@ -433,17 +440,19 @@ module AdjListHyperGraph {
       var eLocId = edges(e.id).locale.id;
       ref vBuf =  destBuffer[vLocId];
       ref eBuf = destBuffer[eLocId];
-      var vStatus = vBuf.append(v.id, e.id, DescriptorType.Vertex);
-      var eStatus = eBuf.append(e.id, v.id, DescriptorType.Edge);
 
+      var vStatus = vBuf.append(v.id, e.id, DescriptorType.Vertex);
       if vStatus == BUFFER_FULL {
         emptyBuffer(vLocId, vBuf);
         vBuf.clear();
       }
+      
+      var eStatus = eBuf.append(e.id, v.id, DescriptorType.Edge);
       if eStatus == BUFFER_FULL {
         emptyBuffer(eLocId, eBuf);
         eBuf.clear();
       }
+
     }
 
     inline proc add_inclusion(vertex, edge) {
