@@ -32,6 +32,9 @@
 module AdjListHyperGraph {
   use IO;
   use CyclicDist;
+  use List;
+
+  config param AdjListHyperGraphBufferSize = 1024 * 1024;
 
   /*
     Record-Wrapped structure
@@ -229,6 +232,7 @@ module AdjListHyperGraph {
 
     var vertices: [vertices_dom] NodeData(eDescType);
     var edges: [edges_dom] NodeData(vDescType);
+    var inclusionBuffer : Buffer(vDescType, eDescType);
 
     // Initialize a graph with initial domains
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
@@ -245,6 +249,7 @@ module AdjListHyperGraph {
 
       complete();
 
+      this.inclusionBuffer = new Buffer(vDescType, eDescType, this.combineBuffer);
       this.pid = _newPrivatizedClass(this);
     }
 
@@ -255,6 +260,7 @@ module AdjListHyperGraph {
       complete();   
 
       // Initialize arrays to point to the original's array instance
+      this.inclusionBuffer = new Buffer(vDescType, eDescType, combineBuffer);
       this.pid = pid;
       this.vertices.pid = other.vertices.pid;
       this.vertices._instance = other.vertices._instance;
@@ -316,6 +322,34 @@ module AdjListHyperGraph {
 
     proc numEdges {
       return this.edges.domain.size;
+    }
+
+    // Note: this gets called on by a single task...
+    proc combineBuffer(buffer : AdjListHyperGraphBufferSize * (vDescType, eDescType)) {
+      // Group by vDescType and eDescType
+      var vDescDomain : domain(vDescType);
+      var eDescDomain : domain(eDescType);
+      var vDesc : [vDescDomain] list(eDescType);
+      var eDesc : [eDescDomain] list(vDescType);
+
+      for (v,e) in buffer {
+        vDescDomain += v;
+        eDescDomain += e;
+        vDesc[v].append(e);
+        eDesc[e].append(v);
+      }
+
+      // Handle bulk push back...
+      forall (v, eList) in zip (vDescDomain, vDesc) {
+        var eData : [0..#eList.size] eDescType;
+        for (e, ee) in zip(eData, eList) do e = ee;
+        vertices(v).addNodes(eData);
+      }
+      forall (e, vList) in zip (eDescDomain, eDesc) {
+        var vData : [0..#vList.size] vDescType;
+        for (v, vv) in zip(vData, vList) do v = vv;
+        edges(e).addNodes(vData);
+      }
     }
 
 
@@ -490,15 +524,13 @@ module AdjListHyperGraph {
     }
   } // class Graph
 
-  config param AdjListHyperGraphBufferSize = 1024 * 1024;
-
   // Buffer of (vertex, edge) tuples
   record Buffer {
     type vDescType;
     type eDescType;
 
     // Object called to handle emptying buffer when full...
-    var collectFn;
+    var collectFn : func(AdjListHyperGraphBufferSize * (vDescType, eDescType));
 
     // Note: Tuples are significantly faster than arrays... See below link...
     // https://chapel-lang.org/perf/chapcs/?graphs=arrayvstupleserialaccesses
