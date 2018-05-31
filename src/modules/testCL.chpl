@@ -90,9 +90,36 @@ proc readFile(f : file) throws {
 
 
 proc main() {
-  var graph = readFile("../../condMat.bin");
+  var f = open("../../test/visual-verification/ChungLu-Test/condMatCL.csv", iomode.r);
+  var r = f.reader();
+
+  var vertices : [0..-1] int;
+  var edges : [0..-1] int;
+  
+  for line in f.lines() {
+    var (v,e) : 2 * int;
+    var split = line.split(",");
+    if line == "" then continue;
+    vertices.push_back(split[1] : int);
+    edges.push_back(split[2] : int);
+  }
+
+  var numEdges : int;
+  var numVertices : int;
+  for (v,e) in zip(vertices, edges) {
+    numEdges = max(numEdges, e);
+    numVertices = max(numVertices, v);
+  }
+
+
+  var graph = new AdjListHyperGraph({1..numVertices}, {1..numEdges});
+
+  for (v,e) in zip(vertices, edges) {
+    graph.add_inclusion(v,e);
+  }
 
   var clGraph = fast_hypergraph_chung_lu(graph, graph.verticesDomain, graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), 1);
+  
 
   var input_ed_file = open("./INPUT_dseq_E_List.csv", iomode.cw);
   var input_vd_file = open("./INPUT_dseq_V_List.csv", iomode.cw);
@@ -107,7 +134,7 @@ proc main() {
   var input_ed = graph.getEdgeDegrees();
   var input_vd = graph.getVertexDegrees();
   var output_ed = clGraph.getEdgeDegrees();
-  var input_vd = clGraph.getVertexDegrees();
+  var output_vd = clGraph.getVertexDegrees();
   
   for i in 1..input_ed.size{
     writing_input_ed_file.writeln(input_ed[i]);
