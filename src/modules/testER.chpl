@@ -114,26 +114,27 @@ proc main() {
 
   var graph = new AdjListHyperGraph({1..numVertices}, {1..numEdges});
 
+  var numInclusions = 0 : int;
+
   for (v,e) in zip(vertices, edges) {
+    numInclusions += 1;
     graph.add_inclusion(v,e);
   }
 
-  var inclusions_to_add : int;
+  var test_graph = new AdjListHyperGraph({1..numVertices},{1..numEdges});
 
-  for i in graph.getVertexDegrees(){
-    inclusions_to_add += i;
-  }
+  var p = ((numInclusions:real) / ((numVertices:real) * (numEdges:real))) : real;
+  //var p = 0.6
+  //writeln(numInclusions);
+  //writeln(numVertices);
+  //writeln(numEdges);
+  //writeln(p);
+  var erGraph = fast_adjusted_erdos_renyi_hypergraph(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, p);  
 
-  writeln(inclusions_to_add);
-
-  var test_graph = new AdjListHyperGraph(numVertices,numEdges);
-  var clGraph = fast_hypergraph_chung_lu(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), inclusions_to_add);
-  
-
-  var input_ed_file = open("../../test/visual-verification/ChungLu-Test/INPUT_dseq_E_List.csv", iomode.cw);
-  var input_vd_file = open("../../test/visual-verification/ChungLu-Test/INPUT_dseq_V_List.csv", iomode.cw);
-  var output_ed_file = open("../../test/visual-verification/ChungLu-Test/OUTPUT_dseq_E_List.csv", iomode.cw);
-  var output_vd_file = open("../../test/visual-verification/ChungLu-Test/OUTPUT_dseq_V_List.csv", iomode.cw);
+  var input_ed_file = open("../../test/visual-verification/ER-Test/INPUT_dseq_E_List.csv", iomode.cw);
+  var input_vd_file = open("../../test/visual-verification/ER-Test/INPUT_dseq_V_List.csv", iomode.cw);
+  var output_ed_file = open("../../test/visual-verification/ER-Test/OUTPUT_dseq_E_List.csv", iomode.cw);
+  var output_vd_file = open("../../test/visual-verification/ER-Test/OUTPUT_dseq_V_List.csv", iomode.cw);
   
   var writing_input_ed_file = input_ed_file.writer();
   var writing_input_vd_file = input_vd_file.writer();
@@ -142,8 +143,8 @@ proc main() {
   
   var input_ed = graph.getEdgeDegrees();
   var input_vd = graph.getVertexDegrees();
-  var output_ed = clGraph.getEdgeDegrees();
-  var output_vd = clGraph.getVertexDegrees();
+  var output_ed = erGraph.getEdgeDegrees();
+  var output_vd = erGraph.getVertexDegrees();
   
   for i in 1..input_ed.size{
     writing_input_ed_file.writeln(input_ed[i]);
@@ -153,13 +154,11 @@ proc main() {
     writing_input_vd_file.writeln(input_vd[i]);
   }
 
-  for i in 1..22015{
-    //writeln(i);
+  for i in 1..output_ed.size{
     writing_output_ed_file.writeln(output_ed[i]);
   }
 
-  for i in 1..16723{
-    //writeln(i);
+  for i in 1..output_vd.size{
     writing_output_vd_file.writeln(output_vd[i]);
   }
 

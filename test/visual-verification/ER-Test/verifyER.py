@@ -100,6 +100,6 @@ plt.plot(input_E_x, input_E_y, marker = 'o', linestyle = '--', color='g', label=
 plt.plot(output_E_x, output_E_y, marker = 'o', linestyle = '--', color='black', label='Output E Degree')
 plt.xlabel('log(Degree)')
 plt.ylabel('log(Frequency)')
-plt.title('Chung Lu Visual Verification')
+plt.title('ER Visual Verification')
 plt.legend()
 plt.show()
