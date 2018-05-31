@@ -29,8 +29,8 @@ BINARY=$@
 
 set -x
 
-for NODES in 1; do
-for THREADS in {1..44}; do
+for NODES in 1 2 4 8 16 32; do
+for THREADS in 1 2 4 8 16 32; do
 probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
 qsub - <<EOF
 #!/bin/bash -l
