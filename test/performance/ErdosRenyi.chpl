@@ -15,7 +15,7 @@ config param profileVerboseCommunications = false;
 if profileCommunications then startCommDiagnostics();
 if profileVerboseCommunications then startVerboseComm();
 
-var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0));
+var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, targetLocales=Locales));
 
 var timer = new Timer();
 timer.start();

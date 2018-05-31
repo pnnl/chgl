@@ -381,9 +381,12 @@ module AdjListHyperGraph {
     }
 
     proc flushBuffers() {
-      forall (locid, buf) in zip(LocaleSpace, destBuffer) {
-        emptyBuffer(locid, buf);
-        buf.clear();
+      // Clear on all locales...
+      coforall loc in Locales do on loc {
+        forall (locid, buf) in zip(LocaleSpace, _this.destBuffer) {
+          emptyBuffer(locid, buf);
+          buf.clear();
+        }
       }
     }
 
@@ -425,13 +428,13 @@ module AdjListHyperGraph {
 
     inline proc _this return chpl_getPrivatizedCopy(this.type, pid);
 
-    inline proc add_inclusion_buffered(vertex, edge) {
+    proc add_inclusion_buffered(vertex, edge) {
       const v = vertex: vDescType;
       const e = edge: eDescType;
 
       // Push on local buffers to send later...
-      var vLocId = vertices(v.id).locale.id;
-      var eLocId = edges(e.id).locale.id;
+      var vLocId = vertices.domain.dist.idxToLocale(v.id).id;
+      var eLocId = edges.domain.dist.idxToLocale(e.id).id;
       ref vBuf =  destBuffer[vLocId];
       ref eBuf = destBuffer[eLocId];
 
@@ -449,7 +452,7 @@ module AdjListHyperGraph {
 
     }
 
-    inline proc add_inclusion(vertex, edge) {
+    proc add_inclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
       vertices(vDesc.id).addNodes(eDesc);
