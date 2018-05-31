@@ -1,66 +1,96 @@
 import matplotlib.pyplot as plt
 import math
 
-BTER_Node_Frequency = {}
-Node_Frequency = {}
-BTER_dseq_E_list = []
-dseq_E_list = []
+with open("./OUTPUT_dseq_E_List.csv", 'r') as f:
+	output_dseq_E_List = f.read().splitlines()
 
-# Previously generated BTER data for comparison
-with open("./ddCL_E.csv", 'r') as f:
-	BTER_Node_Degrees = f.read().splitlines()
+with open("./OUTPUT_dseq_V_List.csv", 'r') as f:
+	output_dseq_V_List = f.read().splitlines()
 
-# Change filename to be desired file
-with open("./GENERATED_dseq_E_list.csv", 'r') as f:
-	Node_Degrees = f.read().splitlines()
+with open("./INPUT_dseq_E_List.csv", 'r') as f:
+	input_dseq_E_List = f.read().splitlines()
 
-# processing BTER dseq_E_list
-for i in range(len(BTER_Node_Degrees)):
-	BTER_Node_Degrees[i] = int(BTER_Node_Degrees[i])
+with open("./INPUT_dseq_V_List.csv", 'r') as f:
+	input_dseq_V_List = f.read().splitlines()
 
-	for j in range(BTER_Node_Degrees[i]):
-		BTER_dseq_E_list.append(i + 1)
+output_dseq_E_Frequency = {}
+output_dseq_V_Frequency = {}
+input_dseq_E_Frequency = {}
+input_dseq_V_Frequency = {}
 
 
-for i in range(len(BTER_dseq_E_list)):
-	if BTER_dseq_E_list[i] in BTER_Node_Frequency.keys():
-		BTER_Node_Frequency[BTER_dseq_E_list[i]] += 1
+for i in range(len(output_dseq_E_List)):
+	if output_dseq_E_List[i] in output_dseq_E_Frequency.keys():
+		output_dseq_E_Frequency[output_dseq_E_List[i]] += 1
 	else:
-		BTER_Node_Frequency[BTER_dseq_E_list[i]] = 1
+		output_dseq_E_Frequency[output_dseq_E_List[i]] = 1
 
-for i in range(len(Node_Degrees)):
-	Node_Degrees[i] = int(Node_Degrees[i])
-	if Node_Degrees[i] in Node_Frequency.keys():
-		Node_Frequency[Node_Degrees[i]] += 1
+for i in range(len(output_dseq_V_List)):
+	if output_dseq_V_List[i] in output_dseq_V_Frequency.keys():
+		output_dseq_V_Frequency[output_dseq_V_List[i]] += 1
 	else:
-		Node_Frequency[Node_Degrees[i]] = 1
+		output_dseq_V_Frequency[output_dseq_V_List[i]] = 1
 
-BTER_X = []
-BTER_Y = []
-#X = []
-#Y = []
+for i in range(len(input_dseq_E_List)):
+	if input_dseq_E_List[i] in input_dseq_E_Frequency.keys():
+		input_dseq_E_Frequency[input_dseq_E_List[i]] += 1
+	else:
+		input_dseq_E_Frequency[input_dseq_E_List[i]] = 1
 
-for key, value in sorted(BTER_Node_Frequency.items()):
+for i in range(len(input_dseq_V_List)):
+	if input_dseq_V_List[i] in input_dseq_V_Frequency.keys():
+		input_dseq_V_Frequency[input_dseq_V_List[i]] += 1
+	else:
+		input_dseq_V_Frequency[input_dseq_V_List[i]] = 1
+
+input_V_x = []
+input_V_y = []
+input_E_x = []
+input_E_y = []
+output_V_x = []
+output_V_y = []
+output_E_x = []
+output_E_y = []
+
+for key, value in sorted(input_dseq_V_Frequency.items()):
 	if key != 0:
-		BTER_X.append(math.log(key))
+		input_V_x.append(math.log(key))
 	else:
-		BTER_X.append(0)
+		input_V_x.append(0)
 
-	BTER_Y.append(math.log(value))
+	input_V_y.append(math.log(value))
 
-for key, value in sorted(Node_Frequency.items()):
+for key, value in sorted(input_dseq_E_Frequency.items()):
 	if key != 0:
-		X.append(math.log(key))
+		input_E_x.append(math.log(key))
 	else:
-		X.append(0)
+		input_E_x.append(0)
 
-	Y.append(math.log(value))
+	input_E_y.append(math.log(value))
+
+for key, value in sorted(output_dseq_V_Frequency.items()):
+	if key != 0:
+		output_V_x.append(math.log(key))
+	else:
+		output_V_x.append(0)
+
+	output_V_y.append(math.log(value))
+
+for key, value in sorted(output_dseq_E_Frequency.items()):
+	if key != 0:
+		output_E_x.append(math.log(key))
+	else:
+		output_E_x.append(0)
+
+	output_E_y.append(math.log(value))
 
 #plt.xlim(min(X), max(X))
 #plt.ylim(min(Y), max(Y))
-plt.plot(X, Y, marker = 'o', linestyle = '--', color = 'r', label='Generated')
-plt.plot(BTER_X, BTER_Y, marker = 'o', linestyle = '--', color='b', label='Good BTER')
-plt.xlabel('log(Node Degree)')
+plt.plot(input_V_x, input_V_y, marker = 'o', linestyle = '--', color = 'r', label='Input V Degree')
+plt.plot(output_V_x, output_V_y, marker = 'o', linestyle = '--', color='b', label='Output V Degree')
+plt.plot(input_E_x, input_E_y, marker = 'o', linestyle = '--', color='r', label='Input E Degree')
+plt.plot(output_E_x, output_E_y, marker = 'o', linestyle = '--', color='b', label='Output E Degree')
+plt.xlabel('log(Degree)')
 plt.ylabel('log(Frequency)')
 plt.title('compare')
 plt.legend()
