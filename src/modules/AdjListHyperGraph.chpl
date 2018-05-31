@@ -58,7 +58,7 @@ module AdjListHyperGraph {
       pid = instance.pid;
     }
 
-    proc init(vertices_dom, edges_dom) {
+    proc init(vertices_dom : domain, edges_dom : domain) {
       instance = new AdjListHyperGraphImpl(vertices_dom, edges_dom);
       pid = instance.pid;
     }
@@ -243,18 +243,6 @@ module AdjListHyperGraph {
     }
   }
 
-  class AdjListHyperGraphData {
-    var vertices_dom;
-    var edges_dom;
-    type vIndexType = index(vertices_dom);
-    type eIndexType = index(edges_dom);
-    type vDescType = Wrapper(Vertex, vIndexType);
-    type eDescType = Wrapper(Edge, eIndexType);
-
-    var vertices : [vertices_dom] NodeData(vDescType);
-    var edges : [edges_dom] NodeData(eDescType);
-  }
-
   /*
      Adjacency list hypergraph.
 
@@ -268,54 +256,73 @@ module AdjListHyperGraph {
      optimizations of certain operations.
   */
   class AdjListHyperGraphImpl {
+    var vertices_dom : domain(1); // domain of vertices
+    var edges_dom : domain(1); // domain of edges
+
+    var localVerticesDom;
+    var localEdgesDom;
+
     // Privatization id
     var pid = -1;
 
-    // Original locale will host the distributed array as currently Chapel does not support
-    // having multiple class instances share the same underlying array.
-    var data; 
-    // Privatized copies of the vertex and edge domains. Reduces with Locale #0 communication.
-    var vertices_dom;
-    var edges_dom;
+    type vIndexType = index(vertices_dom);
+    type eIndexType = index(edges_dom);
+    type vDescType = Wrapper(Vertex, vIndexType);
+    type eDescType = Wrapper(Edge, eIndexType);
 
-    // Per Locale Destination Buffers... Each DestinationBuffer will hold operations that must be
-    // performed on each locale, where each operation is described by a triple (srcId, destId, srcType).
-    // The srcId is described by the srcType as either an index into vertices or edges for a given node,
-    // and the destId will be the opposite of the srcType. So (0,1,Vertex) will perform vertices[0].addNodes(toEdge(1))
+    var vertices: [vertices_dom] NodeData(eDescType);
+    var edges: [edges_dom] NodeData(vDescType);
     var destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
 
     // Initialize a graph with initial domains
     proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
       var vertices_dom = {0..#num_verts} dmapped new dmap(map);
       var edges_dom = {0..#num_edges} dmapped new dmap(map);
-      
+      init(vertices_dom, edges_dom);
+    }
+
+    proc init(vertices_dom : domain, edges_dom : domain) {
       this.vertices_dom = vertices_dom;
       this.edges_dom = edges_dom;
-      this.data = new AdjListHyperGraphData(this.vertices_dom, this.edges_dom);
+      this.localVerticesDom = vertices_dom.localSubdomain();
+      this.localEdgesDom = edges_dom.localSubdomain();
 
       complete();
-      
-      // Clear the destination buffer so that it will be initialized
+
       forall buf in destBuffer do buf.clear();
       this.pid = _newPrivatizedClass(this);
     }
 
-    proc init(other, pid : int) {
-      this.data = other.data;
-      this.vertices_dom = other.vertices_dom;
-      this.edges_dom = other.edges_dom;
+    proc init(other, pid) {
+      this.localVerticesDom = other.localVerticesDom;
+      this.localEdgesDom = other.localEdgesDom;
 
       complete();
 
       forall buf in destBuffer do buf.clear();
+
+      // Initialize arrays to point to the original's array instance
+      this.pid = pid;
+      this.vertices.pid = other.vertices.pid;
+      this.vertices._instance = other.vertices._instance;
+      this.edges.pid = other.edges.pid;
+      this.edges._instance = other.edges._instance;
     }
 
-    proc vertices_domain {
-      return this.data.vertices.domain;
+    proc verticesDomain {
+      return this.vertices.domain;
     }
 
-    proc edges_domain {
-      return this.data.edges.domain;
+    proc localVerticesDomain {
+      return this.localVerticesDom;
+    }
+
+    proc edgesDomain {
+      return this.edges.domain;
+    }
+
+    proc localEdgesDomain {
+      return this.localEdgesDom;
     }
 
     pragma "no doc"
@@ -333,50 +340,51 @@ module AdjListHyperGraph {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
 
-    iter get_edges(param tag : iterKind) where tag == iterKind.standalone {
-      forall e in data.edges_dom do yield e;
+
+    iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
+      forall e in edges_dom do yield e;
     }
 
-    iter get_edges() {
-      for e in data.edges_dom do yield e;
+    iter getEdges() {
+      for e in edges_dom do yield e;
     }
 
-    iter get_vertices(param tag : iterKind) where tag == iterKind.standalone {
-      forall v in data.vertices_dom do yield v;
+    iter getVertices(param tag : iterKind) where tag == iterKind.standalone {
+      forall v in vertices_dom do yield v;
     }
 
-    iter get_vertices() {
-      for v in data.vertices_dom do yield v;
+    iter getVertices() {
+      for v in vertices_dom do yield v;
     }
 
-    proc num_vertices {
-      return data.vertices.domain.size;
+    proc numVertices {
+      return this.vertices.domain.size;
     }
 
-    proc num_edges {
-      return data.edges.domain.size;
+    proc numEdges {
+      return this.edges.domain.size;
     }
 
     // Note: this gets called on by a single task...
-    proc empty_buffer(locid, buffer) {
+    proc emptyBuffer(locid, buffer) {
       on Locales[locid] {
         var localBuf = buffer.buffer;
         var localThis = _this;
         forall (srcId, destId, srcType) in localBuf {
           select srcType {
-            when DescriptorType.Vertex do localThis.data.vertices[srcId].addNodes(toEdge(destId));
-            when DescriptorType.Edge do localThis.data.edges[srcId].addNodes(toVertex(destId));
+            when DescriptorType.Vertex do localThis.vertices[srcId].addNodes(toEdge(destId));
+            when DescriptorType.Edge do localThis.edges[srcId].addNodes(toVertex(destId));
             when DescriptorType.None do ;
           }
         }
       }
     }
 
-    proc flush_buffers() {
+    proc flushBuffers() {
       // Clear on all locales...
       coforall loc in Locales do on loc {
         forall (locid, buf) in zip(LocaleSpace, _this.destBuffer) {
-          empty_buffer(locid, buf);
+          emptyBuffer(locid, buf);
           buf.clear();
         }
       }
@@ -390,25 +398,25 @@ module AdjListHyperGraph {
       methods yet, so this is all exposed to the user.
     */
     proc _inclusions ( e : eDescType ) ref {
-      return data.edges(e.id).neighborList;
+      return edges(e.id).neighborList;
     }
 
     proc _inclusions ( v : vDescType ) ref {
-      return data.vertices(v.id).neighborList;
+      return vertices(v.id).neighborList;
     }
 
     // Resize the edges array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of edges can be increased or decreased
     proc resize_edges(size) {
-      data.edges_dom = {0..(size-1)};
+      edges_dom = {0..(size-1)};
     }
 
     // Resize the vertices array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
     proc resize_vertices(size) {
-      data.vertices_dom = {0..(size-1)};
+      vertices_dom = {0..(size-1)};
     }
 
     proc check_unique(vertex,edge){
@@ -432,13 +440,13 @@ module AdjListHyperGraph {
 
       var vStatus = vBuf.append(v.id, e.id, DescriptorType.Vertex);
       if vStatus == BUFFER_FULL {
-        empty_buffer(vLocId, vBuf);
+        emptyBuffer(vLocId, vBuf);
         vBuf.clear();
       }
       
       var eStatus = eBuf.append(e.id, v.id, DescriptorType.Edge);
       if eStatus == BUFFER_FULL {
-        empty_buffer(eLocId, eBuf);
+        emptyBuffer(eLocId, eBuf);
         eBuf.clear();
       }
 
