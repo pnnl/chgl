@@ -60,8 +60,7 @@ module Generation {
 
 
   //Pending: Take seed as input
-  proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
-    var graph = new AdjListHyperGraph(vertices_domain, edges_domain);
+	proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
 
     // Spawn a remote task on each node...
     coforall loc in targetLocales do on loc {
@@ -69,8 +68,8 @@ module Generation {
 
         // Process either vertices of edges in parallel based on relative size.
         if graph.numVertices > graph.numEdges {
-          forall v in graph.verticesDomain.localSubdomain() {
-            for e in graph.edgesDomain.localSubdomain() {
+          forall v in graph.localVerticesDomain {
+            for e in graph.localEdgesDomain {
               if randStream.getNext() <= p {
                 graph.addInclusionBuffered(v,e);
               }
@@ -78,8 +77,8 @@ module Generation {
           }
 					graph.flushBuffers();
         } else {
-          forall e in graph.edgesDomain.localSubdomain() {
-            for v in graph.verticesDomain.localSubdomain() {
+          forall e in graph.localEdgesDomain {
+            for v in graph.localVerticesDomain {
               if randStream.getNext() <= p {
                 graph.addInclusionBuffered(v,e);
               }
@@ -89,28 +88,8 @@ module Generation {
         }
       }
 
-    return graph;
-  }
-
-  proc remove_duplicates(g){
-    var offset = g.verticesDomain.low;
-    var g2 = new AdjListHyperGraph(g.vertices.size,g.edges.size);
-    forall v in g.verticesDomain.low..g.verticesDomain.high{
-      var adjList : [g.edgesDomain.low .. g.edgesDomain.high] int;
-      for e in g.vertices(v).neighborList{
-        adjList[e.id] = 1;
-      }
-      for e in 0..adjList.size-1{
-        if adjList[e] > 0{
-          g2.addInclusion(v,e);
-        }
-      }
-    }
-
-    return g2;
-  }
-
-
+			return graph;
+		}
 
   proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
     var sum_degrees = + reduce desired_vertex_degrees:real;
@@ -208,11 +187,23 @@ module Generation {
       return (nV, nE, rho);
     }
 
-    // Ensure that all arrays are sorted (in parallel)
-    cobegin {
-      sort(vd);
-      sort(ed);
-    }
+		// Check if data begins at index 0...
+		assert(vdDom.low == 0 && edDom.low == 0 && vmcDom.low == 0 && emcDom.low == 0);
+
+    // Ensure that all arrays are sorted...
+		var done : atomic bool;
+
+		// One task sorts vertices...
+		begin {
+			sort(vd);
+			done.write(true);
+		}
+
+		// We sort edges...
+		sort(ed);
+
+		// Wait for other task to complete...
+    done.waitFor(true);
 
     var (nV, nE, rho) : 3 * real;
     var (idV, idE, numV, numE) = (
@@ -221,7 +212,7 @@ module Generation {
                                   vdDom.size,
                                   edDom.size
                                   );
-    var graph = new AdjListHyperGraph(vdDom, edDom);
+    var graph = new AdjListHyperGraph(vdDom.size, edDom.size);
 
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);

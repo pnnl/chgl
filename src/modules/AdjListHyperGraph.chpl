@@ -273,10 +273,6 @@ module AdjListHyperGraph {
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
       var verticesDomain = {0..#numVertices} dmapped new dmap(map);
       var edgesDomain = {0..#numEdges} dmapped new dmap(map);
-      init(verticesDomain, edgesDomain);
-    }
-
-    proc init(verticesDomain, edgesDomain) {
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
 
@@ -330,7 +326,7 @@ module AdjListHyperGraph {
     }
 
     proc localVerticesDomain {
-      return _privatizedVertices.dsiLocalSubdomain();
+      return verticesDomain.localSubdomain();
     }
 
     proc edgesDomain {
@@ -338,7 +334,7 @@ module AdjListHyperGraph {
     }
 
     proc localEdgesDomain {
-      return _privatizedEdges.dsiLocalSubdomain();
+      return edgesDomain.localSubdomain();
     }
 
     proc vertices {

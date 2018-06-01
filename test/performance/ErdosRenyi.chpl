@@ -19,7 +19,7 @@ var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, 
 
 var timer = new Timer();
 timer.start();
-if isNaive then erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, edgeProbability);
+if isNaive then erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, edgeProbability);
 else fast_simple_er(graph, edgeProbability);
 timer.stop();
 
