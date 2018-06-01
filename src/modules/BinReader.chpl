@@ -71,12 +71,12 @@ proc readFile(f : file) throws {
 
 
         // TODO: Request storage space in advance for graph...
-        // Read in adjacency list for edges... Since 'add_inclusion' already push_back
+        // Read in adjacency list for edges... Since 'addInclusion' already push_back
         // for the matching vertices and edges, we only need to do this once.
         for beginOffset..endOffset {
           var edge : uint(64);
           reader.read(edge);
-          graph.add_inclusion(idx : int, (edge - numVertices) : int);
+          graph.addInclusion(idx : int, (edge - numVertices) : int);
           debug("Added inclusion for vertex #", idx, " and edge #", (edge - numVertices));
         }
         reader.close();

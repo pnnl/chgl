@@ -53,13 +53,8 @@ module AdjListHyperGraph {
       return chpl_getPrivatizedCopy(instance.type, pid);
     }
 
-    proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
-      instance = new AdjListHyperGraphImpl(num_verts, num_edges, map);
-      pid = instance.pid;
-    }
-
-    proc init(vertices_dom : domain, edges_dom : domain) {
-      instance = new AdjListHyperGraphImpl(vertices_dom, edges_dom);
+    proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
+      instance = new AdjListHyperGraphImpl(numVertices, numEdges, map);
       pid = instance.pid;
     }
 
@@ -256,73 +251,63 @@ module AdjListHyperGraph {
      optimizations of certain operations.
   */
   class AdjListHyperGraphImpl {
-    var vertices_dom : domain(1); // domain of vertices
-    var edges_dom : domain(1); // domain of edges
-
-    var localVerticesDom;
-    var localEdgesDom;
+    var _verticesDomain; // domain of vertices
+    var _edgesDomain; // domain of edges
 
     // Privatization id
     var pid = -1;
 
-    type vIndexType = index(vertices_dom);
-    type eIndexType = index(edges_dom);
+    type vIndexType = index(_verticesDomain);
+    type eIndexType = index(_edgesDomain);
     type vDescType = Wrapper(Vertex, vIndexType);
     type eDescType = Wrapper(Edge, eIndexType);
 
-    var vertices: [vertices_dom] NodeData(eDescType);
-    var edges: [edges_dom] NodeData(vDescType);
-    var destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
+    var _vertices : [_verticesDomain] NodeData(eDescType);
+    var _edges : [_edgesDomain] NodeData(vDescType);
+    var _destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
+
+    var _privatizedVertices = _vertices._value;
+    var _privatizedEdges = _edges._value;
 
     // Initialize a graph with initial domains
-    proc init(num_verts = 0, num_edges = 0, map : ?t = new DefaultDist) {
-      var vertices_dom = {0..#num_verts} dmapped new dmap(map);
-      var edges_dom = {0..#num_edges} dmapped new dmap(map);
-      init(vertices_dom, edges_dom);
+    proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
+      var verticesDomain = {0..#numVertices} dmapped new dmap(map);
+      var edgesDomain = {0..#numEdges} dmapped new dmap(map);
+      init(verticesDomain, edgesDomain);
     }
 
-    proc init(vertices_dom : domain, edges_dom : domain) {
-      this.vertices_dom = vertices_dom;
-      this.edges_dom = edges_dom;
-      this.localVerticesDom = vertices_dom.localSubdomain();
-      this.localEdgesDom = edges_dom.localSubdomain();
+    proc init(verticesDomain, edgesDomain) {
+      this._verticesDomain = verticesDomain;
+      this._edgesDomain = edgesDomain;
 
       complete();
 
-      forall buf in destBuffer do buf.clear();
+      // Clear buffer...
+      forall buf in this._destBuffer do buf.clear();
       this.pid = _newPrivatizedClass(this);
     }
 
-    proc init(other, pid) {
-      this.localVerticesDom = other.localVerticesDom;
-      this.localEdgesDom = other.localEdgesDom;
+    // creates an array sharing storage with the source array
+    // ref x = _getArray(other.vertices._value);
+    // could we just store privatized and vertices in separate types?
+    // array element access privatizedVertices.dsiAccess(idx)
+    // push_back won't work - Need to emulate implementation
+    proc init(other, pid : int(64)) {
+      var verticesDomain = other._verticesDomain;
+      var edgesDomain = other._edgesDomain;
+      verticesDomain.clear();
+      edgesDomain.clear();
+      this._verticesDomain = verticesDomain;
+      this._edgesDomain = edgesDomain;
+
+      // Obtain privatized instance...
+      this._privatizedVertices = other._vertices._value;
+      this._privatizedEdges = other._edges._value;
 
       complete();
 
-      forall buf in destBuffer do buf.clear();
-
-      // Initialize arrays to point to the original's array instance
-      this.pid = pid;
-      this.vertices.pid = other.vertices.pid;
-      this.vertices._instance = other.vertices._instance;
-      this.edges.pid = other.edges.pid;
-      this.edges._instance = other.edges._instance;
-    }
-
-    proc verticesDomain {
-      return this.vertices.domain;
-    }
-
-    proc localVerticesDomain {
-      return this.localVerticesDom;
-    }
-
-    proc edgesDomain {
-      return this.edges.domain;
-    }
-
-    proc localEdgesDomain {
-      return this.localEdgesDom;
+      // Clear buffer
+      forall buf in this._destBuffer do buf.clear();
     }
 
     pragma "no doc"
@@ -336,45 +321,98 @@ module AdjListHyperGraph {
     }
 
     pragma "no doc"
-    inline proc getPrivatizedThis {
+    inline proc getPrivatizedInstance() {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
 
+    proc verticesDomain {
+      return _getDomain(_privatizedVertices.dom);
+    }
+
+    proc localVerticesDomain {
+      return _privatizedVertices.dsiLocalSubdomain();
+    }
+
+    proc edgesDomain {
+      return _getDomain(_privatizedEdges.dom);
+    }
+
+    proc localEdgesDomain {
+      return _privatizedEdges.dsiLocalSubdomain();
+    }
+
+    proc vertices {
+      return _privatizedVertices;
+    }
+
+    proc edges {
+      return _privatizedEdges;
+    }
+
+    proc vertex(idx) ref {
+      return _vertices.dsiAccess(idx);
+    }
+
+    proc vertex(desc : vDescType) ref {
+      return vertex(desc.id);
+    }
+
+    proc edge(idx) ref {
+      return _edges.dsiAccess(idx);
+    }
+
+    proc edge(desc : eDescType) ref {
+      return edge(desc.id);
+    }
+
+    proc verticesDist {
+      return _getDistribution(verticesDomain.dist);
+    }
+
+    proc edgesDist {
+      return _getDistribution(edgesDomain.dist);
+    }
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
-      forall e in edges_dom do yield e;
+      forall e in edgesDomain do yield e;
     }
 
     iter getEdges() {
-      for e in edges_dom do yield e;
+      for e in edgesDomain do yield e;
     }
 
     iter getVertices(param tag : iterKind) where tag == iterKind.standalone {
-      forall v in vertices_dom do yield v;
+      forall v in verticesDomain do yield v;
     }
 
     iter getVertices() {
-      for v in vertices_dom do yield v;
+      for v in verticesDomain do yield v;
     }
 
     proc numVertices {
-      return this.vertices.domain.size;
+      return verticesDomain.size;
     }
 
     proc numEdges {
-      return this.edges.domain.size;
+      return edgesDomain.size;
     }
 
     // Note: this gets called on by a single task...
     proc emptyBuffer(locid, buffer) {
       on Locales[locid] {
         var localBuf = buffer.buffer;
-        var localThis = _this;
+        var localThis = getPrivatizedInstance();
         forall (srcId, destId, srcType) in localBuf {
           select srcType {
-            when DescriptorType.Vertex do localThis.vertices[srcId].addNodes(toEdge(destId));
-            when DescriptorType.Edge do localThis.edges[srcId].addNodes(toVertex(destId));
-            when DescriptorType.None do ;
+            when DescriptorType.Vertex {
+              localThis.vertex(srcId).addNodes(toEdge(destId));
+            }
+            when DescriptorType.Edge {
+              localThis.edge(srcId).addNodes(toVertex(destId));
+            }
+            when DescriptorType.None {
+              // NOP
+            }
           }
         }
       }
@@ -383,67 +421,44 @@ module AdjListHyperGraph {
     proc flushBuffers() {
       // Clear on all locales...
       coforall loc in Locales do on loc {
-        forall (locid, buf) in zip(LocaleSpace, _this.destBuffer) {
+        const _this = getPrivatizedInstance();
+        forall (locid, buf) in zip(LocaleSpace, _this._destBuffer) {
           emptyBuffer(locid, buf);
           buf.clear();
         }
       }
     }
 
-
-    /*
-      The inclusions access methods should not return a modifiable reference to
-      the internal array, or at least this should not be a part of a public
-      iterface.  I don't think that that there is a way to have private class
-      methods yet, so this is all exposed to the user.
-    */
-    proc _inclusions ( e : eDescType ) ref {
-      return edges(e.id).neighborList;
-    }
-
-    proc _inclusions ( v : vDescType ) ref {
-      return vertices(v.id).neighborList;
-    }
-
     // Resize the edges array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of edges can be increased or decreased
-    proc resize_edges(size) {
-      edges_dom = {0..(size-1)};
+    proc resizeEdges(size) {
+      _edges.setIndices({0..(size-1)});
     }
 
     // Resize the vertices array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
-    proc resize_vertices(size) {
-      vertices_dom = {0..(size-1)};
+    proc resizeVertices(size) {
+      _vertices.setIndices({0..(size-1)});
     }
 
-    proc check_unique(vertex,edge){
-      var retval = true;
-      ref vertexData = vertices(vertex);
-      on vertexData do (retval, _) = vertexData.neighborList.find(toEdge(edge));
-      return retval;
-    }
-
-    inline proc _this return chpl_getPrivatizedCopy(this.type, pid);
-
-    proc add_inclusion_buffered(vertex, edge) {
+    proc addInclusionBuffered(vertex, edge) {
       const v = vertex: vDescType;
       const e = edge: eDescType;
 
       // Push on local buffers to send later...
-      var vLocId = vertices.domain.dist.idxToLocale(v.id).id;
-      var eLocId = edges.domain.dist.idxToLocale(e.id).id;
-      ref vBuf =  destBuffer[vLocId];
-      ref eBuf = destBuffer[eLocId];
+      var vLocId = verticesDist.idxToLocale(v.id).id;
+      var eLocId = edgesDist.idxToLocale(e.id).id;
+      ref vBuf =  _destBuffer[vLocId];
+      ref eBuf = _destBuffer[eLocId];
 
       var vStatus = vBuf.append(v.id, e.id, DescriptorType.Vertex);
       if vStatus == BUFFER_FULL {
         emptyBuffer(vLocId, vBuf);
         vBuf.clear();
       }
-      
+
       var eStatus = eBuf.append(e.id, v.id, DescriptorType.Edge);
       if eStatus == BUFFER_FULL {
         emptyBuffer(eLocId, eBuf);
@@ -452,9 +467,10 @@ module AdjListHyperGraph {
 
     }
 
-    proc add_inclusion(vertex, edge) {
+    proc addInclusion(vertex, edge) {
       const vDesc = vertex: vDescType;
       const eDesc = edge: eDescType;
+
       vertices(vDesc.id).addNodes(eDesc);
       edges(eDesc.id).addNodes(vDesc);
     }
@@ -486,7 +502,7 @@ module AdjListHyperGraph {
       // The returned array is mapped over the same domain as the original
       // As well a *copy* of the domain is returned so that any modifications to
       // the original are isolated from the returned array.
-      var degreeDom = vertices_dom;
+      const degreeDom = verticesDomain;
       var degreeArr : [degreeDom] int(64);
 
       // Note: If set of vertices or its domain has changed this may result in errors
@@ -498,28 +514,13 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
-    // TODO: Need a better way of getting vertex... right now a lot of casting has to
-    // be done and we need to return the index (from its domain) rather than the
-    // vertex itself...
-    iter forEachVertexDegree() : (vDescType, int(64)) {
-      for (vid, v) in zip(vertices_dom, vertices) {
-        yield (vid : vDescType, v.neighborList.size);
-      }
-    }
-
-    iter forEachVertexDegree(param tag : iterKind) : (vDescType, int(64))
-      where tag == iterKind.standalone {
-        forall (vid, v) in zip(vertices_dom, vertices) {
-          yield (vid : vDescType, v.neighborList.size);
-        }
-    }
 
     // Obtains list of all degrees; not thread-safe if resized
     proc getEdgeDegrees() {
       // The returned array is mapped over the same domain as the original
       // As well a *copy* of the domain is returned so that any modifications to
       // the original are isolated from the returned array.
-      var degreeDom = edges_dom;
+      const degreeDom = edgesDomain;
       var degreeArr : [degreeDom] int(64);
 
       // Note: If set of vertices or its domain has changed this may result in errors
@@ -531,41 +532,65 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
+    // TODO: Need a better way of getting vertex... right now a lot of casting has to
+    // be done and we need to return the index (from its domain) rather than the
+    // vertex itself...
+    iter forEachVertexDegree() : (vDescType, int(64)) {
+      for (vid, v) in zip(verticesDomain, vertices) {
+        yield (vid : vDescType, v.neighborList.size);
+      }
+    }
+
+    iter forEachVertexDegree(param tag : iterKind) : (vDescType, int(64))
+    where tag == iterKind.standalone {
+      forall (vid, v) in zip(verticesDomain, vertices) {
+        yield (vid : vDescType, v.neighborList.size);
+      }
+    }
+
     iter forEachEdgeDegree() : (eDescType, int(64)) {
-      for (eid, e) in zip(edges_dom, edges) {
+      for (eid, e) in zip(edgesDomain, edges) {
         yield (eid : eDescType, e.neighborList.size);
       }
     }
 
     iter forEachEdgeDegree(param tag : iterKind) : (eDescType, int(64))
       where tag == iterKind.standalone {
-        forall (eid, e) in zip(edges_dom, edges) {
+        forall (eid, e) in zip(edgesDomain, edges) {
           yield (eid : eDescType, e.neighborList.size);
         }
     }
 
-    // for desc in graph.inclusions(nodeDesc) do ...
-    iter inclusions(desc) where desc.type == vDescType || desc.type == eDescType {
-      for _desc in _inclusions(desc) do yield _desc;
+    /*
+      Yields adjacent vertices or hyperedges depending on the input type
+    */
+    iter adjacent(e : eDescType) ref {
+      for v in edges[e.id].neighborList do yield v;
     }
 
+    iter adjacent(e : eDescType, param tag : iterKind) ref
+      where tag == iterKind.standalone {
+      forall v in edges[e.id].neighborList do yield v;
+    }
 
-    // forall desc in graph.inclusions(nodeDesc) do ...
-    iter inclusions(desc, param tag : iterKind) where
-      (desc.type == vDescType || desc.type == eDescType)
-        && tag == iterKind.standalone {
-      forall _desc in _inclusions(desc) do yield _desc;
+    iter adjacent(v : vDescType) ref {
+      for e in vertices[v.id].neighborList do yield e;
+    }
+
+    iter adjacent(v : vDescType, param tag : iterKind) ref
+      where tag == iterKind.standalone {
+      forall e in vertices[v.id].neighborList do yield e;
     }
 
     // Bad argument
     iter inclusions(arg) {
-      compilerError("inclusions(" + arg.type : string + ") not supported, "
+      compilerError("adjacent(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
     // Bad Argument
     iter inclusions(arg, param tag : iterKind) where tag == iterKind.standalone {
-      compilerError("inclusions(" + arg.type : string + ") not supported, "
+      compilerError("adjacent(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 

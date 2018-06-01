@@ -6,7 +6,7 @@ var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge
 
 for i in 1 .. 10 {
   for j in i .. 10 {
-    graph.add_inclusion(i, j);
+    graph.addInclusion(i, j);
   }
 }
 

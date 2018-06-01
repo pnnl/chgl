@@ -12,7 +12,7 @@ var count = graph.numVertices;
 var edgecount: int = 0;
 for e in graph.getVertices() {
     //writeln(graph.vertices(e).neighborList);
-    for o in graph.vertices(e).neighborList{
+    for o in graph.vertex(e).neighborList {
     	edgecount += 1;
     }
 }

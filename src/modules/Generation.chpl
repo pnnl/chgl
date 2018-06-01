@@ -33,7 +33,7 @@ module Generation {
               var vertex = randStream.getNext(0, localGraph.numVertices - 1);
               var localEdgeIdx = randStream.getNext(0, localGraph.localEdgesDomain.size - 1);
               var edge = localGraph.localEdgesDomain.low + localEdgeIdx * localGraph.localEdgesDomain.stride;
-              localGraph.add_inclusion_buffered(vertex, edge);
+              localGraph.addInclusionBuffered(vertex, edge);
             }
           }
         }
@@ -72,7 +72,7 @@ module Generation {
           forall v in graph.verticesDomain.localSubdomain() {
             for e in graph.edgesDomain.localSubdomain() {
               if randStream.getNext() <= p {
-                graph.add_inclusion_buffered(v,e);
+                graph.addInclusionBuffered(v,e);
               }
             }
           }
@@ -81,7 +81,7 @@ module Generation {
           forall e in graph.edgesDomain.localSubdomain() {
             for v in graph.verticesDomain.localSubdomain() {
               if randStream.getNext() <= p {
-                graph.add_inclusion_buffered(v,e);
+                graph.addInclusionBuffered(v,e);
               }
             }
           }
@@ -102,7 +102,7 @@ module Generation {
       }
       for e in 0..adjList.size-1{
         if adjList[e] > 0{
-          g2.add_inclusion(v,e);
+          g2.addInclusion(v,e);
         }
       }
     }
@@ -156,7 +156,7 @@ module Generation {
               for 1..perTaskInclusions {
                 var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
                 var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-                graph.add_inclusion_buffered(vertex, edge);
+                graph.addInclusionBuffered(vertex, edge);
               }
             }
 						graph.flushBuffers();
