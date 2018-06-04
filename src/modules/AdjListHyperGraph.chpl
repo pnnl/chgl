@@ -67,7 +67,7 @@ module AdjListHyperGraph {
     This record should really be private, and its functionality should be
     exposed by public functions.
   */
-  record NodeData {
+  class NodeData {
     type nodeIdType;
 
     var ndom = {0..-1};
@@ -251,34 +251,34 @@ module AdjListHyperGraph {
      optimizations of certain operations.
   */
   class AdjListHyperGraphImpl {
-    var _verticesDomain; // domain of vertices
-    var _edgesDomain; // domain of edges
+    var _emulatedVerticesDomain;
+    var _emulatedEdgesDomain;
+    var _privatizedVerticesDomain : domain(1);
+    var _privatizedEdgesDomain : domain(1);
 
     // Privatization id
     var pid = -1;
 
-    type vIndexType = index(_verticesDomain);
-    type eIndexType = index(_edgesDomain);
+    type vIndexType = index(_privatizedVerticesDomain);
+    type eIndexType = index(_privatizedEdgesDomain);
     type vDescType = Wrapper(Vertex, vIndexType);
     type eDescType = Wrapper(Edge, eIndexType);
 
-    var _vertices : [_verticesDomain] NodeData(eDescType);
-    var _edges : [_edgesDomain] NodeData(vDescType);
+    var _vertices : [_privatizedVerticesDomain] NodeData(eDescType);
+    var _edges : [_privatizedEdgesDomain] NodeData(vDescType);
     var _destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
-
-    var _privatizedVertices = _vertices._value;
-    var _privatizedEdges = _edges._value;
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
-      var verticesDomain = {0..#numVertices} dmapped new dmap(map);
-      var edgesDomain = {0..#numEdges} dmapped new dmap(map);
-      this._verticesDomain = verticesDomain;
-      this._edgesDomain = edgesDomain;
+      this._emulatedVerticesDomain = {0..#numVertices} dmapped new dmap(map);
+      this._emulatedEdgesDomain = {0..#numEdges} dmapped new dmap(map);
+      this._privatizedVerticesDomain = {0..#numVertices};
+      this._privatizedEdgesDomain = {0..#numEdges};
 
       complete();
 
-      // Clear buffer...
+      forall v in verticesDomain do _vertices[v] = new NodeData(eDescType);
+      forall e in edgesDomain do _edges[e] = new NodeData(vDescType);
       forall buf in this._destBuffer do buf.clear();
       this.pid = _newPrivatizedClass(this);
     }
@@ -289,16 +289,13 @@ module AdjListHyperGraph {
     // array element access privatizedVertices.dsiAccess(idx)
     // push_back won't work - Need to emulate implementation
     proc init(other, pid : int(64)) {
-      var verticesDomain = other._verticesDomain;
-      var edgesDomain = other._edgesDomain;
-      verticesDomain.clear();
-      edgesDomain.clear();
-      this._verticesDomain = verticesDomain;
-      this._edgesDomain = edgesDomain;
-
-      // Obtain privatized instance...
-      this._privatizedVertices = other._vertices._value;
-      this._privatizedEdges = other._edges._value;
+      this._emulatedVerticesDomain = other._emulatedVerticesDomain;
+      this._emulatedEdgesDomain = other._emulatedEdgesDomain;
+      this._privatizedVerticesDomain = other._privatizedVerticesDomain;
+      this._privatizedEdgesDomain = other._privatizedEdgesDomain;
+      this.pid = pid;
+      this._vertices = other._vertices;
+      this._edges = other._edges;
 
       complete();
 
@@ -322,31 +319,31 @@ module AdjListHyperGraph {
     }
 
     proc verticesDomain {
-      return _getDomain(_privatizedVertices.dom);
+      return _emulatedVerticesDomain;
     }
 
     proc localVerticesDomain {
-      return verticesDomain.localSubdomain();
+      return _emulatedVerticesDomain.localSubdomain();
     }
 
     proc edgesDomain {
-      return _getDomain(_privatizedEdges.dom);
+      return _emulatedEdgesDomain;
     }
 
     proc localEdgesDomain {
-      return edgesDomain.localSubdomain();
+      return _emulatedEdgesDomain.localSubdomain();
     }
 
     proc vertices {
-      return _privatizedVertices;
+      return _vertices;
     }
 
     proc edges {
-      return _privatizedEdges;
+      return _edges;
     }
 
     proc vertex(idx) ref {
-      return _vertices.dsiAccess(idx);
+      return _vertices[idx];
     }
 
     proc vertex(desc : vDescType) ref {
@@ -354,7 +351,7 @@ module AdjListHyperGraph {
     }
 
     proc edge(idx) ref {
-      return _edges.dsiAccess(idx);
+      return _edges[idx];
     }
 
     proc edge(desc : eDescType) ref {
@@ -362,11 +359,11 @@ module AdjListHyperGraph {
     }
 
     proc verticesDist {
-      return _getDistribution(verticesDomain.dist);
+      return _vertices.domain.dist;
     }
 
     proc edgesDist {
-      return _getDistribution(edgesDomain.dist);
+      return _edges.domain.dist;
     }
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
@@ -429,14 +426,42 @@ module AdjListHyperGraph {
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of edges can be increased or decreased
     proc resizeEdges(size) {
-      _edges.setIndices({0..(size-1)});
+      _emulatedEdgesDomain = {0..#size};
+      _privatizedEdgesDomain = {0..#size};
+      forall e in _emulatedEdgesDomain {
+        if _edges[e] != nil {
+          _edges[e] = new NodeData(vDescType);
+        }
+      }
+
+      // Update across all locales
+      coforall loc in Locales do on loc {
+        const _this = getPrivatizedInstance();
+        _this._emulatedEdgesDomain = {0..#size};
+        _this._privatizedEdgesDomain = {0..#size};
+        _this._edges = this._edges;
+      }
     }
 
     // Resize the vertices array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
     proc resizeVertices(size) {
-      _vertices.setIndices({0..(size-1)});
+      _emulatedVerticesDomain = {0..#size};
+      _privatizedVerticesDomain = {0..#size};
+      forall v in _emulatedVerticesDomain {
+        if _vertices[e] != nil {
+          _vertices[e] = new NodeData(eDescType);
+        }
+      }
+
+      // Update across all locales
+      coforall loc in Locales do on loc {
+        const _this = getPrivatizedInstance();
+        _this._emulatedVerticesDomain = {0..#size};
+        _this._privatizedVerticesDomain = {0..#size};
+        _this._vertices = this._vertices;
+      }
     }
 
     proc addInclusionBuffered(vertex, edge) {
@@ -560,33 +585,33 @@ module AdjListHyperGraph {
     /*
       Yields adjacent vertices or hyperedges depending on the input type
     */
-    iter adjacent(e : eDescType) ref {
+    iter neighbors(e : eDescType) ref {
       for v in edges[e.id].neighborList do yield v;
     }
 
-    iter adjacent(e : eDescType, param tag : iterKind) ref
+    iter neighbors(e : eDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
       forall v in edges[e.id].neighborList do yield v;
     }
 
-    iter adjacent(v : vDescType) ref {
+    iter neighbors(v : vDescType) ref {
       for e in vertices[v.id].neighborList do yield e;
     }
 
-    iter adjacent(v : vDescType, param tag : iterKind) ref
+    iter neighbors(v : vDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
       forall e in vertices[v.id].neighborList do yield e;
     }
 
     // Bad argument
-    iter inclusions(arg) {
-      compilerError("adjacent(" + arg.type : string + ") not supported, "
+    iter neighbors(arg) {
+      compilerError("neighbors(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
     // Bad Argument
-    iter inclusions(arg, param tag : iterKind) where tag == iterKind.standalone {
-      compilerError("adjacent(" + arg.type : string + ") not supported, "
+    iter neighbors(arg, param tag : iterKind) where tag == iterKind.standalone {
+      compilerError("neighbors(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
