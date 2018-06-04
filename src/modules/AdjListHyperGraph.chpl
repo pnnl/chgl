@@ -268,6 +268,8 @@ module AdjListHyperGraph {
 
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
+    var _privatizedVerticesPID = _vertices.pid;
+    var _privatizedEdgesPID = _edges.pid;
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
@@ -299,6 +301,8 @@ module AdjListHyperGraph {
       // Obtain privatized instance...
       this._privatizedVertices = other._vertices._value;
       this._privatizedEdges = other._edges._value;
+      this._privatizedVerticesPID = other._privatizedVerticesPID;
+      this._privatizedEdgesPID = other._privatizedEdgesPID
 
       complete();
 
@@ -429,14 +433,14 @@ module AdjListHyperGraph {
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of edges can be increased or decreased
     proc resizeEdges(size) {
-      _edges.setIndices({0..(size-1)});
+      edges.setIndices({0..(size-1)});
     }
 
     // Resize the vertices array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
     proc resizeVertices(size) {
-      _vertices.setIndices({0..(size-1)});
+      vertices.setIndices({0..(size-1)});
     }
 
     proc addInclusionBuffered(vertex, edge) {
