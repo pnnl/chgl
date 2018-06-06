@@ -254,7 +254,7 @@ module AdjListHyperGraph {
     var _verticesDomain; // domain of vertices
     var _edgesDomain; // domain of edges
 
-    // Privatization id
+    // Privatization idi
     var pid = -1;
 
     type vIndexType = index(_verticesDomain);
@@ -270,6 +270,7 @@ module AdjListHyperGraph {
     var _privatizedEdges = _edges._value;
     var _privatizedVerticesPID = _vertices.pid;
     var _privatizedEdgesPID = _edges.pid;
+    var _masterHandle : object;
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
@@ -301,14 +302,18 @@ module AdjListHyperGraph {
       complete();
 
       // Obtain privatized instance...
-      this._privatizedVertices = other._vertices._value;
-      this._privatizedEdges = other._edges._value;
+      if other.locale.id == 0 {
+        this._masterHandle = other;
+        this._privatizedVertices = other._vertices._value;
+        this._privatizedEdges = other._edges._value;
+      } else {
+        this._masterHandle = other._masterHandle;
+        var instance = this._masterHandle : this.type;
+        this._privatizedVertices = instance._vertices._value;
+        this._privatizedEdges = instance._edges._value;
+      }
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
-      
-      writeln(here, ": VerticesDomain=", verticesDomain, ", EdgesDomain=", edgesDomain);
-      writeln(_privatizedVertices.dom);
-      forall ix in _privatizedVertices.dom.dist.targetLocDom do writeln(_privatizedVertices.dom.dist.getChunk(_privatizedVertices.dom.whole, ix));
 
       // Clear buffer
       forall buf in this._destBuffer do buf.clear();
@@ -404,18 +409,24 @@ module AdjListHyperGraph {
     // Note: this gets called on by a single task...
     proc emptyBuffer(locid, buffer) {
       on Locales[locid] {
+        var localBuffer = buffer.buffer;
         var localThis = getPrivatizedInstance();
-        forall (srcId, destId, srcType) in buffer.buffer {
+        forall (srcId, destId, srcType) in localBuffer {
           select srcType {
             when DescriptorType.Vertex {
               if !localThis.verticesDomain.member(srcId) {
                 halt("Vertex out of bounds on locale #", locid, ", domain = ", localThis.verticesDomain);
               }
               ref v = localThis.vertex(srcId);
-              if v.locale != here then halt("Expected ", v.locale, ", but got ", here);
+              if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
               v.addNodes(toEdge(destId));
             }
             when DescriptorType.Edge {
+              if !localThis.edgesDomain.member(srcId) {
+                halt("Edge out of bounds on locale #", locid, ", domain = ", localThis.edgesDomain);
+              }
+              ref e = localThis.edge(srcId);
+              if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
               localThis.edge(srcId).addNodes(toVertex(destId));
             }
             when DescriptorType.None {
