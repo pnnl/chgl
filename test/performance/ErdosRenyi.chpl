@@ -23,11 +23,8 @@ if isNaive then erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesD
 else fast_simple_er(graph, edgeProbability);
 timer.stop();
 
-var inclusions = 0;
-forall (_, vdeg) in graph.forEachVertexDegree() with (+ reduce inclusions) do inclusions += vdeg;
 
 writeln("Time:", timer.elapsed());
-writeln("Inclusions:", inclusions);
 writeln("Probability:", edgeProbability);
 writeln("Nodes:", numLocales);
 writeln("NumVertices:", numVertices);

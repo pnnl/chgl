@@ -298,13 +298,17 @@ module AdjListHyperGraph {
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
 
+      complete();
+
       // Obtain privatized instance...
       this._privatizedVertices = other._vertices._value;
       this._privatizedEdges = other._edges._value;
       this._privatizedVerticesPID = other._privatizedVerticesPID;
-      this._privatizedEdgesPID = other._privatizedEdgesPID
-
-      complete();
+      this._privatizedEdgesPID = other._privatizedEdgesPID;
+      
+      writeln(here, ": VerticesDomain=", verticesDomain, ", EdgesDomain=", edgesDomain);
+      writeln(_privatizedVertices.dom);
+      forall ix in _privatizedVertices.dom.dist.targetLocDom do writeln(_privatizedVertices.dom.dist.getChunk(_privatizedVertices.dom.whole, ix));
 
       // Clear buffer
       forall buf in this._destBuffer do buf.clear();
@@ -325,52 +329,52 @@ module AdjListHyperGraph {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
 
-    proc verticesDomain {
-      return _getDomain(_privatizedVertices.dom);
+    inline proc verticesDomain {
+      return _privatizedVertices.dom.whole;
     }
 
-    proc localVerticesDomain {
-      return verticesDomain.localSubdomain();
+    inline proc localVerticesDomain {
+      return _privatizedVertices.dom.locDoms[here.id].myBlock;
     }
 
-    proc edgesDomain {
-      return _getDomain(_privatizedEdges.dom);
+    inline proc edgesDomain {
+      return _privatizedEdges.dom.whole;
     }
 
-    proc localEdgesDomain {
-      return edgesDomain.localSubdomain();
+    inline proc localEdgesDomain {
+      return _privatizedEdges.dom.locDoms[here.id].myBlock;
     }
 
-    proc vertices {
+    inline proc vertices {
       return _privatizedVertices;
     }
 
-    proc edges {
+    inline proc edges {
       return _privatizedEdges;
     }
 
-    proc vertex(idx) ref {
-      return _vertices.dsiAccess(idx);
+    inline proc vertex(idx) ref {
+      return vertices.dsiAccess(idx);
     }
 
-    proc vertex(desc : vDescType) ref {
+    inline proc vertex(desc : vDescType) ref {
       return vertex(desc.id);
     }
 
-    proc edge(idx) ref {
-      return _edges.dsiAccess(idx);
+    inline proc edge(idx) ref {
+      return edges.dsiAccess(idx);
     }
 
-    proc edge(desc : eDescType) ref {
+    inline proc edge(desc : eDescType) ref {
       return edge(desc.id);
     }
 
-    proc verticesDist {
-      return _getDistribution(verticesDomain.dist);
+    inline proc verticesDist {
+      return verticesDomain.dist;
     }
 
-    proc edgesDist {
-      return _getDistribution(edgesDomain.dist);
+    inline proc edgesDist {
+      return edgesDomain.dist;
     }
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
@@ -400,12 +404,16 @@ module AdjListHyperGraph {
     // Note: this gets called on by a single task...
     proc emptyBuffer(locid, buffer) {
       on Locales[locid] {
-        var localBuf = buffer.buffer;
         var localThis = getPrivatizedInstance();
-        forall (srcId, destId, srcType) in localBuf {
+        forall (srcId, destId, srcType) in buffer.buffer {
           select srcType {
             when DescriptorType.Vertex {
-              localThis.vertex(srcId).addNodes(toEdge(destId));
+              if !localThis.verticesDomain.member(srcId) {
+                halt("Vertex out of bounds on locale #", locid, ", domain = ", localThis.verticesDomain);
+              }
+              ref v = localThis.vertex(srcId);
+              if v.locale != here then halt("Expected ", v.locale, ", but got ", here);
+              v.addNodes(toEdge(destId));
             }
             when DescriptorType.Edge {
               localThis.edge(srcId).addNodes(toVertex(destId));
@@ -443,23 +451,23 @@ module AdjListHyperGraph {
       vertices.setIndices({0..(size-1)});
     }
 
-    proc addInclusionBuffered(vertex, edge) {
-      const v = vertex: vDescType;
-      const e = edge: eDescType;
+    proc addInclusionBuffered(v, e) {
+      const vDesc = v : vDescType;
+      const eDesc = e : eDescType;
 
       // Push on local buffers to send later...
-      var vLocId = verticesDist.idxToLocale(v.id).id;
-      var eLocId = edgesDist.idxToLocale(e.id).id;
+      var vLocId = vertex(vDesc.id).locale.id;
+      var eLocId = edge(eDesc.id).locale.id;
       ref vBuf =  _destBuffer[vLocId];
       ref eBuf = _destBuffer[eLocId];
 
-      var vStatus = vBuf.append(v.id, e.id, DescriptorType.Vertex);
+      var vStatus = vBuf.append(vDesc.id, eDesc.id, DescriptorType.Vertex);
       if vStatus == BUFFER_FULL {
         emptyBuffer(vLocId, vBuf);
         vBuf.clear();
       }
 
-      var eStatus = eBuf.append(e.id, v.id, DescriptorType.Edge);
+      var eStatus = eBuf.append(eDesc.id, vDesc.id, DescriptorType.Edge);
       if eStatus == BUFFER_FULL {
         emptyBuffer(eLocId, eBuf);
         eBuf.clear();
@@ -564,33 +572,33 @@ module AdjListHyperGraph {
     /*
       Yields adjacent vertices or hyperedges depending on the input type
     */
-    iter adjacent(e : eDescType) ref {
+    iter neighbors(e : eDescType) ref {
       for v in edges[e.id].neighborList do yield v;
     }
 
-    iter adjacent(e : eDescType, param tag : iterKind) ref
+    iter neighbors(e : eDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
       forall v in edges[e.id].neighborList do yield v;
     }
 
-    iter adjacent(v : vDescType) ref {
+    iter neighbors(v : vDescType) ref {
       for e in vertices[v.id].neighborList do yield e;
     }
 
-    iter adjacent(v : vDescType, param tag : iterKind) ref
+    iter neighbors(v : vDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
       forall e in vertices[v.id].neighborList do yield e;
     }
 
     // Bad argument
-    iter inclusions(arg) {
-      compilerError("adjacent(" + arg.type : string + ") not supported, "
+    iter neighbors(arg) {
+      compilerError("neighbors(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
     // Bad Argument
-    iter inclusions(arg, param tag : iterKind) where tag == iterKind.standalone {
-      compilerError("adjacent(" + arg.type : string + ") not supported, "
+    iter neighbors(arg, param tag : iterKind) where tag == iterKind.standalone {
+      compilerError("neighbors(" + arg.type : string + ") not supported, "
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
