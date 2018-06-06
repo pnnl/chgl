@@ -16,7 +16,8 @@ test:
   - cd test/unit
   - start_test -junit-xml -numlocales 4
 
-doc:
+chpldoc:
   image: chapel/chapel-gasnet:latest
   stage: doc
   script: chpldoc */*.chpl
+  when: always
