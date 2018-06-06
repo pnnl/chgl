@@ -19,5 +19,5 @@ test:
 chpldoc:
   image: chapel/chapel-gasnet:latest
   stage: doc
-  script: chpldoc */*.chpl
+  script: chpldoc src/*.chpl src/*/*.chpl
   when: always
