@@ -22,5 +22,6 @@ chpldoc:
   script: chpldoc src/*.chpl src/*/*.chpl
   when: always
   artifacts:
-    paths: docs
+    paths: 
+    - docs
     expire_in: 1 month
