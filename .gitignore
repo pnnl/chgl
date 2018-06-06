@@ -8,3 +8,6 @@
 /test/performance/dat/
 /test/performance/Logs/
 /test/unit/Logs/
+
+# chpldoc generated content
+/docs/

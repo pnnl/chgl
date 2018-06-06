@@ -1,7 +1,13 @@
 before_script:
   - pushd $CHPL_HOME
   - make test-venv
+  - make chpldoc
   - popd
+
+stages:
+  - build
+  - test
+  - doc
 
 test:
   image: chapel/chapel-gasnet:latest
@@ -9,3 +15,8 @@ test:
   script:
   - cd test/unit
   - start_test -junit-xml -numlocales 4
+
+doc:
+  image: chapel/chapel-gasnet:latest
+  stage: doc
+  script: chpldoc */*.chpl
