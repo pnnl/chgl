@@ -693,12 +693,21 @@ module AdjListHyperGraph {
     proc getEdgeMetamorphCoefs(){
     }
 
-    proc getVerticesWithDegreeValue( value : int(64)){
+    iter getVerticesWithDegreeValue(value : int(64)){
+      for v in getVertices() do if v.numNeighbors == value then yield v;
     }
 
-    proc getEdgesWithDegreeValue( value : int(64)){
+    iter getVerticesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
+      forall v in getVertices() do if v.numNeighbors == value then yield v;
+    }  
 
+    iter getEdgesWithDegreeValue(value : int(64)){
+      for e in getEdges() do if e.numNeighbors == value then yield e;
     }
+
+    iter getVerticesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
+      forall e in getEdges() do if e.numNeighbors == value then yield e;
+    }  
 
     proc getVertexPerDegreeMetamorphosisCoefficients() {
       var vertexDegrees = getVertexDegrees();
