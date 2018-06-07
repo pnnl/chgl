@@ -34,6 +34,7 @@ module AdjListHyperGraph {
   use CyclicDist;
   use List;
   use Sort;
+  use Search;
 
   config param AdjListHyperGraphBufferSize = 1024 * 1024;
 
@@ -65,9 +66,7 @@ module AdjListHyperGraph {
   pragma "default intent is ref"
   record SpinLockTATAS {
     // Profiling for contended access...
-    if Debug.ALHG_PROFILE_CONTENTION {
-      var contentionCnt : atomic int(64);
-    }
+    var contentionCnt : atomic int(64);
     var _lock : atomic bool;
 
     inline proc acquire() {
@@ -112,16 +111,49 @@ module AdjListHyperGraph {
     // and SyncLock (mutex)...
     var lock : SpinLockTATAS;
 
+    //  Keeps track of whether or not the neighborList is sorted; any insertion must set this to false
+    var isSorted : bool;
+    
+    // As neighborList is protected by a lock, the size would normally have to be computed in a mutually exclusive way.
+    // By keeping a separate counter, it makes it fast and parallel-safe to check for the size of the neighborList.
+    var neighborListSize : atomic int;
+
     proc init(type nodeIdType) {
       this.nodeIdType = nodeIdType;
     }
 
     proc init(other) {
-      other.lock.acquire();
       this.nodeIdType = other.nodeIdType;
-      this.neighborListDom = other.neighborListDom;
-      this.neighborList = other.neighborList;
-      other.lock.release();
+      complete();
+
+      on other {
+        other.lock.acquire();
+        
+        this.neighborListDom = other.neighborListDom;
+        this.neighborList = other.neighborList;
+        this.isSorted = other.isSorted;
+        this.neighborListSize.write(other.neighborListSize.read());
+        
+        other.lock.release();
+      }
+    }
+
+    proc hasNeighbor(n) {
+      var retval : bool;
+      on this {
+        lock.acquire();
+        
+        // Sort if not already
+        if !isSorted {
+          sort(neighborList);
+          isSorted = true;
+        }
+        
+        // Search to determine if it exists...
+        retval = search(neighborList, n, sorted = true)[1];
+
+        lock.release();
+      }
     }
 
     inline proc numNeighbors {
@@ -135,7 +167,10 @@ module AdjListHyperGraph {
     proc addNodes(vals) {
       on this {
         lock.acquire(); // acquire lock
+        
         neighborList.push_back(vals);
+        isSorted = false;
+
         lock.release(); // release the lock
       }
     }
@@ -147,9 +182,9 @@ module AdjListHyperGraph {
         	<~> new ioLiteral(", neighborlist = ")
         	<~> neighborList
         	<~> new ioLiteral(", lock$ = ")
-        	<~> lock$.read()
+        	<~> lock.read()
         	<~> new ioLiteral("(isFull: ")
-        	<~> lock$.read()
+        	<~> lock.read()
         	<~> new ioLiteral(") }");
       }
     }
@@ -160,10 +195,12 @@ module AdjListHyperGraph {
 
     lhs.lock.acquire(); 
     rhs.lock.acquire(); 
-    lhs.ndom = rhs.ndom;
+    
+    lhs.neighborListDom = rhs.neighborListDom;
     lhs.neighborList = rhs.neighborList;
-    lhs.lock.release(); 
+    
     rhs.lock.release(); 
+    lhs.lock.release(); 
   }
 
   record Vertex {}
@@ -279,6 +316,10 @@ module AdjListHyperGraph {
       this._edgesDomain = edgesDomain;
 
       complete();
+
+      // Fill vertices and edges with default class instances...
+      forall v in _vertices do v = new NodeData(eDescType);
+      forall e in _edges do e = new NodeData(vDescType);
 
       // Clear buffer...
       forall buf in this._destBuffer do buf.clear();
