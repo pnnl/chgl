@@ -626,12 +626,12 @@ module AdjListHyperGraph {
     }
 
     proc getVertexNumButterflies() {
-      var butterflyDom = vertices_dom;
+      var butterflyDom = verticesDomain;
       var butterflyArr : [butterflyDom] int(64);
       // Note: If set of vertices or its domain has changed this may result in errors
       // hence this is not entirely thread-safe yet...
-      forall (num_butterflies, v) in zip(butterflyArr, vertices_dom) {
-        var dist_two_mults : [vertices_dom] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
+      forall (num_butterflies, v) in zip(butterflyArr, verticesDomain) {
+        var dist_two_mults : [verticesDomain] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
     //C[w] is equivalent to the number of edges that v and w are both connected to
           for u in vertices(v).neighborList {
 	    for w in edges(u.id).neighborList {
@@ -651,7 +651,7 @@ module AdjListHyperGraph {
     }
 
     proc getInclusionNumButterflies(vertex, edge){
-      var dist_two_mults : [vertices_dom] int(64); //this is C[x] in the paper
+      var dist_two_mults : [verticesDomain] int(64); //this is C[x] in the paper
       var numButterflies = 0;
 	for w in vertex.neighborList {
 	    for x in edges(w.id).neighborList {
@@ -680,7 +680,7 @@ module AdjListHyperGraph {
     }
 
     proc getVertexMetamorphCoefs(){
-    	var vertexMetamorphCoefs = [vertices_dom] : real;
+    	var vertexMetamorphCoefs = [verticesDomain] : real;
         for (vertex, coef) in (vertices, vertexMetamorphCoefs) {
           for (coef, edge) in (vertexMetamorphCoefs,vertex.neighborList){
             coef += getInclusionMetamorphCoef(vertex, edge);
@@ -722,12 +722,12 @@ module AdjListHyperGraph {
     }
 
     proc getEdgeButterflies() {
-      var butterflyDom = edges_dom;
+      var butterflyDom = edgesDomain;
       var butterflyArr : [butterflyDom] int(64);
       // Note: If set of vertices or its domain has changed this may result in errors
       // hence this is not entirely thread-safe yet...
-      forall (num_butterflies, e) in zip(butterflyArr, edges_dom) {
-        var dist_two_mults : [edges_dom] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
+      forall (num_butterflies, e) in zip(butterflyArr, edgesDomain) {
+        var dist_two_mults : [edgesDomain] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
 	//C[w] is equivalent to the number of edges that v and w are both connected to
           for u in edges(e).neighborList {
 	    for w in vertices(u.id).neighborList {
@@ -749,12 +749,12 @@ module AdjListHyperGraph {
     }
 
     /*proc getVertexCaterpillars() {
-      var caterpillarDom = vertices_dom;
+      var caterpillarDom = verticesDomain;
       var caterpillarArr : [caterpillarDom] int(64);
       // Note: If set of vertices or its domain has changed this may result in errors
       // hence this is not entirely thread-safe yet...
-      forall (num_caterpillar, v) in zip(caterpillarArr, vertices_dom) {
-        var dist_two_mults : [vertices_dom] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
+      forall (num_caterpillar, v) in zip(caterpillarArr, verticesDomain) {
+        var dist_two_mults : [verticesDomain] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
 	//C[w] is equivalent to the number of edges that v and w are both connected to
           for u in vertices(v).neighborList {
 	    for w in edges(u.id).neighborList {
@@ -776,12 +776,12 @@ module AdjListHyperGraph {
     }
 
     proc getEdgeCaterpillars() {
-      var caterpillarDom = edges_dom;
+      var caterpillarDom = edgesDomain;
       var caterpillarArr : [caterpillarDom] int(64);
       // Note: If set of edges or its domain has changed this may result in errors
       // hence this is not entirely thread-safe yet...
-      forall (num_caterpillars, e) in zip(caterpillarArr, edges_dom) {
-        var dist_two_mults : [edges_dom] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
+      forall (num_caterpillars, e) in zip(caterpillarArr, edgesDomain) {
+        var dist_two_mults : [edgesDomain] int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
 	//C[w] is equivalent to the number of edges that v and w are both connected to
           for u in edges(e).neighborList {
 	    for w in vertices(u.id).neighborList {

@@ -10,7 +10,7 @@ var r = f.reader();
 var vertices : [0..-1] int;
 var edges : [0..-1] int;
 
-for each in f.lines() { 
+for each in f.lines() {
   var (v,e) : 2 * int;
   var line = each.strip("\n");
   var split = line.split(" ");
@@ -29,7 +29,7 @@ for (v,e) in zip(vertices,edges) {
 
 var graph = new AdjListHyperGraph({1..numVertices},{1..numEdges});
 for (v,e) in zip(vertices,edges) {
-  graph.add_inclusion(v,e);
+  graph.addInclusion(v,e);
 }
 
 var VertHigh : int;

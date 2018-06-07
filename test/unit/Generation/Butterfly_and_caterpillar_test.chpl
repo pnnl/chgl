@@ -5,17 +5,17 @@ use Generation;
 
 // with this test there are a possiblility of 16 edges total being generated
 var graph = new AdjListHyperGraph(5,4);
-graph.add_inclusion(0,0);
-graph.add_inclusion(0,1);
-graph.add_inclusion(1,0);
-graph.add_inclusion(1,1);
-graph.add_inclusion(2,0);
-graph.add_inclusion(2,1);
-graph.add_inclusion(2,2);
-graph.add_inclusion(2,3);
-graph.add_inclusion(3,2);
-graph.add_inclusion(3,3);
-graph.add_inclusion(4,3);
+graph.addInclusion(0,0);
+graph.addInclusion(0,1);
+graph.addInclusion(1,0);
+graph.addInclusion(1,1);
+graph.addInclusion(2,0);
+graph.addInclusion(2,1);
+graph.addInclusion(2,2);
+graph.addInclusion(2,3);
+graph.addInclusion(3,2);
+graph.addInclusion(3,3);
+graph.addInclusion(4,3);
 var val = 0;
 if graph.getVertexButterflies().equals([2,2,3,1,0]){
   val += 1;
