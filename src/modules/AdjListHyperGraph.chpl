@@ -447,8 +447,12 @@ module AdjListHyperGraph {
           yield (eid : eDescType, e.neighborList.size);
         }
     }
+    
+    proc vertexHasNeighbor( vertex, edge){
+      //check if the neighborlist for 
+    }
 
-    proc getVertexButterflies() {
+    proc getVertexNumButterflies() {
       var butterflyDom = vertices_dom;
       var butterflyArr : [butterflyDom] int(64);
       // Note: If set of vertices or its domain has changed this may result in errors
@@ -464,16 +468,86 @@ module AdjListHyperGraph {
 	    }
 	  }
 	for w in dist_two_mults.domain {
-	  if dist_two_mults[w] >1 {
+	  if dist_two_mults[w] > 0 {
 	    //combinations(dist_two_mults[w], 2) is the number of butterflies that include vertices v and w
-	    //num_butterflies += combinations(dist_two_mults[w], 2);
 	    butterflyArr[v] += combinations(dist_two_mults[w], 2);
 	  }
 	}
       }
       return butterflyArr;
     }
+     
+    proc getInclusionNumButterflies(vertex, edge){
+      var dist_two_mults : [vertices_dom] int(64); //this is C[x] in the paper
+      var numButterflies = 0;  
+	for w in vertex.neighborList {
+	    for x in edges(w.id).neighborList {
+	      if vertexHasNeighbor(vertex, x.id) && x.id != vertex {//this syntax is wrong for checking if an array contains a value
+	        dist_two_mults[x.id] += 1;
+	      }
+	    }
+	  }
+	for x in dist_two_mults.domain {
+	  //combinations(dist_two_mults[x], 2) is the number of butterflies that include vertices v and w
+	  numButterflies += combinations(dist_two_mults[x], 2);
+	}
+      return numButterflies;
+    }
+
+    proc getInclusionNumCaterpillars( vertex, edge ){
+      return (vertex.neighborList.size - 1)*(edge.neighborList.size -1);
+    }
     
+    proc getInclusionMetamorphCoef(vertex, edge){
+      var numCaterpillars = getInclusionNumCaterpillars(vertex, edge);
+      if numCaterpillars != 0 then
+        return getInclusionNumButterflies(vertex, edge) / getInclusionNumCaterpillars(vertex, edge);
+      else
+        return 0; 
+    } 
+
+    proc getVertexMetamorphCoefs(){
+    	var vertexMetamorphCoefs = [vertices_dom] : real;
+        for (vertex, coef) in (vertices, vertexMetamorphCoefs) {
+          for (coef, edge) in (vertexMetamorphCoefs,vertex.neighborList){
+            coef += getInclusionMetamorphCoef(vertex, edge);
+          }
+          coef = coef / vertex.neighborList.size;
+        }
+        return vertexMetamorphCoefs; 
+    }
+   
+    proc getEdgeMetamorphCoefs(){
+    }
+
+    proc getVerticesWithDegreeValue( value : int(64)){
+    }
+
+    proc getEdgesWithDegreeValue( value : int(64)){
+ 
+    }
+    
+    proc getVertexPerDegreeMetamorphosisCoefficients(){
+      var maxDegree = max(getVertexDegrees());
+      var perDegreeMetamorphCoefs = [{0..maxDegree}]: real;
+      var vertexMetamorphCoef = getVertexMetamorphCoefs();
+      var sum = 0;
+      var count = 0;
+      for (degree, metaMorphCoef) in (perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
+        sum = 0;
+        count = 0;
+        for vertex in getVerticesWithDegreeValue(degree){
+          sum += vertexMetamorphCoefs[vertex];
+          count += 1;
+        }
+        metaMorphCoef = sum / count; 
+      }
+      return perDegreeMetamorphCoefs;
+    }
+    
+    proc getEdgePerDegreeMetamorphosisCoefficients(){
+    }
+
     proc getEdgeButterflies() {
       var butterflyDom = edges_dom;
       var butterflyArr : [butterflyDom] int(64);
@@ -501,7 +575,7 @@ module AdjListHyperGraph {
       
     }
     
-    proc getVertexCaterpillars() {
+    /*proc getVertexCaterpillars() {
       var caterpillarDom = vertices_dom;
       var caterpillarArr : [caterpillarDom] int(64);
       // Note: If set of vertices or its domain has changed this may result in errors
@@ -554,7 +628,7 @@ module AdjListHyperGraph {
       }
       return caterpillarArr;
       
-    }
+    }*/
 
     // for desc in graph.inclusions(nodeDesc) do ...
     iter inclusions(desc) where desc.type == vDescType || desc.type == eDescType {
