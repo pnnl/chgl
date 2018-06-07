@@ -335,7 +335,7 @@ module AdjListHyperGraph {
     }
 
     inline proc verticesDomain {
-      return _privatizedVertices.dom.whole;
+      return _getDomain(_privatizedVertices.dom);
     }
 
     inline proc localVerticesDomain {
@@ -343,7 +343,7 @@ module AdjListHyperGraph {
     }
 
     inline proc edgesDomain {
-      return _privatizedEdges.dom.whole;
+      return _getDomain(_privatizedEdges.dom);
     }
 
     inline proc localEdgesDomain {
@@ -407,7 +407,7 @@ module AdjListHyperGraph {
     }
 
     // Note: this gets called on by a single task...
-    proc emptyBuffer(locid, buffer) {
+    inline proc emptyBuffer(locid, buffer) {
       on Locales[locid] {
         var localBuffer = buffer.buffer;
         var localThis = getPrivatizedInstance();
@@ -483,15 +483,16 @@ module AdjListHyperGraph {
         emptyBuffer(eLocId, eBuf);
         eBuf.clear();
       }
-
+      
+      if vDesc.id == 0 && vLocId != 0 then writeln(here, ": ", (vDesc.id, eDesc.id, DescriptorType.Vertex), "vDesc locale: ", vertex(vDesc.id).locale.id);
     }
 
-    proc addInclusion(vertex, edge) {
-      const vDesc = vertex: vDescType;
-      const eDesc = edge: eDescType;
+    proc addInclusion(v, e) {
+      const vDesc = v : vDescType;
+      const eDesc = e : eDescType;
 
-      vertices(vDesc.id).addNodes(eDesc);
-      edges(eDesc.id).addNodes(vDesc);
+      vertex(vDesc.id).addNodes(eDesc);
+      edge(eDesc.id).addNodes(vDesc);
     }
 
     // Runtime version

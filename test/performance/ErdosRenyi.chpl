@@ -16,7 +16,6 @@ if profileCommunications then startCommDiagnostics();
 if profileVerboseCommunications then startVerboseComm();
 
 var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, targetLocales=Locales));
-
 var timer = new Timer();
 timer.start();
 if isNaive then erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, edgeProbability);
