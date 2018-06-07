@@ -691,6 +691,14 @@ module AdjListHyperGraph {
     }
 
     proc getEdgeMetamorphCoefs(){
+      var edgeMetamorphCoefs = [edgesDomain] : real;
+      forall (e, coef) in zip(getEdges(), edgeMetamorphCoefs) {
+        forall v in e.neighborList with (+ reduce coef) {
+          coef += getInclusionMetamorphCoef(v, e);
+        }
+        coef = coef / e.neighborList.size;
+      }
+      return edgeMetamorphCoefs;
     }
 
     iter getVerticesWithDegreeValue(value : int(64)){
@@ -728,6 +736,21 @@ module AdjListHyperGraph {
     }
 
     proc getEdgePerDegreeMetamorphosisCoefficients(){
+      var edgeDegrees = getEdgeDegrees();
+      var maxDegree = max(edgeDegrees);
+      var perDegreeMetamorphCoefs : [0..maxDegree] real;
+      var edgeMetamorphCoef = getEdgeMetamorphCoefs();
+
+      forall (degree, metaMorphCoef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
+        var sum = 0;
+        var count = 0;
+        forall v in getEdgesWithDegreeValue(degree) with (+ reduce sum, + reduce count) {
+          sum += edgeMetamorphCoefs[v];
+          count += 1;
+        }
+        metaMorphCoef = sum / count;
+      }
+      return perDegreeMetamorphCoefs;
     }
 
     proc getEdgeButterflies() {
