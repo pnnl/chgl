@@ -339,7 +339,7 @@ module AdjListHyperGraph {
     }
 
     inline proc localVerticesDomain {
-      return _privatizedVertices.dom.locDoms[here.id].myBlock;
+      return verticesDomain.localSubdomain();
     }
 
     inline proc edgesDomain {
@@ -347,7 +347,7 @@ module AdjListHyperGraph {
     }
 
     inline proc localEdgesDomain {
-      return _privatizedEdges.dom.locDoms[here.id].myBlock;
+      return edgesDomain.localSubdomain();
     }
 
     inline proc vertices {
@@ -483,7 +483,7 @@ module AdjListHyperGraph {
         emptyBuffer(eLocId, eBuf);
         eBuf.clear();
       }
-      
+
       if vDesc.id == 0 && vLocId != 0 then writeln(here, ": ", (vDesc.id, eDesc.id, DescriptorType.Vertex), "vDesc locale: ", vertex(vDesc.id).locale.id);
     }
 
