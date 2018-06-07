@@ -1,12 +1,12 @@
 use AdjListHyperGraph;
 
-const vertex_domain = {1..10} dmapped Cyclic(startIdx=0);
-const edge_domain = {1..10} dmapped Cyclic(startIdx=0);
-var graph = new AdjListHyperGraph(vertices_dom = vertex_domain, edges_dom = edge_domain);
+const numVertices = 10;
+const numEdges = 10;
+var graph = new AdjListHyperGraph(numVertices, numEdges);
 
-for i in 1 .. 10 {
-  for j in i .. 10 {
-    graph.add_inclusion(i, j);
+for i in graph.verticesDomain {
+  for j in graph.edgesDomain {
+    graph.addInclusion(i, j);
   }
 }
 

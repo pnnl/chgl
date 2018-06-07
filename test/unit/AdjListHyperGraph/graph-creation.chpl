@@ -2,8 +2,9 @@ use AdjListHyperGraph;
 use CyclicDist;
 use BlockDist;
 
-const vertex_domain = {1..10} dmapped Cyclic(startIdx=0);
-const edge_domain = {1..10} dmapped Cyclic(startIdx=0);
+const numVertices = 10;
+const numEdges = 10;
+var graph = new AdjListHyperGraph(numVertices, numEdges);
 
 var graph = new AdjListHyperGraph();
 writeln(graph);

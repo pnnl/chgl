@@ -17,6 +17,32 @@ module Generation {
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
 
+  proc fast_simple_er(graph, probability, targetLocales = Locales){
+    var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
+    coforall loc in targetLocales do on loc {
+        // Normalize both probabilities
+        const localGraph = graph;
+        var perLocaleInclusions = (inclusionsToAdd / numLocales) + (if here.id == 0 then (inclusionsToAdd % numLocales) else 0);
+        var seed$ : atomic int(64); seed$.write(0, memory_order_relaxed);
+        coforall tid in  1..here.maxTaskPar {
+          if localGraph.localEdgesDomain.size != 0 {
+            var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 1 then (perLocaleInclusions % here.maxTaskPar) else 0);
+            var randStream = new RandomStream(int(64), seed$.fetchAdd(1, memory_order_relaxed));
+            for 1..perTaskInclusions {
+              // A better way to get the max and min values for this random gen?
+              var vertex = randStream.getNext(0, localGraph.numVertices - 1);
+              var localEdgeIdx = randStream.getNext(0, localGraph.localEdgesDomain.size - 1);
+              var edge = localGraph.localEdgesDomain.low + localEdgeIdx * localGraph.localEdgesDomain.stride;
+              localGraph.addInclusion(vertex, edge);
+            }
+          }
+        }
+      }
+
+    // TODO: Remove duplicate edges...
+    return graph;
+  }
+
     proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
     var desired_vertex_degrees: [vertices_domain] real;
     var desired_edge_degrees: [edges_domain] real;
@@ -24,15 +50,16 @@ module Generation {
     var num_edges = edges_domain.size;
     desired_vertex_degrees = num_edges * p;
     desired_edge_degrees = num_vertices * p;
-    var inclusions_to_add = (num_vertices*num_edges*log(1/(1-p))): int;
+    // Adjust p for coupon collector
+    var adjusted_p = if couponCollector then log(1/(1-p)) else p;
+    var inclusions_to_add = (num_vertices*num_edges * adjusted_p): int;
     var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
     return new_graph;
   }
 
 
   //Pending: Take seed as input
-  proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
-    var graph = new AdjListHyperGraph(vertices_domain, edges_domain);
+	proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
 
     // Spawn a remote task on each node...
     coforall loc in targetLocales do on loc {
@@ -40,46 +67,26 @@ module Generation {
 
         // Process either vertices of edges in parallel based on relative size.
         if graph.numVertices > graph.numEdges {
-          forall v in graph.verticesDomain.localSubdomain() {
-            for e in graph.edgesDomain.localSubdomain() {
+          forall v in graph.localVerticesDomain {
+            for e in graph.localEdgesDomain {
               if randStream.getNext() <= p {
-                graph.add_inclusion(v,e);
+                graph.addInclusion(v,e);
               }
             }
           }
         } else {
-          forall e in graph.edgesDomain.localSubdomain() {
-            for v in graph.verticesDomain.localSubdomain() {
+          forall e in graph.localEdgesDomain {
+            for v in graph.localVerticesDomain {
               if randStream.getNext() <= p {
-                graph.add_inclusion(v,e);
+                graph.addInclusion(v,e);
               }
             }
           }
         }
       }
 
-    return graph;
-  }
-
-  proc remove_duplicates(g){
-    var offset = g.verticesDomain.low;
-    var g2 = new AdjListHyperGraph(g.vertices.size,g.edges.size);
-    forall v in g.verticesDomain.low..g.verticesDomain.high{
-      var adjList : [g.edgesDomain.low .. g.edgesDomain.high] int;
-      for e in g.vertices(v).neighborList{
-        adjList[e.id] = 1;
-      }
-      for e in 0..adjList.size-1{
-        if adjList[e] > 0{
-          g2.add_inclusion(v,e);
-        }
-      }
-    }
-
-    return g2;
-  }
-
-
+			return graph;
+		}
 
   proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
     var sum_degrees = + reduce desired_vertex_degrees:real;
@@ -125,7 +132,7 @@ module Generation {
               for 1..perTaskInclusions {
                 var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
                 var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-                graph.add_inclusion(vertex, edge);
+                graph.addInclusion(vertex, edge);
               }
             }
           }
@@ -176,11 +183,23 @@ module Generation {
       return (nV, nE, rho);
     }
 
-    // Ensure that all arrays are sorted (in parallel)
-    cobegin {
-      sort(vd);
-      sort(ed);
-    }
+		// Check if data begins at index 0...
+		assert(vdDom.low == 0 && edDom.low == 0 && vmcDom.low == 0 && emcDom.low == 0);
+
+    // Ensure that all arrays are sorted...
+		var done : atomic bool;
+
+		// One task sorts vertices...
+		begin {
+			sort(vd);
+			done.write(true);
+		}
+
+		// We sort edges...
+		sort(ed);
+
+		// Wait for other task to complete...
+    done.waitFor(true);
 
     var (nV, nE, rho) : 3 * real;
     var (idV, idE, numV, numE) = (
@@ -189,7 +208,7 @@ module Generation {
                                   vdDom.size,
                                   edDom.size
                                   );
-    var graph = new AdjListHyperGraph(vdDom, edDom);
+    var graph = new AdjListHyperGraph(vdDom.size, edDom.size);
 
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
