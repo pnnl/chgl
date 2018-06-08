@@ -224,6 +224,10 @@ module AdjListHyperGraph {
     }
   }
 
+  proc op<(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) {
+    return a.id < b.id;
+  }
+
   proc _cast(type t: Wrapper(?nodeType, ?idType), id) {
     return t.make(id);
   }
@@ -274,7 +278,7 @@ module AdjListHyperGraph {
     var recvBuffer : AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
 
     // Status of send buffers...
-    var bufferStatus : AdjListHyperGraphNumBuffers * atomic int;
+    var bufferStatus : [1..AdjListHyperGraphNumBuffers] atomic int;
     // Index of currently processed buffer...
     var bufferIdx : atomic int;
     // Number of claimed slots of the buffer...
@@ -423,8 +427,7 @@ module AdjListHyperGraph {
       forall v in _vertices do v = new NodeData(eDescType);
       forall e in _edges do e = new NodeData(vDescType);
 
-      // Clear buffer...
-      forall buf in this._destBuffer do buf.clear();
+      // TODO: Setup matrix
       this.pid = _newPrivatizedClass(this);
     }
 
@@ -457,8 +460,7 @@ module AdjListHyperGraph {
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
 
-      // Clear buffer
-      forall buf in this._destBuffer do buf.clear();
+      // TODO: Setup matrix
     }
 
     pragma "no doc"
