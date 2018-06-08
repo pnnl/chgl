@@ -329,7 +329,7 @@ module AdjListHyperGraph {
 
       // If we have filled the buffer, we are in charge of swapping them out...
       if nFilled == AdjListHyperGraphBufferSize {
-        if AdjListHyperGraphNumBuffers < 1 {
+        if AdjListHyperGraphNumBuffers <= 1 {
           halt("Logic unimplemented for AdjListHyperGraphNumBuffers == ", AdjListHyperGraphNumBuffers);
         }
 
@@ -348,17 +348,17 @@ module AdjListHyperGraph {
         }
 
         // Set as new buffer...
-        sendIdx.write(newBufIdx);
-        sendFilled.write(0);
-        sendSize.write(0);
+        bufferIdx.write(newBufIdx);
+        filled.write(0);
+        claimed.write(0);
 
         // If a pending operation has not finished, wait for it...
         while bufferStatus[bufIdx].read() != BUFFER_OK do chpl_task_yield();
 
         // Send buffer...
-        sendingBuffer[bufIdx].write(BUFFER_SENDING);
+        bufferStatus[bufIdx].write(BUFFER_SENDING);
         send(bufIdx);
-        sendingBuffer[bufIdx].write(BUFFER_SENT);
+        bufferStatus[bufIdx].write(BUFFER_SENT);
 
         // Returns buffer needing to be processed on target locale...
         return bufIdx;
@@ -370,47 +370,7 @@ module AdjListHyperGraph {
 
     // Indicates that the buffer has been processed appropriate, freeing up its use.
     proc processed(idx) {
-      sendBuffer[bufIdx].write(false);
-    }
-  }
-
-  param BUFFER_OK = 0;
-  param BUFFER_FULL = 1;
-
-  enum DescriptorType { None, Vertex, Edge };
-
-  record DestinationBuffer {
-    type vDescType;
-    type eDescType;
-    var buffer : [1..AdjListHyperGraphBufferSize] (int, int, DescriptorType);
-    var size : atomic int;
-    var filled : atomic int;
-
-    proc append(src, dest, srcType) : int {
-      // Get our buffer slot
-      var idx = size.fetchAdd(1) + 1;
-      while idx > AdjListHyperGraphBufferSize {
-        chpl_task_yield();
-        idx = size.fetchAdd(1) + 1;
-      }
-      assert(idx > 0);
-
-      // Fill our buffer slot and notify as filled...
-      buffer[idx] = (src, dest, srcType);
-      var nFilled = filled.fetchAdd(1) + 1;
-
-      // Check if we filled the buffer...
-      if nFilled == AdjListHyperGraphBufferSize {
-        return BUFFER_FULL;
-      }
-
-      return BUFFER_OK;
-    }
-
-    proc clear() {
-      buffer = (0, 0, DescriptorType.None);
-      filled.write(0);
-      size.write(0);
+      bufferStatus[idx].write(false);
     }
   }
 
@@ -588,33 +548,9 @@ module AdjListHyperGraph {
     }
 
     // Note: this gets called on by a single task...
-    inline proc emptyBuffer(locid, buffer) {
-      on Locales[locid] {
-        var localBuffer = buffer.buffer;
-        var localThis = getPrivatizedInstance();
-        forall (srcId, destId, srcType) in localBuffer {
-          select srcType {
-            when DescriptorType.Vertex {
-              if !localThis.verticesDomain.member(srcId) {
-                halt("Vertex out of bounds on locale #", locid, ", domain = ", localThis.verticesDomain);
-              }
-              ref v = localThis.vertex(srcId);
-              if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
-              v.addNodes(toEdge(destId));
-            }
-            when DescriptorType.Edge {
-              if !localThis.edgesDomain.member(srcId) {
-                halt("Edge out of bounds on locale #", locid, ", domain = ", localThis.edgesDomain);
-              }
-              ref e = localThis.edge(srcId);
-              if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
-              localThis.edge(srcId).addNodes(toVertex(destId));
-            }
-            when DescriptorType.None {
-              // NOP
-            }
-          }
-        }
+    inline proc emptyBuffer(srcId, destId) {
+      on Locales[destId] {
+        // TODO: Handle operating on _commMatrix[srcId, destId]...
       }
     }
 
@@ -622,9 +558,8 @@ module AdjListHyperGraph {
       // Clear on all locales...
       coforall loc in Locales do on loc {
         const _this = getPrivatizedInstance();
-        forall (locid, buf) in zip(LocaleSpace, _this._destBuffer) {
-          emptyBuffer(locid, buf);
-          buf.clear();
+        forall (src, dest) in _commMatrix.domain {
+          emptyBuffer(src, dest);
         }
       }
     }
@@ -656,15 +591,15 @@ module AdjListHyperGraph {
       ref eBuf = _commMatrix[here.id, eLocId];
 
       var vStatus = vBuf.append(vOpDesc);
-      if vStatus == BUFFER_FULL {
-        emptyBuffer(vLocId, vBuf);
-        vBuf.clear();
+      if vStatus != 0 {
+        emptyBuffer(here.id, vStatus);
+        vBuf.processed(vStatus);
       }
 
       var eStatus = eBuf.append(eOpDesc);
-      if eStatus == BUFFER_FULL {
-        emptyBuffer(eLocId, eBuf);
-        eBuf.clear();
+      if eStatus != 0 {
+        emptyBuffer(here.id, eStatus);
+        eBuf.processed(eStatus);
       }
     }
 
