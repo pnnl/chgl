@@ -148,10 +148,12 @@ module AdjListHyperGraph {
         }
 
         // Search to determine if it exists...
-        retval = search(neighborList, n, sorted = true)[1];
+        retval = search(neighborList, n : nodeIdType, sorted = true)[1];
 
         lock.release();
       }
+
+      return retval;
     }
 
     inline proc numNeighbors {
@@ -224,7 +226,7 @@ module AdjListHyperGraph {
     }
   }
 
-  proc op<(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) {
+  proc <(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) : bool {
     return a.id < b.id;
   }
 
