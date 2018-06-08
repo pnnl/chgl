@@ -312,10 +312,10 @@ module AdjListHyperGraph {
     proc append(op) : int {
       // Obtain our buffer slot; if we get an index out of bounds, we must wait
       // until the buffer has been swapped out by another thread...
-      var idx = sendSize.fetchAdd(1) + 1;
+      var idx = claimed.fetchAdd(1) + 1;
       while idx > AdjListHyperGraphBufferSize {
         chpl_task_yield();
-        idx = sendSize.fetchAdd(1) + 1;
+        idx = claimed.fetchAdd(1) + 1;
       }
       assert(idx > 0);
 
@@ -323,45 +323,53 @@ module AdjListHyperGraph {
       // buffer will not be swapped out until we finish our operation, as we do not
       // notify that we have filled the buffer until after, which has a full memory
       // barrier. TODO: Relax the read of bufIdx?
-      const bufIdx = sendIdx.read();
+      const bufIdx = bufferIdx.read();
       sendBuffer[bufIdx][idx] = op;
-      const nFilled = sendFilled.fetchAdd(1) + 1;
+      const nFilled = filled.fetchAdd(1) + 1;
 
       // If we have filled the buffer, we are in charge of swapping them out...
       if nFilled == AdjListHyperGraphBufferSize {
-        var newBufIdx = bufIdx + 1;
-
-        // Wrap around if we exceed amount...
-        if newBufIdx > AdjListHyperGraphNumBuffers {
-          newBufIdx = 1;
+        if AdjListHyperGraphNumBuffers < 1 {
+          halt("Logic unimplemented for AdjListHyperGraphNumBuffers == ", AdjListHyperGraphNumBuffers);
         }
 
-        // If some other task has not yet finished processing the new buffer, we
-        // must wait for them to finish as we have a bounded number of buffers. Once
-        // they have finished, we can safely make it the next buffer to swap out with.
-        // TODO: Poll on each of these to find one that is not busy...
-        sendingBuffer[newBufIdx].waitFor(false);
+        // Poll for a buffer not currently sending...
+        var newBufIdx = bufIdx + 1;
+        while true {
+          if newBufIdx > AdjListHyperGraphNumBuffers {
+            newBufIdx = 1;
+            chpl_task_yield();
+          }
+
+          if newBufIdx != bufIdx && bufferStatus[newBufIdx].read() != BUFFER_SENDING {
+            break;
+          }
+          newBufIdx += 1;
+        }
+
+        // Set as new buffer...
         sendIdx.write(newBufIdx);
         sendFilled.write(0);
         sendSize.write(0);
 
+        // If a pending operation has not finished, wait for it...
+        while bufferStatus[bufIdx].read() != BUFFER_OK do chpl_task_yield();
+
         // Send buffer...
-        sendingBuffer[bufIdx].write(true);
+        sendingBuffer[bufIdx].write(BUFFER_SENDING);
         send(bufIdx);
+        sendingBuffer[bufIdx].write(BUFFER_SENT);
 
         // Returns buffer needing to be processed on target locale...
         return bufIdx;
       }
 
-      // Nothing needs to be done
+      // Nothing needs to be done...
       return 0;
     }
 
-    // Indicates that the buffer has been processed appropriate, freeing up its
-    // use.
+    // Indicates that the buffer has been processed appropriate, freeing up its use.
     proc processed(idx) {
-      // TODO: Needs to handle data specific to AdjListHyperGraphImpl...
-
       sendBuffer[bufIdx].write(false);
     }
   }
