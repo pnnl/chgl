@@ -36,8 +36,6 @@ module AdjListHyperGraph {
   use Sort;
   use Search;
 
-  config param AdjListHyperGraphBufferSize = 1024 * 1024;
-
   /*
     Record-Wrapped structure
   */
@@ -234,6 +232,140 @@ module AdjListHyperGraph {
     return wrapper.id;
   }
 
+  // Number of communication buffers to swap out as they are filled...
+  config param AdjListHyperGraphNumBuffers = 8;
+  // `c_sizeof` is not compile-time param function, need to calculate by hand
+  config param OperationDescriptorSize = 24;
+  // Size of buffer is enough for one megabyte of bulk transfer by default.
+  config param AdjListHyperGraphBufferSize = ((1024 * 1024) / OperationDescriptorSize) : int(64);
+
+  /*
+    OperationDescriptor types...
+  */
+  param OPERATION_NONE = 0;
+  param OPERATION_ADD_INCLUSION_VERTEX = 1;
+  param OPERATION_ADD_INCLUSION_EDGE = 2;
+
+  record OperationDescriptor {
+     var op : int(64);
+     /* For AddInclusion */
+     var srcId : int(64);
+     var destId : int(64);
+  }
+
+  /*
+    Status of the sendBuffer...
+  */
+  // Buffer is okay to use and send...
+  param BUFFER_OK = 0;
+  // Buffer is full and is sending, cannot be used yet...
+  param BUFFER_SENDING = 1;
+  // Buffer is being sent, but not yet processed... can be used but not yet sent
+  param BUFFER_SENT = 2;
+
+
+  // Each locale will have its own communication buffer, which will handle
+  // sending and receiving data. TODO: Add documentation...
+  pragma "use default init"
+  pragma "default intent is ref"
+  record CommunicationBuffers {
+    var locid : int(64);
+    var sendBuffer :  AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
+    var recvBuffer : AdjListHyperGraphBufferSize * c_ptr(OperationDescriptor);
+
+    // Status of send buffers...
+    var bufferStatus : AdjListHyperGraphNumBuffers * atomic int;
+    // Index of currently processed buffer...
+    var bufferIdx : atomic int;
+    // Number of claimed slots of the buffer...
+    var claimed : atomic int;
+    // Number of filled claimed slots...
+    var filled : atomic int;
+
+    // Send data in bulk...
+    proc send(idx) {
+      const toSend = sendBuffer[idx];
+      const toRecv = recvBuffer[idx];
+      const sendSize = AdjListHyperGraphBufferSize;
+      __primitive("chpl_comm_array_put", toSend[0], locid, toRecv[0], sendSize);
+    }
+
+    // Receive data in bulk...
+    proc recv(idx) {
+      const toSend = sendBuffer[idx];
+      const toRecv = recvBuffer[idx];
+      const recvSize = AdjListHyperGraphBufferSize;
+      __primitive("chpl_comm_array_get", toRecv[0], locid, toSend[0], recvSize);
+    }
+
+    // Clear send buffer with default values
+    proc zero(idx) {
+      const toZero = sendBuffer[idx];
+      const zeroSize = AdjListHyperGraphBufferSize * OperationDescriptorSize;
+      c_memset(sendBuffer, 0, zeroSize);
+    }
+
+    // Appends operation descriptor to appropriate communication buffer. If buffer
+    // is full, the task that was the last to fill the buffer will handle switching
+    // out the current buffer and sending the full buffer. If the return value is
+    // not 0, then it is index of the buffer that was sent but needs processing...
+    proc append(op) : int {
+      // Obtain our buffer slot; if we get an index out of bounds, we must wait
+      // until the buffer has been swapped out by another thread...
+      var idx = sendSize.fetchAdd(1) + 1;
+      while idx > AdjListHyperGraphBufferSize {
+        chpl_task_yield();
+        idx = sendSize.fetchAdd(1) + 1;
+      }
+      assert(idx > 0);
+
+      // We have a position in the buffer, now obtain the current buffer. The current
+      // buffer will not be swapped out until we finish our operation, as we do not
+      // notify that we have filled the buffer until after, which has a full memory
+      // barrier. TODO: Relax the read of bufIdx?
+      const bufIdx = sendIdx.read();
+      sendBuffer[bufIdx][idx] = op;
+      const nFilled = sendFilled.fetchAdd(1) + 1;
+
+      // If we have filled the buffer, we are in charge of swapping them out...
+      if nFilled == AdjListHyperGraphBufferSize {
+        var newBufIdx = bufIdx + 1;
+
+        // Wrap around if we exceed amount...
+        if newBufIdx > AdjListHyperGraphNumBuffers {
+          newBufIdx = 1;
+        }
+
+        // If some other task has not yet finished processing the new buffer, we
+        // must wait for them to finish as we have a bounded number of buffers. Once
+        // they have finished, we can safely make it the next buffer to swap out with.
+        // TODO: Poll on each of these to find one that is not busy...
+        sendingBuffer[newBufIdx].waitFor(false);
+        sendIdx.write(newBufIdx);
+        sendFilled.write(0);
+        sendSize.write(0);
+
+        // Send buffer...
+        sendingBuffer[bufIdx].write(true);
+        send(bufIdx);
+
+        // Returns buffer needing to be processed on target locale...
+        return bufIdx;
+      }
+
+      // Nothing needs to be done
+      return 0;
+    }
+
+    // Indicates that the buffer has been processed appropriate, freeing up its
+    // use.
+    proc processed(idx) {
+      // TODO: Needs to handle data specific to AdjListHyperGraphImpl...
+
+      sendBuffer[bufIdx].write(false);
+    }
+  }
+
   param BUFFER_OK = 0;
   param BUFFER_FULL = 1;
 
@@ -300,13 +432,14 @@ module AdjListHyperGraph {
 
     var _vertices : [_verticesDomain] NodeData(eDescType);
     var _edges : [_edgesDomain] NodeData(vDescType);
-    var _destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
+    var _commMatrix : [{0..#numLocales, 0..#numLocales}] CommunicationBuffers;
 
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
     var _privatizedVerticesPID = _vertices.pid;
     var _privatizedEdgesPID = _edges.pid;
     var _masterHandle : object;
+
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
@@ -505,26 +638,26 @@ module AdjListHyperGraph {
     proc addInclusionBuffered(v, e) {
       const vDesc = v : vDescType;
       const eDesc = e : eDescType;
+      const vOpDesc = new OperationDescriptor(OPERATION_ADD_INCLUSION_VERTEX, vDesc.id, eDesc.id);
+      const eOpDesc = new OperationDescriptor(OPERATION_ADD_INCLUSION_EDGE, eDesc.id, vDesc.id);
 
       // Push on local buffers to send later...
-      var vLocId = vertex(vDesc.id).locale.id;
-      var eLocId = edge(eDesc.id).locale.id;
-      ref vBuf =  _destBuffer[vLocId];
-      ref eBuf = _destBuffer[eLocId];
+      const vLocId = vertex(vDesc.id).locale.id;
+      const eLocId = edge(eDesc.id).locale.id;
+      ref vBuf =  _commMatrix[here.id, vLocId];
+      ref eBuf = _commMatrix[here.id, eLocId];
 
-      var vStatus = vBuf.append(vDesc.id, eDesc.id, DescriptorType.Vertex);
+      var vStatus = vBuf.append(vOpDesc);
       if vStatus == BUFFER_FULL {
         emptyBuffer(vLocId, vBuf);
         vBuf.clear();
       }
 
-      var eStatus = eBuf.append(eDesc.id, vDesc.id, DescriptorType.Edge);
+      var eStatus = eBuf.append(eOpDesc);
       if eStatus == BUFFER_FULL {
         emptyBuffer(eLocId, eBuf);
         eBuf.clear();
       }
-
-      if vDesc.id == 0 && vLocId != 0 then writeln(here, ": ", (vDesc.id, eDesc.id, DescriptorType.Vertex), "vDesc locale: ", vertex(vDesc.id).locale.id);
     }
 
     proc addInclusion(v, e) {
@@ -621,7 +754,7 @@ module AdjListHyperGraph {
         }
     }
 
-    
+
 
     iter neighbors(e : eDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
