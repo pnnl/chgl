@@ -1,6 +1,7 @@
 use IO;
 use Sort;
 use AdjListHyperGraph;
+use Butterfly;
 use Generation;
 
 

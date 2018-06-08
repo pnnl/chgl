@@ -1,5 +1,6 @@
 use Math;
 use AdjListHyperGraph;
+use Butterfly;
 use Random;
 use Generation;
 
