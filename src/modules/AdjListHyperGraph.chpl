@@ -333,6 +333,10 @@ module AdjListHyperGraph {
           halt("Logic unimplemented for AdjListHyperGraphNumBuffers == ", AdjListHyperGraphNumBuffers);
         }
 
+        // If a pending operation has not finished, wait for it then claim it...
+        while bufferStatus[bufIdx].read() != BUFFER_OK do chpl_task_yield();
+        bufferStatus[bufIdx].write(BUFFER_SENDING);
+
         // Poll for a buffer not currently sending...
         var newBufIdx = bufIdx + 1;
         while true {
@@ -347,16 +351,13 @@ module AdjListHyperGraph {
           newBufIdx += 1;
         }
 
+
         // Set as new buffer...
         bufferIdx.write(newBufIdx);
         filled.write(0);
         claimed.write(0);
 
-        // If a pending operation has not finished, wait for it...
-        while bufferStatus[bufIdx].read() != BUFFER_OK do chpl_task_yield();
-
         // Send buffer...
-        bufferStatus[bufIdx].write(BUFFER_SENDING);
         send(bufIdx);
         bufferStatus[bufIdx].write(BUFFER_SENT);
 
@@ -370,7 +371,7 @@ module AdjListHyperGraph {
 
     // Indicates that the buffer has been processed appropriate, freeing up its use.
     proc processed(idx) {
-      bufferStatus[idx].write(false);
+      bufferStatus[idx].write(BUFFER_OK);
     }
   }
 
