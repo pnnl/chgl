@@ -136,7 +136,7 @@ module AdjListHyperGraph {
       }
     }
 
-    proc hasNeighbor(n) {
+    proc hasNeighbor(n : nodeIdType) {
       var retval : bool;
       on this {
         lock.acquire();
@@ -148,12 +148,16 @@ module AdjListHyperGraph {
         }
 
         // Search to determine if it exists...
-        retval = search(neighborList, n : nodeIdType, sorted = true)[1];
+        retval = search(neighborList, n, sorted = true)[1];
 
         lock.release();
       }
 
       return retval;
+    }
+
+    inline proc hasNeighbor(n) {
+      compilerError("Attempt to invoke 'hasNeighbor' with wrong type: ", n.type : string, ", requires type ", nodeIdType : string);
     }
 
     inline proc numNeighbors {
@@ -211,7 +215,6 @@ module AdjListHyperGraph {
     type idType;
     var id: idType;
 
-
     /*
       Based on Brad's suggestion:
 
@@ -230,10 +233,17 @@ module AdjListHyperGraph {
     return a.id < b.id;
   }
 
-  proc _cast(type t: Wrapper(?nodeType, ?idType), id) {
+  proc _cast(type t: Wrapper(?nodeType, ?idType), id : idType) {
     return t.make(id);
   }
 
+  proc _cast(type t: Wrapper(?nodeType, ?idType), id : Wrapper(nodeType, idType)) {
+    return id;
+  }
+
+  inline proc _cast(type t: Wrapper(?nodeType, ?idType), id) {
+    compilerError("Bad cast from type ", id.type : string, " to ", t : string, "...");
+  }
   proc id ( wrapper ) {
     return wrapper.id;
   }
