@@ -271,7 +271,7 @@ module AdjListHyperGraph {
   record CommunicationBuffers {
     var locid : int(64);
     var sendBuffer :  AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
-    var recvBuffer : AdjListHyperGraphBufferSize * c_ptr(OperationDescriptor);
+    var recvBuffer : AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
 
     // Status of send buffers...
     var bufferStatus : AdjListHyperGraphNumBuffers * atomic int;
