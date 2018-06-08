@@ -76,7 +76,7 @@ forall d in 1..VertPDMC.size { //for each degree available
   for (v,i) in zip(graph.getVertexDegrees(),graph.getVertexDegrees().domain) {
     var temparray : [0..-1] real;
     if v == d{ //if our vertex degree == the degree we are looking at
-      for n in graph.vertices[i].neighborList { // get the neighbors
+      for n in graph.vertex[i].neighborList { // get the neighbors
         temparray.push_back(EdgeArr[n.id]); // add the MC for each neighbor to the list
       }
     }
