@@ -217,7 +217,7 @@ module Generation {
       var nV_int = nV:int;
       var nE_int = nE:int;
       var verticesDomain = graph.verticesDomain[idV..idV + nV_int];
-      var edgesDomain = graph.edgesDoamin[idE..idE + nE_int];
+      var edgesDomain = graph.edgesDomain[idE..idE + nE_int];
       fast_adjusted_erdos_renyi_hypergraph(graph, verticesDomain, edgesDomain, rho, couponCollector = true);
       idV += _round(nV);
       idE += _round(nE);

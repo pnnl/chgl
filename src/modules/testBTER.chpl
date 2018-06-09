@@ -1,5 +1,6 @@
 use AdjListHyperGraph;
 use Generation;
+use Butterfly;
 
 /*
 var vertexDegrees = [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0, 5.0]: int;
@@ -57,6 +58,8 @@ var graph = generateBTER(vertexDegrees, edgeDegrees, vertexMetamorphs, edgeMetam
 //    writingBTER.writeln(i,",",j);
 //  }
 //}
+
+writeln(graph.getVertexButterflies().size);
 
 writeln("done");
 
