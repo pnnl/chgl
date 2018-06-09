@@ -214,7 +214,11 @@ module Generation {
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV], emc[dE]);
       (nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
-      fast_adjusted_erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, rho, couponCollector = true);
+      var nV_int = nV:int;
+      var nE_int = nE:int;
+      var verticesDomain = graph.verticesDomain[idV..idV + nV_int];
+      var edgesDomain = graph.edgesDoamin[idE..idE + nE_int];
+      fast_adjusted_erdos_renyi_hypergraph(graph, verticesDomain, edgesDomain, rho, couponCollector = true);
       idV += _round(nV);
       idE += _round(nE);
     }
