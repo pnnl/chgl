@@ -79,7 +79,7 @@ module Butterfly {
       //combinations(dist_two_mults[x], 2) is the number of butterflies that include vertices v and w
       numButterflies += combinations(dist_two_mults[x], 2);
     }
-    return numButterflies;
+    return + reduce dist_two_mults;
   }
 
   proc AdjListHyperGraphImpl.getInclusionNumCaterpillars(v, e) {
@@ -92,10 +92,10 @@ module Butterfly {
       const numButterflies = getInclusionNumButterflies(v, e);
       if numButterflies / numCaterpillars > 1 { 
         writeln((toVertex(v).id, toEdge(e).id), " = ", numButterflies / numCaterpillars);
-        writeln(numButterflies);
-        writeln(numCaterpillars);
-        writeln(vertex(v).numNeighbors);
-        writeln(edge(e).numNeighbors);
+        writeln("butterflies = ", numButterflies);
+        writeln("caterpillars = ", numCaterpillars);
+        writeln("degree(v) = ", vertex(v).numNeighbors);
+        writeln("degree(e) = ", edge(e).numNeighbors);
       }
       return numButterflies / numCaterpillars;
     }
