@@ -66,9 +66,9 @@ module Butterfly {
   proc AdjListHyperGraphImpl.getInclusionNumButterflies(v, e){
     var dist_two_mults : [verticesDomain] int(64); //this is C[x] in the paper
     var numButterflies = 0;
-    forall w in getAdjacentVertices(v) {
-      forall x in getAdjacentVertices(w) {
-        if areAdjacentVertices(v,x) && x != toVertex(v) {
+    forall w in vertex(v).neighborList {
+      forall x in edge(w).neighborList {
+        if vertex(x).hasNeighbor(e) && x != toVertex(v) {
           dist_two_mults[x.id] += 1;
         }
       }
@@ -100,7 +100,8 @@ module Butterfly {
       forall e in vertex(v).neighborList with (+ reduce coef) {
         coef += getInclusionMetamorphCoef(v, e);
       }
-      coef = coef / vertex(v).neighborList.size;
+      const sz = vertex(v).neighborList.size;
+      if sz != 0 then coef /= sz;
     }
     return vertexMetamorphCoefs;
   }
@@ -111,7 +112,8 @@ module Butterfly {
       forall v in toEdge(e).neighborList with (+ reduce coef) {
         coef += getInclusionMetamorphCoef(v, e);
       }
-      coef = coef / toEdge(e).neighborList.size;
+      const sz = edge(e).neighborList.size;
+      if sz != 0 then coef /= sz;
     }
     return edgeMetamorphCoefs;
   }
@@ -140,6 +142,8 @@ module Butterfly {
     var perDegreeMetamorphCoefs : [0..maxDegree] real;
     var vertexMetamorphCoefs = getVertexMetamorphCoefs();
 
+    writeln("vmc:", vertexMetamorphCoefs);
+
     forall (degree, metaMorphCoef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
       var sum : real;
       var count = 0;
@@ -147,7 +151,7 @@ module Butterfly {
         sum += vertexMetamorphCoefs[v];
         count += 1;
       }
-      metaMorphCoef = sum / count;
+      if count != 0 then metaMorphCoef = sum / count;
     }
     return perDegreeMetamorphCoefs;
   }
@@ -165,7 +169,7 @@ module Butterfly {
         sum += edgeMetamorphCoefs[v];
         count += 1;
       }
-      metaMorphCoef = sum / count;
+      if count != 0 then metaMorphCoef = sum / count;
     }
     return perDegreeMetamorphCoefs;
   }

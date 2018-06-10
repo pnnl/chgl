@@ -112,8 +112,9 @@ proc main() {
     }
 
 
-    var graph = new AdjListHyperGraph({1..numVertices}, {1..numEdges});
-
+    var graph = new AdjListHyperGraph(numVertices, numEdges);
+    vertices -= 1;
+    edges -= 1;
     var numInclusions = 0 : int;
 
     for (v,e) in zip(vertices, edges) {
@@ -127,8 +128,10 @@ proc main() {
         vm_file.read(vertexMetamorphs);
     }
 
+    writeln("Starting Test!");
     var test = graph.getVertexPerDegreeMetamorphosisCoefficients();
-
+  
+    writeln("Output: ", test);
     writeln(test.size);
 
     writeln("Done");

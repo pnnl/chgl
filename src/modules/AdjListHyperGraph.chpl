@@ -618,7 +618,7 @@ module AdjListHyperGraph {
       }
     }
 
-    proc addInclusion(v, e) {
+    inline proc addInclusion(v, e) {
       const vDesc = v : vDescType;
       const eDesc = e : eDescType;
 
