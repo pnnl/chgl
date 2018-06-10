@@ -45,17 +45,35 @@ module Butterfly {
     return butterflyArr;
   }
 
+  iter AdjListHyperGraphImpl.getAdjacentVertices(v) {
+    for e in vertex(v).neighborList do for w in edge(e).neighborList do yield w;
+  }
+
+  iter AdjListHyperGraphImpl.getAdjacentVertices(v, param tag) where tag == iterKind.standalone {   
+    forall e in vertex(v).neighborList do forall w in edge(e).neighborList do yield w; 
+  }
+  
+  // Inefficient!
+  proc AdjListHyperGraphImpl.areAdjacentVertices(v, w) {
+    for e in vertex(v).neighborList {
+      for ee in vertex(w).neighborList {
+        if e == ee then return true;
+      }
+    }
+    return false;
+  }
+
   proc AdjListHyperGraphImpl.getInclusionNumButterflies(v, e){
     var dist_two_mults : [verticesDomain] int(64); //this is C[x] in the paper
     var numButterflies = 0;
-    forall w in vertex(v).neighborList {
-      forall x in edge(w.id).neighborList {
-        if vertex(v).hasNeighbor(x) && x != toVertex(v) {
+    forall w in getAdjacentVertices(v) {
+      forall x in getAdjacentVertices(w) {
+        if areAdjacentVertices(v,x) && x != toVertex(v) {
           dist_two_mults[x.id] += 1;
         }
       }
     }
-    forall x in dist_two_mults.domain {
+    forall x in dist_two_mults.domain with (+ reduce numButterflies) {
       //combinations(dist_two_mults[x], 2) is the number of butterflies that include vertices v and w
       numButterflies += combinations(dist_two_mults[x], 2);
     }
@@ -78,11 +96,11 @@ module Butterfly {
 
   proc AdjListHyperGraphImpl.getVertexMetamorphCoefs(){
     var vertexMetamorphCoefs : [verticesDomain] real;
-    forall (v, coef) in zip(getVertices(), vertexMetamorphCoefs) {
+    for (v, coef) in zip(getVertices(), vertexMetamorphCoefs) {
       forall e in vertex(v).neighborList with (+ reduce coef) {
         coef += getInclusionMetamorphCoef(v, e);
       }
-      coef = coef / toVertex(v).neighborList.size;
+      coef = coef / vertex(v).neighborList.size;
     }
     return vertexMetamorphCoefs;
   }
@@ -100,30 +118,30 @@ module Butterfly {
 
   // N.B: May want to make a lot of these into a single larger procedure with many
   // inner procedures so we can avoid having to pass '' to everything...
-  iter getVerticesWithDegreeValue(value : int(64)){
-    for v in getVertices() do if v.numNeighbors == value then yield v;
+  iter AdjListHyperGraphImpl.getVerticesWithDegreeValue(value : int(64)){
+    for v in getVertices() do if vertex(v).numNeighbors == value then yield v;
   }
 
-  iter getVerticesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
-    forall v in getVertices() do if v.numNeighbors == value then yield v;
+  iter AdjListHyperGraphImpl.getVerticesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
+    forall v in getVertices() do if vertex(v).numNeighbors == value then yield v;
   }
 
-  iter getEdgesWithDegreeValue(value : int(64)){
-    for e in getEdges() do if e.numNeighbors == value then yield e;
+  iter AdjListHyperGraphImpl.getEdgesWithDegreeValue(value : int(64)){
+    for e in getEdges() do if edge(e).numNeighbors == value then yield e;
   }
 
-  iter getEdgesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
-    forall e in getEdges() do if e.numNeighbors == value then yield e;
+  iter AdjListHyperGraphImpl.getEdgesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
+    forall e in getEdges() do if edge(e).numNeighbors == value then yield e;
   }
 
   proc AdjListHyperGraphImpl.getVertexPerDegreeMetamorphosisCoefficients() {
     var vertexDegrees = getVertexDegrees();
-    var maxDegree = max(vertexDegrees);
+    var maxDegree = max reduce vertexDegrees;
     var perDegreeMetamorphCoefs : [0..maxDegree] real;
-    var vertexMetamorphCoef = getVertexMetamorphCoefs();
+    var vertexMetamorphCoefs = getVertexMetamorphCoefs();
 
     forall (degree, metaMorphCoef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
-      var sum = 0;
+      var sum : real;
       var count = 0;
       forall v in getVerticesWithDegreeValue(degree) with (+ reduce sum, + reduce count) {
         sum += vertexMetamorphCoefs[v];
