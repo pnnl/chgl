@@ -128,6 +128,8 @@ proc main() {
         vm_file.read(vertexMetamorphs);
     }
 
+    writeln("Expected Metamorph: ", vertexMetamorphs);
+
     writeln("Starting Test!");
     var test = graph.getVertexPerDegreeMetamorphosisCoefficients();
   

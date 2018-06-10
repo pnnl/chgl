@@ -619,33 +619,43 @@ module AdjListHyperGraph {
     }
 
     inline proc addInclusion(v, e) {
-      const vDesc = v : vDescType;
-      const eDesc = e : eDescType;
+      const vDesc = toVertex(v);
+      const eDesc = toEdge(e);
 
       vertex(vDesc.id).addNodes(eDesc);
       edge(eDesc.id).addNodes(vDesc);
     }
 
-    // Runtime version
-    inline proc toEdge(desc : integral) {
-      return desc : eDescType;
+    inline proc toEdge(id : eIndexType) {
+      if !edgesDomain.member(id) {
+        halt(id, " is out of range, expected within ", edgesDomain);
+      }
+      return id : eDescType;
+    }
+
+    inline proc toEdge(desc : eDescType) {
+      return desc;
     }
 
     // Bad argument...
     inline proc toEdge(desc) param {
-      compilerError("toEdge(" + desc.type : string + ") is not permitted, required"
-      + " 'integral' type ('int(8)', 'int(16)', 'int(32)', 'int(64)')");
+      compilerError("toEdge(" + desc.type : string + ") is not permitted, required type ", eIndexType : string);
     }
 
-    // Runtime version
-    inline proc toVertex(desc : integral) {
-      return desc : vDescType;
+    inline proc toVertex(id : vIndexType) {
+      if !verticesDomain.member(id) {
+        halt(id, " is out of range, expected within ", verticesDomain);
+      }
+      return id : vDescType;
+    }
+
+    inline proc toVertex(desc : vDescType) {
+      return desc;
     }
 
     // Bad argument...
     inline proc toVertex(desc) param {
-      compilerError("toVertex(" + desc.type : string + ") is not permitted, required"
-      + " 'integral' type ('int(8)', 'int(16)', 'int(32)', 'int(64)')");
+      compilerError("toVertex(" + desc.type : string + ") is not permitted, required ", vIndexType : string);
     }
 
     // Obtains list of all degrees; not thread-safe if resized

@@ -1,20 +1,22 @@
 module Butterfly {
   use AdjListHyperGraph;
 
-  proc combinations(n,k) {
-    var C : [0..n, 0..k] int;
+  proc combinations(_n, _k) {
+    if _k < 0 || _k > _n then return 0;
+    if _k == 0 || _k == _n then return 1;
+    
+    var res = 1;
+    var n = _n;
+    var k = min(_k, _n - _k);
 
-    // Caculate value of Binomial Coefficient in bottom up manner
-    forall i in 0..n {
-      forall j in 0..min(i, k) {
-         // Base Cases
-         if j == 0 || j == i then C[i, j] = 1;
-         else C[i, j] = C[i-1, j-1] + C[i-1, j];
-       }
-     }
+    // Calculate value of [n * (n-1) *---* (n-k+1)] / [k * (k-1) *----* 1]
+    for i in 0..#k {
+      res *= (n - i);
+      res /= (i + 1);
+    }
 
-     return C[n, k];
-   }
+    return res;
+  }
 
   proc AdjListHyperGraphImpl.vertexHasNeighbor(v, e){
     return vertex(toVertex(v)).hasNeighbor(toEdge(e));
@@ -67,8 +69,8 @@ module Butterfly {
     var dist_two_mults : [verticesDomain] int(64); //this is C[x] in the paper
     var numButterflies = 0;
     forall w in vertex(v).neighborList {
-      forall x in edge(w).neighborList {
-        if vertex(x).hasNeighbor(e) && x != toVertex(v) {
+      if w.id != toEdge(e).id then forall x in edge(w).neighborList {
+        if vertex(x).hasNeighbor(e) && x.id != toVertex(v).id {
           dist_two_mults[x.id] += 1;
         }
       }
@@ -85,9 +87,17 @@ module Butterfly {
   }
 
   proc AdjListHyperGraphImpl.getInclusionMetamorphCoef(v, e) {
-    var numCaterpillars = getInclusionNumCaterpillars(v, e);
+    const numCaterpillars = getInclusionNumCaterpillars(v, e);
     if numCaterpillars != 0 {
-      return getInclusionNumButterflies(v, e) / getInclusionNumCaterpillars(v, e);
+      const numButterflies = getInclusionNumButterflies(v, e);
+      if numButterflies / numCaterpillars > 1 { 
+        writeln((toVertex(v).id, toEdge(e).id), " = ", numButterflies / numCaterpillars);
+        writeln(numButterflies);
+        writeln(numCaterpillars);
+        writeln(vertex(v).numNeighbors);
+        writeln(edge(e).numNeighbors);
+      }
+      return numButterflies / numCaterpillars;
     }
     else {
       return 0;
@@ -96,9 +106,11 @@ module Butterfly {
 
   proc AdjListHyperGraphImpl.getVertexMetamorphCoefs(){
     var vertexMetamorphCoefs : [verticesDomain] real;
-    for (v, coef) in zip(getVertices(), vertexMetamorphCoefs) {
+    forall (v, coef) in zip(verticesDomain, vertexMetamorphCoefs) {
       forall e in vertex(v).neighborList with (+ reduce coef) {
-        coef += getInclusionMetamorphCoef(v, e);
+        const meta = getInclusionMetamorphCoef(v, e);
+        if meta > 1.0 then halt("vertex ", toVertex(v).id, " and edge ", toEdge(e).id, " have a meta = ", meta);
+        coef += meta;
       }
       const sz = vertex(v).neighborList.size;
       if sz != 0 then coef /= sz;
