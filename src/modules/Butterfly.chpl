@@ -69,17 +69,24 @@ module Butterfly {
     var dist_two_mults : [verticesDomain] int(64); //this is C[x] in the paper
     var numButterflies = 0;
     forall w in vertex(v).neighborList {
-      if w.id != toEdge(e).id then forall x in edge(w).neighborList {
-        if vertex(x).hasNeighbor(e) && x.id != toVertex(v).id {
+      forall x in edge(w).neighborList {
+        if x.id != toVertex(v).id {
           dist_two_mults[x.id] += 1;
         }
       }
     }
-    forall x in dist_two_mults.domain with (+ reduce numButterflies) {
+    forall x in dist_two_mults with (+ reduce numButterflies) {
       //combinations(dist_two_mults[x], 2) is the number of butterflies that include vertices v and w
-      numButterflies += combinations(dist_two_mults[x], 2);
+      numButterflies += combinations(x, 2);
     }
-    return + reduce dist_two_mults;
+    return (+ reduce dist_two_mults) / 2;
+  }
+
+  proc main() {
+    var graph = new AdjListHyperGraphImpl(2,2);
+    for (i,j) in {0..1, 0..1} do graph.addInclusion(i,j);
+    for v in graph.getVertices() do writeln("degree(", v, ") = ", graph.vertex(v).numNeighbors);
+    writeln(graph.getInclusionNumButterflies(graph.toVertex(0), graph.toEdge(1)));
   }
 
   proc AdjListHyperGraphImpl.getInclusionNumCaterpillars(v, e) {
@@ -90,13 +97,6 @@ module Butterfly {
     const numCaterpillars = getInclusionNumCaterpillars(v, e);
     if numCaterpillars != 0 {
       const numButterflies = getInclusionNumButterflies(v, e);
-      if numButterflies / numCaterpillars > 1 { 
-        writeln((toVertex(v).id, toEdge(e).id), " = ", numButterflies / numCaterpillars);
-        writeln("butterflies = ", numButterflies);
-        writeln("caterpillars = ", numCaterpillars);
-        writeln("degree(v) = ", vertex(v).numNeighbors);
-        writeln("degree(e) = ", edge(e).numNeighbors);
-      }
       return numButterflies / numCaterpillars;
     }
     else {
@@ -109,7 +109,7 @@ module Butterfly {
     forall (v, coef) in zip(verticesDomain, vertexMetamorphCoefs) {
       forall e in vertex(v).neighborList with (+ reduce coef) {
         const meta = getInclusionMetamorphCoef(v, e);
-        if meta > 1.0 then halt("vertex ", toVertex(v).id, " and edge ", toEdge(e).id, " have a meta = ", meta);
+        // if meta > 1.0 then halt("vertex ", toVertex(v).id, " and edge ", toEdge(e).id, " have a meta = ", meta);
         coef += meta;
       }
       const sz = vertex(v).neighborList.size;

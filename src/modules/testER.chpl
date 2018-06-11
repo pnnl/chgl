@@ -134,6 +134,7 @@ proc main() {
     var test = graph.getVertexPerDegreeMetamorphosisCoefficients();
   
     writeln("Output: ", test);
+    writeln("Reduced: ", + reduce test);
     writeln(test.size);
 
     writeln("Done");
