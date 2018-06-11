@@ -2,6 +2,7 @@ use IO;
 use Sort;
 use AdjListHyperGraph;
 use Generation;
+use IO.FormattedIO;
 
 // Parameter to determine whether or not verbose debugging information is provided.
 config param DEBUG_BIN_READER = false;
@@ -129,7 +130,20 @@ proc main() {
   var test_graph = new AdjListHyperGraph(numVertices,numEdges);
   var clGraph = fast_hypergraph_chung_lu(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), inclusions_to_add);
   
+  var output = open("./generatedCL_output.csv", iomode.cw);
+  var writer = output.writer();
 
+  for i in clGraph.getVertices(){
+    for j in clGraph.vertex(i).neighborList{
+      var s:string = "%i,%i".format(i,j.id);
+      writer.writeln(s);
+    }
+  }
+
+
+
+
+/*
   var input_ed_file = open("../../test/visual-verification/ChungLu-Test/INPUT_dseq_E_List.csv", iomode.cw);
   var input_vd_file = open("../../test/visual-verification/ChungLu-Test/INPUT_dseq_V_List.csv", iomode.cw);
   var output_ed_file = open("../../test/visual-verification/ChungLu-Test/OUTPUT_dseq_E_List.csv", iomode.cw);
@@ -162,6 +176,6 @@ proc main() {
     //writeln(i);
     writing_output_vd_file.writeln(output_vd[i]);
   }
-
+*/
   writeln("Done");
 }
