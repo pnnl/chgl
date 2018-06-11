@@ -37,7 +37,7 @@ module Butterfly {
           }
         }
       }
-      forall w in dist_two_mults.domain {
+      forall w in dist_two_mults {
         if dist_two_mults[w] > 0 {
           //combinations(dist_two_mults[w], 2) is the number of butterflies that include vertices v and w
           butterflyArr[v] += combinations(dist_two_mults[w], 2);
@@ -69,8 +69,8 @@ module Butterfly {
     var dist_two_mults : [verticesDomain] int(64); //this is C[x] in the paper
     var numButterflies = 0;
     forall w in vertex(v).neighborList {
-      forall x in edge(w).neighborList {
-        if x.id != toVertex(v).id {
+      if w.id != toEdge(e).id then forall x in edge(w).neighborList {
+        if vertex(x).hasNeighbor(e) && x.id != toVertex(v).id {
           dist_two_mults[x.id] += 1;
         }
       }
@@ -79,7 +79,7 @@ module Butterfly {
       //combinations(dist_two_mults[x], 2) is the number of butterflies that include vertices v and w
       numButterflies += combinations(x, 2);
     }
-    return (+ reduce dist_two_mults) / 2;
+    return (+ reduce dist_two_mults);
   }
 
   proc main() {
@@ -153,8 +153,6 @@ module Butterfly {
     var maxDegree = max reduce vertexDegrees;
     var perDegreeMetamorphCoefs : [0..maxDegree] real;
     var vertexMetamorphCoefs = getVertexMetamorphCoefs();
-
-    writeln("vmc:", vertexMetamorphCoefs);
 
     forall (degree, metaMorphCoef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
       var sum : real;
