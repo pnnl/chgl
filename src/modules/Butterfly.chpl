@@ -70,7 +70,7 @@ module Butterfly {
     var numButterflies = 0;
     forall w in vertex(v).neighborList {
       if w.id != toEdge(e).id then forall x in edge(w).neighborList {
-        if vertex(x).hasNeighbor(e) && x.id != toVertex(v).id {
+        if vertex(x).hasNeighbor(toEdge(e)) && x.id != toVertex(v).id {
           dist_two_mults[x.id] += 1;
         }
       }
