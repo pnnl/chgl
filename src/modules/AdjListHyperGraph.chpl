@@ -604,6 +604,22 @@ module AdjListHyperGraph {
     inline proc numEdges return edgesDomain.size;
     inline proc numVertices return verticesDomain.size;
 
+    iter getNeighbors(vDesc : vDescType) : eDescType {
+      for e in vertex(vDesc).neighborList do yield e;
+    }
+
+    iter getNeighbors(vDesc : vDescType, param tag : iterKind) : eDescType where tag == iterKind.standalone {
+      forall e in vertex(vDesc).neighborList do yield e;
+    }
+
+    iter getNeighbors(eDesc : eDescType) : vDescType {
+      for v in edge(eDesc).neighborList do yield v;
+    }
+
+    iter getNeighbors(eDesc : eDescType, param tag) : vDescType where tag == iterKind.standalone {
+      forall v in edge(eDesc).neighborList do yield v;
+    }
+
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
       forall e in edgesDomain do yield e;
     }
