@@ -117,6 +117,11 @@ module Generation {
 
           // There is at least one element in either probabilities array...
           if hasWork {
+            // Normalize both probabilities
+            localVertexProbabilities /= (+ reduce localVertexProbabilities);
+            localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
+
+
             // Scan both probabilities
             localVertexProbabilities = (+ scan localVertexProbabilities);
             localEdgeProbabilities = (+ scan localEdgeProbabilities);
