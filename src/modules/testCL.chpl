@@ -6,41 +6,10 @@ use IO.FormattedIO;
 
 
 proc main() {
-  var f = open("../../test/data-samples/condMatCL.csv", iomode.r);
-  var r = f.reader();
-
-  var vertices : [0..-1] int;
-  var edges : [0..-1] int;
-  
-  for line in f.lines() {
-    var (v,e) : 2 * int;
-    var split = line.split(",");
-    if line == "" then continue;
-    vertices.push_back(split[1] : int);
-    edges.push_back(split[2] : int);
-  }
-
-  var numEdges : int;
-  var numVertices : int;
-  for (v,e) in zip(vertices, edges) {
-    numEdges = max(numEdges, e);
-    numVertices = max(numVertices, v);
-  }
-
-
-  var graph = new AdjListHyperGraph(numVertices, numEdges);
-  vertices -= 1;
-  edges -= 1;
-  for (v,e) in zip(vertices, edges) {
-    graph.addInclusion(v,e);
-  }
-
-  var inclusions_to_add : int;
-
-  for i in graph.getVertexDegrees(){
-    inclusions_to_add += i;
-  }
-
+  var graph = fromAdjacencyList("../../test/data-samples/condMatCL.csv");
+  const numVertices = graph.numVertices;
+  const numEdges = graph.numEdges;
+  const inclusions_to_add = + reduce graph.getVertexDegrees();
   writeln(inclusions_to_add);
 
   var test_graph = new AdjListHyperGraph(numVertices,numEdges);

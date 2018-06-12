@@ -57,8 +57,56 @@ module AdjListHyperGraph {
       instance = new AdjListHyperGraphImpl(numVertices, numEdges, map);
       pid = instance.pid;
     }
+  
+    // TODO: Copy initializer produces an internal compiler error (compilation error after codegen),
+    // COde that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
+    proc init(other) {
+      instance = new AdjListHyperGraphImpl(other);
+      pid = instance.pid;
+    }
 
     forwarding _value;
+  }
+
+  // TODO: Improve space-complexity so we do not read all of file into memory.
+  // TODO: Improve time-complexity so that we read in the graph in a distributed way
+  proc fromAdjacencyList(fileName : string, separator = ",", map : ?t = new DefaultDist) throws {
+    var f = open(fileName, iomode.r);
+    var r = f.reader();
+    var vertices : [0..-1] int;
+    var edges : [0..-1] int;
+
+    for line in f.lines() {
+      var (v,e) : 2 * int;
+      var split = line.split(separator);
+      if line == "" then continue;
+      vertices.push_back(split[1] : int);
+      edges.push_back(split[2] : int);
+    }
+
+    // Read in minimum and maximum
+    var (vMin, vMax) = (max(int(64)), min(int(64)));
+    var (eMin, eMax) =  (max(int(64)), min(int(64)));
+    for (v,e) in zip(vertices, edges) {
+      vMin = min(vMin, v);
+      vMax = max(vMax, v);
+      eMin = min(eMin, e);
+      eMax = max(eMax, e);
+    }
+
+    // Convert to 0-based
+    vertices -= vMin;
+    edges -= eMin;
+
+    // Initialize with data given...
+    var graph = new AdjListHyperGraph(vMax - vMin + 1, eMax - eMin + 1, map);
+
+    // Add inclusions...
+    forall (v,e) in zip(vertices, edges) {
+      graph.addInclusion(v,e);
+    }
+
+    return graph;
   }
 
   pragma "default intent is ref"
@@ -442,6 +490,20 @@ module AdjListHyperGraph {
       // TODO: Setup matrix
       this.pid = _newPrivatizedClass(this);
     }
+  
+    // Copy initializer...
+    proc init(other) {
+      const verticesDomain = other._verticesDomain;
+      const edgesDomain = other._edgesDomain;
+      this._verticesDomain = verticesDomain;
+      this._edgesDomain = edgesDomain;
+
+      complete();
+      
+      forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new NodeData(theirV);
+      forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new NodeData(theirE);     
+      this.pid = _newPrivatizedClass(this);
+    }
 
     // creates an array sharing storage with the source array
     // ref x = _getArray(other.vertices._value);
@@ -534,9 +596,13 @@ module AdjListHyperGraph {
       return verticesDomain.dist;
     }
 
+
     inline proc edgesDist {
       return edgesDomain.dist;
     }
+
+    inline proc numEdges return edgesDomain.size;
+    inline proc numVertices return verticesDomain.size;
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
       forall e in edgesDomain do yield e;
@@ -552,14 +618,6 @@ module AdjListHyperGraph {
 
     iter getVertices() {
       for v in verticesDomain do yield v;
-    }
-
-    proc numVertices {
-      return verticesDomain.size;
-    }
-
-    proc numEdges {
-      return edgesDomain.size;
     }
 
     // Note: this gets called on by a single task...
