@@ -117,10 +117,6 @@ module Generation {
 
           // There is at least one element in either probabilities array...
           if hasWork {
-            // Normalize both probabilities
-            localVertexProbabilities /= (+ reduce localVertexProbabilities);
-            localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
-
             // Scan both probabilities
             localVertexProbabilities = (+ scan localVertexProbabilities);
             localEdgeProbabilities = (+ scan localEdgeProbabilities);
@@ -130,9 +126,14 @@ module Generation {
               var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
               var randStream = new RandomStream(real);
               for 1..perTaskInclusions {
-                var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
-                var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-                graph.addInclusion(vertex, edge);
+                while true {
+                  var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
+                  var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
+                  if !graph.vertex(vertex).hasNeighbor(graph.toEdge(edge)) {
+                    graph.addInclusion(vertex, edge);
+                    break;
+                  }
+                }
               }
             }
           }
