@@ -6,7 +6,7 @@ use IO.FormattedIO;
 
 
 proc main() {
-  var graph = fromAdjacencyList("../../test/data-samples/condMatCL.csv");
+  var graph = fromAdjacencyList("../../test/data-samples/condMat.txt", " ");
   const numVertices = graph.numVertices;
   const numEdges = graph.numEdges;
   const inclusions_to_add = + reduce graph.getVertexDegrees();
