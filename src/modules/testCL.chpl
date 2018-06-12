@@ -91,7 +91,7 @@ proc readFile(f : file) throws {
 
 
 proc main() {
-  var f = open("../../test/visual-verification/ChungLu-Test/condMatCL.csv", iomode.r);
+  var f = open("../../test/data-samples/condMatCL.csv", iomode.r);
   var r = f.reader();
 
   var vertices : [0..-1] int;
@@ -113,7 +113,7 @@ proc main() {
   }
 
 
-  var graph = new AdjListHyperGraph({1..numVertices}, {1..numEdges});
+  var graph = new AdjListHyperGraph({0..numVertices-1}, {0..numEdges-1});
 
   for (v,e) in zip(vertices, edges) {
     graph.addInclusion(v,e);
