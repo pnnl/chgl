@@ -15,6 +15,7 @@ proc main() {
   var test_graph = new AdjListHyperGraph(numVertices,numEdges);
   var clGraph = fast_hypergraph_chung_lu(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), inclusions_to_add);
   
+  
   var output = open("./generatedCL_output.csv", iomode.cw);
   var writer = output.writer();
 

@@ -127,9 +127,9 @@ module Generation {
             localEdgeProbabilities = (+ scan localEdgeProbabilities);
 
             var perLocaleInclusions = inclusions_to_add / numLocales;
-            coforall 1..here.maxTaskPar {
+            coforall tid in 0..#here.maxTaskPar {
               var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
-              var randStream = new RandomStream(real);
+              var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
               for 1..perTaskInclusions {
                 while true {
                   var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
