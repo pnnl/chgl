@@ -620,6 +620,8 @@ module AdjListHyperGraph {
       forall v in edge(eDesc).neighborList do yield v;
     }
 
+    proc getInclusions() return + reduce getVertexDegrees();
+
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
       forall e in edgesDomain do yield e;
     }

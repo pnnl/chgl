@@ -9,7 +9,7 @@ module Generation {
 
   //Pending: Take seed as input
   //Returns index of the desired item
-  proc get_random_element(elements, probabilities,randValue){
+  inline proc get_random_element(elements, probabilities,randValue){
     for (idx, probability) in zip(0..#probabilities.size, probabilities) {
       if probability > randValue then return elements.low + idx;
     }
@@ -88,66 +88,31 @@ module Generation {
 			return graph;
 		}
 
-  proc fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales = Locales){
-    var sum_degrees = + reduce desired_vertex_degrees:real;
-    var vertex_probabilities = desired_vertex_degrees/sum_degrees: real;
-    var edge_probabilities = desired_edge_degrees/sum_degrees: real;
-    var vertexScan : [vertex_probabilities.domain] real = + scan vertex_probabilities;
-    var edgeScan : [edge_probabilities.domain] real = + scan edge_probabilities;
-
-    coforall loc in targetLocales do on loc {
-        // If the current node has local work...
-        if vertex_probabilities.localSubdomain().size != 0 {
-          // Obtain localized probabilities
-          var localVertexProbabilities = vertex_probabilities[vertex_probabilities.localSubdomain()];
-          var localEdgeProbabilities = edge_probabilities[edge_probabilities.localSubdomain()];
-
-          // If the entire array is 0, then we do not have any work to do...
-          // N.B: We end up generating less inclusions than asked if one of
-          // the probabilities are all zero while the other is not. In the future
-          // we would want to actually keep track of the amount of inclusions we did
-          // not generate and handle it at the end.
-          var hasWork : bool;
-          for (vProb, eProb) in zip(localVertexProbabilities, localEdgeProbabilities) {
-            if vProb != 0 || eProb != 0 {
-              hasWork = true;
-              break;
-            }
-          }
-
-          // There is at least one element in either probabilities array...
-          if hasWork {
-            // Normalize both probabilities
-            localVertexProbabilities /= (+ reduce localVertexProbabilities);
-            localEdgeProbabilities /= (+ reduce localEdgeProbabilities);
-
-
-            // Scan both probabilities
-            localVertexProbabilities = (+ scan localVertexProbabilities);
-            localEdgeProbabilities = (+ scan localEdgeProbabilities);
-
-            var perLocaleInclusions = inclusions_to_add / numLocales;
-            coforall tid in 0..#here.maxTaskPar {
-              var perTaskInclusions = perLocaleInclusions / here.maxTaskPar;
-              var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
-              for 1..perTaskInclusions {
-                while true {
-                  var vertex = get_random_element(vertices_domain.localSubdomain(), localVertexProbabilities, randStream.getNext());
-                  var edge = get_random_element(edges_domain.localSubdomain(), localEdgeProbabilities, randStream.getNext());
-                  if !graph.vertex(vertex).hasNeighbor(graph.toEdge(edge)) {
-                    graph.addInclusion(vertex, edge);
-                    break;
-                  }
-                }
-              }
-            }
+    proc fast_hypergraph_chung_lu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales){
+      var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
+      var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
+      var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
+      var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
+      
+      // Perform work evenly across all locales
+      coforall loc in targetLocales do on loc {
+        var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
+        coforall tid in 0..#here.maxTaskPar {
+          // Perform work evenly across all tasks
+          var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
+          // Each thread gets its own random stream to avoid acquiring sync var
+          // Note: This is needed due to issues with qthreads
+          var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
+          for 1..perTaskInclusions {
+            var vertex = get_random_element(verticesDomain, vertexScan, randStream.getNext());
+            var edge = get_random_element(edgesDomain, edgeScan, randStream.getNext());
+            graph.addInclusion(vertex, edge);
           }
         }
       }
-
-    // TODO: Remove duplicate edges...
-    return graph;
-  }
+      // TODO: Remove duplicate edges...
+      return graph;
+    }
 
   proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
     var inclusions_to_add =  + reduce desired_vertex_degrees:int;
@@ -155,11 +120,11 @@ module Generation {
   }
 
   proc generateBTER(
-                    vd : [?vdDom], /* Vertex Degrees */
-                    ed : [?edDom], /* Edge Degrees */
-                    vmc : [?vmcDom], /* Vertex Metamorphosis Coefficient */
-                    emc : [?emcDom] /* Edge Metamorphosis Coefficient */
-                    ) {
+      vd : [?vdDom], /* Vertex Degrees */
+      ed : [?edDom], /* Edge Degrees */
+      vmc : [?vmcDom], /* Vertex Metamorphosis Coefficient */
+      emc : [?emcDom] /* Edge Metamorphosis Coefficient */
+      ) {
     // Rounds a real into an int
     proc _round(x : real) : int {
       return round(x) : int;
@@ -189,31 +154,21 @@ module Generation {
       return (nV, nE, rho);
     }
 
-		// Check if data begins at index 0...
-		assert(vdDom.low == 0 && edDom.low == 0 && vmcDom.low == 0 && emcDom.low == 0);
+    // Check if data begins at index 0...
+    assert(vdDom.low == 0 && edDom.low == 0 && vmcDom.low == 0 && emcDom.low == 0);
 
-    // Ensure that all arrays are sorted...
-		var done : atomic bool;
-
-		// One task sorts vertices...
-		begin {
-			sort(vd);
-			done.write(true);
-		}
-
-		// We sort edges...
-		sort(ed);
-
-		// Wait for other task to complete...
-    done.waitFor(true);
+    cobegin {
+      sort(vd);
+      sort(ed);
+    }
 
     var (nV, nE, rho) : 3 * real;
     var (idV, idE, numV, numE) = (
-                                  minimalGreaterThanOne(vd),
-                                  minimalGreaterThanOne(ed),
-                                  vdDom.size,
-                                  edDom.size
-                                  );
+        minimalGreaterThanOne(vd),
+        minimalGreaterThanOne(ed),
+        vdDom.size,
+        edDom.size
+        );
     var graph = new AdjListHyperGraph(vdDom.size, edDom.size);
 
     while (idV <= numV && idE <= numE){

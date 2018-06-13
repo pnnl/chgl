@@ -8,12 +8,6 @@ var edges_metamorphosis : [0..6] real = [0.0, 0.33828, 0.29778, 0.28709, 0.27506
 
 var graph = generateBTER(vertices_degree, edges_degree, vertices_metamorphosis, edges_metamorphosis);
 
-var count = graph.numVertices;
-var edgecount: int = 0;
-for e in graph.getVertices() {
-    //writeln(graph.vertices(e).neighborList);
-    for o in graph.vertex(e).neighborList {
-    	edgecount += 1;
-    }
-}
-writeln(edgecount > 0);
+writeln("numVertices = ", graph.numVertices);
+writeln("numEdges = ", graph.numEdges);
+writeln("Has Inclusions? ", graph.getInclusions() > 0);
