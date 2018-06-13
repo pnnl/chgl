@@ -18,10 +18,19 @@ module Components {
 
       // Iterate over all vertices in graph, assigning components
       for v in getVertices() { 
+        const vert = toVertex(v);
+        const key = (vert.id, WrapperType.VertexWrapper);
+        if componentsDomain.member(key) then continue; 
         component += 1;
-        for neighbor in getNeighbors(toVertex(v))  { 
-          visit(neighbor, components, componentsDomain, component);
-        }
+        visit(vert, components, componentsDomain, component);
+      }
+
+      for e in getEdges() {
+        const edg = toEdge(e);
+        const key = (edg.id, WrapperType.EdgeWrapper);
+        if componentsDomain.member(key) then continue;
+        component += 1;
+        visit(edg, components, componentsDomain, component);
       }
 
       return component;
