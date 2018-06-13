@@ -576,20 +576,20 @@ module AdjListHyperGraph {
       return _privatizedEdges;
     }
 
-    inline proc vertex(idx) ref {
+    inline proc getVertex(idx) ref {
       return vertices.dsiAccess(idx);
     }
 
-    inline proc vertex(desc : vDescType) ref {
-      return vertex(desc.id);
+    inline proc getVertex(desc : vDescType) ref {
+      return getVertex(desc.id);
     }
 
-    inline proc edge(idx) ref {
+    inline proc getEdge(idx) ref {
       return edges.dsiAccess(idx);
     }
 
-    inline proc edge(desc : eDescType) ref {
-      return edge(desc.id);
+    inline proc getEdge(desc : eDescType) ref {
+      return getEdge(desc.id);
     }
 
     inline proc verticesDist {
@@ -605,37 +605,37 @@ module AdjListHyperGraph {
     inline proc numVertices return verticesDomain.size;
 
     iter getNeighbors(vDesc : vDescType) : eDescType {
-      for e in vertex(vDesc).neighborList do yield e;
+      for e in getVertex(vDesc).neighborList do yield e;
     }
 
     iter getNeighbors(vDesc : vDescType, param tag : iterKind) : eDescType where tag == iterKind.standalone {
-      forall e in vertex(vDesc).neighborList do yield e;
+      forall e in getVertex(vDesc).neighborList do yield e;
     }
 
     iter getNeighbors(eDesc : eDescType) : vDescType {
-      for v in edge(eDesc).neighborList do yield v;
+      for v in getEdge(eDesc).neighborList do yield v;
     }
 
     iter getNeighbors(eDesc : eDescType, param tag) : vDescType where tag == iterKind.standalone {
-      forall v in edge(eDesc).neighborList do yield v;
+      forall v in getEdge(eDesc).neighborList do yield v;
     }
 
     proc getInclusions() return + reduce getVertexDegrees();
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
-      forall e in edgesDomain do yield e;
+      forall e in edgesDomain do yield toEdge(e);
     }
 
     iter getEdges() {
-      for e in edgesDomain do yield e;
+      for e in edgesDomain do yield toEdge(e);
     }
 
     iter getVertices(param tag : iterKind) where tag == iterKind.standalone {
-      forall v in verticesDomain do yield v;
+      forall v in verticesDomain do yield toVertex(v);
     }
 
     iter getVertices() {
-      for v in verticesDomain do yield v;
+      for v in verticesDomain do yield toVertex(v);
     }
 
     // Note: this gets called on by a single task...
@@ -670,14 +670,14 @@ module AdjListHyperGraph {
     }
 
     proc addInclusionBuffered(v, e) {
-      const vDesc = v : vDescType;
-      const eDesc = e : eDescType;
+      const vDesc = toVertex(v);
+      const eDesc = toEdge(e);
       const vOpDesc = new OperationDescriptor(OPERATION_ADD_INCLUSION_VERTEX, vDesc.id, eDesc.id);
       const eOpDesc = new OperationDescriptor(OPERATION_ADD_INCLUSION_EDGE, eDesc.id, vDesc.id);
 
       // Push on local buffers to send later...
-      const vLocId = vertex(vDesc.id).locale.id;
-      const eLocId = edge(eDesc.id).locale.id;
+      const vLocId = getVertex(vDesc).locale.id;
+      const eLocId = getEdge(eDesc).locale.id;
       ref vBuf =  _commMatrix[here.id, vLocId];
       ref eBuf = _commMatrix[here.id, eLocId];
 
@@ -698,8 +698,8 @@ module AdjListHyperGraph {
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
 
-      vertex(vDesc.id).addNodes(eDesc);
-      edge(eDesc.id).addNodes(vDesc);
+      getVertex(vDesc).addNodes(eDesc);
+      getEdge(eDesc).addNodes(vDesc);
     }
 
     inline proc toEdge(id : eIndexType) {
