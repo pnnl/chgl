@@ -20,7 +20,7 @@ proc main() {
   var writer = output.writer();
 
   for i in clGraph.getVertices(){
-    for j in clGraph.vertex(i).neighborList{
+    for j in clGraph.getNeighbors(i) {
       var s:string = "%i,%i".format(i,j.id);
       writer.writeln(s);
     }

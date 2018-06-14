@@ -19,7 +19,7 @@ forall e in 9..12{
 var count : int = 0;
 var initial: int = 0;
 for e in 0..count-1{
-    for o in graph.vertex(e).neighborList{
+    for o in graph.getVertex(e).neighborList{
     	initial += 1;
     }
 }
@@ -29,7 +29,7 @@ count = graph.numVertices;
 var edgecount: int = 0;
 forall e in 0..#count with (+ reduce edgecount) {
     //writeln(graph.vertices(e).neighborList);
-    for o in graph.vertex(e).neighborList {
+    for o in graph.getVertex(e).neighborList {
     	edgecount += 1;
     }
 }
