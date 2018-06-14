@@ -1,57 +1,38 @@
 use IO;
 use Sort;
 use AdjListHyperGraph;
-use Butterfly;
 use Generation;
+use Butterfly;
+
 
 var graph = fromAdjacencyList("condMat.txt", " ");
-const vertexDegrees = graph.getVertexDegrees();
-const edgeDegrees = graph.getEdgeDegrees();
-var VertPDMC : [graph.verticesDomain] real;
-var EdgePDMC : [graph.edgesDomain] real;
-var VertArr : [graph.verticesDomain] real;
-var EdgeArr : [graph.edgesDomain] real;
-var VertB : [graph.verticesDomain] real = graph.getVertexButterflies() : real;
-var VertC : [graph.verticesDomain] real = graph.getVertexCaterpillars() : real;
 
-//this is to allow for a graph.getVertexButterflies()/graph.getVertexCaterpillars() while preventing nan values
-forall i in VertB.domain{
-  if VertC[i] > 0 && VertB[i] > 0{
-    VertArr[i] = VertB[i]/VertC[i];
-  }
+var VertHigh : int;
+var EdgeHigh : int;
+
+for v in graph.getVertexDegrees() {
+  VertHigh = max(VertHigh, v);
 }
-
-var EdgeB : [EdgeArr.domain] real = graph.getEdgeButterflies() : real;
-var EdgeC : [EdgeArr.domain] real = graph.getEdgeCaterpillars() : real;
-
-forall i in EdgeB.domain{
-  if EdgeC[i] > 0 && EdgeB[i] > 0{
-    EdgeArr[i] = EdgeB[i]/EdgeC[i];
-  }
+for e in graph.getEdgeDegrees() {
+  EdgeHigh = max(EdgeHigh, e);
 }
-
-// nested loops needed to get the PDMC for Vertices
-// Will work on Edge PDMC after Vertex PDMC is working
-forall d in 1..VertPDMC.size { //for each degree available
-  var arr : [0..-1] real;
-  for (v,i) in zip(graph.getVertexDegrees(),graph.getVertexDegrees().domain) {
-    var temparray : [0..-1] real;
-    if v == d{ //if our vertex degree == the degree we are looking at
-      for n in graph.getVertex(i).neighborList { // get the neighbors
-        temparray.push_back(EdgeArr[n.id]); // add the MC for each neighbor to the list
-      }
-    }
-    if temparray.size >= 1{
-      arr.push_back(+ reduce temparray/temparray.size); // get the average of the MC value
-    }
-  }
-  if arr.size >= 1{
-    VertPDMC[d] = + reduce arr/ arr.size; // get the average of all included averages
-  }
+var f2 = open("../../../data/condMat/mpd_V.csv", iomode.r);
+var f3 = open("../../../data/condMat/mpd_E.csv", iomode.r);
+var vcoef : [0..0] real;
+var ecoef : [0..0] real;
+for each in f2.lines() {
+  vcoef.push_back(each : real);
 }
-
-// TODO: Edge PDMC
-
-for each in VertPDMC{
-writeln(each);
+for each in f3.lines() {
+  ecoef.push_back(each : real);
 }
+vcoef -= graph.getVertexPerDegreeMetamorphosisCoefficients();
+ecoef -= graph.getEdgePerDegreeMetamorphosisCoefficients();
+if min reduce vcoef > -.0001 && max reduce vcoef < .0001  {
+writeln(true);
+}
+else writeln(false);
+if min reduce ecoef > -.0001 && max reduce vcoef < .0001  {
+writeln(true);
+}
+else writeln(false);
