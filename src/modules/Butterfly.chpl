@@ -24,7 +24,7 @@ module Butterfly {
 
   proc AdjListHyperGraphImpl.getVertexButterflies() {
     var butterfliesDom = verticesDomain;
-    var butterflies : [butterfliesDom] int(64);
+    var butterflies : [butterfliesDom] atomic int(64);
 
     // Look for the pattern (v -> u -> w)
     forall v in getVertices() {
@@ -41,11 +41,13 @@ module Butterfly {
       // Sum up all two-hop neighbors
       forall thn in twoHopNeighbors {
         if thn.read() > 0 {
-          butterflies[v.id] += combinations(thn.read(), 2);
+          butterflies[v.id].fetchAdd(combinations(thn.read(), 2));
         }
       }
     }
-    return butterflies;
+
+    proc stripAtomic(x) return x.read();
+    return stripAtomic(butterflies);
   }
 
   iter AdjListHyperGraphImpl.getAdjacentVertices(v) {
@@ -67,24 +69,26 @@ module Butterfly {
   }
 
   proc AdjListHyperGraphImpl.getInclusionNumButterflies(v, e){
-    var dist_two_mults : [verticesDomain] int(64); //this is C[x] in the paper
-    var numButterflies = 0;
-    forall w in getVertex(v).neighborList {
-      if w.id != toEdge(e).id then forall x in getEdge(w).neighborList {
-        if getVertex(x).hasNeighbor(toEdge(e)) && x.id != toVertex(v).id {
-          dist_two_mults[x.id] += 1;
+    var twoHopNeighbors : [verticesDomain] atomic int(64); //this is C[x] in the paper
+    
+    forall w in getNeighbors(v) {
+      if w.id != e.id then forall x in getNeighbors(w) {
+        if getVertex(x).hasNeighbor(e) && x.id != v.id {
+          twoHopNeighbor[x.id].fetchAdd(1);
         }
       }
     }
-    forall x in dist_two_mults with (+ reduce numButterflies) {
+
+    var numButterflies : int;
+    forall thn in twoHopNeighbors with (+ reduce numButterflies) {
       //combinations(dist_two_mults[x], 2) is the number of butterflies that include vertices v and w
-      numButterflies += combinations(x, 2);
+      numButterflies += thn.read();
     }
-    return (+ reduce dist_two_mults);
+    return numButterflies;
   }
 
   proc AdjListHyperGraphImpl.getInclusionNumCaterpillars(v, e) {
-    return (vertex(v).neighborList.size - 1) * (edge(e).neighborList.size - 1);
+    return (numNeighbors(v) - 1) * (numNeighbors(e) - 1);
   }
 
   proc AdjListHyperGraphImpl.getInclusionMetamorphCoef(v, e) {
@@ -92,33 +96,31 @@ module Butterfly {
     if numCaterpillars != 0 {
       const numButterflies = getInclusionNumButterflies(v, e);
       return numButterflies / numCaterpillars;
-    }
-    else {
-      return 0;
-    }
+    } else return 0;
   }
 
   proc AdjListHyperGraphImpl.getVertexMetamorphCoefs(){
     var vertexMetamorphCoefs : [verticesDomain] real;
-    forall (v, coef) in zip(verticesDomain, vertexMetamorphCoefs) {
-      forall e in getVertex(v).neighborList with (+ reduce coef) {
-        const meta = getInclusionMetamorphCoef(v, e);
-        // if meta > 1.0 then halt("vertex ", toVertex(v).id, " and edge ", toEdge(e).id, " have a meta = ", meta);
-        coef += meta;
+    forall (v, coef) in zip(getVertices(), vertexMetamorphCoefs) {
+      forall e in getNeighbors(v) with (+ reduce coef) {
+        coef += getInclusionMetamorphCoef(v, e);
       }
-      const sz = numNeighbors(toVertex(v));
+      
+      const sz = numNeighbors(v);
       if sz != 0 then coef /= sz;
     }
+
     return vertexMetamorphCoefs;
   }
 
   proc AdjListHyperGraphImpl.getEdgeMetamorphCoefs(){
     var edgeMetamorphCoefs : [edgesDomain] real;
     forall (e, coef) in zip(getEdges(), edgeMetamorphCoefs) {
-      forall v in toEdge(e).neighborList with (+ reduce coef) {
+      forall v in getNeighbors(e) with (+ reduce coef) {
         coef += getInclusionMetamorphCoef(v, e);
       }
-      const sz = getEdge(e).neighborList.size;
+
+      const sz = numNeighbors(e);
       if sz != 0 then coef /= sz;
     }
     return edgeMetamorphCoefs;
@@ -126,20 +128,20 @@ module Butterfly {
 
   // N.B: May want to make a lot of these into a single larger procedure with many
   // inner procedures so we can avoid having to pass '' to everything...
-  iter AdjListHyperGraphImpl.getVerticesWithDegreeValue(value : int(64)){
-    for v in getVertices() do if getVertex(v).numNeighbors == value then yield v;
+  iter AdjListHyperGraphImpl.verticesWithDegree(value : int(64)){
+    for v in getVertices() do if numNeighbors(v) == value then yield v;
   }
 
-  iter AdjListHyperGraphImpl.getVerticesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
-    forall v in getVertices() do if getVertex(v).numNeighbors == value then yield v;
+  iter AdjListHyperGraphImpl.verticesWithDegree(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
+    forall v in getVertices() do if numNeighbors(v) == value then yield v;
   }
 
-  iter AdjListHyperGraphImpl.getEdgesWithDegreeValue(value : int(64)){
-    for e in getEdges() do if getEdge(e).numNeighbors == value then yield e;
+  iter AdjListHyperGraphImpl.edgesWithDegree(value : int(64)){
+    for e in getEdges() do if numNeighbors(e) == value then yield e;
   }
 
-  iter AdjListHyperGraphImpl.getEdgesWithDegreeValue(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
-    forall e in getEdges() do if getEdge(e).numNeighbors == value then yield e;
+  iter AdjListHyperGraphImpl.edgesWithDegree(value : int(64), param tag : iterKind) where tag == iterKind.standalone {
+    forall e in getEdges() do if numNeighbors(e) == value then yield e;
   }
 
   proc AdjListHyperGraphImpl.getVertexPerDegreeMetamorphosisCoefficients() {
@@ -148,14 +150,14 @@ module Butterfly {
     var perDegreeMetamorphCoefs : [0..maxDegree] real;
     var vertexMetamorphCoefs = getVertexMetamorphCoefs();
 
-    forall (degree, metaMorphCoef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
+    forall (degree, coef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
       var sum : real;
       var count = 0;
-      forall v in getVerticesWithDegreeValue(degree) with (+ reduce sum, + reduce count) {
+      forall v in verticesWithDegree(degree) with (+ reduce sum, + reduce count) {
         sum += vertexMetamorphCoefs[v];
         count += 1;
       }
-      if count != 0 then metaMorphCoef = sum / count;
+      if count != 0 then coef = sum / count;
     }
     return perDegreeMetamorphCoefs;
   }
@@ -166,43 +168,43 @@ module Butterfly {
     var perDegreeMetamorphCoefs : [0..maxDegree] real;
     var edgeMetamorphCoef = getEdgeMetamorphCoefs();
 
-    forall (degree, metaMorphCoef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
+    forall (degree, coef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
       var sum = 0;
       var count = 0;
-      forall v in getEdgesWithDegreeValue(degree) with (+ reduce sum, + reduce count) {
+      forall v in edgesWithDegree(degree) with (+ reduce sum, + reduce count) {
         sum += edgeMetamorphCoefs[v];
         count += 1;
       }
-      if count != 0 then metaMorphCoef = sum / count;
+      if count != 0 then coef = sum / count;
     }
     return perDegreeMetamorphCoefs;
   }
 
   proc AdjListHyperGraphImpl.getEdgeButterflies() {
-    var butterflyDom = edgesDomain;
-    var butterflyArr : [butterflyDom] int(64);
-    // Note: If set of edges or its domain has changed this may result in errors
-    // hence this is not entirely thread-safe yet...
-    forall (num_butterflies, e) in zip(butterflyArr, edgesDomain) {
-      var dist_two_mults : [edgesDomain] atomic int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
-      //C[w] is equivalent to the number of edges that v and w are both connected to
-      forall u in getEdge(e).neighborList {
-        forall w in getVertex(u.id).neighborList {
-          if w.id != e {
-            dist_two_mults[w.id].fetchAdd(1);
+    var butterflies : [edgesDomain] atomic int(64);
+    
+    // Look for pattern (e -> u -> w)
+    forall e in getEdges() {
+      var twoHopNeighbors : [edgesDomain] atomic int(64);
+      forall u in getNeighbors(e) {
+        forall w in getNeighbors(u) {    
+          if w.id != e.id {
+            twoHopNeighbors[w.id].fetchAdd(1);
           }
         }
       }
-      forall w in dist_two_mults.domain {
-        if dist_two_mults[w].read() > 1 {
+
+      forall thn in twoHopNeighbors {
+        if thn.read() > 1 {
           //combinations(dist_two_mults[w], 2) is the number of butterflies that include edges e and w
           //num_butterflies += combinations(dist_two_mults[w], 2);
-          butterflyArr[e] += combinations(dist_two_mults[w].read(), 2);
+          butterflies[e.id].fetchAdd(combinations(thn.read(), 2));
         }
       }
     }
-    return butterflyArr;
-
+    
+    proc stripAtomics(x) return x.read();
+    return stripAtomics(butterflies);
   }
 
   proc AdjListHyperGraphImpl.getVertexCaterpillars() {
@@ -235,34 +237,31 @@ module Butterfly {
   }
 
   proc AdjListHyperGraphImpl.getEdgeCaterpillars() {
-    var caterpillarDom = edgesDomain;
-    var caterpillarArr : [caterpillarDom] int(64);
-    // Note: If set of edges or its domain has changed this may result in errors
-    // hence this is not entirely thread-safe yet...
-    forall (num_caterpillars, e) in zip(caterpillarArr, edgesDomain) {
-      var dist_two_mults : [edgesDomain] atomic int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
-      //C[w] is equivalent to the number of edges that v and w are both connected to
-      forall u in getEdge(e).neighborList {
-        forall w in getVertex(u).neighborList {
-          if w.id != e {
-            dist_two_mults[w.id].fetchAdd(1);
-            dist_two_mults[e].fetchAdd(1); //if this is added then all caterpillars including this edge will be included in the count
+    var caterpillars : [edgesDomain] int(64);
+    
+    forall e in getEdges() {
+      var twoHopNeighbors : [edgesDomain] atomic int(64); 
+      forall u in getNeighbors(e) {
+        forall w in getNeighbors(u) {
+          if w.id != e.id {
+            twoHopNeighbors[w.id].fetchAdd(1);
+            twoHopNeighbors[e.id].fetchAdd(1); //if this is added then all caterpillars including this edge will be included in the count
           }
         }
       }
 
       // Hoisted this out of loop...
       var reduced : int;
-      forall thn in dist_two_mults with (+ reduce reduced) do reduced += thn.read();
-      forall w in dist_two_mults.domain {
-        if dist_two_mults[w].read() >1 {
+      forall thn in twoHopNeighbors with (+ reduce reduced) do reduced += thn.read();
+      forall thn in twoHopNeighbors {
+        if thn.read() >1 {
           //combinations(dist_two_mults[w], 2) is the number of butterflies that include edges e and w
           //num_butterflies += combinations(dist_two_mults[w], 2);
-          caterpillarArr[e] = reduced;
+          caterpillars[e.id] = reduced;
         }
       }
     }
-    return caterpillarArr;
+    return caterpillars;
 
   }
 }
