@@ -172,7 +172,7 @@ module Butterfly {
     var edgeMetamorphCoef = getEdgeMetamorphCoefs();
 
     forall (degree, coef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
-      var sum = 0;
+      var sum : real = 0;
       var count = 0;
       forall v in edgesWithDegree(degree) with (+ reduce sum, + reduce count) {
         sum += edgeMetamorphCoefs[v];
