@@ -157,7 +157,7 @@ module Butterfly {
         sum += vertexMetamorphCoefs[v.id];
         count += 1;
       }
-      if count != 0 then coef = sum / count;
+      coef = sum / count;
     }
     return perDegreeMetamorphCoefs;
   }
@@ -175,7 +175,7 @@ module Butterfly {
         sum += edgeMetamorphCoefs[v];
         count += 1;
       }
-      if count != 0 then coef = sum / count;
+      coef = sum / count;
     }
     return perDegreeMetamorphCoefs;
   }
