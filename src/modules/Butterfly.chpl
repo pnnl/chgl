@@ -74,7 +74,7 @@ module Butterfly {
     forall w in getNeighbors(v) {
       if w.id != e.id then forall x in getNeighbors(w) {
         if getVertex(x).hasNeighbor(e) && x.id != v.id {
-          twoHopNeighbor[x.id].fetchAdd(1);
+          twoHopNeighbors[x.id].fetchAdd(1);
         }
       }
     }
@@ -101,7 +101,8 @@ module Butterfly {
 
   proc AdjListHyperGraphImpl.getVertexMetamorphCoefs(){
     var vertexMetamorphCoefs : [verticesDomain] real;
-    forall (v, coef) in zip(getVertices(), vertexMetamorphCoefs) {
+    // TODO: Need leader-follower iterators to make this forall
+    for (v, coef) in zip(getVertices(), vertexMetamorphCoefs) {
       forall e in getNeighbors(v) with (+ reduce coef) {
         coef += getInclusionMetamorphCoef(v, e);
       }
@@ -115,7 +116,8 @@ module Butterfly {
 
   proc AdjListHyperGraphImpl.getEdgeMetamorphCoefs(){
     var edgeMetamorphCoefs : [edgesDomain] real;
-    forall (e, coef) in zip(getEdges(), edgeMetamorphCoefs) {
+    // TODO: Need leader-follower iterators to make this forall
+    for (e, coef) in zip(getEdges(), edgeMetamorphCoefs) {
       forall v in getNeighbors(e) with (+ reduce coef) {
         coef += getInclusionMetamorphCoef(v, e);
       }
@@ -154,7 +156,7 @@ module Butterfly {
       var sum : real;
       var count = 0;
       forall v in verticesWithDegree(degree) with (+ reduce sum, + reduce count) {
-        sum += vertexMetamorphCoefs[v];
+        sum += vertexMetamorphCoefs[v.id];
         count += 1;
       }
       if count != 0 then coef = sum / count;

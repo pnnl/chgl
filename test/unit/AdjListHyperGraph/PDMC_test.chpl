@@ -4,54 +4,15 @@ use AdjListHyperGraph;
 use Butterfly;
 use Generation;
 
-
-var f = open("condMat.txt", iomode.r);
-var r = f.reader();
-
-var vertices : [0..-1] int;
-var edges : [0..-1] int;
-
-for each in f.lines() {
-  var (v,e) : 2 * int;
-  var line = each.strip("\n");
-  var split = line.split(" ");
-  if line == "" then continue;
-  vertices.push_back(split[1] : int);
-  edges.push_back(split[2] : int);
-}
-
-var numEdges : int;
-var numVertices : int;
-
-for (v,e) in zip(vertices,edges) {
-  numVertices = max(numVertices, v);
-  numEdges = max(numEdges, e);
-}
-
-var graph = new AdjListHyperGraph({1..numVertices},{1..numEdges});
-for (v,e) in zip(vertices,edges) {
-  graph.addInclusion(v,e);
-}
-
-var VertHigh : int;
-var EdgeHigh : int;
-
-for v in graph.getVertexDegrees() {
-  VertHigh = max(VertHigh, v);
-}
-for e in graph.getEdgeDegrees() {
-  EdgeHigh = max(EdgeHigh, e);
-}
-
-// Everthing above has been taken from the test files on gitlab
-
-var VertPDMC : [0..VertHigh] real;
-var EdgePDMC : [0..EdgeHigh] real;
-var VertArr : [graph.getVertexDegrees().domain] real;
-var EdgeArr : [graph.getEdgeDegrees().domain] real;
-
-var VertB : [VertArr.domain] real = graph.getVertexButterflies() : real;
-var VertC : [VertArr.domain] real = graph.getVertexCaterpillars() : real;
+var graph = fromAdjacencyList("condMat.txt", " ");
+const vertexDegrees = graph.getVertexDegrees();
+const edgeDegrees = graph.getEdgeDegrees();
+var VertPDMC : [graph.verticesDomain] real;
+var EdgePDMC : [graph.edgesDomain] real;
+var VertArr : [graph.verticesDomain] real;
+var EdgeArr : [graph.edgesDomain] real;
+var VertB : [graph.verticesDomain] real = graph.getVertexButterflies() : real;
+var VertC : [graph.verticesDomain] real = graph.getVertexCaterpillars() : real;
 
 //this is to allow for a graph.getVertexButterflies()/graph.getVertexCaterpillars() while preventing nan values
 forall i in VertB.domain{
@@ -76,7 +37,7 @@ forall d in 1..VertPDMC.size { //for each degree available
   for (v,i) in zip(graph.getVertexDegrees(),graph.getVertexDegrees().domain) {
     var temparray : [0..-1] real;
     if v == d{ //if our vertex degree == the degree we are looking at
-      for n in graph.vertex[i].neighborList { // get the neighbors
+      for n in graph.getVertex(i).neighborList { // get the neighbors
         temparray.push_back(EdgeArr[n.id]); // add the MC for each neighbor to the list
       }
     }

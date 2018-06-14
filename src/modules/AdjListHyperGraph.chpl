@@ -603,6 +603,13 @@ module AdjListHyperGraph {
 
     inline proc numEdges return edgesDomain.size;
     inline proc numVertices return verticesDomain.size;
+    
+    inline proc numNeighbors(vDesc : vDescType) return getVertex(vDesc).numNeighbors;
+    inline proc numNeighbors(eDesc : eDescType) return getEdge(eDesc).numNeighbors;
+    inline proc numNeighbors(other) {
+      compilerError("'numNeighbors(",  other.type : string, ")' is not supported, require either ",
+          vDescType : string, " or ", eDescType : string);
+    }
 
     iter getNeighbors(vDesc : vDescType) : eDescType {
       for e in getVertex(vDesc).neighborList do yield e;
