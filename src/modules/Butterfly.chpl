@@ -92,9 +92,9 @@ module Butterfly {
   }
 
   proc AdjListHyperGraphImpl.getInclusionMetamorphCoef(v, e) {
-    const numCaterpillars = getInclusionNumCaterpillars(v, e);
+    const numCaterpillars : real = getInclusionNumCaterpillars(v, e);
     if numCaterpillars != 0 {
-      const numButterflies = getInclusionNumButterflies(v, e);
+      const numButterflies : real = getInclusionNumButterflies(v, e);
       return numButterflies / numCaterpillars;
     } else return 0;
   }
