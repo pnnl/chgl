@@ -107,8 +107,7 @@ module Butterfly {
         coef += getInclusionMetamorphCoef(v, e);
       }
       
-      const sz = numNeighbors(v);
-      if sz != 0 then coef /= sz;
+      coef /= numNeighbors(v);
     }
 
     return vertexMetamorphCoefs;
@@ -122,8 +121,7 @@ module Butterfly {
         coef += getInclusionMetamorphCoef(v, e);
       }
 
-      const sz = numNeighbors(e);
-      if sz != 0 then coef /= sz;
+      coef /= numNeighbors(e);
     }
     return edgeMetamorphCoefs;
   }
