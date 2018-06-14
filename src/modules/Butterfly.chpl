@@ -167,22 +167,22 @@ module Butterfly {
 
   proc AdjListHyperGraphImpl.getEdgePerDegreeMetamorphosisCoefficients(){
     var edgeDegrees = getEdgeDegrees();
-    var maxDegree = max(edgeDegrees);
+    var maxDegree = max reduce edgeDegrees;
     var perDegreeMetamorphCoefs : [0..maxDegree] real;
-    var edgeMetamorphCoef = getEdgeMetamorphCoefs();
+    var edgeMetamorphCoefs = getEdgeMetamorphCoefs();
 
     forall (degree, coef) in zip(perDegreeMetamorphCoefs.domain, perDegreeMetamorphCoefs) {
-      var sum : real = 0;
+      var sum : real;
       var count = 0;
       forall v in edgesWithDegree(degree) with (+ reduce sum, + reduce count) {
-        sum += edgeMetamorphCoefs[v];
+        sum += edgeMetamorphCoefs[v.id];
         count += 1;
       }
-      // N.B: Do not check if count is 0 here.
-      coef = sum / count;
+      if count != 0 then coef = sum / count;
     }
     return perDegreeMetamorphCoefs;
   }
+
 
   proc AdjListHyperGraphImpl.getEdgeButterflies() {
     var butterflies : [edgesDomain] atomic int(64);
