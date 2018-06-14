@@ -107,6 +107,7 @@ module Butterfly {
         coef += getInclusionMetamorphCoef(v, e);
       }
       
+      // N.B: Do not check if numNeighbors is 0 here.
       coef /= numNeighbors(v);
     }
 
@@ -121,6 +122,7 @@ module Butterfly {
         coef += getInclusionMetamorphCoef(v, e);
       }
 
+      // N.B: Do not check if numNeighbors is 0 here.
       coef /= numNeighbors(e);
     }
     return edgeMetamorphCoefs;
@@ -157,6 +159,7 @@ module Butterfly {
         sum += vertexMetamorphCoefs[v.id];
         count += 1;
       }
+      // N.B: Do not check if count is 0 here.
       coef = sum / count;
     }
     return perDegreeMetamorphCoefs;
@@ -175,6 +178,7 @@ module Butterfly {
         sum += edgeMetamorphCoefs[v];
         count += 1;
       }
+      // N.B: Do not check if count is 0 here.
       coef = sum / count;
     }
     return perDegreeMetamorphCoefs;
