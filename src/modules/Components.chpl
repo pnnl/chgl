@@ -38,6 +38,36 @@ module Components {
       return numComponents;
     }
 
+    proc AdjListHyperGraphImpl.maximalComponentSize() {
+      // (id, type) -> componentID
+      var componentsDomain : domain((int(64), WrapperType));
+      var components : [componentsDomain] int(64);
+      // current componentID 
+      var component : int(64);
+      // maximum # of components
+      var maxComponents : int(64);
+
+      // Iterate over all vertices in graph, assigning components
+      for vertex in getVertices() { 
+        const key = (vertex.id, WrapperType.VertexWrapper);
+        if componentsDomain.member(key) then continue; 
+        component += 1;
+        var size = visit(vertex, components, componentsDomain, component);
+        maxComponents = max(size, maxComponents);
+      }
+
+      for edge in getEdges() {
+        const key = (edge.id, WrapperType.EdgeWrapper);
+        if componentsDomain.member(key) then continue;
+        component += 1;
+        var size = visit(edge, components, componentsDomain, component);
+        maxComponents = max(size, maxComponents);
+      }
+
+      return maxComponents;
+
+    }
+
     /**
      * Visit current node, visit all of its neighbors, assign it to the given component
      *
