@@ -10,6 +10,10 @@ graph.addInclusion(2,2);
 // Create a line... (v1 -> e1)
 graph.addInclusion(1,1);
 
-// Leave v3 as isolated... Should have 3 components
-var count = graph.countComponents();
-writeln(count);
+// Leave v3 as isolated... 
+// 3 Components of at least size 1...
+writeln(graph.countComponents(1));
+// 2 Components of at least size 2...
+writeln(graph.countComponents(2));
+// 1 Component of at least size 3...
+writeln(graph.countComponents(3));

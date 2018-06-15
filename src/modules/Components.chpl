@@ -9,31 +9,33 @@ module Components {
      * @param graph AdjListHyperGraph to count components in
      * @return int total number of components
      */
-    proc AdjListHyperGraphImpl.countComponents() : int {
+    proc AdjListHyperGraphImpl.countComponents(minSize = 1) : int {
       // (id, type) -> componentID
       var componentsDomain : domain((int(64), WrapperType));
       var components : [componentsDomain] int(64);
-      // current componentID and total number of components
-      var component : int(64) = 0;
+      // current componentID 
+      var component : int(64);
+      // current # of components
+      var numComponents : int(64);
 
       // Iterate over all vertices in graph, assigning components
-      for v in getVertices() { 
-        const vert = toVertex(v);
-        const key = (vert.id, WrapperType.VertexWrapper);
+      for vertex in getVertices() { 
+        const key = (vertex.id, WrapperType.VertexWrapper);
         if componentsDomain.member(key) then continue; 
         component += 1;
-        visit(vert, components, componentsDomain, component);
+        var size = visit(vertex, components, componentsDomain, component);
+        if size >= minSize then numComponents += 1;
       }
 
-      for e in getEdges() {
-        const edg = toEdge(e);
-        const key = (edg.id, WrapperType.EdgeWrapper);
+      for edge in getEdges() {
+        const key = (edge.id, WrapperType.EdgeWrapper);
         if componentsDomain.member(key) then continue;
         component += 1;
-        visit(edg, components, componentsDomain, component);
+        var size = visit(edge, components, componentsDomain, component);
+        if size >= minSize then numComponents += 1;
       }
 
-      return component;
+      return numComponents;
     }
 
     /**
@@ -43,13 +45,20 @@ module Components {
      * @param component int component ID to assign to visited vertices
      */
     proc AdjListHyperGraphImpl.visit(node, components, ref componentsDomain,  component : int(64)) {
-      const key = (node.id, if node.nodeType == Vertex then WrapperType.VertexWrapper else WrapperType.EdgeWrapper);   
-      componentsDomain.add(key);
-      if (components[key] == 0) {
-            components[key] = component;
-            for neighbor in getNeighbors(node) { 
-                visit(neighbor, components, componentsDomain, component);
-            }
+      var maxDepth : int;
+      proc visitRecursive(node, currentDepth) {
+        const key = (node.id, if node.nodeType == Vertex then WrapperType.VertexWrapper else WrapperType.EdgeWrapper);   
+        componentsDomain.add(key);
+        if (components[key] == 0) {
+          maxDepth = max(currentDepth, maxDepth);
+          components[key] = component;
+          for neighbor in getNeighbors(node) { 
+            visitRecursive(neighbor, currentDepth + 1);
+          }
         }
+      }
+
+      visitRecursive(node, 1);
+      return maxDepth;
     }
 }
