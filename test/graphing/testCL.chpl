@@ -4,6 +4,8 @@ use AdjListHyperGraph;
 use Generation;
 use IO.FormattedIO;
 
+config const acceptableVariance = 2;
+
 // Takes in the graph read in from a dataset and outputs the desired amount of edges from ChungLu
 proc desiredEdges(graph) {
   const vertexDegrees = graph.getVertexDegrees();
@@ -30,7 +32,7 @@ proc main() {
   var clGraph = fast_hypergraph_chung_lu(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), inclusions_to_add);
   var (actualDuplicates, actualUnique) = desiredEdges(clGraph);
   
-  assert(actualUnique > expectedUnique * 0.9, "Too many duplicates: ", actualDuplicates, ", expected: ", expectedDuplicates);
+  assert(actualDuplicates / expectedDuplicates < acceptableVariance, "Too many duplicates: ", actualDuplicates, ", expected: ", expectedDuplicates);
   var output = open("./generatedCL_output.csv", iomode.cw);
   var writer = output.writer();
 
