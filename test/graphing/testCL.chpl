@@ -4,24 +4,39 @@ use AdjListHyperGraph;
 use Generation;
 use IO.FormattedIO;
 
+// Takes in the graph read in from a dataset and outputs the desired amount of edges from ChungLu
+proc desiredEdges(graph) {
+  const vertexDegrees = graph.getVertexDegrees();
+  const edgeDegrees = graph.getEdgeDegrees();
+  const sumDesiredDegree = + reduce vertexDegrees;
+  const vertexDegreeSquaredSum = + reduce vertexDegrees ** 2;
+  const edgeDegreeSquaredSum = + reduce edgeDegrees ** 2;
+  const expectedNumDuplicateEdges = 0.5 * ((vertexDegreeSquaredSum / sumDesiredDegree) * (edgeDegreeSquaredSum / sumDesiredDegree));
+  const expectedNumUniqueEdges = sumDesiredDegree - expectedNumDuplicateEdges;
+  writeln("# of Duplicates: ", expectedNumDuplicateEdges);
+  writeln("# of Unique: ", expectedNumUniqueEdges);
+  return (expectedNumDuplicateEdges, expectedNumUniqueEdges);
+}
 
 proc main() {
-  var graph = fromAdjacencyList("../../test/data-samples/condMat.txt", " ");
+  var graph = fromAdjacencyList("../../data/condMatCL/condMatCL.csv"); 
+  var (expectedDuplicates, expectedUnique) = desiredEdges(graph);
   const numVertices = graph.numVertices;
   const numEdges = graph.numEdges;
   const inclusions_to_add = + reduce graph.getVertexDegrees();
-  writeln(inclusions_to_add);
+  writeln("# of Inclusions: ", inclusions_to_add);
 
   var test_graph = new AdjListHyperGraph(numVertices,numEdges);
   var clGraph = fast_hypergraph_chung_lu(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), inclusions_to_add);
+  var (actualDuplicates, actualUnique) = desiredEdges(clGraph);
   
-  
+  assert(actualUnique > expectedUnique * 0.9, "Too many duplicates: ", actualDuplicates, ", expected: ", expectedDuplicates);
   var output = open("./generatedCL_output.csv", iomode.cw);
   var writer = output.writer();
 
   for i in clGraph.getVertices(){
     for j in clGraph.getNeighbors(i) {
-      var s:string = "%i,%i".format(i,j.id);
+      var s:string = "%i,%i".format(i.id,j.id);
       writer.writeln(s);
     }
   }
