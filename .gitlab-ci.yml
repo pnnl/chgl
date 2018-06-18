@@ -25,3 +25,4 @@ chpldoc:
     paths: 
     - docs
     expire_in: 1 month
+  allow_failure: true
