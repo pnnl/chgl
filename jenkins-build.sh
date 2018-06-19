@@ -4,8 +4,7 @@
 
 # TODO parameterize vs hard-coded path?
 CHAPEL_HOME=/home/zale916/software/chapel/master-source
-#CHAPEL_HOME=/home/jenkins/chapel
-WORKSPACE=/home/jenkins/chgl-workspace
+WORKSPACE=/lustre/jenkins/chgl-workspace
 
 # Load required modules
 module load gcc/7.1.0
