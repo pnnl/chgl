@@ -6,6 +6,8 @@
 CHAPEL_HOME=/home/zale916/software/chapel/master-source
 WORKSPACE=/lustre/jenkins/chgl-workspace
 
+CHPL_TEST_LAUNCHCMD=$CHPL_HOME/util/test/chpl_launchcmd.py
+
 # Load required modules
 module load gcc/7.1.0
 module load openmpi/2.1.1
