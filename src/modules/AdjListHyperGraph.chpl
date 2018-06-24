@@ -12,23 +12,6 @@
    are in the Chapel repository).  Borrowed from the chapel repository. Comes
    with Cray copyright and Apache license (see the Chapel repo).
  */
-
-// TODO: Intents on arguments?  TODO: Graph creation routines.  More todos in
-// the Gitlab issues system.  In general, all but the tiniest todos should
-// become issues in Gitlab.
-
-
-/*
-   Some assumptions:
-
-   1. It is assumed that push_back increases the amount of available
-   memory by some factor.  The current implementation of push_back
-   supports this assumption.  Making this assumption allows us not to
-   worry about reallocating the array on every push_back.  If we
-   wanted to have more fine-grained control over memory, we will have
-   to investigate adding mechanisms to control it.
- */
-
 module AdjListHyperGraph {
   use IO;
   use CyclicDist;
@@ -37,7 +20,40 @@ module AdjListHyperGraph {
   use Search;
 
   /*
-    Record-Wrapped structure
+    Record-wrapper for the AdjListHyperGraphImpl. The record-wrapper follows from the optimization
+    that Chapel's arrays, domains, and ranges use to eliminate communication that is inherent in
+    in how Chapel represents pointers to potentially remote objects. Pointers in Chapel can be your
+    normal 64-bit integer, or a widened 128-bit C struct, which holds both the 64-bit pointer
+    as well as the locale id (32-bit integer) and a sublocale id (32-bit integer), the former used to
+    describe the cluster node the memory is hosted on, and the latter describing the NUMA node the
+    memory is allocated on. This is also the reason why you can declare a `atomic` class instance
+    in Chapel.
+
+    Since objects are hosted on a single node and do not migrate, a load and store to an object allocated
+    in some other locale's address space will resolve to a GET and PUT respectively. Method invocation of
+    a remote object is handled locally, but each load/store to the class fields are treated as remote PUT/GET,
+    resulting in abysmal performance. To instruct that a method be performed on the locale that it is allocated
+    on, care should be used that the body of the method is wrapped in an `on this` block. Note that it is not
+    always appropriate to do this, as this creates a load imbalance and will result to degrading performance;
+    as well, it has been found that with Cray's Aries Network Atomics, remote PUT/GET operations are significantly
+    faster than remote execution. 
+
+    The AdjListHyperGraph makes use of privatization, a process in which a local-copy of the object is created
+    on each locale, documented as part of the DSI (Domain map Standard Interface). Privatization internally is
+    implemented as a runtime table (C array), where the user can retrieve a privatized copy by the privatization
+    id, the index into the table. Each copy will share the same privatization id so that it can be used across
+    multiple locales; all locales will create a privatized copy, even the ones that the data structure is not
+    intended to be distributed over. Calling `_newPrivatizedClass(this)` will create a privatized copy on each
+    locale. Calling `chpl_getPrivatizedClass(this.type, pid)` where `pid` is the privatization id, will obtain
+    the privatized instance for the current node to work on. Be aware that you must always access data through
+    the privatized instance for performance sake, and that privatized instances, after creation, can be mutated
+    independently of each other.
+
+    Note also: arrays make use of a specific compiler-optimization for their record-wrappers called 'remote value
+    forwarding' where the record is used by value in `forall` and `coforall` loops, rather than by reference.
+    Since this is currently hard-coded for Chapel's arrays and domains, the user must manually make a copy of the
+    record-wrapper to prevent it from being used by-reference, thereby negating the whole point of privatization.
+    Hint: A reference to a remote object is treated as a wide pointer.
   */
   record AdjListHyperGraph {
     // Instance of our AdjListHyperGraphImpl from node that created the record
