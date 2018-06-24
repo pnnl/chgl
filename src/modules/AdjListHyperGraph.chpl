@@ -199,6 +199,80 @@ module AdjListHyperGraph {
         other.lock.release();
       }
     }
+    
+    // Removes duplicates... sorts the neighborlist before doing so
+    proc removeDuplicateNeighbors() {
+      on this {
+        lock.acquire();
+
+        sortNeighbors();
+        
+        var newDom = neighborListDom;
+        var newNeighbors : [newDom] nodeIdType;
+        var oldNeighborIdx = neighborListDom.low;
+        var newNeighborIdx = newDom.low;
+
+        newNeighbors[newNeighborIdx] = neighborList[newNeighborIdx];
+        while (oldNeighborIdx <= neighborListDom.high) {
+          if neighborList[oldNeighborIdx] != newNeighbors[newNeighborIdx] {
+            newNeighborIdx += 1;
+            newNeighbors[newNeighborIdx] = neighborList[oldNeighborIdx];
+          }
+          oldNeighborIdx += 1;
+        }
+        
+        neighborListDom = {newDom.low..newNeighborIdx};
+        neighborList = newNeighbors[newDom.low..newNeighborIdx];
+        lock.release();
+      }
+    }
+
+    // Obtains the intersection of the neighbors of 'this' and 'other'.
+    // Associative arrays are extremely inefficient, so we have to roll
+    // our own intersection. We do this by sorting both data structures...
+    // TODO: Profile
+    proc neighborIntersection(other : this.type) {
+      // Acquire mutual exclusion on both
+      cobegin {
+        on this do lock.acquire();
+        on other do other.lock.acquire();
+      }
+
+      // Possibly remote accesses, copy by value...
+      const thisDom = neighborListDom;
+      const otherDom = other.neighborListDom;
+
+      var (idxThis, idxOther) = (thisDom.low, otherDom.low);
+      var intersection : [1..0] int;
+      
+      // Perform this operation in N chunks...
+      /*
+      while idxA <= newA.domain.high && idxB <= newB.domain.high {
+        const a = newA[idxA];
+        const b = newB[idxB];
+        if a == b { intersection.push_back(a); idxA += 1; idxB += 1; }
+        else if a > b then idxB += 1;
+        else idxA += 1;
+      }
+      */
+      halt("Intersection not yet implemented... TODO");
+
+      cobegin {
+        on this {
+          lock.release();
+        }
+        on other {
+          other.lock.release();
+        }
+      }
+    }
+
+    proc sortNeighbors() {
+      on this do if !isSorted {
+        sort(neighborList);
+        isSorted = true;
+      }
+    }
 
     proc hasNeighbor(n : nodeIdType) {
       var retval : bool;
@@ -206,10 +280,7 @@ module AdjListHyperGraph {
         lock.acquire();
 
         // Sort if not already
-        if !isSorted {
-          sort(neighborList);
-          isSorted = true;
-        }
+        sortNeighbors();
 
         // Search to determine if it exists...
         retval = search(neighborList, n, sorted = true)[1];
