@@ -17,13 +17,13 @@ cd $CHAPEL_HOME
 source util/setchplenv.sh
 
 # Execute unit tests
-#cd $WORKSPACE/test/unit
-#start_test -junit-xml -junit-xml-file $WORKSPACE/test/unit/Logs/chapel-unit-tests.xml -numlocales 4
+cd $WORKSPACE/test/unit
+start_test -junit-xml -junit-xml-file $WORKSPACE/test/unit/Logs/chapel-unit-tests.xml -numlocales 4
 
 # Execute peformance tests
-export CHPL_TEST_PERF_DIR=$WORKSPACE/test/performance/dat
-cd $WORKSPACE/test/performance
-start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test/performance/Logs/chapel-perf-tests.xml -numlocales 4
+#export CHPL_TEST_PERF_DIR=$WORKSPACE/test/performance/dat
+#cd $WORKSPACE/test/performance
+#start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test/performance/Logs/chapel-perf-tests.xml -numlocales 4
 
 # Generated HTML does not work locally or in Jenkins due to https://wiki.jenkins.io/display/JENKINS/Configuring+Content+Security+Policy. Copy files that use local resources instead.
-cp -r $WORKSPACE/test/performance/html $WORKSPACE/test/performance/dat
+#cp -r $WORKSPACE/test/performance/html $WORKSPACE/test/performance/dat
