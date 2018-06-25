@@ -26,6 +26,7 @@ module Channel {
     var other : Channel;
     var outBuf : c_void_ptr;
     var outBufSize : c_size_t;
+    var outBufPending : atomic bool;
     var inBuf : c_void_ptr;
     var inBufPending : atomic bool;
   }
@@ -42,17 +43,39 @@ module Channel {
   }
   
   proc Channel.send(data : c_ptr(?sendType)) {
-    if this.other != nil {
-      // Check size of current buffer
-      if this.outBufSize < c_sizeof(sendType) + c_sizeof(c_size_t) {
-        c_free(this.outBuf);
-        this.outBuf = c_malloc(c_uint8_t, c_sizeof(sendType) + c_sizeof(c_size_t));
-        other.inBuf = this.outBuf;
-      }
+    if this.other == nil then halt("Attempt to send on a non-paired Channel");
+    
+    outBufPending.waitFor(false);
 
-      // Write locally...
-      (this.outBuf : c_ptr(c_size_t))[0] = c_sizeof(sendType);
-      ((this.outBuf : c_ptr(c_uint8_t)) + c_sizeof(c_size_t)) : c_ptr(send
+    // Check size of current buffer
+    if this.outBufSize < c_sizeof(sendType) + c_sizeof(c_size_t) {
+      c_free(this.outBuf);
+      this.outBuf = c_malloc(c_uint8_t, c_sizeof(sendType) + c_sizeof(c_size_t));
+      other.inBuf = this.outBuf;
     }
+
+    // Write locally...
+    (this.outBuf : c_ptr(c_size_t))[0] = c_sizeof(sendType);
+    c_memcpy(this.outBuf + c_sizeof(c_size_t), data, c_sizeof(sendType));
+    
+    // Notify that there is pending data in buffer...
+    outBufPending.write(true);
+    other.inBufPending.write(true);
+  }
+
+  proc Channel.recv() : (c_size_t, c_void_ptr) {
+    if this.other == nil then halt("Attempt to receive on a non-paired Channel");
+    
+    this.inBufPending.waitFor(true);
+    
+    // Get input data
+    var data = c_malloc(c_uint8_t, c_sizeof(c_size_t) + c_sizeof(sendType));
+    if other.locale == here {
+      c_memcpy(data, this.inBuf, c_sizeof(c_size_t) + c_sizeof(sendType));
+    } else {
+      __primitive("chpl_comm_array_get", data, other.locale.id, this.inBuf, c_sizeof(c_size_t) + c_sizeof(sendType));
+    }
+
+    return ((data : c_ptr(c_size_t))[0], (data + c_sizeof(c_size_t)) : c_void_ptr);
   }
 }
