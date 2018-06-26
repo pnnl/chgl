@@ -25,3 +25,52 @@
     term.finish(ourParent);
   }
 */
+
+module TerminationDetection {
+  /*
+    Termination detector.
+  */
+  record TerminationDetector {
+    var instance;
+    var pid = -1;
+    
+    proc init() {
+      instance = new TerminationDetectorImpl();
+      pid = instance.pid;
+    }
+
+    proc _value {
+      if pid == -1 then halt("TerminationDetector is uninitialized...");
+      return chpl_getPrivatizedClass(instance.type, pid);
+    }
+
+    forwarding _value;
+  }
+
+  class TerminationDetectorImpl {
+    
+    var pid = -1;
+
+    proc init() {
+      complete();
+      this.pid = _newPrivatizedClass(this);
+    }
+
+    proc init(other, pid) {
+      this.pid = pid;
+    }
+
+    proc dsiPrivatize(pid) {
+      return new TerminationDetectorImpl(this, pid);
+    }
+
+    proc dsiGetPrivatizedData() {
+      return pid;
+    }
+
+    inline proc getPrivatizedInstance() {
+      return chpl_getPrivatizedCopy(this.type, pid);
+    }
+  }
+
+}
