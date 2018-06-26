@@ -70,19 +70,58 @@ module TerminationDetection {
       var ret = tasksFinished.fetchAdd(n);
       assert(ret >= 0 && ret + n >= 0, "tasksFinished overflowed in 'finished': (", ret, " -> ", ret + n, ")");
     }
+  
+    // Wait for the termination of all tasks
+    proc wait() {
+      var state = 0;
+      var started = 0;
+      var finished = 0;
 
-    proc isFinished() : bool {
-      // Check local first...
-      if tasksStarted.read() != tasksFinishes.read() {
-        return false;
-      }
-      
-      // Check globally...
-      var notFinished : atomic bool;
-      coforall loc in Locales do on loc {
-        const _this = getPrivatizedInstance();
-        if _this.tasksStarted.read() != _this.tasksFinished.read() {
-          notFinished.write(true);
+      while true {
+        select state {
+          // Check if all counters add up to 0.
+          when 0 {
+            coforall loc in Locales do on loc with (+ reduce started, + reduce finished) {
+              const _this = getPrivatizedInstance();
+              started += _this.tasksStarted.read();
+              finished += _this.tasksFinished.read();
+            }
+
+            // Check if all started tasks have finished
+            if started == finished {
+              state = 1;
+            } else {
+              chpl_task_yield();
+            }
+          }
+          // Check if all counters add up to what we had before...
+          when 1 {
+            var newStarted = 0;
+            var newFinished = 0;
+            coforall loc in Locales do on loc with (+ reduce newStarted, + reduce newFinished) {
+              const _this = getPrivatizedInstance();
+              newStarted += _this.tasksStarted.read();
+              newFinished += _this.tasksFinished.read();
+            }
+
+            // Check if finished...
+            if newStarted == newFinished {
+              // Check if no changes since last check...
+              if newStarted == started && newFinished == finished {
+                // No change, termination of all tasks detected...
+                return;
+              } else {
+                // Update started and finished tasks and try again...
+                started = newStarted;
+                finished = newFinished;
+                chpl_task_yield();
+              }
+            } else {
+              // Not finished...
+              state = 0;
+              chpl_task_yield();
+            }
+          }
         }
       }
     }
