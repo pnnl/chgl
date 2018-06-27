@@ -211,19 +211,20 @@ module AdjListHyperGraph {
         var newNeighbors : [newDom] nodeIdType;
         var oldNeighborIdx = neighborListDom.low;
         var newNeighborIdx = newDom.low;
-
-        newNeighbors[newNeighborIdx] = neighborList[newNeighborIdx];
-        while (oldNeighborIdx <= neighborListDom.high) {
-          if neighborList[oldNeighborIdx] != newNeighbors[newNeighborIdx] {
-            newNeighborIdx += 1;
-            newNeighbors[newNeighborIdx] = neighborList[oldNeighborIdx];
-          }
-          oldNeighborIdx += 1;
-        }
-        
-        neighborListDom = {newDom.low..newNeighborIdx};
-        neighborList = newNeighbors[newDom.low..newNeighborIdx];
-        lock.release();
+	if neighborList.size != 0 {
+          newNeighbors[newNeighborIdx] = neighborList[newNeighborIdx];
+	  while (oldNeighborIdx <= neighborListDom.high) {
+	    if neighborList[oldNeighborIdx] != newNeighbors[newNeighborIdx] {
+	      newNeighborIdx += 1;
+	      newNeighbors[newNeighborIdx] = neighborList[oldNeighborIdx];
+	    }
+	    oldNeighborIdx += 1;
+	  }
+	  
+	  neighborListDom = {newDom.low..newNeighborIdx};
+	  neighborList = newNeighbors[newDom.low..newNeighborIdx];
+	}
+	lock.release();
       }
     }
 
