@@ -391,141 +391,48 @@ module AdjListHyperGraph {
   // Size of buffer is enough for one megabyte of bulk transfer by default.
   config param AdjListHyperGraphBufferSize = ((1024 * 1024) / OperationDescriptorSize) : int(64);
 
-  /*
-    OperationDescriptor types...
-  */
-  param OPERATION_NONE = 0;
-  param OPERATION_ADD_INCLUSION_VERTEX = 1;
-  param OPERATION_ADD_INCLUSION_EDGE = 2;
+  
 
-  record OperationDescriptor {
-     var op : int(64);
-     /* For AddInclusion */
-     var srcId : int(64);
-     var destId : int(64);
-  }
-
-  /*
-    Status of the sendBuffer...
-  */
-  // Buffer is okay to use and send...
   param BUFFER_OK = 0;
-  // Buffer is full and is sending, cannot be used yet...
-  param BUFFER_SENDING = 1;
-  // Buffer is being sent, but not yet processed... can be used but not yet sent
-  param BUFFER_SENT = 2;
+  param BUFFER_FULL = 1;
 
+  enum DescriptorType { None, Vertex, Edge };
 
-  // Each locale will have its own communication buffer, which will handle
-  // sending and receiving data. TODO: Add documentation...
-  pragma "use default init"
-  pragma "default intent is ref"
-  record CommunicationBuffers {
-    var locid : int(64);
-    var sendBuffer :  AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
-    var recvBuffer : AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
-
-    // Status of send buffers...
-    var bufferStatus : [1..AdjListHyperGraphNumBuffers] atomic int;
-    // Index of currently processed buffer...
-    var bufferIdx : atomic int;
-    // Number of claimed slots of the buffer...
-    var claimed : atomic int;
-    // Number of filled claimed slots...
+  record DestinationBuffer {
+    type vDescType;
+    type eDescType;
+    var buffer : [1..AdjListHyperGraphBufferSize] (int, int, DescriptorType);
+    var size : atomic int;
     var filled : atomic int;
 
-    // Send data in bulk...
-    proc send(idx) {
-      const toSend = sendBuffer[idx];
-      const toRecv = recvBuffer[idx];
-      const sendSize = AdjListHyperGraphBufferSize;
-      __primitive("chpl_comm_array_put", toSend[0], locid, toRecv[0], sendSize);
-    }
-
-    // Receive data in bulk...
-    proc recv(idx) {
-      const toSend = sendBuffer[idx];
-      const toRecv = recvBuffer[idx];
-      const recvSize = AdjListHyperGraphBufferSize;
-      __primitive("chpl_comm_array_get", toRecv[0], locid, toSend[0], recvSize);
-    }
-
-    // Clear send buffer with default values
-    proc zero(idx) {
-      const toZero = sendBuffer[idx];
-      const zeroSize = AdjListHyperGraphBufferSize * OperationDescriptorSize;
-      c_memset(sendBuffer, 0, zeroSize);
-    }
-
-    // Appends operation descriptor to appropriate communication buffer. If buffer
-    // is full, the task that was the last to fill the buffer will handle switching
-    // out the current buffer and sending the full buffer. If the return value is
-    // not 0, then it is index of the buffer that was sent but needs processing...
-    proc append(op) : int {
-      // Obtain our buffer slot; if we get an index out of bounds, we must wait
-      // until the buffer has been swapped out by another thread...
-      var idx = claimed.fetchAdd(1) + 1;
+    proc append(src, dest, srcType) : int {
+      // Get our buffer slot
+      var idx = size.fetchAdd(1) + 1;
       while idx > AdjListHyperGraphBufferSize {
         chpl_task_yield();
-        idx = claimed.fetchAdd(1) + 1;
+        idx = size.fetchAdd(1) + 1;
       }
       assert(idx > 0);
 
-      // We have a position in the buffer, now obtain the current buffer. The current
-      // buffer will not be swapped out until we finish our operation, as we do not
-      // notify that we have filled the buffer until after, which has a full memory
-      // barrier. TODO: Relax the read of bufIdx?
-      const bufIdx = bufferIdx.read();
-      sendBuffer[bufIdx][idx] = op;
-      const nFilled = filled.fetchAdd(1) + 1;
+      // Fill our buffer slot and notify as filled...
+      buffer[idx] = (src, dest, srcType);
+      var nFilled = filled.fetchAdd(1) + 1;
 
-      // If we have filled the buffer, we are in charge of swapping them out...
+      // Check if we filled the buffer...
       if nFilled == AdjListHyperGraphBufferSize {
-        if AdjListHyperGraphNumBuffers <= 1 {
-          halt("Logic unimplemented for AdjListHyperGraphNumBuffers == ", AdjListHyperGraphNumBuffers);
-        }
-
-        // If a pending operation has not finished, wait for it then claim it...
-        while bufferStatus[bufIdx].read() != BUFFER_OK do chpl_task_yield();
-        bufferStatus[bufIdx].write(BUFFER_SENDING);
-
-        // Poll for a buffer not currently sending...
-        var newBufIdx = bufIdx + 1;
-        while true {
-          if newBufIdx > AdjListHyperGraphNumBuffers {
-            newBufIdx = 1;
-            chpl_task_yield();
-          }
-
-          if newBufIdx != bufIdx && bufferStatus[newBufIdx].read() != BUFFER_SENDING {
-            break;
-          }
-          newBufIdx += 1;
-        }
-
-
-        // Set as new buffer...
-        bufferIdx.write(newBufIdx);
-        filled.write(0);
-        claimed.write(0);
-
-        // Send buffer...
-        send(bufIdx);
-        bufferStatus[bufIdx].write(BUFFER_SENT);
-
-        // Returns buffer needing to be processed on target locale...
-        return bufIdx;
+        return BUFFER_FULL;
       }
 
-      // Nothing needs to be done...
-      return 0;
+      return BUFFER_OK;
     }
 
-    // Indicates that the buffer has been processed appropriate, freeing up its use.
-    proc processed(idx) {
-      bufferStatus[idx].write(BUFFER_OK);
+    proc clear() {
+      buffer = (0, 0, DescriptorType.None);
+      filled.write(0);
+      size.write(0);
     }
   }
+
 
   /*
      Adjacency list hypergraph.
@@ -553,14 +460,13 @@ module AdjListHyperGraph {
 
     var _vertices : [_verticesDomain] NodeData(eDescType);
     var _edges : [_edgesDomain] NodeData(vDescType);
-    var _commMatrix : [{0..#numLocales, 0..#numLocales}] CommunicationBuffers;
+    var _destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
 
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
     var _privatizedVerticesPID = _vertices.pid;
     var _privatizedEdgesPID = _edges.pid;
     var _masterHandle : object;
-
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
@@ -575,7 +481,9 @@ module AdjListHyperGraph {
       forall v in _vertices do v = new NodeData(eDescType);
       forall e in _edges do e = new NodeData(vDescType);
 
-      // TODO: Setup matrix
+      // Clear buffer...
+      forall buf in this._destBuffer do buf.clear();
+
       this.pid = _newPrivatizedClass(this);
     }
   
@@ -590,6 +498,9 @@ module AdjListHyperGraph {
       
       forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new NodeData(theirV);
       forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new NodeData(theirE);     
+      
+      // Clear buffer...
+      forall buf in this._destBuffer do buf.clear();
       this.pid = _newPrivatizedClass(this);
     }
 
@@ -609,11 +520,12 @@ module AdjListHyperGraph {
       complete();
 
       // Obtain privatized instance...
-      if other.locale.id == 0 {
+      if other._masterHandle == nil {
         this._masterHandle = other;
         this._privatizedVertices = other._vertices._value;
         this._privatizedEdges = other._edges._value;
       } else {
+        assert(other._masterHandle != nil, "Parent not properly privatized... Race Condition Detected... here: ", here, ", other: ", other.locale);
         this._masterHandle = other._masterHandle;
         var instance = this._masterHandle : this.type;
         this._privatizedVertices = instance._vertices._value;
@@ -622,7 +534,8 @@ module AdjListHyperGraph {
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
 
-      // TODO: Setup matrix
+      // Clear buffer...
+      forall buf in this._destBuffer do buf.clear();
     }
 
     pragma "no doc"
@@ -734,9 +647,33 @@ module AdjListHyperGraph {
     }
 
     // Note: this gets called on by a single task...
-    inline proc emptyBuffer(srcId, destId) {
-      on Locales[destId] {
-        // TODO: Handle operating on _commMatrix[srcId, destId]...
+    inline proc emptyBuffer(locid, buffer) {
+      on Locales[locid] {
+        var localBuffer = buffer.buffer;
+        var localThis = getPrivatizedInstance();
+        forall (srcId, destId, srcType) in localBuffer {
+          select srcType {
+            when DescriptorType.Vertex {
+              if !localThis.verticesDomain.member(srcId) {
+                halt("Vertex out of bounds on locale #", locid, ", domain = ", localThis.verticesDomain);
+              }
+              ref v = localThis.vertex(srcId);
+              if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
+              v.addNodes(toEdge(destId));
+            }
+            when DescriptorType.Edge {
+              if !localThis.edgesDomain.member(srcId) {
+                halt("Edge out of bounds on locale #", locid, ", domain = ", localThis.edgesDomain);
+              }
+              ref e = localThis.edge(srcId);
+              if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
+              localThis.edge(srcId).addNodes(toVertex(destId));
+            }
+            when DescriptorType.None {
+              // NOP
+            }
+          }
+        }
       }
     }
 
@@ -744,11 +681,13 @@ module AdjListHyperGraph {
       // Clear on all locales...
       coforall loc in Locales do on loc {
         const _this = getPrivatizedInstance();
-        forall (src, dest) in _commMatrix.domain {
-          emptyBuffer(src, dest);
+        forall (locid, buf) in zip(LocaleSpace, _this._destBuffer) {
+          emptyBuffer(locid, buf);
+          buf.clear();
         }
       }
     }
+
 
     // Resize the edges array
     // This is not parallel safe AFAIK.
@@ -765,29 +704,30 @@ module AdjListHyperGraph {
     }
 
     proc addInclusionBuffered(v, e) {
-      const vDesc = toVertex(v);
-      const eDesc = toEdge(e);
-      const vOpDesc = new OperationDescriptor(OPERATION_ADD_INCLUSION_VERTEX, vDesc.id, eDesc.id);
-      const eOpDesc = new OperationDescriptor(OPERATION_ADD_INCLUSION_EDGE, eDesc.id, vDesc.id);
+      const vDesc = v : vDescType;
+      const eDesc = e : eDescType;
 
       // Push on local buffers to send later...
-      const vLocId = getVertex(vDesc).locale.id;
-      const eLocId = getEdge(eDesc).locale.id;
-      ref vBuf =  _commMatrix[here.id, vLocId];
-      ref eBuf = _commMatrix[here.id, eLocId];
+      var vLocId = vertex(vDesc.id).locale.id;
+      var eLocId = edge(eDesc.id).locale.id;
+      ref vBuf =  _destBuffer[vLocId];
+      ref eBuf = _destBuffer[eLocId];
 
-      var vStatus = vBuf.append(vOpDesc);
-      if vStatus != 0 {
-        emptyBuffer(here.id, vStatus);
-        vBuf.processed(vStatus);
+      var vStatus = vBuf.append(vDesc.id, eDesc.id, DescriptorType.Vertex);
+      if vStatus == BUFFER_FULL {
+        emptyBuffer(vLocId, vBuf);
+        vBuf.clear();
       }
 
-      var eStatus = eBuf.append(eOpDesc);
-      if eStatus != 0 {
-        emptyBuffer(here.id, eStatus);
-        eBuf.processed(eStatus);
+      var eStatus = eBuf.append(eDesc.id, vDesc.id, DescriptorType.Edge);
+      if eStatus == BUFFER_FULL {
+        emptyBuffer(eLocId, eBuf);
+        eBuf.clear();
       }
+
+      if vDesc.id == 0 && vLocId != 0 then writeln(here, ": ", (vDesc.id, eDesc.id, DescriptorType.Vertex), "vDesc locale: ", vertex(vDesc.id).locale.id);
     }
+
 
     inline proc addInclusion(v, e) {
       const vDesc = toVertex(v);

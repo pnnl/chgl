@@ -106,9 +106,10 @@ module Generation {
           for 1..perTaskInclusions {
             var vertex = get_random_element(verticesDomain, vertexScan, randStream.getNext());
             var edge = get_random_element(edgesDomain, edgeScan, randStream.getNext());
-            graph.addInclusion(vertex, edge);
+            graph.addInclusionBuffered(vertex, edge);
           }
         }
+        graph.emptyBuffer();
       }
       // TODO: Remove duplicate edges...
       return graph;

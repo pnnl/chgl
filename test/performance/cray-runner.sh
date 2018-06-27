@@ -1,8 +1,8 @@
 #!/bin/bash
 
-numVertices=100000
-numEdges=100000
-probability=0.005
+numVertices=1000000
+numEdges=1000000
+probability=0.01
 
 while getopts ":v:e:c:" opt; do
   case ${opt} in
@@ -30,7 +30,7 @@ BINARY=$@
 set -x
 
 for NODES in 1 2 4 8 16 32; do
-for THREADS in 1 2 4 8 16 32; do
+for THREADS in 44; do
 probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
 qsub - <<EOF
 #!/bin/bash -l

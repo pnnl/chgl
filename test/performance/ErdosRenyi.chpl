@@ -24,7 +24,6 @@ timer.stop();
 
 
 writeln("Time:", timer.elapsed());
-writeln("Inclusions:", graph.getInclusions());
 writeln("Probability:", edgeProbability);
 writeln("Nodes:", numLocales);
 writeln("NumVertices:", numVertices);
