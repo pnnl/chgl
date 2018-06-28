@@ -73,10 +73,15 @@ module AdjListHyperGraph {
       instance = new AdjListHyperGraphImpl(numVertices, numEdges, map);
       pid = instance.pid;
     }
-  
+    
+    proc init(other) {
+      instance = other.instance;
+      pid = other.pid;
+    }
+
     // TODO: Copy initializer produces an internal compiler error (compilation error after codegen),
     // COde that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
-    proc init(other) {
+    proc clone(other) {
       instance = new AdjListHyperGraphImpl(other);
       pid = instance.pid;
     }
@@ -487,8 +492,9 @@ module AdjListHyperGraph {
       this.pid = _newPrivatizedClass(this);
     }
   
-    // Copy initializer...
-    proc init(other) {
+    // Note: Do not create a copy initializer as it is called whenever you create a copy
+    // of the object. This is undesirable.
+    proc clone(other) {
       const verticesDomain = other._verticesDomain;
       const edgesDomain = other._edgesDomain;
       this._verticesDomain = verticesDomain;
@@ -520,7 +526,7 @@ module AdjListHyperGraph {
       complete();
 
       // Obtain privatized instance...
-      if other._masterHandle == nil {
+      if other.locale.id == 0 {
         this._masterHandle = other;
         this._privatizedVertices = other._vertices._value;
         this._privatizedEdges = other._edges._value;
@@ -704,8 +710,8 @@ module AdjListHyperGraph {
     }
 
     proc addInclusionBuffered(v, e) {
-      const vDesc = v : vDescType;
-      const eDesc = e : eDescType;
+      const vDesc = toVertex(v);
+      const eDesc = toEdge(e);
 
       // Push on local buffers to send later...
       var vLocId = verticesDist.idxToLocale(vDesc.id).locale.id;

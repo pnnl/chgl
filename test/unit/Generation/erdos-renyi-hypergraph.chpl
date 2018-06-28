@@ -13,7 +13,6 @@ for vertex_id in graph.verticesDomain {
 }
 var expected_num_inclusions = prob*num_vertices*num_edges;
 var half_width = expected_num_inclusions * 0.5;
-//writeln(num_inclusions);
 var test_passed = false: bool;
 test_passed = num_inclusions >= (expected_num_inclusions - half_width) && num_inclusions <= (expected_num_inclusions + half_width);
 writeln(test_passed);

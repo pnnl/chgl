@@ -96,7 +96,7 @@ module Generation {
         }
       }
     }
-
+    
     return graph;
   }
 
