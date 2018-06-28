@@ -1,28 +1,35 @@
 /*
-  Need to perform termination detection...
+  In termination detection, each time a task spawns another task, the spawning task
+  becomes the parent and the spawned task is the child. The parent must increment the
+  'tasksStarted' counter each time it creates a child, and the child must increment the
+  'tasksFinished' counter before being destroyed. Each locale has its own privatized counters,
+  so if the parent and child are not located on the same locale, the increment and decrement 
+  occur on the respective locales counters, hence a locale can have a 'tasksStarted' counter that is 
+  higher or lower than the 'tasksFinished' counter, even if all tasks have terminated. The benefit
+  to having increments being local is the increased locality.
 
-  var startedTasks : [] atomic int;
-  var finishedTasks : [] atomic int;
+  Determining whether or not all tasks have terminated involves performing multiple distributed
+  reductions, which Chapel makes very easy. Spawning a remote task on each node, and using the
+  reduce intent is enough to implement a distributed reduction. Once the reduction has been
+  performed twice, and if there has been no update, and if both times the reduction of both
+  the 'tasksStarted' and 'tasksFinished' are equivalent, no task is alive at that given time. 
   
-  Where both are distributed across all locales specified...
-  Need privatization so that the object can be used appropriately.
-  Potential usage could be...
+  Example of its usage...
 
-  proc visit(n : node, term : TerminationDetection, ourParent : locale) {
-    var theirParent = here;
+  proc visit(n : node, term : TerminationDetection) {
     doSomethingTo(n.data);
     
-    // Increments startedTasks for 'here'
+    // About to spawn two tasks...
     term.start(2);
     begin on n.left {
-      visit(n.left, term, theirParent);
+      visit(n.left, term);
     }
     begin on n.right {
-      visit(n.right, term, theirParent);
+      visit(n.right, term);
     }
 
-    // Increment finishedTasks for 'ourParent'
-    term.finish(ourParent);
+    // Task just finished...
+    term.finish();
   }
 */
 
@@ -81,7 +88,7 @@ module TerminationDetection {
         select state {
           // Check if all counters add up to 0.
           when 0 {
-            coforall loc in Locales do on loc with (+ reduce started, + reduce finished) {
+            coforall loc in Locales with (+ reduce started, + reduce finished) do on loc {
               const _this = getPrivatizedInstance();
               started += _this.tasksStarted.read();
               finished += _this.tasksFinished.read();
@@ -98,7 +105,7 @@ module TerminationDetection {
           when 1 {
             var newStarted = 0;
             var newFinished = 0;
-            coforall loc in Locales do on loc with (+ reduce newStarted, + reduce newFinished) {
+            coforall loc in Locales with (+ reduce newStarted, + reduce newFinished) do on loc {
               const _this = getPrivatizedInstance();
               newStarted += _this.tasksStarted.read();
               newFinished += _this.tasksFinished.read();
