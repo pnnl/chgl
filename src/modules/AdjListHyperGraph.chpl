@@ -682,7 +682,7 @@ module AdjListHyperGraph {
       coforall loc in Locales do on loc {
         const _this = getPrivatizedInstance();
         forall (locid, buf) in zip(LocaleSpace, _this._destBuffer) {
-          emptyBuffer(locid, buf);
+          _this.emptyBuffer(locid, buf);
           buf.clear();
         }
       }
