@@ -17,33 +17,46 @@ module Generation {
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
 
-  proc fast_simple_er(graph, probability, targetLocales = Locales){
+  proc generateErdosRenyiSMP(graph, probability) {
     var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
-    coforall loc in targetLocales do on loc {
-        // Normalize both probabilities
-        const localGraph = graph;
-        var perLocaleInclusions = (inclusionsToAdd / numLocales) + (if here.id == 0 then (inclusionsToAdd % numLocales) else 0);
-        var seed$ : atomic int(64); seed$.write(0, memory_order_relaxed);
-        coforall tid in  1..here.maxTaskPar {
-          if localGraph.localEdgesDomain.size != 0 {
-            var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 1 then (perLocaleInclusions % here.maxTaskPar) else 0);
-            var randStream = new RandomStream(int(64), seed$.fetchAdd(1, memory_order_relaxed));
-            for 1..perTaskInclusions {
-              // A better way to get the max and min values for this random gen?
-              var vertex = randStream.getNext(0, localGraph.numVertices - 1);
-              var localEdgeIdx = randStream.getNext(0, localGraph.localEdgesDomain.size - 1);
-              var edge = localGraph.localEdgesDomain.low + localEdgeIdx * localGraph.localEdgesDomain.stride;
-              localGraph.addInclusion(vertex, edge);
-            }
-          }
-        }
+    // Perform work evenly across all tasks
+    coforall tid in 0..#here.maxTaskPar {
+      var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
+      // Each thread gets its own random stream to avoid acquiring sync var
+      var randStream = new RandomStream(int, tid);
+      for 1..perTaskInclusions {
+        var vertex = randStream.getNext(0, graph.numVertices - 1);
+        var edge = randStream.getNext(0, graph.numEdges - 1);
+        graph.addInclusion(vertex, edge);
       }
+    }
 
-    // TODO: Remove duplicate edges...
     return graph;
   }
 
-    proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
+  proc fast_simple_er(graph, probability, targetLocales = Locales){
+    var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
+    // Perform work evenly across all locales
+    coforall loc in targetLocales with (in graph) do on loc {
+      var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
+      coforall tid in 0..#here.maxTaskPar {
+        // Perform work evenly across all tasks
+        var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
+        // Each thread gets its own random stream to avoid acquiring sync var
+        var randStream = new RandomStream(int, here.id * here.maxTaskPar + tid);
+        for 1..perTaskInclusions {
+          var vertex = randStream.getNext(0, graph.numVertices - 1);
+          var edge = randStream.getNext(0, graph.numEdges - 1);
+          graph.addInclusionBuffered(vertex, edge);
+        }
+      }
+    }
+    graph.flushBuffers();
+    
+    return graph;
+  }
+
+  proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
     var desired_vertex_degrees: [vertices_domain] real;
     var desired_edge_degrees: [edges_domain] real;
     var num_vertices = vertices_domain.size;
@@ -59,61 +72,61 @@ module Generation {
 
 
   //Pending: Take seed as input
-	proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
-
+  proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
     // Spawn a remote task on each node...
-    coforall loc in targetLocales do on loc {
-        var randStream: RandomStream(real) = new RandomStream(real, 123);
+    coforall loc in targetLocales with (in graph) do on loc {
+      var randStream: RandomStream(real) = new RandomStream(real, 123);
 
-        // Process either vertices of edges in parallel based on relative size.
-        if graph.numVertices > graph.numEdges {
-          forall v in graph.localVerticesDomain {
-            for e in graph.localEdgesDomain {
-              if randStream.getNext() <= p {
-                graph.addInclusion(v,e);
-              }
+      // Process either vertices of edges in parallel based on relative size.
+      if graph.numVertices > graph.numEdges {
+        forall v in graph.localVerticesDomain {
+          for e in graph.localEdgesDomain {
+            if randStream.getNext() <= p {
+              graph.addInclusion(v,e);
             }
           }
-        } else {
-          forall e in graph.localEdgesDomain {
-            for v in graph.localVerticesDomain {
-              if randStream.getNext() <= p {
-                graph.addInclusion(v,e);
-              }
+        }
+      } else {
+        forall e in graph.localEdgesDomain {
+          for v in graph.localVerticesDomain {
+            if randStream.getNext() <= p {
+              graph.addInclusion(v,e);
             }
           }
         }
       }
-
-			return graph;
-		}
-
-    proc fast_hypergraph_chung_lu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales){
-      var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
-      var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
-      var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
-      var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
-      
-      // Perform work evenly across all locales
-      coforall loc in targetLocales do on loc {
-        var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-        coforall tid in 0..#here.maxTaskPar {
-          // Perform work evenly across all tasks
-          var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
-          // Each thread gets its own random stream to avoid acquiring sync var
-          // Note: This is needed due to issues with qthreads
-          var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
-          for 1..perTaskInclusions {
-            var vertex = get_random_element(verticesDomain, vertexScan, randStream.getNext());
-            var edge = get_random_element(edgesDomain, edgeScan, randStream.getNext());
-            graph.addInclusionBuffered(vertex, edge);
-          }
-        }
-        graph.emptyBuffer();
-      }
-      // TODO: Remove duplicate edges...
-      return graph;
     }
+
+    return graph;
+  }
+
+  proc fast_hypergraph_chung_lu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales){
+    var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
+    var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
+    var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
+    var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
+
+    // Perform work evenly across all locales
+    coforall loc in targetLocales with (in graph) do on loc {
+      var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
+      coforall tid in 0..#here.maxTaskPar {
+        // Perform work evenly across all tasks
+        var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
+        // Each thread gets its own random stream to avoid acquiring sync var
+        // Note: This is needed due to issues with qthreads
+        var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
+        for 1..perTaskInclusions {
+          var vertex = get_random_element(verticesDomain, vertexScan, randStream.getNext());
+          var edge = get_random_element(edgesDomain, edgeScan, randStream.getNext());
+          graph.addInclusionBuffered(vertex, edge);
+        }
+      }
+    }
+
+    graph.flushBuffers();
+    // TODO: Remove duplicate edges...
+    return graph;
+  }
 
   proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
     var inclusions_to_add =  + reduce desired_vertex_degrees:int;

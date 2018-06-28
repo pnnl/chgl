@@ -657,17 +657,17 @@ module AdjListHyperGraph {
               if !localThis.verticesDomain.member(srcId) {
                 halt("Vertex out of bounds on locale #", locid, ", domain = ", localThis.verticesDomain);
               }
-              ref v = localThis.vertex(srcId);
+              ref v = localThis.getVertex(srcId);
               if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
-              v.addNodes(toEdge(destId));
+              v.addNodes(localThis.toEdge(destId));
             }
             when DescriptorType.Edge {
               if !localThis.edgesDomain.member(srcId) {
                 halt("Edge out of bounds on locale #", locid, ", domain = ", localThis.edgesDomain);
               }
-              ref e = localThis.edge(srcId);
+              ref e = localThis.getEdge(srcId);
               if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
-              localThis.edge(srcId).addNodes(toVertex(destId));
+              e.addNodes(localThis.toVertex(destId));
             }
             when DescriptorType.None {
               // NOP
@@ -708,8 +708,8 @@ module AdjListHyperGraph {
       const eDesc = e : eDescType;
 
       // Push on local buffers to send later...
-      var vLocId = vertex(vDesc.id).locale.id;
-      var eLocId = edge(eDesc.id).locale.id;
+      var vLocId = verticesDist.idxToLocale(vDesc.id).locale.id;
+      var eLocId = edgesDist.idxToLocale(eDesc.id).locale.id;
       ref vBuf =  _destBuffer[vLocId];
       ref eBuf = _destBuffer[eLocId];
 
@@ -724,8 +724,6 @@ module AdjListHyperGraph {
         emptyBuffer(eLocId, eBuf);
         eBuf.clear();
       }
-
-      if vDesc.id == 0 && vLocId != 0 then writeln(here, ": ", (vDesc.id, eDesc.id, DescriptorType.Vertex), "vDesc locale: ", vertex(vDesc.id).locale.id);
     }
 
 
