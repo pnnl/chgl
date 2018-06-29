@@ -14,23 +14,24 @@
   performed twice, and if there has been no update, and if both times the reduction of both
   the 'tasksStarted' and 'tasksFinished' are equivalent, no task is alive at that given time. 
   
-  Example of its usage...
+  Example of its usage::
 
-  proc visit(n : node, term : TerminationDetection) {
-    doSomethingTo(n.data);
-    
-    // About to spawn two tasks...
-    term.start(2);
-    begin on n.left {
-      visit(n.left, term);
-    }
-    begin on n.right {
-      visit(n.right, term);
+    proc visit(n : node, term : TerminationDetection) {
+      doSomethingTo(n.data);
+      
+      // About to spawn two tasks...
+      term.start(2);
+      begin on n.left {
+        visit(n.left, term);
+      }
+      begin on n.right {
+        visit(n.right, term);
+      }
+
+      // Task just finished...
+      term.finish();
     }
 
-    // Task just finished...
-    term.finish();
-  }
 */
 
 module TerminationDetection {
