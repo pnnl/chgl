@@ -9,7 +9,7 @@ module Generation {
 
   //Pending: Take seed as input
   //Returns index of the desired item
-  inline proc get_random_element(elements, probabilities,randValue){
+  inline proc getRandomElement(elements, probabilities,randValue){
     for (idx, probability) in zip(0..#probabilities.size, probabilities) {
       if probability > randValue then return elements.low + idx;
     }
@@ -34,7 +34,7 @@ module Generation {
     return graph;
   }
 
-  proc fast_simple_er(graph, probability, targetLocales = Locales){
+  proc generateErdosRenyi(graph, probability, targetLocales = Locales){
     var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
     // Perform work evenly across all locales
     coforall loc in targetLocales with (in graph) do on loc {
@@ -56,7 +56,7 @@ module Generation {
     return graph;
   }
 
-  proc fast_adjusted_erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
+  proc generateErdosRenyiAdjusted(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
     var desired_vertex_degrees: [vertices_domain] real;
     var desired_edge_degrees: [edges_domain] real;
     var num_vertices = vertices_domain.size;
@@ -66,13 +66,13 @@ module Generation {
     // Adjust p for coupon collector
     var adjusted_p = if couponCollector then log(1/(1-p)) else p;
     var inclusions_to_add = (num_vertices*num_edges * adjusted_p): int;
-    var new_graph = fast_hypergraph_chung_lu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
+    var new_graph = generateChungLu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
     return new_graph;
   }
 
 
   //Pending: Take seed as input
-  proc erdos_renyi_hypergraph(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
+  proc generateErdosRenyiNaive(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
     // Spawn a remote task on each node...
     coforall loc in targetLocales with (in graph) do on loc {
       var randStream: RandomStream(real) = new RandomStream(real, 123);
@@ -100,7 +100,7 @@ module Generation {
     return graph;
   }
 
-  proc fast_hypergraph_chung_lu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales){
+  proc generateChungLu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales){
     var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
     var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
     var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
@@ -116,8 +116,8 @@ module Generation {
         // Note: This is needed due to issues with qthreads
         var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
         for 1..perTaskInclusions {
-          var vertex = get_random_element(verticesDomain, vertexScan, randStream.getNext());
-          var edge = get_random_element(edgesDomain, edgeScan, randStream.getNext());
+          var vertex = getRandomElement(verticesDomain, vertexScan, randStream.getNext());
+          var edge = getRandomElement(edgesDomain, edgeScan, randStream.getNext());
           graph.addInclusionBuffered(vertex, edge);
         }
       }
@@ -128,9 +128,9 @@ module Generation {
     return graph;
   }
 
-  proc fast_adjusted_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
+  proc generateChungLuAdjusted(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
     var inclusions_to_add =  + reduce desired_vertex_degrees:int;
-    return fast_hypergraph_chung_lu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
+    return generateChungLu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
   }
 
   proc generateBTER(
@@ -193,7 +193,7 @@ module Generation {
       var nE_int = nE:int;
       var verticesDomain = graph.verticesDomain[idV..idV + nV_int];
       var edgesDomain = graph.edgesDomain[idE..idE + nE_int];
-      fast_adjusted_erdos_renyi_hypergraph(graph, verticesDomain, edgesDomain, rho, couponCollector = true);
+      generateErdosRenyiAdjusted(graph, verticesDomain, edgesDomain, rho, couponCollector = true);
       idV += _round(nV);
       idE += _round(nE);
     }
@@ -207,6 +207,6 @@ module Generation {
       ed[e.id] = max(0, oldDeg - eDeg);
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
-    return fast_hypergraph_chung_lu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
+    return generateChungLu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
   }
 }

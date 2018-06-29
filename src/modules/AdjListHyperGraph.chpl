@@ -403,21 +403,27 @@ module AdjListHyperGraph {
 
   enum DescriptorType { None, Vertex, Edge };
 
+  pragma "default intent is ref"
   record DestinationBuffer {
     type vDescType;
     type eDescType;
-    var buffer : [1..AdjListHyperGraphBufferSize] (int, int, DescriptorType);
-    var size : atomic int;
+    var buffers : [0..#AdjListHyperGraphNumBuffers] [1..AdjListHyperGraphBufferSize] (int(64), int(64), DescriptorType);
+    var bufBusy : [0..#AdjListHyperGraphNumBuffers] atomic bool;
+    var bufIdx : atomic int;
+    var claimed : atomic int;
     var filled : atomic int;
 
     proc append(src, dest, srcType) : int {
       // Get our buffer slot
-      var idx = size.fetchAdd(1) + 1;
+      var idx = claimed.fetchAdd(1) + 1;
       while idx > AdjListHyperGraphBufferSize {
         chpl_task_yield();
-        idx = size.fetchAdd(1) + 1;
+        idx = claimed.fetchAdd(1) + 1;
       }
       assert(idx > 0);
+
+      const currBufIdx = bufIdx.read();
+      ref buffer = buffers[currBufIdx];
 
       // Fill our buffer slot and notify as filled...
       buffer[idx] = (src, dest, srcType);
@@ -425,16 +431,54 @@ module AdjListHyperGraph {
 
       // Check if we filled the buffer...
       if nFilled == AdjListHyperGraphBufferSize {
-        return BUFFER_FULL;
+        // Swap buffer...
+        bufBusy[currBufIdx].write(true);
+        // TODO: Handle when amount of buffers is 1...
+        label outer while true {
+          for (ix, busy) in zip(bufBusy.domain, bufBusy) {
+            if busy.read() == false {
+              bufIdx.write(ix);
+              break outer;
+            }
+          }
+          chpl_task_yield();
+        }
+
+        filled.write(0);
+        claimed.write(0);
+        
+        // Caller must now handle processing this buffer...
+        return currBufIdx;
       }
 
       return BUFFER_OK;
     }
+    
+    proc finished(idx) {
+      clear(idx);
+      bufBusy[idx].write(false);
+    }
 
-    proc clear() {
-      buffer = (0, 0, DescriptorType.None);
+    proc clear(idx) {
+      buffers[idx] = (0, 0, DescriptorType.None);
+    }
+
+    proc clearAll() {
+      forall b in buffers do b = (0, 0, DescriptorType.None);
+    }
+
+    proc reset() {
       filled.write(0);
-      size.write(0);
+      claimed.write(0);
+      clearAll();
+    }
+
+    proc awaitCompletion() {
+      forall busy in bufBusy {
+        while busy.read() == true {
+          chpl_task_yield();
+        }
+      }
     }
   }
 
@@ -455,7 +499,7 @@ module AdjListHyperGraph {
     var _verticesDomain; // domain of vertices
     var _edgesDomain; // domain of edges
 
-    // Privatization idi
+    // Privatization id
     var pid = -1;
 
     type vIndexType = index(_verticesDomain);
@@ -487,7 +531,7 @@ module AdjListHyperGraph {
       forall e in _edges do e = new NodeData(vDescType);
 
       // Clear buffer...
-      forall buf in this._destBuffer do buf.clear();
+      forall buf in this._destBuffer do buf.reset();
 
       this.pid = _newPrivatizedClass(this);
     }
@@ -506,7 +550,7 @@ module AdjListHyperGraph {
       forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new NodeData(theirE);     
       
       // Clear buffer...
-      forall buf in this._destBuffer do buf.clear();
+      forall buf in this._destBuffer do buf.reset();
       this.pid = _newPrivatizedClass(this);
     }
 
@@ -541,7 +585,7 @@ module AdjListHyperGraph {
       this._privatizedEdgesPID = other._privatizedEdgesPID;
 
       // Clear buffer...
-      forall buf in this._destBuffer do buf.clear();
+      forall buf in this._destBuffer do buf.reset();
     }
 
     pragma "no doc"
@@ -653,9 +697,13 @@ module AdjListHyperGraph {
     }
 
     // Note: this gets called on by a single task...
-    inline proc emptyBuffer(locid, buffer) {
+    // TODO: Need to send back a status saying buffer can be reused
+    // but is currently being processed remotely (maybe have a counter
+    // determining how many tasks are still processing the buffer), so
+    // that user knows when all operations have finished/termination detection.
+    inline proc emptyBuffer(locid, bufIdx, buffer) {
       on Locales[locid] {
-        var localBuffer = buffer.buffer;
+        var localBuffer = buffer.buffers[bufIdx];
         var localThis = getPrivatizedInstance();
         forall (srcId, destId, srcType) in localBuffer {
           select srcType {
@@ -681,6 +729,9 @@ module AdjListHyperGraph {
           }
         }
       }
+
+      // Signal that we finished current buffer
+      buffer.finished(bufIdx);
     }
 
     proc flushBuffers() {
@@ -688,8 +739,8 @@ module AdjListHyperGraph {
       coforall loc in Locales do on loc {
         const _this = getPrivatizedInstance();
         forall (locid, buf) in zip(LocaleSpace, _this._destBuffer) {
-          _this.emptyBuffer(locid, buf);
-          buf.clear();
+          _this.emptyBuffer(locid, buf.bufIdx.read(), buf);
+          buf.awaitCompletion();
         }
       }
     }
@@ -720,15 +771,19 @@ module AdjListHyperGraph {
       ref eBuf = _destBuffer[eLocId];
 
       var vStatus = vBuf.append(vDesc.id, eDesc.id, DescriptorType.Vertex);
-      if vStatus == BUFFER_FULL {
-        emptyBuffer(vLocId, vBuf);
-        vBuf.clear();
+      if vStatus != BUFFER_OK {
+        begin {
+          ref _vBuf = vBuf;
+          emptyBuffer(vLocId, vStatus,  _vBuf);
+        }
       }
 
       var eStatus = eBuf.append(eDesc.id, vDesc.id, DescriptorType.Edge);
-      if eStatus == BUFFER_FULL {
-        emptyBuffer(eLocId, eBuf);
-        eBuf.clear();
+      if eStatus != BUFFER_OK {
+        begin {
+          ref _eBuf = eBuf;
+          emptyBuffer(eLocId, eStatus, _eBuf);
+        }
       }
     }
 
@@ -736,9 +791,11 @@ module AdjListHyperGraph {
     inline proc addInclusion(v, e) {
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
-
-      getVertex(vDesc).addNodes(eDesc);
-      getEdge(eDesc).addNodes(vDesc);
+      
+      cobegin {
+        getVertex(vDesc).addNodes(eDesc);
+        getEdge(eDesc).addNodes(vDesc);
+      }
     }
 
     inline proc toEdge(id : eIndexType) {
@@ -896,118 +953,4 @@ module AdjListHyperGraph {
       // NOP
     }
   }
-
-  /* /\* iterate over all neighbor IDs */
-  /*  *\/ */
-  /* private iter Neighbors( nodes, node : index (nodes.domain) ) { */
-  /*   for nlElm in nodes(node).neighborList do */
-  /*     yield nlElm(1); // todo -- use nid */
-  /* } */
-
-  /* /\* iterate over all neighbor IDs */
-  /*  *\/ */
-  /* iter private Neighbors( nodes, node : index (nodes), param tag: iterKind) */
-  /*   where tag == iterKind.leader { */
-  /*   for block in nodes(v).neighborList._value.these(tag) do */
-  /*     yield block; */
-  /* } */
-
-  /* /\* iterate over all neighbor IDs */
-  /*  *\/ */
-  /* iter private Neighbors( nodes, node : index (nodes), param tag: iterKind, followThis) */
-  /*   where tag == iterKind.follower { */
-  /*   for nlElm in nodes(v).neighborList._value.these(tag, followThis) do */
-  /*     yield nElm(1); */
-  /* } */
-
-  /* /\* return the number of neighbors */
-  /*  *\/ */
-  /* proc n_Neighbors (nodes, node : index (nodes) )  */
-  /*   {return Row (v).numNeighbors();} */
-
-
-  /*   /\* how to use Graph: e.g. */
-  /*      const vertex_domain =  */
-  /*      if DISTRIBUTION_TYPE == "BLOCK" then */
-  /*      {1..N_VERTICES} dmapped Block ( {1..N_VERTICES} ) */
-  /*      else */
-  /*      {1..N_VERTICES} ; */
-
-  /*      writeln("allocating Associative_Graph"); */
-  /*      var G = new Graph (vertex_domain); */
-  /*   *\/ */
-
-  /*   /\* Helps to construct a graph from row, column, value */
-  /*      format.  */
-  /*   *\/ */
-  /* proc buildUndirectedGraph(triples, param weighted:bool, vertices) where */
-  /*   isRecordType(triples.eltType) */
-  /*   { */
-
-  /*     // sync version, one-pass, but leaves 0s in graph */
-  /*     /\* */
-  /* 	var r: triples.eltType; */
-  /* 	var G = new Graph(nodeIdType = r.to.type, */
-  /* 	edgeWeightType = r.weight.type, */
-  /* 	vertices = vertices); */
-  /* 	var firstAvailNeighbor$: [vertices] sync int = G.initialFirstAvail; */
-  /* 	forall trip in triples { */
-  /*       var u = trip.from; */
-  /*       var v = trip.to; */
-  /*       var w = trip.weight; */
-  /*       // Both the vertex and firstAvail must be passed by reference. */
-  /*       // TODO: possibly compute how many neighbors the vertex has, first. */
-  /*       // Then allocate that big of a neighbor list right away. */
-  /*       // That way there will be no need for a sync, just an atomic. */
-  /*       G.Row[u].addEdgeOnVertex(v, w, firstAvailNeighbor$[u]); */
-  /*       G.Row[v].addEdgeOnVertex(u, w, firstAvailNeighbor$[v]); */
-  /* 	}*\/ */
-
-  /*     // atomic version, tidier */
-  /*     var r: triples.eltType; */
-  /*     var G = new Graph(nodeIdType = r.to.type, */
-  /*                       edgeWeightType = r.weight.type, */
-  /*                       vertices = vertices, */
-  /*                       initialLastAvail=0); */
-  /*     var next$: [vertices] atomic int; */
-
-  /*     forall x in next$ { */
-  /*       next$.write(G.initialFirstAvail); */
-  /*     } */
-
-  /*     // Pass 1: count. */
-  /*     forall trip in triples { */
-  /*       var u = trip.from; */
-  /*       var v = trip.to; */
-  /*       var w = trip.weight; */
-  /*       // edge from u to v will be represented in both u and v's edge */
-  /*       // lists */
-  /*       next$[u].add(1, memory_order_relaxed); */
-  /*       next$[v].add(1, memory_order_relaxed); */
-  /*     } */
-  /*     // resize the edge lists */
-  /*     forall v in vertices { */
-  /*       var min = G.initialFirstAvail; */
-  /*       var max = next$[v].read(memory_order_relaxed) - 1;  */
-  /*       G.Row[v].ndom = {min..max}; */
-  /*     } */
-  /*     // reset all of the counters. */
-  /*     forall x in next$ { */
-  /*       next$.write(G.initialFirstAvail, memory_order_relaxed); */
-  /*     } */
-  /*     // Pass 2: populate. */
-  /*     forall trip in triples { */
-  /*       var u = trip.from; */
-  /*       var v = trip.to; */
-  /*       var w = trip.weight; */
-  /*       // edge from u to v will be represented in both u and v's edge */
-  /*       // lists */
-  /*       var uslot = next$[u].fetchAdd(1, memory_order_relaxed); */
-  /*       var vslot = next$[v].fetchAdd(1, memory_order_relaxed); */
-  /*       G.Row[u].neighborList[uslot] = (v,); */
-  /*       G.Row[v].neighborList[vslot] = (u,); */
-  /*     } */
-
-  /*     return G; */
-  /*   } */
 }

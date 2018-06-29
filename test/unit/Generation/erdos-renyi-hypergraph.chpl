@@ -7,7 +7,7 @@ var num_vertices = 1024: int;
 var num_edges = 2048;
 var num_inclusions = 0: int;
 var graph = new AdjListHyperGraph(num_vertices, num_edges);
-graph = erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, prob);
+graph = generateErdosRenyiNaive(graph, graph.verticesDomain, graph.edgesDomain, prob);
 for vertex_id in graph.verticesDomain {
 	num_inclusions += graph.getVertex(vertex_id).neighborList.size;
 }

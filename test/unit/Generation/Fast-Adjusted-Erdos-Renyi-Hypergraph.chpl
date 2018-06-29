@@ -13,7 +13,7 @@ for e in 0..count-1{
 		initial += 1;
 	}
 }
-var new_graph = fast_adjusted_erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, prob);
+var new_graph = generateErdosRenyiAdjusted(graph, graph.verticesDomain, graph.edgesDomain, prob);
 count = 0;
 for e in graph.vertices{
 	count += 1;

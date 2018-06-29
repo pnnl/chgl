@@ -22,7 +22,7 @@ runBenchmarkMultiplePlotted(
     benchFn = lambda(bd : BenchmarkData) {
       var graph = bd.userData : graphType;
       writeln("|V| = ", graph.vertices_dom, ", |E| = ", graph.edges_dom);
-      fast_adjusted_erdos_renyi_hypergraph(graph, graph.vertices_dom, graph.edges_dom, 0.6, bd.targetLocales);
+      generateErdosRenyiAdjusted(graph, graph.vertices_dom, graph.edges_dom, 0.6, bd.targetLocales);
     },
     deinitFn = lambda(obj : object) {
       delete obj;

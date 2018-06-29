@@ -29,7 +29,7 @@ proc main() {
   writeln("# of Inclusions: ", inclusions_to_add);
 
   var test_graph = new AdjListHyperGraph(numVertices,numEdges);
-  var clGraph = fast_hypergraph_chung_lu(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), inclusions_to_add);
+  var clGraph = generateChungLu(test_graph, test_graph.verticesDomain, test_graph.edgesDomain, graph.getVertexDegrees(), graph.getEdgeDegrees(), inclusions_to_add);
   var (actualDuplicates, actualUnique) = desiredEdges(clGraph);
   
   assert(actualDuplicates / expectedDuplicates < acceptableVariance, "Too many duplicates: ", actualDuplicates, ", expected: ", expectedDuplicates);

@@ -18,9 +18,9 @@ if profileVerboseCommunications then startVerboseComm();
 var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, targetLocales=Locales));
 var timer = new Timer();
 timer.start();
-if isNaive then erdos_renyi_hypergraph(graph, graph.verticesDomain, graph.edgesDomain, edgeProbability);
+if isNaive then generateErdosRenyiNaive(graph, graph.verticesDomain, graph.edgesDomain, edgeProbability);
 else if numLocales == 1 then generateErdosRenyiSMP(graph, edgeProbability);
-else fast_simple_er(graph, edgeProbability);
+else generateErdosRenyi(graph, edgeProbability);
 timer.stop();
 
 
