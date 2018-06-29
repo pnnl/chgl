@@ -398,8 +398,7 @@ module AdjListHyperGraph {
 
   
 
-  param BUFFER_OK = 0;
-  param BUFFER_FULL = 1;
+  param BUFFER_OK = -1;
 
   enum DescriptorType { None, Vertex, Edge };
 
@@ -474,9 +473,14 @@ module AdjListHyperGraph {
     }
 
     proc awaitCompletion() {
-      forall busy in bufBusy {
+      forall (busy, idx) in zip(bufBusy, bufBusy.domain) {
+        var spincnt = 0;
         while busy.read() == true {
           chpl_task_yield();
+          spincnt += 1;
+          if spincnt > 1024 * 1024 {
+            halt("Spunout waiting in ", here.id, " for buffer #", idx);
+          }
         }
       }
     }
@@ -701,7 +705,7 @@ module AdjListHyperGraph {
     // but is currently being processed remotely (maybe have a counter
     // determining how many tasks are still processing the buffer), so
     // that user knows when all operations have finished/termination detection.
-    inline proc emptyBuffer(locid, bufIdx, buffer) {
+    inline proc emptyBuffer(locid, bufIdx, ref buffer) {
       on Locales[locid] {
         var localBuffer = buffer.buffers[bufIdx];
         var localThis = getPrivatizedInstance();
