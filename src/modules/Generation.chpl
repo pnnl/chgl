@@ -100,6 +100,27 @@ module Generation {
     return graph;
   }
 
+  proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd){
+    var vertexProbabilities = desiredVertexDegrees / (+ reduce desiredVertexDegrees): real;
+    var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
+    var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
+    var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
+
+    // Perform work evenly across all locales
+    coforall tid in 0..#here.maxTaskPar {
+      // Perform work evenly across all tasks
+      var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
+      var randStream = new RandomStream(real, tid);
+      for 1..perTaskInclusions {
+        var vertex = getRandomElement(verticesDomain, vertexScan, randStream.getNext());
+        var edge = getRandomElement(edgesDomain, edgeScan, randStream.getNext());
+        graph.addInclusion(vertex, edge);
+      }
+    }
+
+    return graph;
+  }
+
   proc generateChungLu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales){
     var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
     var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
@@ -109,6 +130,8 @@ module Generation {
     // Perform work evenly across all locales
     coforall loc in targetLocales with (in graph) do on loc {
       var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
+      var localVertexScan = vertexScan;
+      var localEdgeScan = edgeScan;
       coforall tid in 0..#here.maxTaskPar {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
@@ -116,8 +139,8 @@ module Generation {
         // Note: This is needed due to issues with qthreads
         var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
         for 1..perTaskInclusions {
-          var vertex = getRandomElement(verticesDomain, vertexScan, randStream.getNext());
-          var edge = getRandomElement(edgesDomain, edgeScan, randStream.getNext());
+          var vertex = getRandomElement(verticesDomain, localVertexScan, randStream.getNext());
+          var edge = getRandomElement(edgesDomain, localEdgeScan, randStream.getNext());
           graph.addInclusionBuffered(vertex, edge);
         }
       }

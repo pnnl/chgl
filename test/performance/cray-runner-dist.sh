@@ -29,15 +29,15 @@ BINARY=$@
 
 set -x
 
-for NODES in 1; do
-for THREADS in 1 2 4 8 16 32; do
+for NODES in 1 2 4 8 16 32 64; do
+for THREADS in 44; do
 #for PROBABILITY in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1; do
 probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
 qsub - <<EOF
 #!/bin/bash -l
 #PBS -l nodes=${NODES}:ppn=44
 #PBS -l walltime=01:00:00
-#PBS -N strong2-$( echo ${BINARY} | cut -d "/" -f 2 )-${NODES}-${THREADS}-smp
+#PBS -N strong2-$( echo ${BINARY} | cut -d "/" -f 2 )-${NODES}-${THREADS}-dist
 #PBS -V
 #PBS -j oe
 #PBS -m abe

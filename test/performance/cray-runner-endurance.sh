@@ -1,7 +1,7 @@
 #!/bin/bash
 
-numVertices=100000
-numEdges=100000
+numVertices=10000
+numEdges=10000
 probability=0.01
 
 while getopts ":v:e:c:" opt; do
@@ -29,15 +29,15 @@ BINARY=$@
 
 set -x
 
-for NODES in 1; do
-for THREADS in 1 2 4 8 16 32; do
-#for PROBABILITY in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1; do
-probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
+for NODES in 1 2 4 8 16 32 64; do
+for THREADS in 44; do
+for PROBABILITY in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1; do
+#probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
 qsub - <<EOF
 #!/bin/bash -l
 #PBS -l nodes=${NODES}:ppn=44
 #PBS -l walltime=01:00:00
-#PBS -N strong2-$( echo ${BINARY} | cut -d "/" -f 2 )-${NODES}-${THREADS}-smp
+#PBS -N strong2-$( echo ${BINARY} | cut -d "/" -f 2 )-${NODES}-${THREADS}-${PROBABILITY}
 #PBS -V
 #PBS -j oe
 #PBS -m abe
@@ -58,14 +58,14 @@ cd \$PBS_O_WORKDIR
 echo 'Running script\n'
 for nodes in ${NODES}; do
   for threads in ${THREADS}; do
-    #for prob in ${PROBABILITY}; do
-        aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --probability ${probability}
-    #done
+    for prob in ${PROBABILITY}; do
+        aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --probability ${PROBABILITY}
+    done
   done
 done
 EOF
 
-#done
+done
 done
 done
 
