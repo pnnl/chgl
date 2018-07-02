@@ -52,7 +52,7 @@ A compiled version of the Chapel programming language with is test virtual envir
 
 | Name | Version | Download Location | Country of Origin | Special Instructions |
 | ---- | ------- | ----------------- | ----------------- | -------------------- |
-| Chapel | 1.17.1 | https://github.com/chapel-lang/chapel | USA | None |  
+| Chapel | 1.17.1 | https://github.com/chapel-lang/chapel/tree/release/1.17 | USA | None |  
 
 Distribution Files
 ------------------
