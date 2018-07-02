@@ -66,6 +66,12 @@ module FIFOChannel {
       other.inBufPending.write(filled);
     }
   }
+
+  // not thread-safe
+  // Flushes current outBuf
+  proc Channel.flush() {
+    other.inBufPending.write(outBufClaimed.read());
+  }
   
   // not thread-safe
   proc Channel.recv() {
@@ -73,19 +79,18 @@ module FIFOChannel {
     
     // Wait for data to be available
     while !isClosed() && inBufPending.read() == 0 do chpl_task_yield();
-    if isClosed() {
+    const sz = inBufPending.read() : uint(64);
+    if sz == 0 {
       var emptyArr : [0..-1] eltType;
       return emptyArr;
     }
-    
-    const sz = inBufPending.read() : uint(64);
-    
+
     // Get input data
     var data = c_malloc(eltType, sz);
     if other.locale == here {
       c_memcpy(data, this.inBuf, c_sizeof(eltType) * sz);
     } else {
-      __primitive("chpl_comm_array_get", data, other.locale.id, this.inBuf, c_sizeof(eltType) * sz);
+      __primitive("chpl_comm_array_get", data[0], other.locale.id, this.inBuf[0], c_sizeof(eltType) * sz);
     }
 
     inBufPending.write(0);
@@ -102,28 +107,12 @@ module FIFOChannel {
     return arr;
   }
   
+  // not thread-safe
   proc Channel.close() {
+    flush();
     closed.write(true);
     other.closed.write(true);
   }
 
   proc Channel.isClosed() return closed.read();
-}
-
-use FIFOChannel;
-
-proc main() {
-  var inchan = new Channel(int);
-  var outchan = new Channel(int);
-  inchan.pair(outchan);
-
-  begin {
-    while !inchan.isClosed() {
-      writeln("Recv'd: ", + reduce inchan.recv());
-    }
-  }
-
-  forall ix in 1..1024 do outchan.send(ix);
-
-  outchan.close();
 }
