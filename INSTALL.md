@@ -14,9 +14,9 @@ Table of Contents
 Project Overview
 ================
 
-**Project Name:** _Current & past names (if any)_
+**Project Name:** Chapel Hypergraph Library (CHGL)
 
-**Principle Investigator:** _Name & contact info_
+**Principle Investigator:** Marcin Zalewski (marcin.zalewski@pnnl.gov) 
 
 **General Area or Topic of Investigation:** _Short field of study_
 
@@ -35,26 +35,24 @@ The following sections detail the compilation, packaging, and installation of th
 Environment Requirements
 ------------------------
 
-**Programming Language:** _List of the programming languages used_
+**Programming Language:** Chapel 1.17.1
 
-**Operating System & Version:** _Most likely RedHat Enterprise Linux or CentOS_
+**Operating System & Version:** Tested on Chapel Docker containers (Debian) and internal RHEL 7 system
 
-**Required Disk Space:** _Installation size_
+**Required Disk Space:** Approx. 40mb for code repository and binaries
 
-**Required Memory:** _Runtime memory required_
+**Required Memory:** Not defined or tested (unit tests run on https://hub.docker.com/r/chapel/chapel/)
 
-**Nodes / Cores Used:** _If applicable_
+**Nodes / Cores Used:** Not defined -- depends on graph size loaded
 
 Dependencies
 ------------
 
-_List all dependencies required to build & run the software. Consider separating build dependencies from runtime dependencies, if the lists are separate (e.g., compilers vs linked libraries). Start with a clean-state system and list all packages installed prior to and during the installation. For example, using Docker containers (like https://hub.docker.com/\_/centos/) for build environments will ensure the list of required dependencies is known and accurate. Include special installation instructions, if any (compiler flags, required configurations, etc.)._
-
-_Attempt to keep this list short. Some sponsor environments are difficult to bring in new dependencies. Prefer the use of released software versions, not snapshot or the latest code. Packages that are included within the OS itself reduce sponsor installation complexity. USA country of origin also simplifies sponsor deployments._
+A compiled version of the Chapel programming language with is test virtual environment is all that is required to compile and test CHGL. Unit tests were run on the GitLab-CI continuous integration system using Chapel's Docker container (see included ``.gitlab-ci.yml`` file for details).
 
 | Name | Version | Download Location | Country of Origin | Special Instructions |
 | ---- | ------- | ----------------- | ----------------- | -------------------- |
-| Sample | 1.0 | https://github.com/pnnl/ | USA | None |  
+| Chapel | 1.17.1 | https://github.com/chapel-lang/chapel | USA | None |  
 
 Distribution Files
 ------------------
