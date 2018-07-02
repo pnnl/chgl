@@ -84,9 +84,9 @@ module FIFOChannel {
       var emptyArr : [0..-1] eltType;
       return emptyArr;
     }
-
+    var arr : [0..#sz] eltType;
     // Get input data
-    var data = c_malloc(eltType, sz);
+    var data = c_ptrTo(arr);
     if other.locale == here {
       c_memcpy(data, this.inBuf, c_sizeof(eltType) * sz);
     } else {
@@ -96,14 +96,6 @@ module FIFOChannel {
     inBufPending.write(0);
     other.outBufFilled.write(0);
     other.outBufClaimed.write(0);
-
-    // Convert into chapel array
-    var arr : [0..#sz] eltType;
-    forall (a, idx) in zip(arr, arr.domain) {
-      a = data[idx];
-    }
-    c_free(data);
-
     return arr;
   }
   
