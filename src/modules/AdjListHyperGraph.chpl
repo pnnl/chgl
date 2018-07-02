@@ -796,7 +796,20 @@ module AdjListHyperGraph {
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
       
-      cobegin {
+      // If both vertex and edge are hosted on
+      // the same node (common for small cluster or
+      // shared-memory) we shouldn't perform a cobegin
+      // as they end up spawning more tasks than necessary.
+      var vLoc = verticesDist.idxToLocale(vDesc.id).locale;
+      var eLoc = edgesDist.idxToLocale(eDesc.id).locale;
+      
+      // Both not on same node? Ensure that both remote operations are handled remotely
+      if vLoc != here && eLoc != here {
+        cobegin {
+          getVertex(vDesc).addNodes(eDesc);
+          getEdge(eDesc).addNodes(vDesc);
+        }
+      } else {
         getVertex(vDesc).addNodes(eDesc);
         getEdge(eDesc).addNodes(vDesc);
       }

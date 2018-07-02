@@ -1,81 +1,129 @@
-module Channel {
+module FIFOChannel {
 
-  enum SlaveStatus {
-    WAITING, BUSY
-  };
-  
-  // The metadata contains information that the master and slave use to 
-  // communicate with each other, done via low-level message-passing via c_ptrs.
-  // First 8 bytes contains the size of the payload that follows after.
-  // When the slave is serving a request, it will read the first 8 bytes,
-  // then the rest of the payload; when it is finished it will notify the
-  // master via its 'isDone' field (that is local to the master). When the
-  // master receives sees that it 'isDone', it will then read the payload
-  // and process accordingly. When the master wants to send a request, it
-  // will write to the slave.
-  record SlaveMeta {
-    var slave : SlaveChannel;
-    // Allocated on the slave... when this is resized, the slave needs
-    // to update the master's pipe to point to the new 'pipe'.
-    var pipe : c_void_ptr;
-    // Updated remotely by the slave, checked locally by master
-    var status : SlaveStatus = WAITING;
-  }
-  
+  /*
+    FIFO channel that can communicate across multiple locales. Data is sent in bulk when
+    filled or flushed explicitly.
+  */
   class Channel {
-    var other : Channel;
-    var outBuf : c_void_ptr;
-    var outBufSize : c_size_t;
-    var outBufPending : atomic bool;
-    var inBuf : c_void_ptr;
-    var inBufPending : atomic bool;
+    type eltType;
+
+    // Channel we are paired with
+    var other : Channel(eltType);
+  
+    // Output buffer that we are writing to. other.inBuf == this.outBuf
+    var outBuf : c_ptr(eltType);
+    var outBufSize : int(64);
+    // Amount of buffer claimed...
+    var outBufClaimed : atomic int;
+    // Amount of buffer filled...
+    var outBufFilled : atomic int;
+
+    // Input buffer that we are reading from. other.outBuf == this.inBuf
+    var inBuf : c_ptr(eltType);
+    // Amount of data pending, set by 'other'
+    var inBufPending : atomic int;
+
+    var closed : atomic bool;
   }
   
-  proc Channel.init() {
-    this.outBuf = c_malloc(c_sizeof(c_size_t));
-    this.outBufSize = c_sizeof(c_size_t);
+  proc Channel.init(type eltType, len = 1024) {
+    this.eltType = eltType;
+    this.outBuf = c_malloc(eltType, len);
+    this.outBufSize = len;
   }
 
   proc Channel.pair(other : Channel) {
     this.other = other;
     this.inBuf = other.outBuf;
     other.inBuf = this.outBuf;
+    other.other = this;
   }
   
-  proc Channel.send(data : c_ptr(?sendType)) {
+  proc Channel.send(elt : eltType) {
     if this.other == nil then halt("Attempt to send on a non-paired Channel");
     
-    outBufPending.waitFor(false);
+    // Fast Path: Attempt to claim a spot in the buffer
+    var idx = outBufClaimed.fetchAdd(1);
+    label outer while idx >= outBufSize {
+      // Slow Path: Loop until we find a spot...
+      // Read until the amount of claimed space is less than capacity
+      var val = outBufClaimed.read();
+      if val < outBufSize {
+        idx = outBufClaimed.fetchAdd(1);
+        continue;
+      }
 
-    // Check size of current buffer
-    if this.outBufSize < c_sizeof(sendType) + c_sizeof(c_size_t) {
-      c_free(this.outBuf);
-      this.outBuf = c_malloc(c_uint8_t, c_sizeof(sendType) + c_sizeof(c_size_t));
-      other.inBuf = this.outBuf;
+      chpl_task_yield();
     }
 
     // Write locally...
-    (this.outBuf : c_ptr(c_size_t))[0] = c_sizeof(sendType);
-    c_memcpy(this.outBuf + c_sizeof(c_size_t), data, c_sizeof(sendType));
+    this.outBuf[idx] = elt;
     
-    // Notify that there is pending data in buffer...
-    outBufPending.write(true);
-    other.inBufPending.write(true);
+    // Report that we have filled another spot
+    var filled = outBufFilled.fetchAdd(1) + 1;
+    // If we are the last to fill the buffer, we are in charge of notifying other side that we have finished...
+    if filled == outBufSize {
+      other.inBufPending.write(filled);
+    }
   }
-
-  proc Channel.recv() : (c_size_t, c_void_ptr) {
+  
+  // not thread-safe
+  proc Channel.recv() {
     if this.other == nil then halt("Attempt to receive on a non-paired Channel");
     
-    this.inBufPending.waitFor(true);
+    // Wait for data to be available
+    while !isClosed() && inBufPending.read() == 0 do chpl_task_yield();
+    if isClosed() {
+      var emptyArr : [0..-1] eltType;
+      return emptyArr;
+    }
+    
+    const sz = inBufPending.read() : uint(64);
     
     // Get input data
-    var data = c_malloc(c_uint8_t, c_sizeof(c_size_t) + c_sizeof(sendType));
+    var data = c_malloc(eltType, sz);
     if other.locale == here {
-      c_memcpy(data, this.inBuf, c_sizeof(c_size_t) + c_sizeof(sendType));
+      c_memcpy(data, this.inBuf, c_sizeof(eltType) * sz);
     } else {
-      __primitive("chpl_comm_array_get", data, other.locale.id, this.inBuf, c_sizeof(c_size_t) + c_sizeof(sendType));
+      __primitive("chpl_comm_array_get", data, other.locale.id, this.inBuf, c_sizeof(eltType) * sz);
     }
 
-    return ((data : c_ptr(c_size_t))[0], (data + c_sizeof(c_size_t)) : c_void_ptr);
+    inBufPending.write(0);
+    other.outBufFilled.write(0);
+    other.outBufClaimed.write(0);
+
+    // Convert into chapel array
+    var arr : [0..#sz] eltType;
+    forall (a, idx) in zip(arr, arr.domain) {
+      a = data[idx];
+    }
+    c_free(data);
+
+    return arr;
   }
+  
+  proc Channel.close() {
+    closed.write(true);
+    other.closed.write(true);
+  }
+
+  proc Channel.isClosed() return closed.read();
+}
+
+use FIFOChannel;
+
+proc main() {
+  var inchan = new Channel(int);
+  var outchan = new Channel(int);
+  inchan.pair(outchan);
+
+  begin {
+    while !inchan.isClosed() {
+      writeln("Recv'd: ", + reduce inchan.recv());
+    }
+  }
+
+  forall ix in 1..1024 do outchan.send(ix);
+
+  outchan.close();
 }
