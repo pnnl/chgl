@@ -1,4 +1,5 @@
 use FIFOChannel;
+use List;
 
 class Stream {
   type eltType;
@@ -41,11 +42,15 @@ class Stream {
   }
   
   // Terminal operation, processes rest of stream...
-  proc consume(fn) {
+  proc consume(fn) : void {
     do {
       var buf = inchan.recv();
       forall b in buf do fn(b);
     } while !inchan.isClosed();
+
+    // See if anything can be processed after close
+    var buf = inchan.recv();
+    forall b in buf do fn(b);
   }
   
   // TODO: Fix when Chapel lets you query type of first class function...
@@ -72,18 +77,42 @@ class Stream {
     }
     return outStream;
   }
+   
+  // Should return a tuple (tag, elt)
+  proc groupBy(fn, type tagType) {
+    var outStream = new Stream((tagType, list(tagType)));
+    begin {
+      var dictDom : domain(tagType);
+      var dict : [dictDom] list(eltType); 
+      do {
+        var buf = inchan.recv();
+        for b in buf {
+          var (t, elt) = fn(b);
+          dictDom += t;
+          dict[t].push_back(elt);
+        }
+      } while !inchan.isClosed();
+      
+      // Send grouped list of data
+      for t in dictDom {
+        const toSend = (t, dict[t]);
+        outStream.outchan.send(toSend);
+      }
+      outStream.outchan.close();
+    }
+
+    return outStream;
+  }
 }
 
-proc main() {
-  //var a = new Stream(1);
-  var b = new Stream({1..1024});
-  b.map(lambda (x : int) : int {
-        return x * 2;
-      }).filter(lambda (x : int) : bool {
-        return x < 1000;
-      }).consume(lambda (x : int) { 
-        writeln(x);
-      });
-  //var c = new Stream(arr);
 
+proc main() {
+  proc addOne(x : int) return x + 1;
+  proc lessThan1000(x : int) return x < 1000;
+  proc countOccurences((isEven, values) : (int, list(int))) { 
+    writeln("There are ", values.size, " values that are ", if isEven then "even" else "odd"); 
+  }
+  proc parity(x : int) return (x % 2, x);
+  var str = new Stream({1..1024});
+  str.map(addOne).filter(lessThan1000).groupBy(parity, int).consume(countOccurences);
 }
