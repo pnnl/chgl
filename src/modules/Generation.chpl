@@ -127,7 +127,7 @@ module Generation {
     var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
     var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
 
-    generateChungLuPreScanSMP(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd);
+    return generateChungLuPreScanSMP(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd);
   }
 
   proc generateChungLuPreScanSMP(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd){
@@ -152,7 +152,7 @@ module Generation {
     var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
     var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
     
-    generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales);
+    return generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales);
   }
 
   proc generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales = Locales){
