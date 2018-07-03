@@ -1,3 +1,6 @@
+/*
+  TODO: Implement dynamic buffer pools where the buffers expand in size
+*/
 
 // Number of communication buffers to swap out as they are filled...
 config param AdjListHyperGraphNumBuffers = 8;
@@ -5,6 +8,17 @@ config param AdjListHyperGraphNumBuffers = 8;
 config param OperationDescriptorSize = 24;
 // Size of buffer is enough for one megabyte of bulk transfer by default.
 config param AdjListHyperGraphBufferSize = ((1024 * 1024) / OperationDescriptorSize) : int(64);
+
+
+// Send data in bulk...
+inline proc bulk_put(src : c_void_ptr, locid : integral, dest : c_void_ptr, size : integral) {
+  __primitive("chpl_comm_array_put", src[0], locid, dest[0], size);
+}
+
+// Receive data in bulk...
+inline proc bulk_get(dest : c_void_ptr, locid : integral, src : c_void_ptr, size : integral) {
+  __primitive("chpl_comm_array_get", dest[0], locid, src[0], size);
+}
 
 record AggregationBuffer {
   var instance;
@@ -36,15 +50,34 @@ class FixedBufferPool : BufferPool {
     this.fixedBufferSize = bufSize;
   }
 
-  proc getBuffer() : (c_ptr(msgType), int(64)) {
+  proc getBuffer(desiredSize : int(64) = -1) : (c_ptr(msgType), int(64)) {
     var (ptr, len) = (c_nil, fixedBufferSize);
+ 
+    // If requested a size that is not the norm, allocate a diposable buffer
+    if desiredSize != -1 then return c_malloc(msgType, desiredSize);
+
     lock$ = true;
     
     // Check recycle list...
     if recycleList.size == 0 {
-      recycleList
+      ptr = c_malloc(msgType, fixedBufferSize);
+    } else {
+      ptr = recycleList.pop_front();
     }
 
+    lock$;
+    return (ptr, len);
+  }
+  
+  proc recycleBuffer(buf : c_ptr(msgType), len : int(64) = -1) {
+    // If len is specified and if it is a length other than our fixed buffer sizes, just free it
+    if len != -1 && len != fixedBufferSize {
+      c_free(buf);
+      return;
+    }
+
+    lock$ = true;
+    recycleList.push_back(buf);
     lock$;
   }
 }
@@ -59,15 +92,30 @@ class BufferPool {
   // Called to immediately find a new buffer to replace
   // the buffer about to be procesed. Returns new buffer
   // and the length.
-  proc getBuffer() : (c_ptr(msgType), int(64)) {
+  proc getBuffer(desiredSize : int(64) = -1) : (c_ptr(msgType), int(64)) {
     halt("'getBuffer' unimplemented...");
   }
   
   // Only called after buffer has been processed. Need to specify
   // the length of the buffer to recycle in the case that the
   // actual implementation is dynamic.
-  proc recycleBuffer(buf : c_ptr(msgType), len : int(64)) {
+  proc recycleBuffer(buf : c_ptr(msgType), len : int(64) = -1) {
     halt("'recycleBuffer' unimplemented...");
+  }
+}
+
+pragma "default intent is ref"
+record Buffer {
+  type msgType;
+  var buf : c_ptr(msgType);
+  var length : atomic int(64);
+  var claimed : atomic int(64);
+  var filled : atomic int(64);
+
+  proc init(type msgType, buf : c_ptr(msgType), length : int) {
+    this.msgType = msgType;
+    this.buf = buf;
+    this.length.write(length);
   }
 }
 
@@ -78,20 +126,27 @@ class AggregationBufferImpl {
   var fnArgs;
   var fn;
   // Destination buffers, one per locale
-  var destinationBuffers : [LocaleSpace] c_ptr(msgType); 
-  var bufferPool : BufferPool(msgType);
+  var destinationBuffers : [LocaleSpace] Buffer(msgType);
+  // TODO: Parameterize this...
+  var bufferPool : FixedBufferPool(msgType);
+  var initialBufSize : int(64);
 
   // Privatization id
   var pid = -1;
 
-  proc init(type msgType, fnArgs, fn) {
+  proc init(type msgType, fnArgs, fn, initialBufSize = 1024) {
     this.msgType = msgType;
     this.fnArgs = fnArgs;
     this.fn = fn;
-
+    
     complete();
-
+    
+    this.initialBufSize = initialBufSize;
     this.pid = _newPrivatizedClass(this);
+    this.bufferPool = new FixedBufferPool(msgType, initialBufSize);
+    forall buf in destinationBuffers {
+      var (ptr, len) = bufferPool.getBuffer();
+    }
   }
   
   // TODO: 'fnArgs' may need to be privatized...
@@ -99,129 +154,71 @@ class AggregationBufferImpl {
     this.msgType = other.msgType;
     this.fnArgs = other.fnArgs;
     this.fn = other.fn;
-  }
-}
 
+    complete();
 
-
-/*
-   Status of the sendBuffer...
-   */
-// Buffer is okay to use and send...
-param BUFFER_OK = 0;
-// Buffer is full and is sending, cannot be used yet...
-param BUFFER_SENDING = 1;
-// Buffer is being sent, but not yet processed... can be used but not yet sent
-param BUFFER_SENT = 2;
-
-
-// Each locale will have its own communication buffer, which will handle
-// sending and receiving data. TODO: Add documentation...
-pragma "use default init"
-pragma "default intent is ref"
-record CommunicationBuffers {
-  var locid : int(64);
-  var sendBuffer :  AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
-  var recvBuffer : AdjListHyperGraphNumBuffers * c_ptr(OperationDescriptor);
-
-  // Status of send buffers...
-  var bufferStatus : [1..AdjListHyperGraphNumBuffers] atomic int;
-  // Index of currently processed buffer...
-  var bufferIdx : atomic int;
-  // Number of claimed slots of the buffer...
-  var claimed : atomic int;
-  // Number of filled claimed slots...
-  var filled : atomic int;
-
-  // Send data in bulk...
-  proc send(idx) {
-    const toSend = sendBuffer[idx];
-    const toRecv = recvBuffer[idx];
-    const sendSize = AdjListHyperGraphBufferSize;
-    __primitive("chpl_comm_array_put", toSend[0], locid, toRecv[0], sendSize);
-  }
-
-  // Receive data in bulk...
-  proc recv(idx) {
-    const toSend = sendBuffer[idx];
-    const toRecv = recvBuffer[idx];
-    const recvSize = AdjListHyperGraphBufferSize;
-    __primitive("chpl_comm_array_get", toRecv[0], locid, toSend[0], recvSize);
-  }
-
-  // Clear send buffer with default values
-  proc zero(idx) {
-    const toZero = sendBuffer[idx];
-    const zeroSize = AdjListHyperGraphBufferSize * OperationDescriptorSize;
-    c_memset(sendBuffer, 0, zeroSize);
-  }
-
-  // Appends operation descriptor to appropriate communication buffer. If buffer
-  // is full, the task that was the last to fill the buffer will handle switching
-  // out the current buffer and sending the full buffer. If the return value is
-  // not 0, then it is index of the buffer that was sent but needs processing...
-  proc append(op) : int {
-    // Obtain our buffer slot; if we get an index out of bounds, we must wait
-    // until the buffer has been swapped out by another thread...
-    var idx = claimed.fetchAdd(1) + 1;
-    while idx > AdjListHyperGraphBufferSize {
-      chpl_task_yield();
-      idx = claimed.fetchAdd(1) + 1;
+    this.bufferPool = new FixedBufferPool(msgType, other.initialBufSize);
+    forall buf in destinationBuffers {
+      var (ptr, len) = bufferPool.getBuffer();
     }
-    assert(idx > 0);
+  }
+  
+  proc dsiPrivatize(pid) {
+    return new AggregationBufferImpl(this, pid);
+  }
 
-    // We have a position in the buffer, now obtain the current buffer. The current
-    // buffer will not be swapped out until we finish our operation, as we do not
-    // notify that we have filled the buffer until after, which has a full memory
-    // barrier. TODO: Relax the read of bufIdx?
-    const bufIdx = bufferIdx.read();
-    sendBuffer[bufIdx][idx] = op;
-    const nFilled = filled.fetchAdd(1) + 1;
+  proc dsiGetPrivatizeData() {
+    return pid;
+  }
 
-    // If we have filled the buffer, we are in charge of swapping them out...
-    if nFilled == AdjListHyperGraphBufferSize {
-      if AdjListHyperGraphNumBuffers <= 1 {
-        halt("Logic unimplemented for AdjListHyperGraphNumBuffers == ", AdjListHyperGraphNumBuffers);
+  inline proc getPrivatizedInstance() {
+    return chpl_getPrivatizedCopy(this.type, pid);
+  }
+  
+  proc aggregate(loc : locale, msg : msgType) {
+    aggregate(loc.id, msg);
+  }
+
+  proc aggregate(locid : int, msg : msgType) {
+    ref buffer = destinationBuffers[locid];
+
+    // Claim an index
+    var claim = buffer.claimed.fetchAdd(1);
+    while claim >= buffer.length.peek() {
+      while buffer.claimed.read() >= buffer.length.peek() {
+        chpl_task_yield();
       }
-
-      // If a pending operation has not finished, wait for it then claim it...
-      while bufferStatus[bufIdx].read() != BUFFER_OK do chpl_task_yield();
-      bufferStatus[bufIdx].write(BUFFER_SENDING);
-
-      // Poll for a buffer not currently sending...
-      var newBufIdx = bufIdx + 1;
-      while true {
-        if newBufIdx > AdjListHyperGraphNumBuffers {
-          newBufIdx = 1;
-          chpl_task_yield();
-        }
-
-        if newBufIdx != bufIdx && bufferStatus[newBufIdx].read() != BUFFER_SENDING {
-          break;
-        }
-        newBufIdx += 1;
-      }
-
-
-      // Set as new buffer...
-      bufferIdx.write(newBufIdx);
-      filled.write(0);
-      claimed.write(0);
-
-      // Send buffer...
-      send(bufIdx);
-      bufferStatus[bufIdx].write(BUFFER_SENT);
-
-      // Returns buffer needing to be processed on target locale...
-      return bufIdx;
+      claim = buffer.claimed.fetchAdd(1);
     }
 
-    // Nothing needs to be done...
-    return 0;
-  }
+    // Claim and fill
+    buffer.buf[claim] = msg;
+    var nFilled = buffer.filled.fetchAdd(1) + 1;
 
-  // Indicates that the buffer has been processed appropriate, freeing up its use.
-  proc processed(idx) {
-    bufferStatus[idx].write(BUFFER_OK);
+    // Last to fill handles swapping buffer...
+    if nFilled == buffer.length.peek() {
+      var toProcess = buffer.buf;
+      var toProcessLen = buffer.len;
+      var (newBuf, newLen) = bufferPool.getBuffer();
+
+      // Update buffer (and consequently wake up waiters)
+      buffer.buf = newBuf;
+      buffer.length.write(newLen);
+      buffer.filled.write(0);
+      buffer.claimed.write(0);
+
+      begin {
+        // Process buffer in new task
+        on Locales[locid] {
+          const _this = getPrivatizedInstance();
+          var arr : [0..#toProcessLen] int;
+          bulk_get(c_ptrTo(arr), buffer.locale.id, toProcess, toProcessLen);
+          _this.fn(_this.args, arr);
+        }
+
+        // Recycle buffer...
+        bufferPool.recycleBuffer(toProcess, toProcessLen);
+      }
+    }
   }
 }
