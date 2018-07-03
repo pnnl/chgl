@@ -390,13 +390,9 @@ module AdjListHyperGraph {
   }
 
   // Number of communication buffers to swap out as they are filled...
-  config param AdjListHyperGraphNumBuffers = 8;
-  // `c_sizeof` is not compile-time param function, need to calculate by hand
-  config param OperationDescriptorSize = 24;
+  config const AdjListHyperGraphNumBuffers = 8;
   // Size of buffer is enough for one megabyte of bulk transfer by default.
-  config param AdjListHyperGraphBufferSize = ((1024 * 1024) / OperationDescriptorSize) : int(64);
-
-  
+  config const AdjListHyperGraphBufferSize = 1024 * 1024; 
 
   param BUFFER_OK = -1;
 
@@ -440,6 +436,7 @@ module AdjListHyperGraph {
               break outer;
             }
           }
+          writeln(here, ": Found all buffers busy...");
           chpl_task_yield();
         }
 
@@ -708,6 +705,8 @@ module AdjListHyperGraph {
     inline proc emptyBuffer(locid, bufIdx, ref buffer) {
       on Locales[locid] {
         var localBuffer = buffer.buffers[bufIdx];
+        // Buffer safe to reuse again...
+        buffer.finished(bufIdx);
         var localThis = getPrivatizedInstance();
         forall (srcId, destId, srcType) in localBuffer {
           select srcType {
@@ -733,9 +732,6 @@ module AdjListHyperGraph {
           }
         }
       }
-
-      // Signal that we finished current buffer
-      buffer.finished(bufIdx);
     }
 
     proc flushBuffers() {

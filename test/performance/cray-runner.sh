@@ -1,6 +1,8 @@
 #!/bin/bash
 
-dataset="Small"
+numVertices=100000
+numEdges=100000
+probability=0.1
 
 while getopts ":v:e:c:" opt; do
   case ${opt} in
@@ -27,9 +29,11 @@ BINARY=$@
 
 set -x
 
-for NODES in 1 2 4 8 16 32 64; do
+for NODES in 32; do
 for THREADS in 44; do
+for BUFFERSIZE in 1 10 100 1000 10000 100000 1000000; do
 probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
+echo "Nodes: ${NODES}, Threads: ${THREADS}, BufferSize: ${BUFFERSIZE}\n"
 qsub - <<EOF
 #!/bin/bash -l
 #PBS -l nodes=${NODES}:ppn=44
@@ -55,14 +59,14 @@ cd \$PBS_O_WORKDIR
 echo 'Running script\n'
 for nodes in ${NODES}; do
   for threads in ${THREADS}; do
-    #for prob in ${PROBABILITY}; do
-        aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --dataset ${dataset}
-    #done
+    for prob in ${BUFFERSIZE}; do
+        aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --AdjListHyperGraphBufferSize ${BUFFERSIZE}
+    done
   done
 done
 EOF
 
-#done
+done
 done
 done
 

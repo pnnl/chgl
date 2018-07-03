@@ -6,6 +6,7 @@ use Time;
 /* Performance Test for ChungLu algorithm */
 config const numVertices = 1024 * 1024;
 config const isNaive = false;
+config param isBuffered = true;
 config const numEdges = numVertices * 2;
 config const profileCommunications = false;
 config const probability = .01;
@@ -20,7 +21,8 @@ var timer = new Timer();
 timer.start();
 if isNaive then generateErdosRenyiNaive(graph, graph.verticesDomain, graph.edgesDomain, edgeProbability);
 else if numLocales == 1 then generateErdosRenyiSMP(graph, edgeProbability);
-else generateErdosRenyi(graph, edgeProbability);
+else if isBuffered then generateErdosRenyi(graph, edgeProbability);
+else generateErdosRenyiUnbuffered(graph, edgeProbability);
 timer.stop();
 
 

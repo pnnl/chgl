@@ -56,6 +56,27 @@ module Generation {
     return graph;
   }
 
+  proc generateErdosRenyiUnbuffered(graph, probability, targetLocales = Locales){
+    var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
+    // Perform work evenly across all locales
+    coforall loc in targetLocales with (in graph) do on loc {
+      var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
+      coforall tid in 0..#here.maxTaskPar {
+        // Perform work evenly across all tasks
+        var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
+        // Each thread gets its own random stream to avoid acquiring sync var
+        var randStream = new RandomStream(int, here.id * here.maxTaskPar + tid);
+        for 1..perTaskInclusions {
+          var vertex = randStream.getNext(0, graph.numVertices - 1);
+          var edge = randStream.getNext(0, graph.numEdges - 1);
+          graph.addInclusion(vertex, edge);
+        }
+      }
+    }
+    
+    return graph;
+  }
+
   proc generateErdosRenyiAdjusted(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
     var desired_vertex_degrees: [vertices_domain] real;
     var desired_edge_degrees: [edges_domain] real;
@@ -99,13 +120,17 @@ module Generation {
     
     return graph;
   }
-
-  proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd){
+  
+  proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd) {
     var vertexProbabilities = desiredVertexDegrees / (+ reduce desiredVertexDegrees): real;
     var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
     var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
     var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
 
+    generateChungLuPreScanSMP(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd);
+  }
+
+  proc generateChungLuPreScanSMP(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd){
     // Perform work evenly across all locales
     coforall tid in 0..#here.maxTaskPar {
       // Perform work evenly across all tasks
@@ -121,12 +146,16 @@ module Generation {
     return graph;
   }
 
-  proc generateChungLu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales){
+  proc generateChungLu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales) {
     var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
     var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
     var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
     var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
+    
+    generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales);
+  }
 
+  proc generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales = Locales){
     // Perform work evenly across all locales
     coforall loc in targetLocales with (in graph) do on loc {
       var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);

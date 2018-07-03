@@ -5,6 +5,7 @@ use Generation;
 use Time;
 
 /* Performance Test for ChungLu algorithm */
+config param isBuffered = true;
 config const dataset = "Very Small";
 config const dataDirectory = "../../data/LiveJournal/";
 var vertexDegreeDistributionFile = "";
@@ -79,14 +80,21 @@ while true {
   deg += 1;
 }
 
+var vertexProbabilities = vDegSeq / (+ reduce vDegSeq): real;
+var edgeProbabilities = eDegSeq / (+ reduce eDegSeq): real;
+var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
+var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
+
+
 if profileCommunications then startCommDiagnostics();
 if profileVerboseCommunications then startVerboseComm();
 
 var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, targetLocales=Locales));
 var timer = new Timer();
 timer.start();
-if numLocales == 1 then generateChungLuSMP(graph, vDegSeq.domain, eDegSeq.domain, vDegSeq, eDegSeq, numInclusions);
-else generateChungLu(graph, vDegSeq.domain, eDegSeq.domain, vDegSeq, eDegSeq, numInclusions);
+if numLocales == 1 then generateChungLuPreScanSMP(graph, vDegSeq.domain, eDegSeq.domain, vertexScan, edgeScan, numInclusions);
+else if generateChungLuPreScanUnbuffered(graph, vDegSeq.domain, eDegSeq.domain, vertexScan, edgeScan, numInclusions);
+else generateChungLuPreScan(graph, vDegSeq.domain, eDegSeq.domain, vertexScan, edgeScan, numInclusions);
 timer.stop();
 
 writeln("Time:", timer.elapsed());

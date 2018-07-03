@@ -2,7 +2,7 @@
 
 numVertices=100000
 numEdges=100000
-probability=0.01
+probability=0.1
 
 while getopts ":v:e:c:" opt; do
   case ${opt} in
