@@ -705,8 +705,6 @@ module AdjListHyperGraph {
     inline proc emptyBuffer(locid, bufIdx, ref buffer) {
       on Locales[locid] {
         var localBuffer = buffer.buffers[bufIdx];
-        // Buffer safe to reuse again...
-        buffer.finished(bufIdx);
         var localThis = getPrivatizedInstance();
         forall (srcId, destId, srcType) in localBuffer {
           select srcType {
@@ -732,6 +730,8 @@ module AdjListHyperGraph {
           }
         }
       }
+      // Buffer safe to reuse again...
+      buffer.finished(bufIdx);
     }
 
     proc flushBuffers() {
