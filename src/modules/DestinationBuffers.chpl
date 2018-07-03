@@ -2,21 +2,13 @@
   TODO: Implement dynamic buffer pools where the buffers expand in size
 */
 
-// Number of communication buffers to swap out as they are filled...
-config param AdjListHyperGraphNumBuffers = 8;
-// `c_sizeof` is not compile-time param function, need to calculate by hand
-config param OperationDescriptorSize = 24;
-// Size of buffer is enough for one megabyte of bulk transfer by default.
-config param AdjListHyperGraphBufferSize = ((1024 * 1024) / OperationDescriptorSize) : int(64);
-
-
 // Send data in bulk...
-inline proc bulk_put(src : c_void_ptr, locid : integral, dest : c_void_ptr, size : integral) {
+inline proc bulk_put(src : c_ptr(?ptrType), locid : integral, dest : c_ptr(ptrType), size : integral) {
   __primitive("chpl_comm_array_put", src[0], locid, dest[0], size);
 }
 
 // Receive data in bulk...
-inline proc bulk_get(dest : c_void_ptr, locid : integral, src : c_void_ptr, size : integral) {
+inline proc bulk_get(dest : c_ptr(?ptrType), locid : integral, src : c_ptr(ptrType), size : integral) {
   __primitive("chpl_comm_array_get", dest[0], locid, src[0], size);
 }
 
@@ -24,8 +16,8 @@ record AggregationBuffer {
   var instance;
   var pid = -1;
 
-  proc init(type msgType, numBuffers = 8, bufferSize = 1024) {
-    instance = new AggregationBufferImpl(msgType, numBuffers, bufferSize);
+  proc init(type msgType, initialBufSize = 1024) {
+    instance = new AggregationBufferImpl(msgType, initialBufSize);
     pid = instance.pid;
   }
 
@@ -34,7 +26,7 @@ record AggregationBuffer {
       halt("AggregationBuffer: Not initialized...");
     }
 
-    return chpl_getPrivatizedClass(instance.type, pid);
+    return chpl_getPrivatizedCopy(instance.type, pid);
   }
 
   forwarding _value;
@@ -46,7 +38,7 @@ class FixedBufferPool : BufferPool {
   var lock$ : sync bool;
 
   proc init(type msgType, bufSize = 1024) {
-    super(msgType);
+    super.init(msgType);
     this.fixedBufferSize = bufSize;
   }
 
@@ -54,7 +46,7 @@ class FixedBufferPool : BufferPool {
     var (ptr, len) = (c_nil, fixedBufferSize);
  
     // If requested a size that is not the norm, allocate a diposable buffer
-    if desiredSize != -1 then return c_malloc(msgType, desiredSize);
+    if desiredSize != -1 then return (c_malloc(msgType, desiredSize), desiredSize);
 
     lock$ = true;
     
@@ -112,19 +104,14 @@ record Buffer {
   var claimed : atomic int(64);
   var filled : atomic int(64);
 
-  proc init(type msgType, buf : c_ptr(msgType), length : int) {
+  proc init(type msgType) {
     this.msgType = msgType;
-    this.buf = buf;
-    this.length.write(length);
   }
 }
 
 class AggregationBufferImpl {
   // Aggregated message to buffer
   type msgType;
-  // Aggregation handler
-  var fnArgs;
-  var fn;
   // Destination buffers, one per locale
   var destinationBuffers : [LocaleSpace] Buffer(msgType);
   // TODO: Parameterize this...
@@ -134,10 +121,8 @@ class AggregationBufferImpl {
   // Privatization id
   var pid = -1;
 
-  proc init(type msgType, fnArgs, fn, initialBufSize = 1024) {
+  proc init(type msgType, initialBufSize = 1024) {
     this.msgType = msgType;
-    this.fnArgs = fnArgs;
-    this.fn = fn;
     
     complete();
     
@@ -152,8 +137,6 @@ class AggregationBufferImpl {
   // TODO: 'fnArgs' may need to be privatized...
   proc init(other, pid : int) {
     this.msgType = other.msgType;
-    this.fnArgs = other.fnArgs;
-    this.fn = other.fn;
 
     complete();
 
@@ -178,8 +161,31 @@ class AggregationBufferImpl {
   proc aggregate(loc : locale, msg : msgType) {
     aggregate(loc.id, msg);
   }
-
-  proc aggregate(locid : int, msg : msgType) {
+  
+  /*
+    Buffers up data to the maximum size possible; will 'block' until space is available.
+    Buffers are created on-the-fly by the buffer pool, so depending on the implementation,
+    the 'down-time' is kept to an absolute minimum. If the task calling this function is the
+    last to fill the buffer, they are chosen to handle emptying the buffer. Example usage
+    would be...
+    
+    var (ptr, sz) = aggregator.aggregate(locid, msg);
+    if ptr != nil {
+      begin {
+        on Locales[locid] {
+          var arr : [1..sz] msgType;
+          bulk_get(c_ptrTo(arr), ptr.locale.id, ptr, sz);
+          process(arr);
+        }
+        aggregator.processed(ptr, sz);
+      }
+    }
+    
+    The above will aggregate the 'msg' for the required locale, and if it is full, it will
+    asynchronously handle processing the buffer, then pass the buffer and notify it has finished
+    processing it.
+  */
+  proc aggregate(locid : int, msg : msgType) : (c_ptr(msgType), int(64)) {
     ref buffer = destinationBuffers[locid];
 
     // Claim an index
@@ -198,7 +204,7 @@ class AggregationBufferImpl {
     // Last to fill handles swapping buffer...
     if nFilled == buffer.length.peek() {
       var toProcess = buffer.buf;
-      var toProcessLen = buffer.len;
+      var toProcessLen = buffer.length.peek();
       var (newBuf, newLen) = bufferPool.getBuffer();
 
       // Update buffer (and consequently wake up waiters)
@@ -206,19 +212,34 @@ class AggregationBufferImpl {
       buffer.length.write(newLen);
       buffer.filled.write(0);
       buffer.claimed.write(0);
+      
+      return (toProcess, toProcessLen);
+    }
 
-      begin {
-        // Process buffer in new task
-        on Locales[locid] {
-          const _this = getPrivatizedInstance();
-          var arr : [0..#toProcessLen] int;
-          bulk_get(c_ptrTo(arr), buffer.locale.id, toProcess, toProcessLen);
-          _this.fn(_this.args, arr);
-        }
+    return (c_nil, 0);
+  }
+  
+  /*
+    Recycles the buffer returned from 'aggregate'
+  */
+  proc processed(buf : c_ptr(msgType), len : int(64)) {
+    bufferPool.recycleBuffer(buf, len);
+  }
+}
 
-        // Recycle buffer...
-        bufferPool.recycleBuffer(toProcess, toProcessLen);
+proc main() {
+  type msgType = (int, int);
+  var arr : [1..1024 * 1024] int;
+  var aggregator = new AggregationBuffer(msgType);
+  on Locales[1] do forall i in 1..1024 * 1024 {
+    var (ptr, sz) = aggregator.aggregate(0, (i, i+1));
+    if ptr != nil {
+      on Locales[0] {
+        var tmp : [1..sz] msgType;
+        bulk_get(c_ptrTo(tmp), ptr.locale.id, ptr, sz);
+        forall (i,j) in tmp do arr[i] = j;
       }
+      aggregator.processed(ptr, sz);
     }
   }
 }
