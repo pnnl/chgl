@@ -42,3 +42,8 @@ The following whitespace rules apply:
 * Use tabs instead of spaces for code block indentation, allowing developers to set their own IDE's preferred tab width. 
 * No line length requirements outside of requesting lines be a length that generally remains easily readable.
 * Newlines should use the Unix/Linux ``\n`` character instead of Windows ``\r\n``
+
+Records vs Classes
+==================
+
+Generally follow the guidance from Chapel developers where records are used for local memory allocations and pass-by-value semmantics. Classes have a single instnace shared across all localities, and therefore are also passed by reference. See https://stackoverflow.com/a/48332847 for more information.
