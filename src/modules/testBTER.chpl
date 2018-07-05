@@ -14,8 +14,8 @@ var edgeDegrees: [0..22014] int;
 var vertexMetamorphs: [0..115] real;
 var edgeMetamorphs: [0..17] real;
 
-var vd_file = open("../../../dSeq_v_list.csv", iomode.r).reader();
-var ed_file = open("../../../dSeq_E_list.csv", iomode.r).reader();
+var vd_file = open("../../data/condMat/dSeq_v_list.csv", iomode.r).reader();
+var ed_file = open("../../data/condMat/dSeq_E_list.csv", iomode.r).reader();
 var vm_file = open("../../data/condMat/mpd_V.csv", iomode.r).reader();
 var em_file = open("../../data/condMat/mpd_E.csv", iomode.r).reader();
 
