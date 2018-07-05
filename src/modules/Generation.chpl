@@ -17,6 +17,26 @@ module Generation {
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
 
+  proc generateErdosRenyiSMP(graph, probability, vertexDomain, edgeDomain, couponCollector = true) {
+    const numVertices = vertexDomain.size;
+    const numEdges = edgeDomain.size;
+    var newP = if couponCollector then log(1/(1-probability)) else probability;
+    var inclusionsToAdd = (numVertices * numEdges * newP) : int;
+    // Perform work evenly across all tasks
+    coforall tid in 0..#here.maxTaskPar {
+      var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
+      // Each thread gets its own random stream to avoid acquiring sync var
+      var randStream = new RandomStream(int, tid);
+      for 1..perTaskInclusions {
+        var vertex = randStream.getNext(vertexDomain.low, vertexDomain.high);
+        var edge = randStream.getNext(edgeDomain.low, edgeDomain.high);
+        graph.addInclusion(vertex, edge);
+      }
+    }
+
+    return graph;
+  }
+  
   proc generateErdosRenyiSMP(graph, probability) {
     var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
     // Perform work evenly across all tasks
@@ -77,7 +97,9 @@ module Generation {
     return graph;
   }
 
-  proc generateErdosRenyiAdjusted(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = false) {
+  proc generateErdosRenyiAdjusted(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = true) {
+    if p == 0 then return graph;
+    if isnan(p) then halt("Error: p = NAN, vertices_domain = ", vertices_domain, ", edges_domain=", edges_domain);
     var desired_vertex_degrees: [vertices_domain] real;
     var desired_edge_degrees: [edges_domain] real;
     var num_vertices = vertices_domain.size;
@@ -122,10 +144,13 @@ module Generation {
   }
   
   proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd) {
-    var vertexProbabilities = desiredVertexDegrees / (+ reduce desiredVertexDegrees): real;
-    var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
+    const reducedVertex = + reduce desiredVertexDegrees : real;
+    const reducedEdge = + reduce desiredEdgeDegrees : real;
+    var vertexProbabilities = desiredVertexDegrees / reducedVertex;
+    var edgeProbabilities = desiredEdgeDegrees/ reducedEdge;
     var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
     var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
+
 
     return generateChungLuPreScanSMP(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd);
   }
@@ -147,15 +172,19 @@ module Generation {
   }
 
   proc generateChungLu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales) {
+    if inclusionsToAdd == 0 then return graph;
     var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
     var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
     var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
     var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
-    
+     
     return generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales);
   }
 
   proc generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales = Locales){
+    //const maxVertexScan = max reduce vertexScan;
+    //const maxEdgeScan = max reduce edgeScan;
+    //assert(maxVertexScan == 1.0 && maxEdgeScan == 1.0, "vertexScan max = ", maxVertexScan, ", isGood?", maxVertexScan == 1.0, ",  edgeScan max = ", maxEdgeScan, ", isGood?", maxEdgeScan == 1.0);
     // Perform work evenly across all locales
     coforall loc in targetLocales with (in graph) do on loc {
       var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
@@ -198,7 +227,7 @@ module Generation {
 
     // Obtains the minimum value that exceeds one
     proc minimalGreaterThanOne(arr) {
-      for a in arr do if a > 1 then return a;
+      for (a, idx) in zip(arr, arr.dom) do if a > 1 then return idx;
       halt("No member found that is greater than 1...");
     }
 
@@ -209,15 +238,17 @@ module Generation {
       //determine the nV, nE, rho
       if (mV / mE >= 1) {
         nV = dE;
-        nE = if mE != 0  then _round((mV / mE) * dV) else 0;
+        nE = (mV / mE) * dV;
         rho = (((dV - 1) * (mE ** 2.0)) / (mV * dV - mE)) ** (1 / 4.0);
       } else {
         nE = dV;
-        nV = if mV != 0 then _round((mE / mV) * dE) else 0;
+        nV = (mE / mV) * dE;
         rho = (((dE - 1) * (mV ** 2.0))/(mE * dE - mV)) ** (1 / 4.0);
       }
 
-      return (nV, nE, rho);
+      assert(!isnan(rho), (dV, dE, mV, mE), "->", (nV, nE, rho));
+
+      return (_round(nV), _round(nE), rho);
     }
 
     // Check if data begins at index 0...
@@ -239,16 +270,18 @@ module Generation {
 
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
-      var (mV, mE) = (vmc[dV], emc[dE]);
+      var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
       (nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
       var nV_int = nV:int;
       var nE_int = nE:int;
-      var verticesDomain = graph.verticesDomain[idV..idV + nV_int];
-      var edgesDomain = graph.edgesDomain[idE..idE + nE_int];
-      generateErdosRenyiAdjusted(graph, verticesDomain, edgesDomain, rho, couponCollector = true);
-      idV += _round(nV);
-      idE += _round(nE);
+      var verticesDomain = graph.verticesDomain[idV..#nV_int];
+      var edgesDomain = graph.edgesDomain[idE..#nE_int];
+      generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain, couponCollector = false);
+      idV += nV_int;
+      idE += nE_int;
     }
+
+    writeln("Finished computing affinity blocks");
 
     forall (v, vDeg) in graph.forEachVertexDegree() {
       var oldDeg = vd[v.id];
@@ -259,6 +292,8 @@ module Generation {
       ed[e.id] = max(0, oldDeg - eDeg);
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
-    return generateChungLu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
+    generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
+    
+    return graph;
   }
 }

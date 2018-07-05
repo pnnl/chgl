@@ -43,7 +43,7 @@ class FixedBufferPool : BufferPool {
   }
 
   proc getBuffer(desiredSize : int(64) = -1) : (c_ptr(msgType), int(64)) {
-    var (ptr, len) = (c_nil, fixedBufferSize);
+    var (ptr, len) = (c_nil : c_ptr(msgType), fixedBufferSize);
  
     // If requested a size that is not the norm, allocate a diposable buffer
     if desiredSize != -1 then return (c_malloc(msgType, desiredSize), desiredSize);
@@ -216,7 +216,7 @@ class AggregationBufferImpl {
       return (toProcess, toProcessLen);
     }
 
-    return (c_nil, 0);
+    return (c_nil : c_ptr(msgType), 0);
   }
   
   /*
@@ -231,15 +231,17 @@ proc main() {
   type msgType = (int, int);
   var arr : [1..1024 * 1024] int;
   var aggregator = new AggregationBuffer(msgType);
-  on Locales[1] do forall i in 1..1024 * 1024 {
-    var (ptr, sz) = aggregator.aggregate(0, (i, i+1));
-    if ptr != nil {
-      on Locales[0] {
-        var tmp : [1..sz] msgType;
-        bulk_get(c_ptrTo(tmp), ptr.locale.id, ptr, sz);
-        forall (i,j) in tmp do arr[i] = j;
+  on Locales[1] {
+    forall i in 1..1024 * 1024 {
+      var (ptr, sz) : (c_ptr(msgType), int(64)) = aggregator.aggregate(0, (i, i+1));
+      if ptr != nil {
+        on Locales[0] {
+          var tmp : [1..sz] msgType;
+          bulk_get(c_ptrTo(tmp), ptr.locale.id, ptr, sz);
+          forall (i,j) in tmp do arr[i] = j;
+        }
+        aggregator.processed(ptr, sz);
       }
-      aggregator.processed(ptr, sz);
     }
   }
 }

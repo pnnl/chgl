@@ -37,29 +37,7 @@ ed_file.close();
 vm_file.close();
 em_file.close();
 
-writeln("generating BTER");
+writeln("generating BTER w/o coupon collector...");
 var graph = generateBTER(vertexDegrees, edgeDegrees, vertexMetamorphs, edgeMetamorphs);
-
-//var myFile = open("../../test/visual-verification/BTER-Test/GENERATED_dseq_E_list.csv", iomode.cw);
-//var myWritingChannel = myFile.writer();
-
-//var generated_ed = graph.getEdgeDegrees();
-
-//writeln("writing generated_ed");
-//for i in 1..generated_ed.size{
-//	myWritingChannel.writeln(generated_ed[i]);
-//}
-
-//var generatedBTERGraph = open("./generatedBTEROutput.csv", iomode.cw);
-//var writingBTER = generatedBTERGraph.writer();
-
-//for i in 1..graph.vertices.size{
-//  for j in graph.vertices[i].neighborList.id{
-//    writingBTER.writeln(i,",",j);
-//  }
-//}
-
-
-
 writeln((+ reduce graph.getVertexButterflies()) / 2);
 writeln("done");
