@@ -7,6 +7,8 @@ module Generation {
   use Math;
   use Sort;
 
+  param GenerationSeedOffset = 0xDEADBEEF;
+
   //Pending: Take seed as input
   //Returns index of the desired item
   inline proc getRandomElement(elements, probabilities,randValue){
@@ -26,7 +28,7 @@ module Generation {
     coforall tid in 0..#here.maxTaskPar {
       var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
       // Each thread gets its own random stream to avoid acquiring sync var
-      var randStream = new RandomStream(int, tid);
+      var randStream = new RandomStream(int, GenerationSeedOffset + tid);
       for 1..perTaskInclusions {
         var vertex = randStream.getNext(vertexDomain.low, vertexDomain.high);
         var edge = randStream.getNext(edgeDomain.low, edgeDomain.high);
@@ -43,7 +45,7 @@ module Generation {
     coforall tid in 0..#here.maxTaskPar {
       var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
       // Each thread gets its own random stream to avoid acquiring sync var
-      var randStream = new RandomStream(int, tid);
+      var randStream = new RandomStream(int, GenerationSeedOffset + tid);
       for 1..perTaskInclusions {
         var vertex = randStream.getNext(0, graph.numVertices - 1);
         var edge = randStream.getNext(0, graph.numEdges - 1);
@@ -63,7 +65,7 @@ module Generation {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
         // Each thread gets its own random stream to avoid acquiring sync var
-        var randStream = new RandomStream(int, here.id * here.maxTaskPar + tid);
+        var randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
         for 1..perTaskInclusions {
           var vertex = randStream.getNext(0, graph.numVertices - 1);
           var edge = randStream.getNext(0, graph.numEdges - 1);
@@ -85,7 +87,7 @@ module Generation {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
         // Each thread gets its own random stream to avoid acquiring sync var
-        var randStream = new RandomStream(int, here.id * here.maxTaskPar + tid);
+        var randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
         for 1..perTaskInclusions {
           var vertex = randStream.getNext(0, graph.numVertices - 1);
           var edge = randStream.getNext(0, graph.numEdges - 1);
@@ -118,7 +120,7 @@ module Generation {
   proc generateErdosRenyiNaive(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
     // Spawn a remote task on each node...
     coforall loc in targetLocales with (in graph) do on loc {
-      var randStream: RandomStream(real) = new RandomStream(real, 123);
+      var randStream: RandomStream(real) = new RandomStream(real, GenerationSeedOffset);
 
       // Process either vertices of edges in parallel based on relative size.
       if graph.numVertices > graph.numEdges {
@@ -160,7 +162,7 @@ module Generation {
     coforall tid in 0..#here.maxTaskPar {
       // Perform work evenly across all tasks
       var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
-      var randStream = new RandomStream(real, tid);
+      var randStream = new RandomStream(real, GenerationSeedOffset + tid);
       for 1..perTaskInclusions {
         var vertex = getRandomElement(verticesDomain, vertexScan, randStream.getNext());
         var edge = getRandomElement(edgesDomain, edgeScan, randStream.getNext());
@@ -195,7 +197,7 @@ module Generation {
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
         // Each thread gets its own random stream to avoid acquiring sync var
         // Note: This is needed due to issues with qthreads
-        var randStream = new RandomStream(real, here.id * here.maxTaskPar + tid);
+        var randStream = new RandomStream(real, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
         for 1..perTaskInclusions {
           var vertex = getRandomElement(verticesDomain, localVertexScan, randStream.getNext());
           var edge = getRandomElement(edgesDomain, localEdgeScan, randStream.getNext());
@@ -276,7 +278,7 @@ module Generation {
       var nE_int = nE:int;
       var verticesDomain = graph.verticesDomain[idV..#nV_int];
       var edgesDomain = graph.edgesDomain[idE..#nE_int];
-      generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain, couponCollector = false);
+      generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain, couponCollector = true);  
       idV += nV_int;
       idE += nE_int;
     }
@@ -294,6 +296,13 @@ module Generation {
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
     generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
     
+    // Remove all duplicates
+    forall v in graph.getVertices() {
+      graph.getVertex(v).removeDuplicateNeighbors();
+    }
+    forall e in graph.getEdges() {
+      graph.getEdge(e).removeDuplicateNeighbors();
+    }
     return graph;
   }
 }
