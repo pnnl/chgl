@@ -1,4 +1,5 @@
 use AdjListHyperGraph;
+use Generation;
 use Sort;
 
 /*
@@ -14,7 +15,6 @@ proc visualize(graph, fileName = "out.dot") throws {
     if vertexVisited[v.id] then return;
     vertexVisited[v.id] = true;
     str += "\t\tu" + v.id; 
-    writeln("Processing u", v.id);
     if graph.numNeighbors(v) != 0 {
       str += " -- {"; 
       for e in graph.getNeighbors(v) {
@@ -22,6 +22,7 @@ proc visualize(graph, fileName = "out.dot") throws {
       }
       str += " }\n";
     } else {
+      writeln("Found isolated vertex: ", v.id);
       str += "\n";
     }
     
@@ -35,7 +36,6 @@ proc visualize(graph, fileName = "out.dot") throws {
     // Mark this edge, and then write out neighbors
     if edgeVisited[e.id] then return;
     edgeVisited[e.id] = true;
-    writeln("Processing v", e.id);
     str += "\t\tv" + e.id; 
     if graph.numNeighbors(e) != 0 {
       str += " -- {"; 
@@ -63,37 +63,49 @@ proc visualize(graph, fileName = "out.dot") throws {
   }
 
   var subgraphStr = "";
-  var firstVertex = true;
+  var clusterNum = 1;
+  var insideSubgraph = false;
   for v in graph.getVertices() {
     if !vertexVisited[v.id] {
-      f.writeln("\tsubgraph {");
-    } else if !firstVertex {
-      writeln("subgraphStr=", subgraphStr);
+      if insideSubgraph {
+        // Sort the string lines
+        var arr = subgraphStr.split("\n");
+        sort(arr);
+        f.writeln(for a in arr do if a != "" then a + "\n");
+        subgraphStr = "";
+        f.writeln("\t}");
+        insideSubgraph = false;
+      }
+      f.writeln("\tsubgraph cluster_", clusterNum, " {");
+      clusterNum += 1;
+      insideSubgraph = true;
+    } else if insideSubgraph {
       // Sort the string lines
       var arr = subgraphStr.split("\n");
       sort(arr);
-      f.writeln(for a in arr do a + "\n");
+      f.writeln(for a in arr do if a != "" then a + "\n");
       subgraphStr = "";
       f.writeln("\t}");
-    } else {
-      firstVertex = false;
-    }
+      insideSubgraph = false;
+    } 
     visitVertex(v, subgraphStr);
   }
   
-  writeln("subgraphStr=", subgraphStr);
-  // Sort the string lines
-  var arr = subgraphStr.split("\n");
-  sort(arr);
-  f.writeln(for a in arr do a + "\n");
-  subgraphStr = "";
-  f.writeln("\t}");
+  if insideSubgraph {
+    // Sort the string lines
+    var arr = subgraphStr.split("\n");
+    sort(arr);
+    f.writeln(for a in arr do if a != "" then a + "\n");
+    subgraphStr = "";
+    f.writeln("\t}");
+    insideSubgraph = false;
+  }
 
-  var firstEdge = true;
   for e in graph.getEdges() {
     if !edgeVisited[e.id] {
       writeln("Found isolated edge: ", e.id);
-      f.writeln("\tsubgraph {\n\t\tv", e.id, "\n\t}");
+      f.writeln("\tsubgraph cluster_", clusterNum, " {\n\t\tv", e.id, "\n\t}");
+      clusterNum += 1;
       edgeVisited[e.id] = true;
     }
   }
@@ -103,10 +115,8 @@ proc visualize(graph, fileName = "out.dot") throws {
 }
 
 proc main() {
-  var g = new AdjListHyperGraph(2,3);
-  g.addInclusion(0,0);
-  g.addInclusion(1,0);
-  g.addInclusion(1,1);
-  g.addInclusion(0,1);
+  var g = new AdjListHyperGraph(10,10);
+  generateErdosRenyiSMP(g, 0.5, g.verticesDomain[0..4], g.edgesDomain[0..4]);
+  generateErdosRenyiSMP(g, 0.5, g.verticesDomain[5..9], g.edgesDomain[5..9]);
   visualize(g);
 }
