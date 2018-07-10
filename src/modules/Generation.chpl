@@ -20,31 +20,38 @@ module Generation {
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
 
-  proc histogram(elements, probabilities, numRandoms) {
+  proc histogram(probabilities, numRandoms) {
     var indices : [1..numRandoms] int;
     var rngArr : [1..numRandoms] real;
+    var newProbabilities : [1..1] real;
+    if numRandoms == 0 then return indices;
+    newProbabilities.push_back(probabilities);
     fillRandom(rngArr);
     
     // probabilities is binrange, rngArr is X
     for (rng, ix) in zip(rngArr, indices) {
-      var idx = probabilities.domain.low;
+      const lo = newProbabilities.domain.low;
+      const hi = newProbabilities.domain.high;
+      const size = newProbabilities.size;
+      var offset = 1;
       // Find a probability less than or equal to rng in log(n) time
-      while idx <= probabilities.domain.high && rng > probabilities[idx] {
-        idx *= 2;
+      while (offset <= size && rng > newProbabilities[offset]) {
+        offset *= 2;
       }
       
       // Find the first probability less than or equal to rng
-      idx = min(idx, probabilities.domain.high);
-      while idx != probabilities.domain.low && rng < probabilities[idx - 1] {
-        idx -= 1;
+      offset = min(offset, size);
+      while offset != 0 && rng < newProbabilities[offset - 1] {
+        offset -= 1;
       }
       
       // Special case - when we reach first or last element, keep them the same as they have their own bin
       // Otherwise offset by -1 again as we want to be in the correct bin (a,b)
-      if idx != probabilities.domain.low && idx != probabilities.domain.high then idx -= 1;
-      ix = idx;
+      ix = offset - 2;
+      assert(ix >= 0);
     }
-
+    
+    writeln("Returned indices: ", indices);
     return indices;
   }
 
@@ -231,14 +238,14 @@ module Generation {
       coforall tid in 0..#here.maxTaskPar {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
-        var vertexBin = histogram(verticesDomain, vertexScan, perTaskInclusions);
-        var edgeBin = histogram(edgesDomain, edgeScan, perTaskInclusions);
+        var vertexBin = histogram(localVertexScan, perTaskInclusions);
+        var edgeBin = histogram(localEdgeScan, perTaskInclusions);
         // Each thread gets its own random stream to avoid acquiring sync var
         // Note: This is needed due to issues with qthreads
         //var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
         //var randStream = new RandomStream(real, _randStream.getNext());
         for (vIdx, eIdx) in zip(vertexBin, edgeBin) {
-          graph.addInclusionBuffered(vIdx, eIdx);
+          graph.addInclusionBuffered(verticesDomain.low + vIdx, edgesDomain.low + eIdx);
         }
       }
     }
@@ -325,6 +332,7 @@ module Generation {
 
     writeln("Finished computing affinity blocks");
 
+    //graph.removeDuplicates();
     forall (v, vDeg) in graph.forEachVertexDegree() {
       var oldDeg = vd[v.id];
       vd[v.id] = max(0, oldDeg - vDeg);
@@ -335,7 +343,7 @@ module Generation {
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
     generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
-    
+     
     return graph;
   }
 }
