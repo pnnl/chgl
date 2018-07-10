@@ -6,6 +6,7 @@ module Generation {
   use AdjListHyperGraph;
   use Math;
   use Sort;
+  use Search;
 
   param GenerationSeedOffset = 0xDEADBEEF;
 
@@ -19,21 +20,51 @@ module Generation {
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
 
+  proc histogram(elements, probabilities, numRandoms) {
+    var indices : [1..numRandoms] int;
+    var rngArr : [1..numRandoms] real;
+    fillRandom(rngArr);
+    
+    // probabilities is binrange, rngArr is X
+    for (rng, ix) in zip(rngArr, indices) {
+      var idx = probabilities.domain.low;
+      // Find a probability less than or equal to rng in log(n) time
+      while idx <= probabilities.domain.high && rng > probabilities[idx] {
+        idx *= 2;
+      }
+      
+      // Find the first probability less than or equal to rng
+      idx = min(idx, probabilities.domain.high);
+      while idx != probabilities.domain.low && rng < probabilities[idx - 1] {
+        idx -= 1;
+      }
+      
+      // Special case - when we reach first or last element, keep them the same as they have their own bin
+      // Otherwise offset by -1 again as we want to be in the correct bin (a,b)
+      if idx != probabilities.domain.low && idx != probabilities.domain.high then idx -= 1;
+      ix = idx;
+    }
+
+    return indices;
+  }
+
   proc generateErdosRenyiSMP(graph, probability, vertexDomain, edgeDomain, couponCollector = true) {
+    // Rounds a real into an int
+    proc _round(x : real) : int {
+      return round(x) : int;
+    }
     const numVertices = vertexDomain.size;
     const numEdges = edgeDomain.size;
     var newP = if couponCollector then log(1/(1-probability)) else probability;
-    var inclusionsToAdd = (numVertices * numEdges * newP) : int;
+    var inclusionsToAdd = _round(numVertices * numEdges * newP);
+    writeln("Inclusions to add: ", inclusionsToAdd);
     // Perform work evenly across all tasks
-    coforall tid in 0..#here.maxTaskPar {
-      var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
-      // Each thread gets its own random stream to avoid acquiring sync var
-      var randStream = new RandomStream(int, GenerationSeedOffset + tid);
-      for 1..perTaskInclusions {
-        var vertex = randStream.getNext(vertexDomain.low, vertexDomain.high);
-        var edge = randStream.getNext(edgeDomain.low, edgeDomain.high);
-        graph.addInclusion(vertex, edge);
-      }
+    var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar);
+    var randStream = new RandomStream(int, _randStream.getNext());
+    forall 1..inclusionsToAdd {
+      var vertex = randStream.getNext(vertexDomain.low, vertexDomain.high);
+      var edge = randStream.getNext(edgeDomain.low, edgeDomain.high);
+      graph.addInclusion(vertex, edge);
     }
 
     return graph;
@@ -45,7 +76,8 @@ module Generation {
     coforall tid in 0..#here.maxTaskPar {
       var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
       // Each thread gets its own random stream to avoid acquiring sync var
-      var randStream = new RandomStream(int, GenerationSeedOffset + tid);
+      var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+      var randStream = new RandomStream(int, _randStream.getNext());
       for 1..perTaskInclusions {
         var vertex = randStream.getNext(0, graph.numVertices - 1);
         var edge = randStream.getNext(0, graph.numEdges - 1);
@@ -65,7 +97,8 @@ module Generation {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
         // Each thread gets its own random stream to avoid acquiring sync var
-        var randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+        var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+        var randStream = new RandomStream(int, _randStream.getNext());
         for 1..perTaskInclusions {
           var vertex = randStream.getNext(0, graph.numVertices - 1);
           var edge = randStream.getNext(0, graph.numEdges - 1);
@@ -87,7 +120,8 @@ module Generation {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
         // Each thread gets its own random stream to avoid acquiring sync var
-        var randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+        var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+        var randStream = new RandomStream(int, _randStream.getNext());
         for 1..perTaskInclusions {
           var vertex = randStream.getNext(0, graph.numVertices - 1);
           var edge = randStream.getNext(0, graph.numEdges - 1);
@@ -120,7 +154,8 @@ module Generation {
   proc generateErdosRenyiNaive(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
     // Spawn a remote task on each node...
     coforall loc in targetLocales with (in graph) do on loc {
-      var randStream: RandomStream(real) = new RandomStream(real, GenerationSeedOffset);
+      var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar);
+      var randStream = new RandomStream(int, _randStream.getNext());
 
       // Process either vertices of edges in parallel based on relative size.
       if graph.numVertices > graph.numEdges {
@@ -162,7 +197,8 @@ module Generation {
     coforall tid in 0..#here.maxTaskPar {
       // Perform work evenly across all tasks
       var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
-      var randStream = new RandomStream(real, GenerationSeedOffset + tid);
+      var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+      var randStream = new RandomStream(real, _randStream.getNext());
       for 1..perTaskInclusions {
         var vertex = getRandomElement(verticesDomain, vertexScan, randStream.getNext());
         var edge = getRandomElement(edgesDomain, edgeScan, randStream.getNext());
@@ -195,13 +231,14 @@ module Generation {
       coforall tid in 0..#here.maxTaskPar {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
+        var vertexBin = histogram(verticesDomain, vertexScan, perTaskInclusions);
+        var edgeBin = histogram(edgesDomain, edgeScan, perTaskInclusions);
         // Each thread gets its own random stream to avoid acquiring sync var
         // Note: This is needed due to issues with qthreads
-        var randStream = new RandomStream(real, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-        for 1..perTaskInclusions {
-          var vertex = getRandomElement(verticesDomain, localVertexScan, randStream.getNext());
-          var edge = getRandomElement(edgesDomain, localEdgeScan, randStream.getNext());
-          graph.addInclusionBuffered(vertex, edge);
+        //var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+        //var randStream = new RandomStream(real, _randStream.getNext());
+        for (vIdx, eIdx) in zip(vertexBin, edgeBin) {
+          graph.addInclusionBuffered(vIdx, eIdx);
         }
       }
     }
@@ -269,7 +306,8 @@ module Generation {
         edDom.size
         );
     var graph = new AdjListHyperGraph(vdDom.size, edDom.size);
-
+  
+    var blockID = 1;
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
@@ -278,7 +316,9 @@ module Generation {
       var nE_int = nE:int;
       var verticesDomain = graph.verticesDomain[idV..#nV_int];
       var edgesDomain = graph.edgesDomain[idE..#nE_int];
-      generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain, couponCollector = true);  
+      generateErdosRenyiAdjusted(graph, verticesDomain, edgesDomain, rho, couponCollector = true);  
+      writeln("Block #", blockID, ", verticesDomain=", verticesDomain, ", edgesDomain=", edgesDomain, ", output=", (nV, nE, rho), ", input=", (dV, dE, mV, mE));
+      blockID += 1;
       idV += nV_int;
       idE += nE_int;
     }
@@ -296,13 +336,6 @@ module Generation {
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
     generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
     
-    // Remove all duplicates
-    forall v in graph.getVertices() {
-      graph.getVertex(v).removeDuplicateNeighbors();
-    }
-    forall e in graph.getEdges() {
-      graph.getEdge(e).removeDuplicateNeighbors();
-    }
     return graph;
   }
 }

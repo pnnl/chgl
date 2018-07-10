@@ -207,30 +207,33 @@ module AdjListHyperGraph {
     
     // Removes duplicates... sorts the neighborlist before doing so
     proc removeDuplicateNeighbors() {
+      var neighborsRemoved = 0;
       on this {
         lock.acquire();
 
         sortNeighbors();
-        
+
         var newDom = neighborListDom;
         var newNeighbors : [newDom] nodeIdType;
         var oldNeighborIdx = neighborListDom.low;
         var newNeighborIdx = newDom.low;
-	if neighborList.size != 0 {
+        if neighborList.size != 0 {
           newNeighbors[newNeighborIdx] = neighborList[newNeighborIdx];
-	  while (oldNeighborIdx <= neighborListDom.high) {
-	    if neighborList[oldNeighborIdx] != newNeighbors[newNeighborIdx] {
-	      newNeighborIdx += 1;
-	      newNeighbors[newNeighborIdx] = neighborList[oldNeighborIdx];
-	    }
-	    oldNeighborIdx += 1;
-	  }
-	  
-	  neighborListDom = {newDom.low..newNeighborIdx};
-	  neighborList = newNeighbors[newDom.low..newNeighborIdx];
-	}
-	lock.release();
+          while (oldNeighborIdx <= neighborListDom.high) {
+            if neighborList[oldNeighborIdx] != newNeighbors[newNeighborIdx] {
+              newNeighborIdx += 1;
+              newNeighbors[newNeighborIdx] = neighborList[oldNeighborIdx];
+            }
+            oldNeighborIdx += 1;
+          }
+          
+          neighborsRemoved = neighborListDom.high - newNeighborIdx;
+          neighborListDom = {newDom.low..newNeighborIdx};
+          neighborList = newNeighbors[newDom.low..newNeighborIdx];
+        }
+        lock.release();
       }
+      return neighborsRemoved;
     }
 
     // Obtains the intersection of the neighbors of 'this' and 'other'.
@@ -800,15 +803,22 @@ module AdjListHyperGraph {
       var eLoc = edgesDist.idxToLocale(eDesc.id).locale;
       
       // Both not on same node? Ensure that both remote operations are handled remotely
-      if vLoc != here && eLoc != here {
+      serial vLoc != here && eLoc != here do
         cobegin {
           getVertex(vDesc).addNodes(eDesc);
           getEdge(eDesc).addNodes(vDesc);
         }
-      } else {
-        getVertex(vDesc).addNodes(eDesc);
-        getEdge(eDesc).addNodes(vDesc);
+    }
+
+    proc removeDuplicates() {
+      var neighborsRemoved = 0;
+      forall v in getVertices() with (+ reduce neighborsRemoved) {
+        neighborsRemoved += getVertex(v).removeDuplicateNeighbors();
       }
+      forall e in getEdges() with (+ reduce neighborsRemoved) {
+        neighborsRemoved += getEdge(e).removeDuplicateNeighbors();
+      }
+      return neighborsRemoved;
     }
 
     inline proc toEdge(id : eIndexType) {
@@ -932,20 +942,35 @@ module AdjListHyperGraph {
       + "argument must be of type " + vDescType : string + " or " + eDescType : string);
     }
 
-    // TODO: for something in graph do ...
-    iter these() {
-
+    // Iterates over all vertex-edge pairs in graph...
+    // N.B: Not safe to mutate while iterating...
+    iter these() : (vDescType, eDescType) {
+      for v in getVertices() {
+        for e in getNeighbors(v) {
+          yield (v, e);
+        }
+      }
     }
 
-    // TODO: forall something in graph do ...
-    iter these(param tag : iterKind) where tag == iterKind.standalone {
-
+    // N.B: Not safe to mutate while iterating...
+    iter these(param tag : iterKind) : (vDescType, eDescType) where tag == iterKind.standalone {
+      forall v in getVertices() {
+        forall e in getNeighbors(v) {
+          yield (v, e);
+        }
+      }
     }
-
-    // TODO: graph[something] = somethingElse;
-    // TODO: Make return ref, const-ref, or by-value versions?
-    proc this() {
-
+  
+    // Return adjacency list snapshot of vertex
+    proc this(v : vDescType) {
+      var ret = getNeighbors(v);
+      return ret;
+    }
+    
+    // Return adjacency list snapshot of edge
+    proc this(e : eDescType) {
+      var ret = getNeighbors(e);
+      return ret;
     }
   } // class Graph
 
