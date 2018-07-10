@@ -20,13 +20,13 @@ module Generation {
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
 
-  proc histogram(probabilities, numRandoms) {
+  proc histogram(probabilities, numRandoms, seed = 1) {
     var indices : [1..numRandoms] int;
     var rngArr : [1..numRandoms] real;
     var newProbabilities : [1..1] real;
     if numRandoms == 0 then return indices;
     newProbabilities.push_back(probabilities);
-    fillRandom(rngArr);
+    fillRandom(rngArr, algorithm = RNG.NPB, seed = seed);
     
     // probabilities is binrange, rngArr is X
     for (rng, ix) in zip(rngArr, indices) {
@@ -51,7 +51,6 @@ module Generation {
       assert(ix >= 0);
     }
     
-    writeln("Returned indices: ", indices);
     return indices;
   }
 
@@ -238,7 +237,7 @@ module Generation {
       coforall tid in 0..#here.maxTaskPar {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
-        var vertexBin = histogram(localVertexScan, perTaskInclusions);
+        var vertexBin = histogram(localVertexScan, perTaskInclusions, (here.maxTaskPar * here.id + tid) * 2 + 1);
         var edgeBin = histogram(localEdgeScan, perTaskInclusions);
         // Each thread gets its own random stream to avoid acquiring sync var
         // Note: This is needed due to issues with qthreads
@@ -315,6 +314,7 @@ module Generation {
     var graph = new AdjListHyperGraph(vdDom.size, edDom.size);
   
     var blockID = 1;
+    var expectedDuplicates : int;
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
@@ -323,7 +323,8 @@ module Generation {
       var nE_int = nE:int;
       var verticesDomain = graph.verticesDomain[idV..#nV_int];
       var edgesDomain = graph.edgesDomain[idE..#nE_int];
-      generateErdosRenyiAdjusted(graph, verticesDomain, edgesDomain, rho, couponCollector = true);  
+      expectedDuplicates += (round(nV_int * nE_int * log(1/(1-rho))) - round(nV_int * nE_int * rho)) : int;
+      generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);  
       writeln("Block #", blockID, ", verticesDomain=", verticesDomain, ", edgesDomain=", edgesDomain, ", output=", (nV, nE, rho), ", input=", (dV, dE, mV, mE));
       blockID += 1;
       idV += nV_int;
@@ -331,8 +332,7 @@ module Generation {
     }
 
     writeln("Finished computing affinity blocks");
-
-    //graph.removeDuplicates();
+    writeln("Expected Duplicates: ", expectedDuplicates, ", received: ", graph.removeDuplicates() / 2);
     forall (v, vDeg) in graph.forEachVertexDegree() {
       var oldDeg = vd[v.id];
       vd[v.id] = max(0, oldDeg - vDeg);
