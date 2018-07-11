@@ -323,29 +323,36 @@ module Generation {
       (nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
       var nV_int = nV:int;
       var nE_int = nE:int;
-      var verticesDomain = graph.verticesDomain[idV..#nV_int];
-      var edgesDomain = graph.edgesDomain[idE..#nE_int];
-      expectedDuplicates += (round(nV_int * nE_int * log(1/(1-rho))) - round(nV_int * nE_int * rho)) : int;
-      generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);  
-      writeln("Block #", blockID, ", verticesDomain=", verticesDomain, ", edgesDomain=", edgesDomain, ", output=", (nV, nE, rho), ", input=", (dV, dE, mV, mE));
       blockID += 1;
-      idV += nV_int;
-      idE += nE_int;
-    }
 
-    writeln("Finished computing affinity blocks");
-    writeln("Expected Duplicates: ", expectedDuplicates, ", received: ", graph.removeDuplicates() / 2);
-    forall (v, vDeg) in graph.forEachVertexDegree() {
-      var oldDeg = vd[v.id];
-      vd[v.id] = max(0, oldDeg - vDeg);
-    }
-    forall (e, eDeg) in graph.forEachEdgeDegree() {
-      var oldDeg = ed[e.id];
-      ed[e.id] = max(0, oldDeg - eDeg);
-    }
-    var nInclusions = _round(max(+ reduce vd, + reduce ed));
-    generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
+      // Check to ensure that blocks are only applied when it fits
+      // within the range of the number of vertices and edges provided.
+      // This avoids processing a most likely "wrong" value of rho as
+      // mentioned by Sinan.
+      if (((idV + nV_int) <= numV) && ((idE + nE_int) <= numE)) {
+        var verticesDomain = graph.verticesDomain[idV..#nV_int];
+        var edgesDomain = graph.edgesDomain[idE..#nE_int];
+        expectedDuplicates += (round(nV_int * nE_int * log(1/(1-rho))) - round(nV_int * nE_int * rho)) : int;
+        generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);  
+        writeln("Block #", blockID, ", verticesDomain=", verticesDomain, ", edgesDomain=", edgesDomain, ", output=", (nV, nE, rho), ", input=", (dV, dE, mV, mE));
+        idV += nV_int;
+        idE += nE_int;
+      }
+
+      writeln("Finished computing affinity blocks");
+      writeln("Expected Duplicates: ", expectedDuplicates, ", received: ", graph.removeDuplicates() / 2);
+      forall (v, vDeg) in graph.forEachVertexDegree() {
+        var oldDeg = vd[v.id];
+        vd[v.id] = max(0, oldDeg - vDeg);
+      }
+      forall (e, eDeg) in graph.forEachEdgeDegree() {
+        var oldDeg = ed[e.id];
+        ed[e.id] = max(0, oldDeg - eDeg);
+      }
+      var nInclusions = _round(max(+ reduce vd, + reduce ed));
+      generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
      
-    return graph;
+      return graph;
+    }
   }
-}
+

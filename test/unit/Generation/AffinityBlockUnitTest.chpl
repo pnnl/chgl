@@ -1,14 +1,14 @@
 use Generation;
 use Types;
 
-var vd_file = open("../../../data/condMat/dSeq_v_list.csv", iomode.r).reader();
-var ed_file = open("../../../data/condMat/dSeq_E_list.csv", iomode.r).reader();
-var vm_file = open("../../../data/condMat/mpd_V.csv", iomode.r).reader();
-var em_file = open("../../../data/condMat/mpd_E.csv", iomode.r).reader();
+var vd_file = open("../../data/condMat/dSeq_v_list.csv", iomode.r).reader();
+var ed_file = open("../../data/condMat/dSeq_E_list.csv", iomode.r).reader();
+var vm_file = open("../../data/condMat/mpd_V.csv", iomode.r).reader();
+var em_file = open("../../data/condMat/mpd_E.csv", iomode.r).reader();
 
-var matlabRhoFile = open("../../../data/output/BTER/CondMat-Sinan/rhoByAffBlkID.csv", iomode.r).reader();
-var matlabVFile = open("../../../data/output/BTER/CondMat-Sinan/affBlkID_V.csv", iomode.r).reader();
-var matlabEFile = open("../../../data/output/BTER/CondMat-Sinan/affBlkID_E.csv", iomode.r).reader();
+var matlabRhoFile = open("../../data/output/BTER/CondMat-Sinan/rhoByAffBlkID.csv", iomode.r).reader();
+var matlabVFile = open("../../data/output/BTER/CondMat-Sinan/affBlkID_V.csv", iomode.r).reader();
+var matlabEFile = open("../../data/output/BTER/CondMat-Sinan/affBlkID_E.csv", iomode.r).reader();
 
 var vertexDegrees: [0..16725] int;
 var edgeDegrees: [0..22014] int;
@@ -68,7 +68,6 @@ while (idV <= numV && idE <= numE) {
 
     // Using index [blockID-1] because array starts at 0
     // and var BlockID start at 1.
-
     probDiff = abs(rho - matlabRho[blockID-1]);
     assert(probDiff >= (5*(10**-6)));
 
@@ -79,4 +78,5 @@ while (idV <= numV && idE <= numE) {
     idV += nV_int;
     idE += nE_int;
 }
+assert((blockID-1) == 3509);
 writeln(true);
