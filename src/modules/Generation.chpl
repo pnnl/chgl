@@ -259,25 +259,8 @@ module Generation {
     return generateChungLu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
   }
 
-  proc generateBTER(
-      vd : [?vdDom], /* Vertex Degrees */
-      ed : [?edDom], /* Edge Degrees */
-      vmc : [?vmcDom], /* Vertex Metamorphosis Coefficient */
-      emc : [?emcDom] /* Edge Metamorphosis Coefficient */
-      ) {
-    // Rounds a real into an int
-    proc _round(x : real) : int {
-      return round(x) : int;
-    }
-
-    // Obtains the minimum value that exceeds one
-    proc minimalGreaterThanOne(arr) {
-      for (a, idx) in zip(arr, arr.dom) do if a > 1 then return idx;
-      halt("No member found that is greater than 1...");
-    }
-
-    // Computes the triple (nV, nE, rho) which are used to determine affinity blocks
-    proc computeAffinityBlocks(dV, dE, mV, mE){
+  // Computes the triple (nV, nE, rho) which are used to determine affinity blocks
+  proc computeAffinityBlocks(dV, dE, mV, mE){
       var (nV, nE, rho) : 3 * real;
 
       //determine the nV, nE, rho
@@ -294,6 +277,25 @@ module Generation {
       assert(!isnan(rho), (dV, dE, mV, mE), "->", (nV, nE, rho));
 
       return (_round(nV), _round(nE), rho);
+  }
+
+  // Rounds a real into an int
+  proc _round(x : real) : int {
+      return round(x) : int;
+  }
+
+
+  proc generateBTER(
+      vd : [?vdDom], /* Vertex Degrees */
+      ed : [?edDom], /* Edge Degrees */
+      vmc : [?vmcDom], /* Vertex Metamorphosis Coefficient */
+      emc : [?emcDom] /* Edge Metamorphosis Coefficient */
+      ) {
+
+    // Obtains the minimum value that exceeds one
+    proc minimalGreaterThanOne(arr) {
+      for (a, idx) in zip(arr, arr.dom) do if a > 1 then return idx;
+      halt("No member found that is greater than 1...");
     }
 
     // Check if data begins at index 0...
