@@ -40,13 +40,13 @@ em_file.close();
 writeln("generating BTER w/o coupon collector...");
 var graph = generateBTER(vertexDegrees, edgeDegrees, vertexMetamorphs, edgeMetamorphs);
 writeln((+ reduce graph.getVertexButterflies()) / 2);
-writeln((+ reduce graph.getVertexCaterpillars()) / 2);
+//writeln((+ reduce graph.getVertexCaterpillars()) / 2);
 writeln("done");
 
-var outfile = open("out.csv", iomode.cw).writer();
-forall v in graph.getVertices() {
-  forall e in graph.getNeighbors(v) {
-    outfile.writeln(v.id, ", ", e.id);
-  }
-}
-outfile.close();
+//var outfile = open("out.csv", iomode.cw).writer();
+//forall v in graph.getVertices() {
+//  forall e in graph.getNeighbors(v) {
+//    outfile.writeln(v.id, ", ", e.id);
+//  }
+//}
+//outfile.close();

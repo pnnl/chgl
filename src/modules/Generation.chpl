@@ -337,7 +337,10 @@ module Generation {
         writeln("Block #", blockID, ", verticesDomain=", verticesDomain, ", edgesDomain=", edgesDomain, ", output=", (nV, nE, rho), ", input=", (dV, dE, mV, mE));
         idV += nV_int;
         idE += nE_int;
+      } else {
+          break;
       }
+    }
 
       writeln("Finished computing affinity blocks");
       writeln("Expected Duplicates: ", expectedDuplicates, ", received: ", graph.removeDuplicates() / 2);
