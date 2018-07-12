@@ -64,6 +64,7 @@ proc walk(graph, e : graph.eDescType, s = 1, param k = 2) : Channel(k * graph.eD
           visitEdge(e, twoHopNeighbor, 2, p); 
       }
     }
+    outchan.close();
   }
 
   // Return output end...
