@@ -7,14 +7,63 @@ use FIFOChannel;
   returned via a tuple of rank k.
 */
 proc walk(graph, e : graph.eDescType, s = 1, param k = 2) : Channel(k * graph.eDescType) {
-  type chanType = k * graph.eDescType;
-  var inchan = new Channel(chanType);
-  var outchan = new Channel(chanType);
+  type pathType = k * graph.eDescType;
+  var inchan = new Channel(pathType);
+  var outchan = new Channel(pathType);
   inchan.pair(outchan);
+  
+  /*
+    Visits edge and determines if we can walk to neighbor; if we can, then we visit each neighbor.
+    Recursion is bound by k.
+  */
+  proc visitEdge(edge : graph.eDescType, neighbor : graph.eDescType, depth, path : pathType) {
+    if graph.getEdge(edge).intersection(neighbor).size() >= s {
+      const p = path;
+      p[depth] = neighbor;
+      
+      // If we have found our k'th hyperedge, we have finished...
+      if depth == k {
+        outchan.send(p);
+        return;
+      }
+
+      // Otherwise, visit all two-hop neighbors...
+      for v in graph.getNeighbors(neighbor) {
+        for twoHopNeighbors in graph.getNeighbors(v) {
+          // Check if we already processed this edge...
+          var processed = false;
+          for processedNeighbor in path {
+            if processedNeighbor == twoHopNeighbor {
+              processed = true;
+              break;
+            }
+          }
+
+          if !processed {
+            visitEdge(neighbor, twoHopNeighbor, depth + 1, p);
+          }
+        }
+      }
+    }
+  }
+
+  if k == 1 {
+    outchan.send((e,));
+    outchan.close();
+    return inchan;
+  }
 
   // Handle asynchronously
   begin {
-    // TODO
+    // Special case: If k is 1, we're already done...
+    for v in graph.getNeighbors(e) {
+      for twoHopNeighbor in graph.getNeighbors(v) {
+          var p : pathType;
+          p[1] = e;
+          p[2] = twoHopNeighbor;
+          visitEdge(e, twoHopNeighbor, 2, p); 
+      }
+    }
   }
 
   // Return output end...
