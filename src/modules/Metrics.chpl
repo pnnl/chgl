@@ -67,6 +67,6 @@ proc walk(graph, e : graph.eDescType, s = 1, param k = 2) : Channel(k * graph.eD
     outchan.close();
   }
 
-  // Return output end...
-  return outchan;
+  // Return input end...
+  return inchan;
 }
