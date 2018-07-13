@@ -1,4 +1,5 @@
 use Time;
+use Random;
 
 /*
   TODO: Implement dynamic buffer pools where the buffers expand in size
@@ -241,8 +242,10 @@ proc main() {
   var timer : Timer;
   timer.start();
   on Locales[1] {
+    var rng = makeRandomStream(int);
+    const _arrSize = arrSize;
     forall i in 1..arrSize {
-      var (ptr, sz) : (c_ptr(msgType), int(64)) = aggregator.aggregate(0, (i, i+1));
+      var (ptr, sz) : (c_ptr(msgType), int(64)) = aggregator.aggregate(0, (rng.getNext(1, _arrSize), i));
       if ptr != nil {
         on Locales[0] {
           var tmp : [1..sz] msgType;
@@ -259,14 +262,17 @@ proc main() {
   timer.clear();
   timer.start();
   on Locales[1] {
-    forall i in 1..arrSize do arr[i] = i + 1;
+    var rng = makeRandomStream(int);
+    const _arrSize = arrSize;
+    forall i in 1..arrSize do arr[rng.getNext(1, _arrSize)] = i;
   }
   timer.stop();
   writeln("Naive Time: ", timer.elapsed());
 
   timer.clear();
   timer.start();
-  forall i in 1..arrSize do arr[i] = i + 1;
+  var rng = makeRandomStream(int);
+  forall i in 1..arrSize do arr[rng.getNext(1, arrSize)] = i;
   timer.stop();
   writeln("Best Case Time: ", timer.elapsed());
 }

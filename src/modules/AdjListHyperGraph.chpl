@@ -239,7 +239,8 @@ module AdjListHyperGraph {
     // Obtains the intersection of the neighbors of 'this' and 'other'.
     // Associative arrays are extremely inefficient, so we have to roll
     // our own intersection. We do this by sorting both data structures...
-    // TODO: Profile
+    // N.B: This may not perform well in distributed setting, but fine-grained
+    // communications may or may not be okay here. Need to profile more.
     proc neighborIntersection(other : this.type) {
       // Acquire mutual exclusion on both
       serial other.locale != here && this.locale != here do cobegin {
@@ -247,33 +248,32 @@ module AdjListHyperGraph {
         on other do other.lock.acquire();
       }
 
-      // Possibly remote accesses, copy by value...
-      const thisDom = neighborListDom;
-      const otherDom = other.neighborListDom;
-
-      var (idxThis, idxOther) = (thisDom.low, otherDom.low);
-      var intersection : [1..0] int;
-      
-      // Perform this operation in N chunks...
-      /*
-      while idxA <= newA.domain.high && idxB <= newB.domain.high {
-        const a = newA[idxA];
-        const b = newB[idxB];
-        if a == b { intersection.push_back(a); idxA += 1; idxB += 1; }
-        else if a > b then idxB += 1;
-        else idxA += 1;
-      }
-      */
-      halt("Intersection not yet implemented... TODO");
-
-      cobegin {
-        on this {
-          lock.release();
+      var intersection : [0..-1] nodeIdType;
+      var A = this.neighborList;
+      var B = other.neighborList;
+      var idxA = A.domain.low;
+      var idxB = B.domain.low;
+      while idxA <= A.domain.high && idxB <= B.domain.high {
+        const a = A[idxA];
+        const b = B[idxB];
+        if a == b { 
+          intersection.push_back(a); 
+          idxA += 1; 
+          idxB += 1; 
         }
-        on other {
-          other.lock.release();
+        else if a.id > b.id { 
+          idxB += 1;
+        } else { 
+          idxA += 1;
         }
       }
+
+      serial other.locale != here && this.locale != here do cobegin {
+        on this do lock.release();
+        on other do other.lock.release();
+      }
+
+      return intersection;
     }
 
     proc sortNeighbors() {
@@ -915,7 +915,21 @@ module AdjListHyperGraph {
         }
     }
 
+    iter intersection(e1 : eDescType, e2 : eDescType) {
+      for n in getEdge(e1).neighborIntersection(getEdge(e2)) do yield n; 
+    }
 
+    iter intersection(e1 : eDescType, e2 : eDescType, param tag : iterKind) where tag == iterKind.standalone {
+      for n in getEdge(e1).neighborIntersection(getEdge(e2)) do yield n; 
+    }
+
+    iter intersection(v1 : vDescType, v2 : vDescType) {
+      for n in getVertex(v1).neighborIntersection(getEdge(v2)) do yield n;
+    }
+
+    iter intersection(v1 : vDescType, v2 : vDescType, param tag : iterKind) where tag == iterKind.standalone {
+      forall n in getVertex(v1).neighborIntersection(getEdge(v2)) do yield n;
+    }
 
     iter neighbors(e : eDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
