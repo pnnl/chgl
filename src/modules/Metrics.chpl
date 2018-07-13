@@ -1,4 +1,5 @@
 use AdjListHyperGraph;
+use Generation;
 use FIFOChannel;
 
 /*
@@ -29,7 +30,7 @@ proc walk(graph, e : graph.eDescType, s = 1, param k = 2) : Channel(k * graph.eD
 
       // Otherwise, visit all two-hop neighbors...
       for v in graph.getNeighbors(neighbor) {
-        for twoHopNeighbors in graph.getNeighbors(v) {
+        for twoHopNeighbor in graph.getNeighbors(v) {
           // Check if we already processed this edge...
           var processed = false;
           for processedNeighbor in path {
@@ -69,4 +70,13 @@ proc walk(graph, e : graph.eDescType, s = 1, param k = 2) : Channel(k * graph.eD
 
   // Return input end...
   return inchan;
+}
+
+proc main() {
+  var graph = new AdjListHyperGraph(1024, 1024);
+  generateErdosRenyiSMP(graph, 0.5);
+  var chan = walk(graph, graph.toEdge(1), s = 2);
+  while !chan.isClosed() {
+    writelln("Received: ", chan.recv());
+  }
 }

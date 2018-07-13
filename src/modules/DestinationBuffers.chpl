@@ -1,3 +1,5 @@
+use Time;
+
 /*
   TODO: Implement dynamic buffer pools where the buffers expand in size
 */
@@ -131,6 +133,8 @@ class AggregationBufferImpl {
     this.bufferPool = new FixedBufferPool(msgType, initialBufSize);
     forall buf in destinationBuffers {
       var (ptr, len) = bufferPool.getBuffer();
+      buf.buf = ptr;
+      buf.length.write(len);
     }
   }
   
@@ -143,6 +147,8 @@ class AggregationBufferImpl {
     this.bufferPool = new FixedBufferPool(msgType, other.initialBufSize);
     forall buf in destinationBuffers {
       var (ptr, len) = bufferPool.getBuffer();
+      buf.buf = ptr;
+      buf.length.write(len);
     }
   }
   
@@ -228,11 +234,14 @@ class AggregationBufferImpl {
 }
 
 proc main() {
+  const arrSize = 1024 * 1024 * 8;
   type msgType = (int, int);
-  var arr : [1..1024 * 1024] int;
+  var arr : [1..arrSize] int;
   var aggregator = new AggregationBuffer(msgType);
+  var timer : Timer;
+  timer.start();
   on Locales[1] {
-    forall i in 1..1024 * 1024 {
+    forall i in 1..arrSize {
       var (ptr, sz) : (c_ptr(msgType), int(64)) = aggregator.aggregate(0, (i, i+1));
       if ptr != nil {
         on Locales[0] {
@@ -244,4 +253,20 @@ proc main() {
       }
     }
   }
+  timer.stop();
+  writeln("Aggregation Time: ", timer.elapsed());
+  
+  timer.clear();
+  timer.start();
+  on Locales[1] {
+    forall i in 1..arrSize do arr[i] = i + 1;
+  }
+  timer.stop();
+  writeln("Naive Time: ", timer.elapsed());
+
+  timer.clear();
+  timer.start();
+  forall i in 1..arrSize do arr[i] = i + 1;
+  timer.stop();
+  writeln("Best Case Time: ", timer.elapsed());
 }

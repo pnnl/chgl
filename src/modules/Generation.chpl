@@ -26,7 +26,7 @@ module Generation {
     var newProbabilities : [1..1] real;
     if numRandoms == 0 then return indices;
     newProbabilities.push_back(probabilities);
-    fillRandom(rngArr, algorithm = RNG.NPB, seed = seed);
+    fillRandom(rngArr, seed = seed);
     
     // probabilities is binrange, rngArr is X
     for (rng, ix) in zip(rngArr, indices) {

@@ -242,7 +242,7 @@ module AdjListHyperGraph {
     // TODO: Profile
     proc neighborIntersection(other : this.type) {
       // Acquire mutual exclusion on both
-      cobegin {
+      serial other.locale != here && this.locale != here do cobegin {
         on this do lock.acquire();
         on other do other.lock.acquire();
       }
@@ -811,14 +811,15 @@ module AdjListHyperGraph {
     }
 
     proc removeDuplicates() {
-      var neighborsRemoved = 0;
-      forall v in getVertices() with (+ reduce neighborsRemoved) {
-        neighborsRemoved += getVertex(v).removeDuplicateNeighbors();
+      var vertexNeighborsRemoved = 0;
+      var edgeNeighborsRemoved = 0;
+      forall v in getVertices() with (+ reduce vertexNeighborsRemoved) {
+        vertexNeighborsRemoved += getVertex(v).removeDuplicateNeighbors();
       }
-      forall e in getEdges() with (+ reduce neighborsRemoved) {
-        neighborsRemoved += getEdge(e).removeDuplicateNeighbors();
+      forall e in getEdges() with (+ reduce edgeNeighborsRemoved) {
+        edgeNeighborsRemoved += getEdge(e).removeDuplicateNeighbors();
       }
-      return neighborsRemoved;
+      return (vertexNeighborsRemoved, edgeNeighborsRemoved);
     }
 
     inline proc toEdge(id : eIndexType) {
