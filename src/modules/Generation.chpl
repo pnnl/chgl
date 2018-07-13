@@ -27,12 +27,12 @@ module Generation {
     if numRandoms == 0 then return indices;
     newProbabilities.push_back(probabilities);
     fillRandom(rngArr, seed = seed);
-    
+    const lo = newProbabilities.domain.low;
+    const hi = newProbabilities.domain.high;
+    const size = newProbabilities.size;
+
     // probabilities is binrange, rngArr is X
-    for (rng, ix) in zip(rngArr, indices) {
-      const lo = newProbabilities.domain.low;
-      const hi = newProbabilities.domain.high;
-      const size = newProbabilities.size;
+    forall (rng, ix) in zip(rngArr, indices) {
       var offset = 1;
       // Find a probability less than or equal to rng in log(n) time
       while (offset <= size && rng > newProbabilities[offset]) {
@@ -226,31 +226,13 @@ module Generation {
   }
 
   proc generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales = Locales){
-    //const maxVertexScan = max reduce vertexScan;
-    //const maxEdgeScan = max reduce edgeScan;
-    //assert(maxVertexScan == 1.0 && maxEdgeScan == 1.0, "vertexScan max = ", maxVertexScan, ", isGood?", maxVertexScan == 1.0, ",  edgeScan max = ", maxEdgeScan, ", isGood?", maxEdgeScan == 1.0);
-    // Perform work evenly across all locales
-    coforall loc in targetLocales with (in graph) do on loc {
-      var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-      var localVertexScan = vertexScan;
-      var localEdgeScan = edgeScan;
-      coforall tid in 0..#here.maxTaskPar {
-        // Perform work evenly across all tasks
-        var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
-        var vertexBin = histogram(localVertexScan, perTaskInclusions, (here.maxTaskPar * here.id + tid) * 2 + 1);
-        var edgeBin = histogram(localEdgeScan, perTaskInclusions);
-        // Each thread gets its own random stream to avoid acquiring sync var
-        // Note: This is needed due to issues with qthreads
-        //var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-        //var randStream = new RandomStream(real, _randStream.getNext());
-        for (vIdx, eIdx) in zip(vertexBin, edgeBin) {
-          graph.addInclusionBuffered(verticesDomain.low + vIdx, edgesDomain.low + eIdx);
-        }
-      }
+    var vertexBin = histogram(vertexScan, inclusionsToAdd);
+    var edgeBin = histogram(edgeScan, inclusionsToAdd);
+    forall (vIdx, eIdx) in zip(vertexBin, edgeBin) {
+      graph.addInclusionBuffered(verticesDomain.low + vIdx, edgesDomain.low + eIdx);
     }
 
     graph.flushBuffers();
-    // TODO: Remove duplicate edges...
     return graph;
   }
 
