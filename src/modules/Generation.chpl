@@ -26,7 +26,7 @@ module Generation {
     var newProbabilities : [1..1] real;
     if numRandoms == 0 then return indices;
     newProbabilities.push_back(probabilities);
-    fillRandom(rngArr, seed = seed);
+    fillRandom(rngArr);
     const lo = newProbabilities.domain.low;
     const hi = newProbabilities.domain.high;
     const size = newProbabilities.size;
@@ -335,7 +335,7 @@ module Generation {
         ed[e.id] = max(0, oldDeg - eDeg);
       }
       var nInclusions = _round(max(+ reduce vd, + reduce ed));
-      generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
+      generateChungLu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
      
       return graph;
     }

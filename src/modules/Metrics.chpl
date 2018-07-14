@@ -1,6 +1,34 @@
 use AdjListHyperGraph;
 use Generation;
 use FIFOChannel;
+use DistributedDeque;
+
+record State {
+  type wrapperType;
+  var dom = {0..-1};
+  var arr : [dom] wrapperType;
+
+  proc init(other) {
+    this.wrapperType = other.wrapperType;
+    this.dom = other.dom;
+    this.complete();
+    this.arr = other.arr;
+  }
+
+  proc init(type wrapperType) {
+    this.wrapperType = wrapperType;
+  }
+}
+proc walk(graph, s = 1, k = 2) {
+  type stateType = State(graph._value.eDescType);
+  var workQueue = new DistDeque(stateType);
+  forall e in graph.getEdges() {
+    var state : stateType;;
+    state.arr.push_back(e);
+    workQueue.add(state);
+  }
+  writeln(workQueue);
+}
 
 /*
   Obtains all sequences of length k that the hyperedge e can walk to; we can walk from e to e'
@@ -79,11 +107,7 @@ proc walk(graph, e, s = 1, param k = 2) {
 
 proc main() {
   var graph = new AdjListHyperGraph(1024, 1024);
-  generateErdosRenyiSMP(graph, 0.1);
+  generateErdosRenyiSMP(graph, 0.25);
   graph.removeDuplicates();
-  var chan = walk(graph, graph.toEdge(1), s = 3, k = 3);
-  while !chan.isClosed() {
-    var ret = chan.recv();
-    writeln("Received: ", for (a,b,c) in ret do "e" + a.id + " -> e" + b.id + " -> e" + c.id + "\n");
-  }
+  walk(graph);
 }

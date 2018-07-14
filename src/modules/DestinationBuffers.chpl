@@ -234,6 +234,7 @@ class AggregationBufferImpl {
   }
 }
 
+use CommDiagnostics;
 proc main() {
   const arrSize = 1024 * 1024 * 8;
   type msgType = (int, int);
@@ -242,17 +243,18 @@ proc main() {
   var timer : Timer;
   timer.start();
   on Locales[1] {
+    var localAggregator = aggregator;
     var rng = makeRandomStream(int);
     const _arrSize = arrSize;
-    forall i in 1..arrSize {
-      var (ptr, sz) : (c_ptr(msgType), int(64)) = aggregator.aggregate(0, (rng.getNext(1, _arrSize), i));
+    forall i in 1.._arrSize {
+      var (ptr, sz) : (c_ptr(msgType), int(64)) = localAggregator.aggregate(0, (rng.getNext(1, _arrSize), i));
       if ptr != nil {
         on Locales[0] {
           var tmp : [1..sz] msgType;
           bulk_get(c_ptrTo(tmp), ptr.locale.id, ptr, sz);
           forall (i,j) in tmp do arr[i] = j;
         }
-        aggregator.processed(ptr, sz);
+        localAggregator.processed(ptr, sz);
       }
     }
   }
