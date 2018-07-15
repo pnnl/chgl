@@ -15,12 +15,14 @@ inline proc bulk_get(dest : c_ptr(?ptrType), locid : integral, src : c_ptr(ptrTy
   __primitive("chpl_comm_array_get", dest[0], locid, src[0], size);
 }
 
+param AggregationBufferSwapping = -1;
+
 record AggregationBuffer {
   var instance;
   var pid = -1;
 
-  proc init(type msgType, initialBufSize = 1024) {
-    instance = new AggregationBufferImpl(msgType, initialBufSize);
+  proc init(type msgType, initialBufSize = 1024, parallelSafeFlush = true) {
+    instance = new AggregationBufferImpl(msgType, initialBufSize, parallelSafeFlush);
     pid = instance.pid;
   }
 
@@ -99,6 +101,180 @@ class BufferPool {
   }
 }
 
+enum BufferStatus {
+  // Succeeded in appending to buffer
+  Success,
+  // Failed in appending to buffer
+  Failure,
+  // Succeeded in appending to buffer; in charge of swapping
+  SuccessSwap,
+  // Failed in appending to buffer; in charge of swapping (UNUSED)
+  FailureSwap
+}
+
+class Buffer {
+  type msgType;
+  var _bufDom = {0..-1};
+  var _buf : [_bufDom] msgType;
+  
+  proc init(type msgType, bufferSize = 1024) {
+    this.msgType = msgType;
+    this._bufDom = {0..bufferSize};
+  }
+  
+  // Not thread safe to copy...
+  proc init(other : Buffer(?msgType)) {
+    this.msgType = other.msgType;
+    this._bufDom = other._bufDom;
+    this._buf = other._buf;
+  }
+
+  proc append(msg : msgType) : BufferStatus {
+    halt("'append(", msgType : string, ")' not supported...");
+  }
+
+  proc flush() {
+    halt("'flush()' not supported...");
+  }
+
+  proc this(idx : integral) {
+    halt("'flush(", idx.type : string, ")' not supported...");
+  }
+
+  iter these() : msgType {
+    for msg in _buf do yield msg;
+  }
+
+  iter these(param tag : iterKind) where tag == iterKind.standalone {
+    forall msg in _buf do yield msg;
+  }
+
+  iter these(param tag : iterKind) where tag == iterKind.leader {
+    forall x in _buf.these(tag) do yield x;
+  }
+
+  iter these(param tag : iterKind, followThis) where tag == iterKind.follower {
+    forall msg in _buf.these(tag, followThis) do yield msg;
+  }
+}
+
+// Buffer based on fetch-and-add... not thread-safe
+// to flush while being mutated
+class FAABuffer : Buffer {
+  var claimed : atomic int;
+  var filled : atomic int;
+
+  proc init(msgType, bufferSize = 1024) {
+    super(msgType, bufferSize);
+  }
+
+  proc init(other : FAABuffer(?msgType)) {
+    super(other);
+    this.complete();
+    this.claimed.write(other.claimed.read());
+    this.filled.write(other.filled.write());
+  }
+
+  proc append(msg : msgType) : BufferStatus {
+    // Claim an index
+    var claim : int;
+    // Fast and mostly-parallel-safe...
+    claim = buffer.claimed.fetchAdd(1);
+    while claim >= buffer.length.peek() {
+      while buffer.claimed.peek() >= buffer.length.peek() {
+        chpl_task_yield();
+      }
+      claim = buffer.claimed.fetchAdd(1);
+    }
+
+    // Claim and fill
+    buffer.buf[claim] = msg;
+    var nFilled = buffer.filled.fetchAdd(1) + 1;
+
+    // Last to fill handles swapping buffer...
+    if nFilled == buffer.length.peek() {
+      var toProcess = buffer.buf;
+      var toProcessLen = buffer.length.peek();
+      var (newBuf, newLen) = bufferPool.getBuffer();
+
+      // Update buffer (and consequently wake up waiters)
+      buffer.buf = newBuf;
+      buffer.length.write(newLen);
+      buffer.filled.write(0);
+      buffer.claimed.write(0);
+      
+      return (toProcess, toProcessLen);
+    }
+
+    return (c_nil : c_ptr(msgType), 0);
+
+  }
+}
+
+// Allows thread-safe flushing... thread-safe but slower
+// than FAABuffer when under contention
+class CASBuffer : Buffer {
+  var claimed : atomic int;
+  var filled : atomic int;
+  
+  proc init(msgType, bufferSize = 1024) {
+    super(msgType, bufferSize);
+  }
+
+  proc init(other : CASBuffer(?msgType)) {
+    super(other);
+    this.complete();
+    this.claimed.write(other.claimed.read());
+    this.filled.write(other.filled.write());
+  }
+
+  proc append(msg : msgType) : BufferStatus {
+    // Claim an index
+    var claim = buffer.claimed.read();
+    while true {
+      // If current buffer is being swapped, yield and spin again
+      if claim == AggregationBufferSwapping {
+        chpl_task_yield();
+        claim = buffer.claimed.read();
+        continue;
+      }
+
+      // Claim spot in buffer by advancing buffer.claimed forward by one, or set to swap buffer
+      var newClaim = if claim == buffer.length.peek() - 1 then AggregationBufferSwapping else claim + 1; 
+      if buffer.claimed.compareExchangeWeak(claim, newClaim) then break; 
+      chpl_task_yield();
+      claim = buffer.claimed.read();
+    }
+
+    // Claim and fill
+    buffer.buf[claim] = msg;
+    var nFilled = buffer.filled.fetchAdd(1) + 1;
+
+    // Last to fill handles swapping buffer...
+    if nFilled == buffer.length.peek() {
+      var toProcess = buffer.buf;
+      var toProcessLen = buffer.length.peek();
+      var (newBuf, newLen) = bufferPool.getBuffer();
+
+      // Update buffer (and consequently wake up waiters)
+      buffer.buf = newBuf;
+      buffer.length.write(newLen);
+      buffer.filled.write(0);
+      buffer.claimed.write(0);
+      
+      return (toProcess, toProcessLen);
+    }
+
+    return (c_nil : c_ptr(msgType), 0);
+  }
+}
+
+// Buffer that uses a `sync` variable...
+class SynchronizedBuffer : Buffer {
+  var lock$ : sync bool;
+  var idx : int;
+}
+
 pragma "default intent is ref"
 record Buffer {
   type msgType;
@@ -120,15 +296,24 @@ class AggregationBufferImpl {
   // TODO: Parameterize this...
   var bufferPool : FixedBufferPool(msgType);
   var initialBufSize : int(64);
+  
+  // Determines which algorithm we use for claiming spot in
+  // buffer. Parallel-safe flushing allows multiple threads
+  // flush the buffers, even while it is being used concurrently.
+  // To do so, we must use a Compare-and-Swap algorithm which is
+  // lock-free versus a Fetch-Add algorithm that is wait-free, which
+  // can significantly improve performance under contention.
+  var parallelSafeFlush : bool;
 
   // Privatization id
   var pid = -1;
 
-  proc init(type msgType, initialBufSize = 1024) {
+  proc init(type msgType, initialBufSize = 1024, parallelSafeFlush = true) {
     this.msgType = msgType;
     
     complete();
     
+    this.parallelSafeFlush = parallelSafeFlush;
     this.initialBufSize = initialBufSize;
     this.pid = _newPrivatizedClass(this);
     this.bufferPool = new FixedBufferPool(msgType, initialBufSize);
@@ -144,7 +329,8 @@ class AggregationBufferImpl {
     this.msgType = other.msgType;
 
     complete();
-
+    
+    this.parallelSafeFlush = other.parallelSafeFlush;
     this.bufferPool = new FixedBufferPool(msgType, other.initialBufSize);
     forall buf in destinationBuffers {
       var (ptr, len) = bufferPool.getBuffer();
@@ -196,12 +382,33 @@ class AggregationBufferImpl {
     ref buffer = destinationBuffers[locid];
 
     // Claim an index
-    var claim = buffer.claimed.fetchAdd(1);
-    while claim >= buffer.length.peek() {
-      while buffer.claimed.read() >= buffer.length.peek() {
+    var claim : int;
+    // Slow but fully parallel-safe...
+    if parallelSafeFlush {
+      claim = buffer.claimed.read();
+      while true {
+        // If current buffer is being swapped, yield and spin again
+        if claim == AggregationBufferSwapping {
+          chpl_task_yield();
+          claim = buffer.claimed.read();
+          continue;
+        }
+
+        // Claim spot in buffer by advancing buffer.claimed forward by one, or set to swap buffer
+        var newClaim = if claim == buffer.length.peek() - 1 then AggregationBufferSwapping else claim + 1; 
+        if buffer.claimed.compareExchangeWeak(claim, newClaim) then break; 
         chpl_task_yield();
+        claim = buffer.claimed.read();
       }
+    } else {
+      // Fast and mostly-parallel-safe...
       claim = buffer.claimed.fetchAdd(1);
+      while claim >= buffer.length.peek() {
+        while buffer.claimed.peek() >= buffer.length.peek() {
+          chpl_task_yield();
+        }
+        claim = buffer.claimed.fetchAdd(1);
+      }
     }
 
     // Claim and fill
@@ -232,6 +439,23 @@ class AggregationBufferImpl {
   proc processed(buf : c_ptr(msgType), len : int(64)) {
     bufferPool.recycleBuffer(buf, len);
   }
+
+  proc flushGlobal(targetLocales = Locales) {
+    coforall loc in targetLocales {
+      var _this = getPrivatizedInstance();
+      _this.flushLocal();
+    }
+  }
+
+  proc flushLocal(targetLocales = Locales) {
+    forall loc in targetLocales {
+      ref buffer = destinationBuffers[loc.id];
+      if parallelSafeFlush {
+        var claimed = buffer.claimed.exchange(AggregationBufferSwapping);
+
+      }
+    }
+  }
 }
 
 use CommDiagnostics;
@@ -239,7 +463,7 @@ proc main() {
   const arrSize = 1024 * 1024 * 8;
   type msgType = (int, int);
   var arr : [1..arrSize] int;
-  var aggregator = new AggregationBuffer(msgType);
+  var aggregator = new AggregationBuffer(msgType, parallelSafeFlush = false);
   var timer : Timer;
   timer.start();
   on Locales[1] {
