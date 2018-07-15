@@ -35,6 +35,8 @@
 */
 
 module TerminationDetection {
+  use Time;
+
   /*
     Termination detector.
   */
@@ -79,11 +81,13 @@ module TerminationDetection {
       assert(ret >= 0 && ret + n >= 0, "tasksFinished overflowed in 'finished': (", ret, " -> ", ret + n, ")");
     }
   
-    // Wait for the termination of all tasks
-    proc wait() {
+    // Wait for the termination of all tasks. Minimum and maximum
+    // backoff are in milliseconds
+    proc wait(minBackoff = 0, maxBackOff = 0, multBackoff = 2) {
       var state = 0;
       var started = 0;
       var finished = 0;
+      var backoff = 0;
 
       while true {
         select state {
@@ -98,8 +102,8 @@ module TerminationDetection {
             // Check if all started tasks have finished
             if started == finished {
               state = 1;
-            } else {
-              chpl_task_yield();
+              backoff = minBackoff;
+              continue;
             }
           }
           // Check if all counters add up to what we had before...
@@ -122,15 +126,18 @@ module TerminationDetection {
                 // Update started and finished tasks and try again...
                 started = newStarted;
                 finished = newFinished;
-                chpl_task_yield();
+                continue;
               }
             } else {
               // Not finished...
-              state = 0;
-              chpl_task_yield();
+              state = 0; 
             }
           }
         }
+        
+        if backoff == 0 then chpl_task_yield();
+        else sleep(backoff, TimeUnit.milliseconds);
+        backoff = max(backoff * multBackoff, maxBackoff);
       }
     }
 

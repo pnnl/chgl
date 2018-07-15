@@ -871,7 +871,6 @@ module AdjListHyperGraph {
       return degreeArr;
     }
 
-
     // Obtains list of all degrees; not thread-safe if resized
     proc getEdgeDegrees() {
       // The returned array is mapped over the same domain as the original
@@ -888,6 +887,22 @@ module AdjListHyperGraph {
 
       return degreeArr;
     }
+
+    inline proc getLocale(v : vDescType) : locale {
+      return verticesDist.idxToLocale(v.id);
+    }
+
+    inline proc getLocale(e : eDescType) : locale {
+      return edgesDist.idxToLocale(e.id);
+    }
+
+    inline proc getLocale(obj) {
+      compilerError("'getLocale(", obj.type : string, ")' is not supported; requires",
+          " a descriptor of type ", vDescType : string, " or ", eDescType : string);
+    }
+
+    inline proc vertexType return vDescType;
+    inline proc edgeType return eDescType;
 
     iter forEachVertexDegree() : (vDescType, int(64)) {
       for (vid, v) in zip(verticesDomain, vertices) {

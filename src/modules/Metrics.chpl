@@ -1,31 +1,107 @@
 use AdjListHyperGraph;
 use Generation;
 use FIFOChannel;
-use DistributedDeque;
+use WorkQueue;
+use TerminationDetector;
+use ReplicatedVar;
 
-record State {
-  type wrapperType;
-  var dom = {0..-1};
-  var arr : [dom] wrapperType;
+/* 
+  Represents 's-walk' state. We manage the current hyperedge sequence
+  as well as our current neighbor.
+*/
+record WalkState {
+  type edgeType;
+  type vertexType;
+  
+  // The current sequences of edges that we have s-walked to.
+  var sequenceDom = {0..-1};
+  var sequence : [dom] stateType;
+  
+  // Our current neighbor and if we are checking them.
+  // Since we need to find two-hop neighbors, we need
+  // to do them on the respective locale as well.
+  var neighbor : vertexType;
+  var checkingNeighbor : bool;
 
   proc init(other) {
-    this.wrapperType = other.wrapperType;
-    this.dom = other.dom;
+    this.edgeType = other.edgeType;
+    this.vertexType = other.vertexType;
+    this.sequenceDom = other.sequenceDom;
     this.complete();
-    this.arr = other.arr;
+    this.sequence = other.sequence;
+    this.neighbor = other.neighbor;
+    this.checkingNeighbor = other.checkingNeighbor;
   }
 
-  proc init(type wrapperType) {
-    this.wrapperType = wrapperType;
+  proc init(type edgeType, type vertexType, size = -1) {
+    this.edgeType = edgeType;
+    this.vertexType = vertexType;
+    this.sequenceDom = {0..#size};
+  }
+
+  inline proc append(edge : edgeType) {
+    this.sequence.push_back(edge);
+  }
+
+  inline proc setNeighbor(vertex : vertexType) {
+    this.neighbor = vertex;
+    this.checkingNeighbor = true;
+  }
+
+  inline proc unsetNeighbor() {
+    this.checkingNeighbor = false;
+  }
+
+  inline proc isCheckingNeighbor() return this.checkingNeighbor;
+  inline proc getNeighbor() return this.currentNeighbor;
+
+  inline proc hasProcessed(edge : edgeType) {
+    for e in sequence do if e.id == edge.id then return true;
+    return false;
+  }
+
+  inline proc this(idx : integral) ref {
+    return sequences[idx];
   }
 }
+
 proc walk(graph, s = 1, k = 2) {
-  type stateType = State(graph._value.eDescType);
-  var workQueue = new DistDeque(stateType);
-  forall e in graph.getEdges() {
-    var state : stateType;;
-    state.arr.push_back(e);
-    workQueue.add(state);
+  type edgeType = graph.edgeType;
+  type vertexType = graph.vertexType;
+  var workQueue = nil; // TODO
+  var keepAlive : [rcDomain] bool;
+  var terminationDetector : TerminationDetector;
+  rcReplicate(keepAlive, true);
+  
+  // Insert initial states...
+  forall e in graph.getEdges() with (in graph, in workQueue, in terminationDetector) {
+    // Iterate over neighbors
+    forall v in graph.getNeighbors(v) with (in graph, in workQueue, in terminationDetector, in e) {
+      var state = new WalkState(edgeType, vertexType, 1);
+      state[0] = e;
+      state.setNeighbor(v);
+      terminationDetector.start();
+      workQueue.addWork(state, graph.getLocale(v));
+    }
+  }
+
+  // With the queue populated, we can begin our work loop...
+  // Spawn a new task to handle alerting each locale that they can stop...
+  begin {
+    terminationDetector.wait(minBackoff = 1, maxBackOff = 100);
+    rcReplicate(keepAlive, false);
+  }
+  
+  // Begin work queue loops; a task on each locale, and then spawn up to the
+  // maxmimum parallelism on each respective locales. Each of the tasks will
+  // wait on the replicated 'keepAlive' flag. Each time a state is created
+  // and before it is added to the workQueue, the termination detector will
+  // increment the number of tasks started, and whenever a state is finished
+  // it will increment the number of tasks finished...
+  coforall loc in Locales with (in graph, in workQueue, in terminationDetector) do on loc {
+    coforall tid in 1..here.maxTaskPar {
+      // TODO: 
+    }
   }
   writeln(workQueue);
 }
