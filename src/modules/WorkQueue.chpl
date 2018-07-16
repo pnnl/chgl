@@ -61,7 +61,7 @@ class WorkQueueImpl {
       if ptr != nil {
         // TODO: Profile if we need to fetch 'pid' in local variable
         // to avoid communications...
-        on Locales[locid] {
+        begin on Locales[locid] {
           var arr : [1..len] workType;
           bulk_get(c_ptrTo(arr), 0, ptr, len);
           var _this = getPrivatizedInstance;
@@ -87,6 +87,7 @@ class WorkQueueImpl {
           _this.release();
         }
       }
+      return;
     }
 
     // Handle local adding work
