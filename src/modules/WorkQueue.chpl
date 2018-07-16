@@ -187,21 +187,29 @@ class WorkQueueImpl {
   }
 }
 
+use VisualDebug;
 proc main() {
+  startVdebug("WorkQueueVisual");
   var wq = new WorkQueue(int);
   coforall loc in Locales with (in wq) do on loc {
-    forall i in 1..10 {
+    forall i in 1..1024 * 1024 {
       wq.addWork(locid = i % numLocales, work = i+1);
     }
     wq.flush();
   }
 
-
-  coforall loc in Locales with (in wq) do on loc {
-    var (hasWork, work) = wq.getWork();
-    while hasWork {
-      writeln(here, ": Received ", work);
-      (hasWork, work) = wq.getWork();
+  var total : int;
+  coforall loc in Locales with (in wq, + reduce total) do on loc {
+    var subtotal : int;
+    coforall tid in 1..here.maxTaskPar with (+ reduce subtotal) {
+      var (hasWork, work) = wq.getWork();
+      while hasWork {
+        subtotal += work; 
+        (hasWork, work) = wq.getWork();
+      }
     }
+    total += subtotal;
   }
+  writeln("Expected: ", (+ reduce (1..1024 * 1024)) * numLocales, ", received: ", total);
+  stopVdebug();
 }

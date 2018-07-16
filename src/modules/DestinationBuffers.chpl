@@ -300,7 +300,7 @@ class AggregationBufferImpl {
   }
 }
 
-use CommDiagnostics;
+use VisualDebug;
 proc main() {
   const arrSize = 1024 * 1024 * 8;
   type msgType = (int, int);
@@ -308,6 +308,7 @@ proc main() {
   var aggregator = new AggregationBuffer(msgType);
   var timer : Timer;
   timer.start();
+  startVdebug("WorkQueueVisual");
   on Locales[1] {
     var localAggregator = aggregator;
     var rng = makeRandomStream(int);
@@ -315,10 +316,8 @@ proc main() {
     forall i in 1.._arrSize {
       var buf = localAggregator.aggregate(0, (rng.getNext(1, _arrSize), i));
       if buf != nil {
-        writeln("Have full buffer...");
-        var tmp = buf.getArray();
-        begin with (in tmp) on Locales[0] {
-          forall (i,j) in tmp do arr[i] = j;
+        begin on Locales[0] {
+          forall (i,j) in buf.getArray() do arr[i] = j;
           localAggregator.processed(buf);
         }
       }
@@ -327,6 +326,7 @@ proc main() {
   forall buf in aggregator.flushGlobal() {
     forall (i, j) in buf do arr[i] = j;
   }
+  stopVdebug();
   timer.stop();
   writeln("Aggregation Time: ", timer.elapsed());
   
