@@ -51,7 +51,7 @@ module TerminationDetection {
 
     proc _value {
       if pid == -1 then halt("TerminationDetector is uninitialized...");
-      return chpl_getPrivatizedClass(instance.type, pid);
+      return chpl_getPrivatizedCopy(instance.type, pid);
     }
 
     forwarding _value;
@@ -145,7 +145,7 @@ module TerminationDetection {
       return new TerminationDetectorImpl(this, pid);
     }
 
-    proc dsiGetPrivatizedData() {
+    proc dsiGetPrivatizeData() {
       return pid;
     }
 

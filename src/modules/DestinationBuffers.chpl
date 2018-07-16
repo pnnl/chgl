@@ -29,7 +29,7 @@ record AggregationBuffer {
   }
 
   proc _value {
-    if pid == -1 {
+    if pid == -1 || instance == nil {
       halt("AggregationBuffer: Not initialized...");
     }
 
@@ -139,6 +139,11 @@ class Buffer {
     // Exchange current buffer 
     return _claimed.exchange(_bufDom.size);
   }
+
+  proc reset() {
+    this._filled.write(0);
+    this._claimed.write(0);
+  }
   
   // Wait for buffer to fill to a certain amount. This is useful when you
   // wish to wait for all writes to a Buffer to finish so you can begin
@@ -171,7 +176,7 @@ class Buffer {
   inline proc getPtr() return c_ptrTo(_buf);
   inline proc getSize() return _bufDom.size;
   inline proc getDomain() return _bufDom;
-  inline proc getArray() return _buf;
+  inline proc getArray(dom = _bufDom.low.._bufDom.high) return _buf[dom];
 }
 
 class AggregationBufferImpl {
@@ -261,6 +266,7 @@ class AggregationBufferImpl {
     Recycles the buffer returned from 'aggregate'
   */
   proc processed(buf : Buffer(msgType)) {
+    buf.reset();
     bufferPool.recycleBuffer(buf);
   }
   
@@ -287,7 +293,7 @@ class AggregationBufferImpl {
       if numFlush > 0 {
         destinationBuffers[loc.id] = bufferPool.getBuffer();
         buf.waitFilled(numFlush);
-        on loc do yield buf.getArray();
+        on loc do yield buf.getArray(0..#numFlush);
         bufferPool.recycleBuffer(buf);
       }
     }

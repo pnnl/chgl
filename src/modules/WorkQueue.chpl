@@ -1,12 +1,17 @@
-use DestinationBuffers.chpl
+use DestinationBuffers;
 
 record WorkQueue {
-  var pid = -1;
   var instance;
+  var pid = -1;
+  
+  proc init(type workType) {
+    this.instance = new WorkQueueImpl(workType);
+    this.pid = this.instance.pid;
+  }
 
   proc _value {
     if pid == -1 then halt("WorkQueue unitialized...");
-    return chpl_getPrivatizedClass(instance.type, pid);
+    return chpl_getPrivatizedCopy(instance.type, pid);
   }
 
   forwarding _value;
@@ -31,7 +36,30 @@ class WorkQueueImpl {
   var lock$ : atomic bool;
   var head : WorkQueueNode(workType);
   var tail : WorkQueueNode(workType);
-  var destBuffer : DestinationBuffer(workType);
+  var destBuffer = new AggregationBuffer(workType);
+  
+  proc init(type workType) {
+    this.workType = workType;
+    this.complete();
+    this.pid = _newPrivatizedClass(this);
+  }
+
+  proc init(other, pid) {
+    this.workType = other.workType;
+    this.pid = pid;
+  }
+
+  proc dsiPrivatize(pid) {
+    return new WorkQueueImpl(this, pid);
+  }
+
+  proc dsiGetPrivatizeData() {
+    return pid;
+  }
+
+  inline proc getPrivatizedInstance() {
+    return chpl_getPrivatizedCopy(this.type, pid);
+  }
 
   inline proc acquire() {
     // Fast path
@@ -57,20 +85,19 @@ class WorkQueueImpl {
 
   proc addWork(work : workType, locid = here.id) {
     if locid != here.id {
-      var (ptr, len) = destBuffer.aggregate(locid, work);
-      if ptr != nil {
+      var buffer = destBuffer.aggregate(locid, work);
+      if buffer != nil {
         // TODO: Profile if we need to fetch 'pid' in local variable
         // to avoid communications...
         begin on Locales[locid] {
-          var arr : [1..len] workType;
-          bulk_get(c_ptrTo(arr), 0, ptr, len);
-          var _this = getPrivatizedInstance;
+          var arr = buffer.getArray();
+          var _this = getPrivatizedInstance();
           
           // Append in bulk locally...
           var workHead : WorkQueueNode(workType);
-          var workTail : workQueueNode(workType);
+          var workTail : WorkQueueNode(workType);
           for w in arr {
-            var node = new WorkQueueNode(workType);
+            var node = new WorkQueueNode(w);
             if workHead == nil {
               workHead = node;
               workTail = workHead;
@@ -80,9 +107,10 @@ class WorkQueueImpl {
               workTail = node;
             }
           }
+          on this do destBuffer.processed(buffer);
           _this.acquire();
           _this.tail.next = workHead;
-          workHead.prev = workTail;
+          workHead.prev = _this.tail;
           _this.tail = workTail;
           _this.release();
         }
@@ -106,7 +134,7 @@ class WorkQueueImpl {
     release();
   }
 
-  proc getWork(work : workType) : (bool, workType) {
+  proc getWork() : (bool, workType) {
     var (hasWork, work) : (bool, workType);
     
     acquire();
@@ -123,17 +151,57 @@ class WorkQueueImpl {
       } else {
         var tmp = head;
         head = head.next;
+        head.prev = nil;
         delete tmp;
       }
     }
-    release();'
+    release();
 
     return (hasWork, work);
   }
 
-  proc init(type workType) {
-    this.workType = workType;
-    this.complete();
-    this.pid = _newPrivatizedClass(this);
+  proc flush() {
+    forall arr in destBuffer.flushLocal() {
+      var _this = getPrivatizedInstance();
+
+      // Append in bulk locally...
+      var workHead : WorkQueueNode(workType);
+      var workTail : WorkQueueNode(workType);
+      for w in arr {
+        var node = new WorkQueueNode(w);
+        if workHead == nil {
+          workHead = node;
+          workTail = workHead;
+        } else {
+          workTail.next = node;
+          node.prev = workTail;
+          workTail = node;
+        }
+      }
+      _this.acquire();
+      _this.tail.next = workHead;
+      workHead.prev = _this.tail;
+      _this.tail = workTail;
+      _this.release();
+    }
+  }
+}
+
+proc main() {
+  var wq = new WorkQueue(int);
+  coforall loc in Locales with (in wq) do on loc {
+    forall i in 1..10 {
+      wq.addWork(locid = i % numLocales, work = i+1);
+    }
+    wq.flush();
+  }
+
+
+  coforall loc in Locales with (in wq) do on loc {
+    var (hasWork, work) = wq.getWork();
+    while hasWork {
+      writeln(here, ": Received ", work);
+      (hasWork, work) = wq.getWork();
+    }
   }
 }
