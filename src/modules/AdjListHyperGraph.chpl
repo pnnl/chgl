@@ -901,9 +901,6 @@ module AdjListHyperGraph {
           " a descriptor of type ", vDescType : string, " or ", eDescType : string);
     }
 
-    inline proc vertexType return vDescType;
-    inline proc edgeType return eDescType;
-
     iter forEachVertexDegree() : (vDescType, int(64)) {
       for (vid, v) in zip(verticesDomain, vertices) {
         yield (vid : vDescType, v.neighborList.size);

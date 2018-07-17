@@ -83,6 +83,10 @@ class WorkQueueImpl {
     lock$.clear();
   }
 
+  proc addWork(work : workType, loc : locale) {
+    addWork(work, loc.id);
+  }
+
   proc addWork(work : workType, locid = here.id) {
     if locid != here.id {
       var buffer = destBuffer.aggregate(locid, work);
@@ -193,23 +197,24 @@ proc main() {
   var wq = new WorkQueue(int);
   coforall loc in Locales with (in wq) do on loc {
     forall i in 1..1024 * 1024 {
-      wq.addWork(locid = i % numLocales, work = i+1);
+      wq.addWork(locid = i % numLocales, work = i);
     }
     wq.flush();
   }
 
+  tagVdebug("Add");
+
   var total : int;
   coforall loc in Locales with (in wq, + reduce total) do on loc {
-    var subtotal : int;
-    coforall tid in 1..here.maxTaskPar with (+ reduce subtotal) {
+    coforall tid in 1..here.maxTaskPar with (+ reduce total) {
       var (hasWork, work) = wq.getWork();
       while hasWork {
-        subtotal += work; 
+        total += work; 
         (hasWork, work) = wq.getWork();
       }
     }
-    total += subtotal;
   }
-  writeln("Expected: ", (+ reduce (1..1024 * 1024)) * numLocales, ", received: ", total);
+  tagVdebug("Sum");
+  assert(total == (+ reduce (1..1024 * 1024)) * numLocales, "Expected: ", (+ reduce (1..1024 * 1024)) * numLocales, ", received: ", total);
   stopVdebug();
 }

@@ -83,7 +83,7 @@ module TerminationDetection {
   
     // Wait for the termination of all tasks. Minimum and maximum
     // backoff are in milliseconds
-    proc wait(minBackoff = 0, maxBackOff = 0, multBackoff = 2) {
+    proc wait(minBackoff = 0, maxBackoff = 0, multBackoff = 2) {
       var state = 0;
       var started = 0;
       var finished = 0;
@@ -136,7 +136,7 @@ module TerminationDetection {
         }
         
         if backoff == 0 then chpl_task_yield();
-        else sleep(backoff, TimeUnit.milliseconds);
+        else sleep(backoff, TimeUnits.milliseconds);
         backoff = max(backoff * multBackoff, maxBackoff);
       }
     }
