@@ -158,6 +158,8 @@ class WorkQueueImpl {
         head.prev = nil;
         delete tmp;
       }
+    } else {
+      assert(tail == nil);
     }
     release();
 

@@ -32,12 +32,15 @@ record WalkState {
     this.sequence = other.sequence;
     this.neighbor = other.neighbor;
     this.checkingNeighbor = other.checkingNeighbor;
+    this.checkingIntersection = other.checkingIntersection;
   }
 
-  proc init(type edgeType, type vertexType, size = -1) {
+  proc init(type edgeType, type vertexType, size = 0) {
     this.edgeType = edgeType;
     this.vertexType = vertexType;
     this.sequenceDom = {0..#size};
+    this.complete();
+    this.neighbor.id = -1;
   }
 
   inline proc append(edge : edgeType) {
@@ -51,17 +54,22 @@ record WalkState {
 
   inline proc unsetNeighbor() {
     this.checkingNeighbor = false;
+    this.neighbor.id = -1;
   }
 
-  inline proc setIntersection() {
+  inline proc checkIntersection() {
     this.checkingIntersection = true;
+  }
+
+  inline proc checkedIntersection() {
+    this.checkingIntersection = false;
   }
   
   inline proc isCheckingNeighbor() return this.checkingNeighbor;
-  inline proc getNeighbor() return this.currentNeighbor;
+  inline proc getNeighbor() return this.neighbor;
   inline proc isCheckingIntersection() return this.checkingIntersection;
-  inline proc numSequences return this.sequenceDom.size;
-  inline proc getTop() return this(this.numSequences - 1);
+  inline proc sequenceLength return this.sequenceDom.size;
+  inline proc getTop() return this(this.sequenceLength - 1);
 
   inline proc hasProcessed(edge : edgeType) {
     for e in sequence do if e.id == edge.id then return true;
@@ -69,7 +77,7 @@ record WalkState {
   }
 
   inline proc this(idx : integral) ref {
-    assert(idx >= 0 && idx < numSequences);
+    assert(idx >= 0 && idx < sequenceLength);
     return sequence[idx];
   }
 }
@@ -89,20 +97,24 @@ iter walk(graph, s = 1, k = 2, param tag : iterKind) where tag == iterKind.stand
   
   // Insert initial states...
   forall e in graph.getEdges() with (in graph, in workQueue, in terminationDetector) {
+    terminationDetector.started(graph.numNeighbors(e));
     // Iterate over neighbors
     forall v in graph.getNeighbors(e) with (in graph, in workQueue, in terminationDetector, in e) {
       var state = new WalkState(edgeType, vertexType, 1);
       state[0] = e;
       state.setNeighbor(v);
-      terminationDetector.started();
       workQueue.addWork(state, graph.getLocale(v));
     }
   }
 
+  writeln("Added initial work to workQueue...");
+
   // With the queue populated, we can begin our work loop...
   // Spawn a new task to handle alerting each locale that they can stop...
   begin {
-    terminationDetector.wait(minBackoff = 1, maxBackOff = 100);
+    writeln("Background task spawned, waiting for termination...");
+    terminationDetector.wait(minBackoff = 1, maxBackoff = 100);
+    writeln("Background task: sending termination signal...");
     rcReplicate(keepAlive, false);
   }
   
@@ -117,55 +129,72 @@ iter walk(graph, s = 1, k = 2, param tag : iterKind) where tag == iterKind.stand
       var (hasState, state) : (bool, WalkState(edgeType, vertexType));
       while rcLocal(keepAlive) {
         (hasState, state) = workQueue.getWork();
+        var waitingForWork = true;
         if !hasState {
+          if !waitingForWork {
+            writeln(here, "~", tid, ": Waiting for work...");
+            waitingForWork = true;
+          }
           chpl_task_yield();
           continue;
         }
-
+        if waitingForWork {
+          writeln(here, "~", tid, ": No longer waiting for work...");
+          waitingForWork = false;
+        }
+        
+        writeln(here, "~", tid, ": Processing state=", state);
+        assert(state.sequenceLength <= k);
         // Process based on state...
         if state.isCheckingNeighbor() {
           var v = state.getNeighbor();
           state.unsetNeighbor();
+          state.checkIntersection();
           for e in graph.getNeighbors(v) {
-            if state.hasProcess(e) then continue;
+            if state.hasProcessed(e) then continue;
             var newState = state;
             newState.append(e);
-            terminationDetector.start();
-            workQueue.addWork(newState, graph.getLocales(e));
+            terminationDetector.started();
+            workQueue.addWork(newState, graph.getLocale(e));
           }
-          terminationDetector.finish();
+          terminationDetector.finished();
         } else if state.isCheckingIntersection() {
-          var (e1, e2) = (state[state.numSequences - 2], state[state.numSequences - 1]);
+          var (e1, e2) = (state[state.sequenceLength - 2], state[state.sequenceLength - 1]);
           // Check if it is not s-intersecting... if so, check to see if we have reached
           // a length of at least 'k' to determine if we should yield current sequence...
-          if graph.intersection(e1, e2).size < s {
-            if state.numSequences - 1 >= k {
-              yield state.sequences[0..#(state.numSequences - 1)];
+          var intersection = graph.intersection(e1, e2);
+          if intersection.size >= s {
+            if state.sequenceLength == k {
+              yield state.sequence;
+              terminationDetector.finished();
+              continue;
             }
-            terminationDetector.finish();
+          } else {
+            terminationDetector.finished();
             continue;
-          }  
+          }
           
           // Continue searching neighbors...
-          terminationDetector.start(graph.numNeighbors(e2));
+          state.checkedIntersection();
+          terminationDetector.started(graph.numNeighbors(e2));
           for v in graph.getNeighbors(e2) {
             var newState = state;
-            newState.checkNeighbor(v);
-            workQueue.addWork(newState, graph.getLocales(v));
+            newState.setNeighbor(v);
+            workQueue.addWork(newState, graph.getLocale(v));
           }
-          terminationDetector.finish();
+          terminationDetector.finished();
         } else {
           // If we are not checking intersection or a specific neighbor, we are in charge
           // setting up state for checking all other neighbors
           var e = state.getTop();
-          terminationDetector.start(graph.numNeighbors(e));
+          terminationDetector.started(graph.numNeighbors(e));
           for v in graph.getNeighbors(e) {
             // TODO: Profile whether this simulates a 'move' constructor...
             var newState = state;
-            newState.checkNeighbor(v);
-            workQueue.addWork(newState, graph.getLocales(v));
+            newState.setNeighbor(v);
+            workQueue.addWork(newState, graph.getLocale(v));
           }
-          terminationDetector.finish();
+          terminationDetector.finished();
         }
       }
     }
@@ -174,7 +203,7 @@ iter walk(graph, s = 1, k = 2, param tag : iterKind) where tag == iterKind.stand
 
 proc main() {
   var graph = new AdjListHyperGraph(1024, 1024);
-  generateErdosRenyiSMP(graph, 0.25);
+  generateErdosRenyiSMP(graph, 0.01);
   graph.removeDuplicates();
-  forall w in walk(graph) do writeln(here, ": ", w);
+  forall w in walk(graph, s=3, k=3) do writeln(here, ": ", w);
 }

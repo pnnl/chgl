@@ -87,12 +87,14 @@ module TerminationDetection {
       var state = 0;
       var started = 0;
       var finished = 0;
-      var backoff = 0;
+      var backoff = minBackoff;
 
       while true {
         select state {
           // Check if all counters add up to 0.
           when 0 {
+            started = 0;
+            finished = 0;
             coforall loc in Locales with (+ reduce started, + reduce finished) do on loc {
               const _this = getPrivatizedInstance();
               started += _this.tasksStarted.read();
@@ -101,6 +103,7 @@ module TerminationDetection {
 
             // Check if all started tasks have finished
             if started == finished {
+              writeln("Progressing from state 0 -> 1 with started==finished==", started);
               state = 1;
               backoff = minBackoff;
               continue;
@@ -124,12 +127,14 @@ module TerminationDetection {
                 return;
               } else {
                 // Update started and finished tasks and try again...
+                writeln("newStarted==newFinished==", newStarted, ", but started==finished==", started);
                 started = newStarted;
                 finished = newFinished;
                 continue;
               }
             } else {
               // Not finished...
+              writeln("newStarted(", newStarted, ") != newFinished(", newFinished, ")");
               state = 0; 
             }
           }
@@ -137,7 +142,8 @@ module TerminationDetection {
         
         if backoff == 0 then chpl_task_yield();
         else sleep(backoff, TimeUnits.milliseconds);
-        backoff = max(backoff * multBackoff, maxBackoff);
+        backoff = min(backoff * multBackoff, maxBackoff);
+        writeln("Backed off...", backoff, "ms...", (started, finished));
       }
     }
 

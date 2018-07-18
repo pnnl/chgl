@@ -242,6 +242,7 @@ module AdjListHyperGraph {
     // N.B: This may not perform well in distributed setting, but fine-grained
     // communications may or may not be okay here. Need to profile more.
     proc neighborIntersection(other : this.type) {
+      if this == other then return this.neighborList;
       // Acquire mutual exclusion on both
       serial other.locale != here && this.locale != here do cobegin {
         on this do lock.acquire();
@@ -370,6 +371,14 @@ module AdjListHyperGraph {
     */
     proc type make(id) {
       return new Wrapper(nodeType, idType, id);
+    }
+    
+    proc readWriteThis(f) {
+      f <~> new ioLiteral("\"")
+        <~> nodeType : string
+        <~> new ioLiteral("#")
+        <~> id
+        <~> new ioLiteral("\"");
     }
   }
 
