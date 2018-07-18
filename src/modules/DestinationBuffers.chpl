@@ -102,6 +102,21 @@ class Buffer {
     this.complete();
     this._claimed.write(other._claimed.read());
     this._filled.write(other._filled.write());
+    this._stolen.write(other._stolen.read());
+  }
+
+  proc readWriteThis(f) {
+    f <~> new ioLiteral("{ msgType = ")
+      <~> this.msgType : string
+      <~> new ioLiteral(", domain = ")
+      <~> this._bufDom
+      <~> new ioLiteral(", claimed = ")
+      <~> this._claimed.read()
+      <~> new ioLiteral(", filled = ")
+      <~> this._filled.read()
+      <~> new ioLiteral(", stolen = ")
+      <~> this._stolen.read()
+      <~> new ioLiteral(" }");
   }
   
   proc append(msg : msgType) : BufferStatus {
@@ -112,7 +127,8 @@ class Buffer {
     // Claim and fill
     _buf[claim] = msg;
     var nFilled = _filled.fetchAdd(1) + 1;
-    
+    assert(nFilled <= _bufDom.size, "nFilled(", nFilled, ") > ", _bufDom.size);
+
     // Last to fill handles swapping buffer...
     // Attempt to 'steal' the buffer for ourselves to handle flushing...
     // if some other thread has already stolen it, it means we don't need
@@ -141,6 +157,7 @@ class Buffer {
   }
 
   proc reset() {
+    this._stolen.write(false);
     this._filled.write(0);
     this._claimed.write(0);
   }
@@ -248,6 +265,7 @@ class AggregationBufferImpl {
           return nil;
         }
         when BufferStatus.Failure {
+          //writeln(here, ": Failed, trying again... buf = ", buf);
           chpl_task_yield();
         }
         when BufferStatus.FailureSwap {
@@ -301,59 +319,78 @@ class AggregationBufferImpl {
 }
 
 use VisualDebug;
+use Time;
+use CyclicDist;
+use BlockDist;
+use Random;
+use CommDiagnostics;
+config const N=2000000 * here.maxTaskPar; // number of updates
+config const M=1000 * here.maxTaskPar * numLocales; // size of table
 proc main() {
-  const arrSize = 1024 * 1024 * 8;
-  type msgType = (int, int);
-  var arr : [1..arrSize] int;
-  var aggregator = new AggregationBuffer(msgType);
-  var timer : Timer;
-  timer.start();
-  startVdebug("WorkQueueVisual");
-  on Locales[1] {
-    var localAggregator = aggregator;
-    var rng = makeRandomStream(int);
-    const _arrSize = arrSize;
-    forall i in 1.._arrSize {
-      var buf = localAggregator.aggregate(0, (rng.getNext(1, _arrSize), i));
-      if buf != nil {
-        begin on Locales[0] {
-          forall (i,j) in buf.getArray() do arr[i] = j;
-          localAggregator.processed(buf);
+
+   // allocate main table and array of random ints
+  const Mspace = {0..M-1};
+  const D = Mspace dmapped Cyclic(startIdx=Mspace.low);
+  var A: [D] atomic int;
+
+  const Nspace = {0..(N*numLocales - 1)};
+  const D2 = Nspace dmapped Block(Nspace);
+  var rindex: [D2] int;
+
+  /* set up loop */
+  fillRandom(rindex, 208); // the 208 is a seed
+  forall r in rindex {
+     r = mod(r, M);
+  }
+
+  var t: Timer;
+  t.start();
+  /* main loop */
+  forall r in rindex {
+      on A[r] do A[r].add(1); //atomic add
+  }
+  t.stop();
+  writeln("Histogram (RA) Time: ", t.elapsed());
+
+  t.clear();
+  t.start();
+  forall r in rindex {
+    A[r].add(1);
+  }
+  t.stop();
+  writeln("Histogram (NA) Time: ", t.elapsed());
+  //startVdebug("Histogram");
+  t.clear();
+  var rloc : [rindex.domain] locale;
+  forall (r, loc) in zip(rindex, rloc) do loc = r.locale;
+  //startVerboseComm();
+  var aggregator = new AggregationBuffer(int);
+  // Due to lack of remote-value forwarding, need to specify `in` intent since privatized
+  t.start();
+  sync forall (r, loc) in zip(rindex, rloc) with (in aggregator) {
+    var buf = aggregator.aggregate(loc.id, r);
+    if buf != nil {
+      // Handle async
+      begin {
+        var subdom = D.localSubdomain();;
+        on loc do subdom = D.localSubdomain();
+        var counters : [subdom] int(64);
+        for idx in buf do counters[idx] += 1;
+        on loc {
+          var tmp = counters;
+          // Guaranteed that indices are local to current node...
+          // Maybe could use some kind of optimized local access of array 
+          for (cnt, idx) in zip(tmp, tmp.domain) do A[idx].add(cnt);
         }
+        aggregator.processed(buf);
       }
     }
   }
   forall buf in aggregator.flushGlobal() {
-    forall (i, j) in buf do arr[i] = j;
+    for idx in buf do A[idx].add(1);
   }
-  stopVdebug();
-  timer.stop();
-  writeln("Aggregation Time: ", timer.elapsed());
-  
-  timer.clear();
-  timer.start();
-  on Locales[1] {
-    var rng = makeRandomStream(int);
-    const _arrSize = arrSize;
-    forall i in 1.._arrSize do arr[rng.getNext(1, _arrSize)] = i;
-  }
-  timer.stop();
-  writeln("Naive AMO Time: ", timer.elapsed());
-  
-  timer.clear();
-  timer.start();
-  on Locales[1] {
-    var rng = makeRandomStream(int);
-    const _arrSize = arrSize;
-    forall i in 1.._arrSize do on arr[rng.getNext(1, _arrSize)] {}
-  }
-  timer.stop();
-  writeln("Naive Fast On Time: ", timer.elapsed());
-
-  timer.clear();
-  timer.start();
-  var rng = makeRandomStream(int);
-  forall i in 1..arrSize do arr[rng.getNext(1, arrSize)] = i;
-  timer.stop();
-  writeln("Best Case Time: ", timer.elapsed());
+  t.stop();
+  writeln("Histogram-Aggregated Time: ", t.elapsed());
+  //stopVdebug();
+  //stopVerboseComm();
 }

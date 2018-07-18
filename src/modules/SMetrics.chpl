@@ -87,7 +87,7 @@ iter walk(graph, s = 1, k = 2) {
 }
 
 // TODO: Profile iterator this nested...
-iter walk(graph, s = 1, k = 2, param tag : iterKind) where tag == iterKind.standalone {
+iter walk(graph, s = 1, k = 2, param tag : iterKind) ref where tag == iterKind.standalone {
   type edgeType = graph._value.eDescType;
   type vertexType = graph._value.vDescType;
   var workQueue = new WorkQueue(WalkState(edgeType, vertexType)); 
