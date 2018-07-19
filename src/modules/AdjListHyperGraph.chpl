@@ -18,6 +18,7 @@ module AdjListHyperGraph {
   use List;
   use Sort;
   use Search;
+  use DestinationBuffers;
 
   /*
     Record-wrapper for the AdjListHyperGraphImpl. The record-wrapper follows from the optimization
@@ -401,100 +402,7 @@ module AdjListHyperGraph {
     return wrapper.id;
   }
 
-  // Number of communication buffers to swap out as they are filled...
-  config const AdjListHyperGraphNumBuffers = 8;
-  // Size of buffer is enough for one megabyte of bulk transfer by default.
-  config const AdjListHyperGraphBufferSize = 1024 * 1024; 
-
-  param BUFFER_OK = -1;
-
-  enum DescriptorType { None, Vertex, Edge };
-
-  pragma "default intent is ref"
-  record DestinationBuffer {
-    type vDescType;
-    type eDescType;
-    var buffers : [0..#AdjListHyperGraphNumBuffers] [1..AdjListHyperGraphBufferSize] (int(64), int(64), DescriptorType);
-    var bufBusy : [0..#AdjListHyperGraphNumBuffers] atomic bool;
-    var bufIdx : atomic int;
-    var claimed : atomic int;
-    var filled : atomic int;
-
-    proc append(src, dest, srcType) : int {
-      // Get our buffer slot
-      var idx = claimed.fetchAdd(1) + 1;
-      while idx > AdjListHyperGraphBufferSize {
-        chpl_task_yield();
-        idx = claimed.fetchAdd(1) + 1;
-      }
-      assert(idx > 0);
-
-      const currBufIdx = bufIdx.read();
-      ref buffer = buffers[currBufIdx];
-
-      // Fill our buffer slot and notify as filled...
-      buffer[idx] = (src, dest, srcType);
-      var nFilled = filled.fetchAdd(1) + 1;
-
-      // Check if we filled the buffer...
-      if nFilled == AdjListHyperGraphBufferSize {
-        // Swap buffer...
-        bufBusy[currBufIdx].write(true);
-        // TODO: Handle when amount of buffers is 1...
-        label outer while true {
-          for (ix, busy) in zip(bufBusy.domain, bufBusy) {
-            if busy.read() == false {
-              bufIdx.write(ix);
-              break outer;
-            }
-          }
-          writeln(here, ": Found all buffers busy...");
-          chpl_task_yield();
-        }
-
-        filled.write(0);
-        claimed.write(0);
-        
-        // Caller must now handle processing this buffer...
-        return currBufIdx;
-      }
-
-      return BUFFER_OK;
-    }
-    
-    proc finished(idx) {
-      clear(idx);
-      bufBusy[idx].write(false);
-    }
-
-    proc clear(idx) {
-      buffers[idx] = (0, 0, DescriptorType.None);
-    }
-
-    proc clearAll() {
-      forall b in buffers do b = (0, 0, DescriptorType.None);
-    }
-
-    proc reset() {
-      filled.write(0);
-      claimed.write(0);
-      clearAll();
-    }
-
-    proc awaitCompletion() {
-      forall (busy, idx) in zip(bufBusy, bufBusy.domain) {
-        var spincnt = 0;
-        while busy.read() == true {
-          chpl_task_yield();
-          spincnt += 1;
-          if spincnt > 1024 * 1024 {
-            halt("Spunout waiting in ", here.id, " for buffer #", idx);
-          }
-        }
-      }
-    }
-  }
-
+  enum InclusionType { Vertex, Edge }
 
   /*
      Adjacency list hypergraph.
@@ -522,8 +430,7 @@ module AdjListHyperGraph {
 
     var _vertices : [_verticesDomain] NodeData(eDescType);
     var _edges : [_edgesDomain] NodeData(vDescType);
-    var _destBuffer : [LocaleSpace] DestinationBuffer(vDescType, eDescType);
-
+    var _destBuffer = new AggregationBuffer((vIndexType, eIndexType, InclusionType));
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
     var _privatizedVerticesPID = _vertices.pid;
@@ -562,8 +469,6 @@ module AdjListHyperGraph {
       forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new NodeData(theirV);
       forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new NodeData(theirE);     
       
-      // Clear buffer...
-      forall buf in this._destBuffer do buf.reset();
       this.pid = _newPrivatizedClass(this);
     }
 

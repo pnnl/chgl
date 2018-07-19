@@ -60,6 +60,8 @@ class BufferPool {
     }
 
     lock$;
+
+    buf.bufferPool = this;
     return buf;
   }
   
@@ -88,6 +90,9 @@ class Buffer {
   var _claimed : atomic int;
   var _filled : atomic int;
   var _stolen : atomic bool;
+
+  // Parent handle
+  var _bufferPool : BufferPool(msgType);
 
   proc init(type msgType) {
     this.msgType = msgType;
@@ -119,6 +124,18 @@ class Buffer {
       <~> new ioLiteral(" }");
   }
   
+  /*
+    Attempts to append 'msg' to the buffer. The algorithm uses a fetch-and-add
+    (wait-free) counter for concurrent tasks to claim indices, and another fetch-and-add
+    counter to keep track of how full the buffer is. If the indices obtained from the fetch-and-add
+    are out of bounds, it returns BufferStatus.Failure indicating that the buffer has been filled up
+    and is about to be flushed if not already, in which case the task should seek out a new buffer.
+    If the buffer is not full and the task has successfully obtained an index, the task successfully
+    appends it to the buffer. If the task is the last to fill the buffer, it returns BufferStatus.SuccessSwap
+    indicating that the current task should be in charge of swapping out and processing this buffer.
+    If the task is not the last to fill the buffer, it will just return BufferStatus.Success.
+  */
+  pragma "no doc"
   proc append(msg : msgType) : BufferStatus {
     // Claim an index
     var claim = _claimed.fetchAdd(1);
@@ -139,15 +156,22 @@ class Buffer {
     
     return BufferStatus.Success;
   }
-
+  
+  /*
+    Attempts to steal this buffer for flushing.
+  */
+  pragma "no doc"
   inline proc attemptSteal() : bool {
     return !_stolen.testAndSet();
   }
   
-  // Attempts to atomically claim the entire buffer; returns amount of buffer
-  // claimed. Note that you must wait for buffer to be filled first before attempting
-  // to flush, but by returning early we get to begin swapping the buffers while other
-  // tasks finish up their writes...
+  /* 
+    Attempts to atomically claim the entire buffer; returns amount of buffer
+    claimed. Note that you must wait for buffer to be filled first before attempting
+    to flush, but by returning early we get to begin swapping the buffers while other
+    tasks finish up their writes...
+  */
+  pragma "no doc"
   proc flush() : int {
     // Someone else stole buffer...
     if !attemptSteal() then return -1;
@@ -155,11 +179,24 @@ class Buffer {
     // Exchange current buffer 
     return _claimed.exchange(_bufDom.size);
   }
-
+  
+  /*
+    Resets all fields back to default state so that it can be used again.
+  */
+  pragma "no doc"
   proc reset() {
     this._stolen.write(false);
     this._filled.write(0);
     this._claimed.write(0);
+  }
+  
+  /*
+    Recycles self back to buffer pool. Using the buffer after invoking this
+    method is subject to undefined behavior.
+  */
+  proc done() {
+    this.reset();
+    this._bufferPool.recycleBuffer(this);
   }
   
   // Wait for buffer to fill to a certain amount. This is useful when you
@@ -233,8 +270,8 @@ class AggregationBufferImpl {
     return chpl_getPrivatizedCopy(this.type, pid);
   }
   
-  proc aggregate(loc : locale, msg : msgType) {
-    aggregate(loc.id, msg);
+  proc aggregate(msg : msgType, targetLoc : locale) {
+    aggregate(msg, loc.id);
   }
   
   /*
@@ -257,7 +294,7 @@ class AggregationBufferImpl {
     asynchronously handle processing the buffer, then pass the buffer and notify it has finished
     processing it.
   */
-  proc aggregate(locid : int, msg : msgType) : Buffer(msgType) {
+  proc aggregate(msg : msgType, locid : int) : Buffer(msgType) {
     while true {
       var buf = destinationBuffers[locid];
       select buf.append(msg) {
@@ -327,7 +364,7 @@ use CommDiagnostics;
 config const N=2000000 * here.maxTaskPar; // number of updates
 config const M=1000 * here.maxTaskPar * numLocales; // size of table
 proc main() {
-
+  
    // allocate main table and array of random ints
   const Mspace = {0..M-1};
   const D = Mspace dmapped Cyclic(startIdx=Mspace.low);
@@ -344,6 +381,7 @@ proc main() {
   }
 
   var t: Timer;
+  /*
   t.start();
   /* main loop */
   forall r in rindex {
@@ -361,34 +399,39 @@ proc main() {
   writeln("Histogram (NA) Time: ", t.elapsed());
   //startVdebug("Histogram");
   t.clear();
+  */
   var rloc : [rindex.domain] locale;
   forall (r, loc) in zip(rindex, rloc) do loc = r.locale;
   //startVerboseComm();
   var aggregator = new AggregationBuffer(int);
   // Due to lack of remote-value forwarding, need to specify `in` intent since privatized
+  //startVdebug("Histogram-Buffered");
   t.start();
   sync forall (r, loc) in zip(rindex, rloc) with (in aggregator) {
-    var buf = aggregator.aggregate(loc.id, r);
-    if buf != nil {
-      // Handle async
-      begin {
-        var subdom = D.localSubdomain();;
-        on loc do subdom = D.localSubdomain();
-        var counters : [subdom] int(64);
-        for idx in buf do counters[idx] += 1;
-        on loc {
-          var tmp = counters;
-          // Guaranteed that indices are local to current node...
-          // Maybe could use some kind of optimized local access of array 
-          for (cnt, idx) in zip(tmp, tmp.domain) do A[idx].add(cnt);
+    if loc == here {
+      A[r].add(1);
+    } else {
+      var buf = aggregator.aggregate(loc.id, r);
+      if buf != nil {
+        // Handle async
+        begin {
+          var subdom = D.localSubdomain();;
+          on loc do subdom = D.localSubdomain();
+          var counters : [subdom] int(64);
+          for idx in buf do counters[idx] += 1;
+          aggregator.processed(buf);
+          on loc {
+            var tmp = counters;
+            local do for (cnt, idx) in zip(tmp, tmp.domain) do if cnt > 0 then A[idx].add(cnt);
+          }
         }
-        aggregator.processed(buf);
       }
     }
   }
   forall buf in aggregator.flushGlobal() {
     for idx in buf do A[idx].add(1);
   }
+  //stopVdebug();
   t.stop();
   writeln("Histogram-Aggregated Time: ", t.elapsed());
   //stopVdebug();
