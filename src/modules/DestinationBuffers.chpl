@@ -61,7 +61,7 @@ class BufferPool {
 
     lock$;
 
-    buf.bufferPool = this;
+    buf._bufferPool = this;
     return buf;
   }
   
@@ -83,23 +83,36 @@ enum BufferStatus {
   FailureSwap
 }
 
+/*
+  Buffer contains the aggregated data that the user aggregates. The buffer,
+  if returned to the user, must be recycled back to the buffer pool by invoking
+  'done'.
+*/
 class Buffer {
+  // The type of the message
   type msgType;
+  pragma "no doc"
   var _bufDom = {0..-1};
+  pragma "no doc"
   var _buf : [_bufDom] msgType;
   var _claimed : atomic int;
+  pragma "no doc"
   var _filled : atomic int;
+  pragma "no doc"
   var _stolen : atomic bool;
 
   // Parent handle
+  pragma "no doc"
   var _bufferPool : BufferPool(msgType);
-
+  
+  pragma "no doc"
   proc init(type msgType) {
     this.msgType = msgType;
     this._bufDom = {0..#AggregationBufferSize};
   }
   
   // Not thread safe to copy...
+  pragma "no doc"
   proc init(other : Buffer(?msgType)) {
     this.msgType = other.msgType;
     this._bufDom = other._bufDom;
@@ -109,7 +122,8 @@ class Buffer {
     this._filled.write(other._filled.write());
     this._stolen.write(other._stolen.read());
   }
-
+  
+  pragma "no doc"
   proc readWriteThis(f) {
     f <~> new ioLiteral("{ msgType = ")
       <~> this.msgType : string
@@ -195,38 +209,67 @@ class Buffer {
     method is subject to undefined behavior.
   */
   proc done() {
-    this.reset();
-    this._bufferPool.recycleBuffer(this);
+    on this {
+      this.reset();
+      this._bufferPool.recycleBuffer(this);
+    }
   }
   
-  // Wait for buffer to fill to a certain amount. This is useful when you
-  // wish to wait for all writes to a Buffer to finish so you can begin
-  // processing it. 
+  /* 
+    Wait for buffer to fill to a certain amount. This is useful when you
+    wish to wait for all writes to a Buffer to finish so you can begin
+    processing it.
+  */
+  pragma "no doc"
   proc waitFilled(n = _bufDom.size - 1) {
     _filled.waitFor(n);
   }
-
+  
+  /*
+    Indexes into buffer. This will be remote if the buffer is.
+  */
   inline proc this(idx : integral) {
     return _buf[idx];
   }
-
+  
+  /*
+   Iterates over buffer. The buffer is copied to current locale, so it will be local.
+  */
   iter these() : msgType {
-    for msg in _buf do yield msg;
+    if this.locale != here {
+      var buf = _buf;
+      for msg in buf do yield msg;
+    } else {
+      for msg in _buf do yield msg;
+    }
   }
-
+  
+  /*
+    Iterates over buffer in parallel. The buffer is copied to current locale so it will be local.
+  */
   iter these(param tag : iterKind) : msgType where tag == iterKind.standalone {
-    forall msg in _buf do yield msg;
+    if this.locale != here {
+      var buf = _buf;
+      forall msg in buf do yield msg;
+    } else {
+      forall msg in _buf do yield msg;
+    }
   }
-
+  
   iter these(param tag : iterKind) : msgType where tag == iterKind.leader {
-    forall x in _buf.these(tag) do yield x;
+    if this.locale != here {
+      var buf = _buf;
+      forall x in buf.these(tag) do yield (x, buf);
+    } else {
+      forall x in _buf.these(tag) do yield (x, _buf);
+    }
   }
 
   iter these(param tag : iterKind, followThis) : msgType where tag == iterKind.follower {
-    forall msg in _buf.these(tag, followThis) do yield msg;
+    var (x, buf) = followThis;
+    forall msg in buf.these(tag, x) do yield msg;
   }
 
-  // Exports buffer to 'c_ptr' for lower-level performance benefit
   inline proc getPtr() return c_ptrTo(_buf);
   inline proc getSize() return _bufDom.size;
   inline proc getDomain() return _bufDom;
@@ -236,7 +279,7 @@ class Buffer {
 class AggregationBufferImpl {
   type msgType;
   var destinationBuffers : [LocaleSpace] Buffer(msgType);
-  var bufferPool : BufferPool(msgType);
+  var bufferPool: BufferPool(msgType);
   var pid = -1;
 
   proc init(type msgType) {
@@ -270,7 +313,7 @@ class AggregationBufferImpl {
     return chpl_getPrivatizedCopy(this.type, pid);
   }
   
-  proc aggregate(msg : msgType, targetLoc : locale) {
+  proc aggregate(msg : msgType, loc : locale) {
     aggregate(msg, loc.id);
   }
   
@@ -317,26 +360,18 @@ class AggregationBufferImpl {
     halt("Somehow broke out of while loop...");
   }
   
-  /*
-    Recycles the buffer returned from 'aggregate'
-  */
-  proc processed(buf : Buffer(msgType)) {
-    buf.reset();
-    bufferPool.recycleBuffer(buf);
-  }
-  
-  iter flushGlobal(targetLocales = Locales) {
+  iter flushGlobal(targetLocales = Locales) : (Buffer(msgType), locale) {
     halt("Serial 'flushGlobal' not implemented...");
   }
 
-  iter flushGlobal(targetLocales = Locales, param tag : iterKind) where tag == iterKind.standalone {
+  iter flushGlobal(targetLocales = Locales, param tag : iterKind) : (Buffer(msgType), locale) where tag == iterKind.standalone {
     coforall loc in targetLocales do on loc {
       var _this = getPrivatizedInstance();
       forall buf in _this.flushLocal() do yield buf;
     }
   }
   
-  iter flushLocal(targetLocales = Locales) {
+  iter flushLocal(targetLocales = Locales) : (Buffer(msgType), locale) {
     halt("Serial 'flushLocal' not implemented...");
   }
 
@@ -348,7 +383,7 @@ class AggregationBufferImpl {
       if numFlush > 0 {
         destinationBuffers[loc.id] = bufferPool.getBuffer();
         buf.waitFilled(numFlush);
-        on loc do yield buf.getArray(0..#numFlush);
+        yield (buf, loc);
         bufferPool.recycleBuffer(buf);
       }
     }
@@ -381,7 +416,6 @@ proc main() {
   }
 
   var t: Timer;
-  /*
   t.start();
   /* main loop */
   forall r in rindex {
@@ -397,15 +431,22 @@ proc main() {
   }
   t.stop();
   writeln("Histogram (NA) Time: ", t.elapsed());
-  //startVdebug("Histogram");
   t.clear();
-  */
+  
+  inline proc handleBuffer(buf, loc) {
+    var subdom = D.localSubdomain();
+    on loc do subdom = D.localSubdomain();
+    var counters : [subdom] int(64);
+    for idx in buf do counters[idx] += 1;
+    buf.done();
+    on loc {
+      var tmp = counters;
+      local do for (cnt, idx) in zip(tmp, tmp.domain) do if cnt > 0 then A[idx].add(cnt);
+    }
+  }
   var rloc : [rindex.domain] locale;
   forall (r, loc) in zip(rindex, rloc) do loc = r.locale;
-  //startVerboseComm();
   var aggregator = new AggregationBuffer(int);
-  // Due to lack of remote-value forwarding, need to specify `in` intent since privatized
-  //startVdebug("Histogram-Buffered");
   t.start();
   sync forall (r, loc) in zip(rindex, rloc) with (in aggregator) {
     if loc == here {
@@ -413,23 +454,12 @@ proc main() {
     } else {
       var buf = aggregator.aggregate(loc.id, r);
       if buf != nil {
-        // Handle async
-        begin {
-          var subdom = D.localSubdomain();;
-          on loc do subdom = D.localSubdomain();
-          var counters : [subdom] int(64);
-          for idx in buf do counters[idx] += 1;
-          aggregator.processed(buf);
-          on loc {
-            var tmp = counters;
-            local do for (cnt, idx) in zip(tmp, tmp.domain) do if cnt > 0 then A[idx].add(cnt);
-          }
-        }
+        begin handleBuffer(buf, loc);
       }
     }
   }
-  forall buf in aggregator.flushGlobal() {
-    for idx in buf do A[idx].add(1);
+  forall (buf, loc) in aggregator.flushGlobal() {
+    handleBuffer(buf, loc);
   }
   //stopVdebug();
   t.stop();
