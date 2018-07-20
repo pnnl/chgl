@@ -2,21 +2,13 @@ use Time;
 use Random;
 
 /*
-  TODO: Implement dynamic buffer pools where the buffers expand in size
+  TODO List:
+  1. Need to add a way to await all buffers being flushed... maybe have each bufferPool keep
+     maintain a list of all buffers it has created, as well as a list of buffers that are free.
+  2. Need to expand buffer size based on how often it is filled...
 */
 
-// Send data in bulk...
-inline proc bulk_put(src : c_ptr(?ptrType), locid : integral, dest : c_ptr(ptrType), size : integral) {
-  __primitive("chpl_comm_array_put", src[0], locid, dest[0], size);
-}
 
-// Receive data in bulk...
-inline proc bulk_get(dest : c_ptr(?ptrType), locid : integral, src : c_ptr(ptrType), size : integral) {
-  __primitive("chpl_comm_array_get", dest[0], locid, src[0], size);
-}
-
-
-// TODO: Need to make this more configurable, but will do this once we need more than one type of buffer pool
 config param AggregationBufferSize = 1024 * 1024;
 
 record AggregationBuffer {
@@ -24,12 +16,31 @@ record AggregationBuffer {
   var pid = -1;
 
   proc init(type msgType) {
-    instance = new AggregationBufferImpl(msgType);
-    pid = instance.pid;
+    this.instance = nil : AggregationBufferImpl(msgType);
+  }
+
+  proc init(other) {
+    this.instance = other.instance;
+    this.pid = other.pid;
+  }
+
+  proc create() {
+    if pid != -1 then halt("Attempt to create AggregationBuffer when already initialized...");
+    type instanceType = instance.type;
+    this.instance = new instanceType(instanceType.msgType);
+    this.pid = this.instance.pid;
+  }
+
+  proc destroy() {
+    if pid == -1 || instance == nil then halt("Attempt to destroy AggregationBuffer not initialized...");
+    coforall loc in Locales do on loc {
+      delete chpl_getPrivatizedCopy(instance.type, pid);
+    }
+    this.instance = nil;
   }
 
   proc _value {
-    if pid == -1 || instance == nil {
+    if pid == -1 {
       halt("AggregationBuffer: Not initialized...");
     }
 
@@ -46,6 +57,10 @@ class BufferPool {
 
   proc init(type msgType) {
     this.msgType = msgType;
+  }
+
+  proc deinit() {
+    for b in recycleList do delete b;
   }
 
   proc getBuffer(desiredSize : int(64) = -1) : Buffer(msgType) {
@@ -229,6 +244,7 @@ class Buffer {
     Indexes into buffer. This will be remote if the buffer is.
   */
   inline proc this(idx : integral) {
+    assert(idx < _filled.peek());
     return _buf[idx];
   }
   
@@ -237,10 +253,10 @@ class Buffer {
   */
   iter these() : msgType {
     if this.locale != here {
-      var buf = _buf;
+      var buf = _buf[0..#_filled.peek()];
       for msg in buf do yield msg;
     } else {
-      for msg in _buf do yield msg;
+      for msg in _buf[0..#_filled.peek()] do yield msg;
     }
   }
   
@@ -249,19 +265,19 @@ class Buffer {
   */
   iter these(param tag : iterKind) : msgType where tag == iterKind.standalone {
     if this.locale != here {
-      var buf = _buf;
+      var buf = _buf[0..#_filled.peek()];
       forall msg in buf do yield msg;
     } else {
-      forall msg in _buf do yield msg;
+      forall msg in _buf[0..#_filled.peek()] do yield msg;
     }
   }
   
   iter these(param tag : iterKind) : msgType where tag == iterKind.leader {
     if this.locale != here {
-      var buf = _buf;
+      var buf = _buf[0..#_filled.peek()];
       forall x in buf.these(tag) do yield (x, buf);
     } else {
-      forall x in _buf.these(tag) do yield (x, _buf);
+      forall x in _buf[0..#_filled.peek()].these(tag) do yield (x, _buf);
     }
   }
 
@@ -271,9 +287,9 @@ class Buffer {
   }
 
   inline proc getPtr() return c_ptrTo(_buf);
-  inline proc getSize() return _bufDom.size;
-  inline proc getDomain() return _bufDom;
-  inline proc getArray(dom = _bufDom.low.._bufDom.high) return _buf[dom];
+  inline proc getSize() return _filled.peek();
+  inline proc getDomain() return {0.._filled.peek()};
+  inline proc getArray() return _buf[0..#_filled.peek()];
 }
 
 class AggregationBufferImpl {
@@ -300,6 +316,11 @@ class AggregationBufferImpl {
     this.bufferPool = new BufferPool(msgType);
     forall buf in destinationBuffers do buf = bufferPool.getBuffer();
   }
+
+  proc deinit() {
+    delete this.bufferPool;
+    delete this.destinationBuffers;
+  }
   
   proc dsiPrivatize(pid) {
     return new AggregationBufferImpl(this, pid);
@@ -313,8 +334,8 @@ class AggregationBufferImpl {
     return chpl_getPrivatizedCopy(this.type, pid);
   }
   
-  proc aggregate(msg : msgType, loc : locale) {
-    aggregate(msg, loc.id);
+  proc aggregate(msg : msgType, loc : locale) : Buffer(msgType) {
+    return aggregate(msg, loc.id);
   }
   
   /*
@@ -446,7 +467,9 @@ proc main() {
   }
   var rloc : [rindex.domain] locale;
   forall (r, loc) in zip(rindex, rloc) do loc = r.locale;
+  // TODO: File bug where not invoking 'new' but declaring as type results in type being 'nil'...
   var aggregator = new AggregationBuffer(int);
+  aggregator.create();
   t.start();
   sync forall (r, loc) in zip(rindex, rloc) with (in aggregator) {
     if loc == here {
@@ -463,6 +486,7 @@ proc main() {
   }
   //stopVdebug();
   t.stop();
+  aggregator.destroy();
   writeln("Histogram-Aggregated Time: ", t.elapsed());
   //stopVdebug();
   //stopVerboseComm();

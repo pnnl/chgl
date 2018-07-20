@@ -60,7 +60,7 @@ echo 'Running script\n'
 for nodes in ${NODES}; do
   for threads in ${THREADS}; do
     for prob in ${BUFFERSIZE}; do
-        aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --AdjListHyperGraphBufferSize ${BUFFERSIZE}
+        time -v aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --AdjListHyperGraphBufferSize ${BUFFERSIZE}
     done
   done
 done

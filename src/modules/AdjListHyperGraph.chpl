@@ -450,9 +450,7 @@ module AdjListHyperGraph {
       forall v in _vertices do v = new NodeData(eDescType);
       forall e in _edges do e = new NodeData(vDescType);
 
-      // Clear buffer...
-      forall buf in this._destBuffer do buf.reset();
-
+      this._destBuffer.create();
       this.pid = _newPrivatizedClass(this);
     }
   
@@ -469,6 +467,7 @@ module AdjListHyperGraph {
       forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new NodeData(theirV);
       forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new NodeData(theirE);     
       
+      this._destBuffer.create();
       this.pid = _newPrivatizedClass(this);
     }
 
@@ -492,18 +491,17 @@ module AdjListHyperGraph {
         this._masterHandle = other;
         this._privatizedVertices = other._vertices._value;
         this._privatizedEdges = other._edges._value;
+        this._destBuffer = other._destBuffer;
       } else {
         assert(other._masterHandle != nil, "Parent not properly privatized... Race Condition Detected... here: ", here, ", other: ", other.locale);
         this._masterHandle = other._masterHandle;
         var instance = this._masterHandle : this.type;
         this._privatizedVertices = instance._vertices._value;
         this._privatizedEdges = instance._edges._value;
+        this._destBuffer = instance._destBuffer;
       }
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
-
-      // Clear buffer...
-      forall buf in this._destBuffer do buf.reset();
     }
 
     pragma "no doc"
@@ -619,46 +617,39 @@ module AdjListHyperGraph {
     // but is currently being processed remotely (maybe have a counter
     // determining how many tasks are still processing the buffer), so
     // that user knows when all operations have finished/termination detection.
-    inline proc emptyBuffer(locid, bufIdx, ref buffer) {
-      on Locales[locid] {
-        var localBuffer = buffer.buffers[bufIdx];
+    inline proc emptyBuffer(buffer : Buffer, loc : locale) {
+      on loc {
+        var buf = buffer.getArray();
+        buffer.done();
         var localThis = getPrivatizedInstance();
-        forall (srcId, destId, srcType) in localBuffer {
-          select srcType {
-            when DescriptorType.Vertex {
-              if !localThis.verticesDomain.member(srcId) {
-                halt("Vertex out of bounds on locale #", locid, ", domain = ", localThis.verticesDomain);
+        local {
+          forall (srcId, destId, srcType) in buf {
+            select srcType {
+              when InclusionType.Vertex {
+                if !localThis.verticesDomain.member(srcId) {
+                  halt("Vertex out of bounds on locale #", loc.id, ", domain = ", localThis.verticesDomain);
+                }
+                ref v = localThis.getVertex(srcId);
+                if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
+                v.addNodes(localThis.toEdge(destId));
               }
-              ref v = localThis.getVertex(srcId);
-              if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
-              v.addNodes(localThis.toEdge(destId));
-            }
-            when DescriptorType.Edge {
-              if !localThis.edgesDomain.member(srcId) {
-                halt("Edge out of bounds on locale #", locid, ", domain = ", localThis.edgesDomain);
+              when InclusionType.Edge {
+                if !localThis.edgesDomain.member(srcId) {
+                  halt("Edge out of bounds on locale #", loc.id, ", domain = ", localThis.edgesDomain);
+                }
+                ref e = localThis.getEdge(srcId);
+                if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
+                e.addNodes(localThis.toVertex(destId));
               }
-              ref e = localThis.getEdge(srcId);
-              if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
-              e.addNodes(localThis.toVertex(destId));
-            }
-            when DescriptorType.None {
-              // NOP
             }
           }
         }
       }
-      // Buffer safe to reuse again...
-      buffer.finished(bufIdx);
     }
 
     proc flushBuffers() {
-      // Clear on all locales...
-      coforall loc in Locales do on loc {
-        const _this = getPrivatizedInstance();
-        forall (locid, buf) in zip(LocaleSpace, _this._destBuffer) {
-          _this.emptyBuffer(locid, buf.bufIdx.read(), buf);
-          buf.awaitCompletion();
-        }
+      forall (buf, loc) in _destBuffer.flushGlobal() {
+        emptyBuffer(buf, loc);
       }
     }
 
@@ -682,25 +673,17 @@ module AdjListHyperGraph {
       const eDesc = toEdge(e);
 
       // Push on local buffers to send later...
-      var vLocId = verticesDist.idxToLocale(vDesc.id).locale.id;
-      var eLocId = edgesDist.idxToLocale(eDesc.id).locale.id;
-      ref vBuf =  _destBuffer[vLocId];
-      ref eBuf = _destBuffer[eLocId];
-
-      var vStatus = vBuf.append(vDesc.id, eDesc.id, DescriptorType.Vertex);
-      if vStatus != BUFFER_OK {
-        begin {
-          ref _vBuf = vBuf;
-          emptyBuffer(vLocId, vStatus,  _vBuf);
-        }
+      var vLoc = verticesDist.idxToLocale(vDesc.id);
+      var eLoc = edgesDist.idxToLocale(eDesc.id);
+      
+      var vBuf = _destBuffer.aggregate((vDesc.id, eDesc.id, InclusionType.Vertex), vLoc);
+      if vBuf != nil {
+        begin emptyBuffer(vBuf, vLoc);
       }
 
-      var eStatus = eBuf.append(eDesc.id, vDesc.id, DescriptorType.Edge);
-      if eStatus != BUFFER_OK {
-        begin {
-          ref _eBuf = eBuf;
-          emptyBuffer(eLocId, eStatus, _eBuf);
-        }
+      var eBuf = _destBuffer.aggregate((eDesc.id, vDesc.id, InclusionType.Edge), eLoc);
+      if eBuf != nil {
+        begin emptyBuffer(eBuf, eLoc);
       }
     }
 
@@ -801,26 +784,36 @@ module AdjListHyperGraph {
 
       return degreeArr;
     }
-
+    
+    /*
+      Obtain the locale that the given vertex is allocated on
+    */
     inline proc getLocale(v : vDescType) : locale {
       return verticesDist.idxToLocale(v.id);
     }
-
+    
+    /*
+      Obtain the locale that the given edge is allocated on
+    */
     inline proc getLocale(e : eDescType) : locale {
       return edgesDist.idxToLocale(e.id);
     }
-
+    
+    pragma "no doc"
     inline proc getLocale(obj) {
       compilerError("'getLocale(", obj.type : string, ")' is not supported; requires",
           " a descriptor of type ", vDescType : string, " or ", eDescType : string);
     }
-
+    
+    /*
+      Utility function to obtain vertices and its degree.
+    */
     iter forEachVertexDegree() : (vDescType, int(64)) {
       for (vid, v) in zip(verticesDomain, vertices) {
         yield (vid : vDescType, v.neighborList.size);
       }
     }
-
+    
     iter forEachVertexDegree(param tag : iterKind) : (vDescType, int(64))
     where tag == iterKind.standalone {
       forall (vid, v) in zip(verticesDomain, vertices) {

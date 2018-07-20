@@ -35,34 +35,16 @@ for THREADS in 44; do
 probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
 qsub - <<EOF
 #!/bin/bash -l
-#PBS -l nodes=${NODES}:ppn=44
+#PBS -l nodes=${NODES}
 #PBS -l walltime=01:00:00
 #PBS -N strong2-$( echo ${BINARY} | cut -d "/" -f 2 )-${NODES}-${THREADS}-dist
-#PBS -V
 #PBS -j oe
-#PBS -m abe
-#PBS -M zalewski@pnnl.gov
-#PBS -S /bin/bash
-#PBS -W umask=0000
-
-set -x
+#PBS -zV
 
 ulimit -c unlimited
 
-export CHPL_LAUNCHER_CORES_PER_LOCALE=${THREADS}
-export CHPL_RT_NUM_THREADS_PER_LOCALE=${THREADS}
-
-module load craype-hugepages16M
-
 cd \$PBS_O_WORKDIR
-echo 'Running script\n'
-for nodes in ${NODES}; do
-  for threads in ${THREADS}; do
-    #for prob in ${PROBABILITY}; do
-        aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --probability ${probability}
-    #done
-  done
-done
+aprun  -cc none -d24 -n${NODES} -N1 -j0 time -v ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --probability ${probability}
 EOF
 
 #done

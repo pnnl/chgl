@@ -1,4 +1,5 @@
 use AdjListHyperGraph;
+use Memory;
 use CommDiagnostics;
 use Generation;
 use Time;
@@ -6,7 +7,7 @@ use Time;
 /* Performance Test for ChungLu algorithm */
 config const numVertices = 1024 * 1024;
 config const isNaive = false;
-config param isBuffered = true;
+config const isBuffered = true;
 config const numEdges = numVertices * 2;
 config const profileCommunications = false;
 config const probability = .01;
@@ -31,6 +32,7 @@ writeln("Probability:", edgeProbability);
 writeln("Nodes:", numLocales);
 writeln("NumVertices:", numVertices);
 writeln("NumEdges:", numEdges);
+writeln("Memory Used: ", memoryUsed());
 writeln("ProbabilityMultiple:", probability);
 writeln("Naive:", isNaive);
 writeln("Contention:", Debug.contentionCnt);

@@ -99,7 +99,7 @@ module Generation {
     // Perform work evenly across all locales
     coforall loc in targetLocales with (in graph) do on loc {
       var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-      coforall tid in 0..#here.maxTaskPar {
+      sync coforall tid in 0..#here.maxTaskPar {
         // Perform work evenly across all tasks
         var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
         // Each thread gets its own random stream to avoid acquiring sync var
@@ -266,12 +266,15 @@ module Generation {
       return round(x) : int;
   }
 
-
+  /*
+    Block Two-Level Erdos Renyi
+  */
   proc generateBTER(
       vd : [?vdDom], /* Vertex Degrees */
       ed : [?edDom], /* Edge Degrees */
       vmc : [?vmcDom], /* Vertex Metamorphosis Coefficient */
-      emc : [?emcDom] /* Edge Metamorphosis Coefficient */
+      emc : [?emcDom], /* Edge Metamorphosis Coefficient */
+      targetLocales = Locales
       ) {
 
     // Obtains the minimum value that exceeds one
@@ -296,7 +299,7 @@ module Generation {
         edDom.size
         );
     var graph = new AdjListHyperGraph(vdDom.size, edDom.size);
-  
+
     var blockID = 1;
     var expectedDuplicates : int;
     while (idV <= numV && idE <= numE){
@@ -315,29 +318,27 @@ module Generation {
         var verticesDomain = graph.verticesDomain[idV..#nV_int];
         var edgesDomain = graph.edgesDomain[idE..#nE_int];
         expectedDuplicates += (round(nV_int * nE_int * log(1/(1-rho))) - round(nV_int * nE_int * rho)) : int;
-        generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);  
+        generateErdosRenyi(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);  
         writeln("Block #", blockID, ", verticesDomain=", verticesDomain, ", edgesDomain=", edgesDomain, ", output=", (nV, nE, rho), ", input=", (dV, dE, mV, mE));
         idV += nV_int;
         idE += nE_int;
       } else {
-          break;
+        break;
       }
     }
+    graph.removeDuplicates(); 
+    forall (v, vDeg) in graph.forEachVertexDegree() {
+      var oldDeg = vd[v.id];
+      vd[v.id] = max(0, oldDeg - vDeg);
+    }
+    forall (e, eDeg) in graph.forEachEdgeDegree() {
+      var oldDeg = ed[e.id];
+      ed[e.id] = max(0, oldDeg - eDeg);
+    }
+    var nInclusions = _round(max(+ reduce vd, + reduce ed));
+    generateChungLu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
 
-      writeln("Finished computing affinity blocks");
-      writeln("Expected Duplicates: ", expectedDuplicates, ", received: ", graph.removeDuplicates() / 2);
-      forall (v, vDeg) in graph.forEachVertexDegree() {
-        var oldDeg = vd[v.id];
-        vd[v.id] = max(0, oldDeg - vDeg);
-      }
-      forall (e, eDeg) in graph.forEachEdgeDegree() {
-        var oldDeg = ed[e.id];
-        ed[e.id] = max(0, oldDeg - eDeg);
-      }
-      var nInclusions = _round(max(+ reduce vd, + reduce ed));
-      generateChungLu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
-     
-      return graph;
-    }
+    return graph;
+  }
   }
 
