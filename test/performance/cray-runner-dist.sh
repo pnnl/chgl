@@ -2,7 +2,7 @@
 
 numVertices=100000
 numEdges=100000
-probability=0.1
+probability=0.01
 
 while getopts ":v:e:c:" opt; do
   case ${opt} in
@@ -44,7 +44,7 @@ qsub - <<EOF
 ulimit -c unlimited
 
 cd \$PBS_O_WORKDIR
-aprun  -cc none -d24 -n${NODES} -N1 -j0 time -v ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --probability ${probability}
+aprun  -cc none -d24 -n${NODES} -N1 -j0 time -v ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --probability ${probability} --isBuffered=false --isPrivatized=true
 EOF
 
 #done

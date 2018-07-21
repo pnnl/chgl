@@ -314,10 +314,10 @@ module AdjListHyperGraph {
       This method is not parallel-safe with concurrent reads, but it is
       parallel-safe for concurrent writes.
     */
-    proc addNodes(vals) {
+    inline proc addNodes(vals) {
       on this {
         lock.acquire(); // acquire lock
-
+        
         neighborList.push_back(vals);
         isSorted = false;
 
@@ -622,25 +622,23 @@ module AdjListHyperGraph {
         var buf = buffer.getArray();
         buffer.done();
         var localThis = getPrivatizedInstance();
-        local {
-          forall (srcId, destId, srcType) in buf {
-            select srcType {
-              when InclusionType.Vertex {
-                if !localThis.verticesDomain.member(srcId) {
-                  halt("Vertex out of bounds on locale #", loc.id, ", domain = ", localThis.verticesDomain);
-                }
-                ref v = localThis.getVertex(srcId);
-                if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
-                v.addNodes(localThis.toEdge(destId));
+        forall (srcId, destId, srcType) in buf {
+          select srcType {
+            when InclusionType.Vertex {
+              if !localThis.verticesDomain.member(srcId) {
+                halt("Vertex out of bounds on locale #", loc.id, ", domain = ", localThis.verticesDomain);
               }
-              when InclusionType.Edge {
-                if !localThis.edgesDomain.member(srcId) {
-                  halt("Edge out of bounds on locale #", loc.id, ", domain = ", localThis.edgesDomain);
-                }
-                ref e = localThis.getEdge(srcId);
-                if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
-                e.addNodes(localThis.toVertex(destId));
+              ref v = localThis.getVertex(srcId);
+              if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
+              v.addNodes(localThis.toEdge(destId));
+            }
+            when InclusionType.Edge {
+              if !localThis.edgesDomain.member(srcId) {
+                halt("Edge out of bounds on locale #", loc.id, ", domain = ", localThis.edgesDomain);
               }
+              ref e = localThis.getEdge(srcId);
+              if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
+              e.addNodes(localThis.toVertex(destId));
             }
           }
         }
@@ -692,19 +690,8 @@ module AdjListHyperGraph {
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
       
-      // If both vertex and edge are hosted on
-      // the same node (common for small cluster or
-      // shared-memory) we shouldn't perform a cobegin
-      // as they end up spawning more tasks than necessary.
-      var vLoc = verticesDist.idxToLocale(vDesc.id).locale;
-      var eLoc = edgesDist.idxToLocale(eDesc.id).locale;
-      
-      // Both not on same node? Ensure that both remote operations are handled remotely
-      serial vLoc != here && eLoc != here do
-        cobegin {
-          getVertex(vDesc).addNodes(eDesc);
-          getEdge(eDesc).addNodes(vDesc);
-        }
+      getVertex(vDesc).addNodes(eDesc);
+      getEdge(eDesc).addNodes(vDesc);
     }
 
     proc removeDuplicates() {
@@ -750,38 +737,38 @@ module AdjListHyperGraph {
     inline proc toVertex(desc) param {
       compilerError("toVertex(" + desc.type : string + ") is not permitted, required ", vIndexType : string);
     }
-
-    // Obtains list of all degrees; not thread-safe if resized
+    
+    // TODO: Should we add a way to obtain subset of vertex degree and hyperedge cardinality sequences? 
+    /*
+      Returns vertex degree sequence as array.
+    */
     proc getVertexDegrees() {
-      // The returned array is mapped over the same domain as the original
-      // As well a *copy* of the domain is returned so that any modifications to
-      // the original are isolated from the returned array.
       const degreeDom = verticesDomain;
       var degreeArr : [degreeDom] int(64);
-
-      // Note: If set of vertices or its domain has changed this may result in errors
-      // hence this is not entirely thread-safe yet...
-      forall (degree, v) in zip(degreeArr, vertices) {
-        degree = v.neighborList.size;
+      // Must be on locale 0 or else we get issues of accessing
+      // remote data in local block. Chapel arrays somehow lift
+      // this issue for normal array access. Need further investigation...
+      on Locales[0] {
+        var _this = chpl_getPrivatizedInstance();
+        forall (degree, v) in zip(degreeArr, _this._vertices) {
+          degree = v.neighborList.size;
+        }
       }
-
       return degreeArr;
     }
 
-    // Obtains list of all degrees; not thread-safe if resized
+    /*
+      Returns hyperedge cardinality sequence as array.
+    */
     proc getEdgeDegrees() {
-      // The returned array is mapped over the same domain as the original
-      // As well a *copy* of the domain is returned so that any modifications to
-      // the original are isolated from the returned array.
       const degreeDom = edgesDomain;
       var degreeArr : [degreeDom] int(64);
-
-      // Note: If set of vertices or its domain has changed this may result in errors
-      // hence this is not entirely thread-safe yet...
-      forall (degree, e) in zip(degreeArr, edges) {
-        degree = e.neighborList.size;
+      on Locales[0] {
+        var _this = chpl_getPrivatizedInstance();
+        forall (degree, e) in zip(degreeArr, _this._edges) {
+          degree = e.neighborList.size;
+        }
       }
-
       return degreeArr;
     }
     

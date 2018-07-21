@@ -80,10 +80,12 @@ while true {
   deg += 1;
 }
 
-var vertexProbabilities = vDegSeq / (+ reduce vDegSeq): real;
-var edgeProbabilities = eDegSeq / (+ reduce eDegSeq): real;
-var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
-var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
+var dvsSpace = {vDegSeq.domain.low..vDegSeq.domain.high};
+var dvsDom = dvsSpace dmapped Block(boundingBox = dvsSpace);
+var desSpace = {eDegSeq.domain.low..eDegSeq.domain.high};
+var desDom = desSpace dmapped Block(boundingBox = desSpace);
+var dvs : [dvsDom] int = vDegSeq;
+var des : [desDom] int = eDegSeq;
 
 
 if profileCommunications then startCommDiagnostics();
@@ -92,9 +94,7 @@ if profileVerboseCommunications then startVerboseComm();
 var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, targetLocales=Locales));
 var timer = new Timer();
 timer.start();
-if numLocales == 1 then generateChungLuPreScanSMP(graph, vDegSeq.domain, eDegSeq.domain, vertexScan, edgeScan, numInclusions);
-else if generateChungLuPreScanUnbuffered(graph, vDegSeq.domain, eDegSeq.domain, vertexScan, edgeScan, numInclusions);
-else generateChungLuPreScan(graph, vDegSeq.domain, eDegSeq.domain, vertexScan, edgeScan, numInclusions);
+generateChungLu(graph, dvs, des, numInclusions);
 timer.stop();
 
 writeln("Time:", timer.elapsed());

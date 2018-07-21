@@ -8,7 +8,7 @@ use Random;
   2. Need to expand buffer size based on how often it is filled...
 */
 
-
+config param AggregationMaxBuffers = 512;
 config param AggregationBufferSize = 1024 * 1024;
 
 record AggregationBuffer {
@@ -53,10 +53,33 @@ record AggregationBuffer {
 class BufferPool {
   type msgType;
   var recycleList : list(Buffer(msgType));
-  var lock$ : sync bool;
+  var numFreeBuffers : atomic int(64);
+  
+  // Acquires lock bit and returns current number of buffers.
+  // Will spin until lock is acquired and if 'nonzero' is set,
+  // it will also spin until number of free buffers > 0...
+  proc acquire(nonzero : bool) : int {
+    while true {
+      var cnt = numFreeBuffers.read();
+      var freeBuffers = cnt >> 1;
+      var unlocked = cnt & 1 == 0;
+      if unlocked && (!nonzero || freeBuffers > 0) && numFreeBuffers.compareExchangeWeak(cnt, cnt | 1) {
+        return freeBuffers;
+      }
+      chpl_task_yield();
+    }
+    halt("End while loop");
+  }
 
-  proc init(type msgType) {
+  proc release(numBuffers) {
+    assert(((numBuffers << 1) >> 1) == numBuffers, "Overflow of numBuffers(", numBuffers, ")");
+    numFreeBuffers.write(numBuffers << 1);
+  }
+
+  proc init(type msgType, size = AggregationBufferSize) {
     this.msgType = msgType;
+    this.complete();
+    this.numFreeBuffers.write(size);
   }
 
   proc deinit() {
@@ -65,25 +88,25 @@ class BufferPool {
 
   proc getBuffer(desiredSize : int(64) = -1) : Buffer(msgType) {
     var buf : Buffer(msgType);
-    lock$ = true;
     
-    // Check recycle list...
+    var freeBuffers = acquire(nonzero=true);
     if recycleList.size == 0 {
+      assert(freeBuffers > 0, "Attempted to allocate with 0 free buffers left...");
       buf = new Buffer(msgType);
+      freeBuffers -= 1;
     } else {
       buf = recycleList.pop_front();
     }
-
-    lock$;
+    release(freeBuffers);
 
     buf._bufferPool = this;
     return buf;
   }
   
   proc recycleBuffer(buf : Buffer(msgType)) {
-    lock$ = true;
+    var freeBuffers = acquire(nonzero=false);
     recycleList.push_back(buf);
-    lock$;
+    release(freeBuffers);
   }
 }
 
@@ -366,7 +389,6 @@ class AggregationBufferImpl {
           return nil;
         }
         when BufferStatus.Failure {
-          //writeln(here, ": Failed, trying again... buf = ", buf);
           chpl_task_yield();
         }
         when BufferStatus.FailureSwap {

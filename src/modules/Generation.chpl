@@ -4,11 +4,14 @@ module Generation {
   use Random;
   use CyclicDist;
   use AdjListHyperGraph;
+  use DestinationBuffers;
+  use BlockDist;
   use Math;
   use Sort;
   use Search;
 
   param GenerationSeedOffset = 0xDEADBEEF;
+  config const GenerationUseAggregation = true;
 
   //Pending: Take seed as input
   //Returns index of the desired item
@@ -19,10 +22,46 @@ module Generation {
     halt("Bad probability randValue: ", randValue, ", requires one between ",
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
+  /*
+  proc histogram(probTable, numRandoms, targetLocales = Locales) where targetLocales.size > 1 {
+    var indicesSpace = {1..#numRandoms};
+    var indicesDom = indicesSpace dmapped Block(boundingBox = indicesSpace);
+    var indices : [indicesDom] int;
+    var rngArr : [indicesDom] real;
+    var newProbabilities : [1..1] real;
+    if numRandoms == 0 then return indices;
+    newProbabilities.push_back(probabilities);
+    fillRandom(rngArr);
+    const lo = newProbabilities.domain.low;
+    const hi = newProbabilities.domain.high;
+    const size = newProbabilities.size;
 
+    // probabilities is binrange, rngArr is X
+    forall (rng, ix) in zip(rngArr, indices) {
+      var offset = 1;
+      // Find a probability less than or equal to rng in log(n) time
+      while (offset <= size && rng > newProbabilities[offset]) {
+        offset *= 2;
+      }
+      
+      // Find the first probability less than or equal to rng
+      offset = min(offset, size);
+      while offset != 0 && rng < newProbabilities[offset - 1] {
+        offset -= 1;
+      }
+      
+      // Special case - when we reach first or last element, keep them the same as they have their own bin
+      // Otherwise offset by -1 again as we want to be in the correct bin (a,b)
+      ix = offset - 2;
+      assert(ix >= 0);
+    }
+    
+    return indices;
+  }
+*/
   proc histogram(probabilities, numRandoms, seed = 1) {
-    var indices : [1..numRandoms] int;
-    var rngArr : [1..numRandoms] real;
+    var indices : [1..#numRandoms] int;
+    var rngArr : [1..#numRandoms] real;
     var newProbabilities : [1..1] real;
     if numRandoms == 0 then return indices;
     newProbabilities.push_back(probabilities);
@@ -214,28 +253,40 @@ module Generation {
 
     return graph;
   }
+  
+  /*
+    Generates a graph from the desired vertex and edge degree sequence.
 
-  proc generateChungLu(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd, targetLocales = Locales) {
-    if inclusionsToAdd == 0 then return graph;
-    var vertexProbabilities = desiredVertexDegrees/ (+ reduce desiredVertexDegrees): real;
-    var edgeProbabilities = desiredEdgeDegrees/ (+ reduce desiredEdgeDegrees): real;
-    var vertexScan : [vertexProbabilities.domain] real = + scan vertexProbabilities;
-    var edgeScan : [edgeProbabilities.domain] real = + scan edgeProbabilities;
-     
-    return generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales);
-  }
-
-  proc generateChungLuPreScan(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd, targetLocales = Locales){
-    var vertexBin = histogram(vertexScan, inclusionsToAdd);
-    var edgeBin = histogram(edgeScan, inclusionsToAdd);
-    forall (vIdx, eIdx) in zip(vertexBin, edgeBin) {
+    :arg graph: Mutable graph to generate.
+    :arg vDegSeq: Vertex degree sequence.
+    :arg eDegSeq: HyperEdge degree sequence.
+    :arg inclusionsToAdd: Number of edges to create between vertices and hyperedges.
+    :arg verticesDomain: Subset of vertices to generate edges between. Defaults to the entire set of vertices.
+    :arg edgesDomain: Subset of hyperedges to generate edges between. Defaults to the entire set of hyperedges.
+  */
+  proc generateChungLu(
+      graph, vDegSeq : [?vDegSeqDom] int, eDegSeq : [?eDegSeqDom] int, inclusionsToAdd : int(64),
+      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain) {
+    // Check if empty...
+    if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return;
+  
+    // Obtain prefix sum of the normalized degree sequences
+    // This is used as a table to sample vertex and hyperedges from random number
+    var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq));
+    var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq));
+    
+    // Calculate the set of indices using a histogram from the table above. It will
+    // return an array of pre-computed indices from random values.
+    var vertexIndices = histogram(vertexProbabilityTable, inclusionsToAdd);
+    var edgeIndices = histogram(edgeProbabilityTable, inclusionsToAdd);
+    
+    // Perform addInclusions in parallel...
+    sync forall (vIdx, eIdx) in zip(vertexIndices, edgeIndices) {
       graph.addInclusionBuffered(verticesDomain.low + vIdx, edgesDomain.low + eIdx);
     }
-
     graph.flushBuffers();
-    return graph;
   }
-
+  
   proc generateChungLuAdjusted(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
     var inclusions_to_add =  + reduce desired_vertex_degrees:int;
     return generateChungLu(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add);
@@ -340,5 +391,5 @@ module Generation {
 
     return graph;
   }
-  }
+}
 
