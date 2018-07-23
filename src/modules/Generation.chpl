@@ -22,44 +22,51 @@ module Generation {
     halt("Bad probability randValue: ", randValue, ", requires one between ",
          probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
   }
-  /*
-  proc histogram(probTable, numRandoms, targetLocales = Locales) where targetLocales.size > 1 {
+  
+  proc distributedHistogram(probTable, numRandoms, targetLocales) {
+    assert(probTable.domain.stride == 1, "Cannot perform histogram on strided arrays yet");;
     var indicesSpace = {1..#numRandoms};
-    var indicesDom = indicesSpace dmapped Block(boundingBox = indicesSpace);
+    var indicesDom = indicesSpace dmapped Block(boundingBox = indicesSpace, targetLocales = targetLocales);
     var indices : [indicesDom] int;
     var rngArr : [indicesDom] real;
-    var newProbabilities : [1..1] real;
-    if numRandoms == 0 then return indices;
-    newProbabilities.push_back(probabilities);
+    var newProbTableSpace = {1..#probTable.size + 1};
+    var newProbTableDom = newProbTableSpace dmapped Cyclic(startIdx=1, targetLocales = targetLocales);
+    var newProbTable : [newProbTableSpace] probTable.eltType;
+    newProbTable[2..] = probTable;
     fillRandom(rngArr);
-    const lo = newProbabilities.domain.low;
-    const hi = newProbabilities.domain.high;
-    const size = newProbabilities.size;
+    const lo = newProbTable.domain.low;
+    const hi = newProbTable.domain.high;
+    const size = newProbTable.size;
 
     // probabilities is binrange, rngArr is X
     forall (rng, ix) in zip(rngArr, indices) {
-      var offset = 1;
-      // Find a probability less than or equal to rng in log(n) time
-      while (offset <= size && rng > newProbabilities[offset]) {
-        offset *= 2;
+      // Handle space cases...
+      if rng == 0 {
+        ix = 0;
+      } else if rng == 1 {
+        ix = size - 1;
+      } else {
+        var offset = 1;
+        // Find a probability less than or equal to rng in log(n) time
+        while (offset <= size && rng > newProbTable[offset]) {
+          offset *= 2;
+        }
+
+        // Find the first probability less than or equal to rng
+        offset = min(offset, size);
+        while offset != 0 && rng <= newProbTable[offset - 1] {
+          offset -= 1;
+        }
+
+        ix = offset - 2;
+        assert(ix >= 0);
       }
-      
-      // Find the first probability less than or equal to rng
-      offset = min(offset, size);
-      while offset != 0 && rng < newProbabilities[offset - 1] {
-        offset -= 1;
-      }
-      
-      // Special case - when we reach first or last element, keep them the same as they have their own bin
-      // Otherwise offset by -1 again as we want to be in the correct bin (a,b)
-      ix = offset - 2;
-      assert(ix >= 0);
     }
-    
+
     return indices;
   }
-*/
-  proc histogram(probabilities, numRandoms, seed = 1) {
+  
+  proc histogram(probabilities, numRandoms) {
     var indices : [1..#numRandoms] int;
     var rngArr : [1..#numRandoms] real;
     var newProbabilities : [1..1] real;
@@ -72,22 +79,27 @@ module Generation {
 
     // probabilities is binrange, rngArr is X
     forall (rng, ix) in zip(rngArr, indices) {
-      var offset = 1;
-      // Find a probability less than or equal to rng in log(n) time
-      while (offset <= size && rng > newProbabilities[offset]) {
-        offset *= 2;
+      // Handle space cases...
+      if rng == 0 {
+        ix = 0;
+      } else if rng == 1 {
+        ix = size - 1;
+      } else {
+        var offset = 1;
+        // Find a probability less than or equal to rng in log(n) time
+        while (offset <= size && rng > newProbabilities[offset]) {
+          offset *= 2;
+        }
+
+        // Find the first probability less than or equal to rng
+        offset = min(offset, size);
+        while offset != 0 && rng < newProbabilities[offset - 1] {
+          offset -= 1;
+        }
+
+        ix = offset - 2;
+        assert(ix >= 0);
       }
-      
-      // Find the first probability less than or equal to rng
-      offset = min(offset, size);
-      while offset != 0 && rng < newProbabilities[offset - 1] {
-        offset -= 1;
-      }
-      
-      // Special case - when we reach first or last element, keep them the same as they have their own bin
-      // Otherwise offset by -1 again as we want to be in the correct bin (a,b)
-      ix = offset - 2;
-      assert(ix >= 0);
     }
     
     return indices;
@@ -102,7 +114,6 @@ module Generation {
     const numEdges = edgeDomain.size;
     var newP = if couponCollector then log(1/(1-probability)) else probability;
     var inclusionsToAdd = _round(numVertices * numEdges * newP);
-    writeln("Inclusions to add: ", inclusionsToAdd);
     // Perform work evenly across all tasks
     var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar);
     var randStream = new RandomStream(int, _randStream.getNext());
@@ -133,10 +144,14 @@ module Generation {
     return graph;
   }
 
-  proc generateErdosRenyi(graph, probability, targetLocales = Locales){
-    var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
+  proc generateErdosRenyi(graph, probability, verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, couponCollector = true, targetLocales = Locales){
+    const numVertices = verticesDomain.size;
+    const numEdges = edgesDomain.size;
+    var inclusionsToAdd = (numVertices * numEdges * probability) : int;
     // Perform work evenly across all locales
     coforall loc in targetLocales with (in graph) do on loc {
+      const localVerticesDomain = verticesDomain;
+      const localEdgesDomain = edgesDomain;
       var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
       sync coforall tid in 0..#here.maxTaskPar {
         // Perform work evenly across all tasks
@@ -145,8 +160,8 @@ module Generation {
         var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
         var randStream = new RandomStream(int, _randStream.getNext());
         for 1..perTaskInclusions {
-          var vertex = randStream.getNext(0, graph.numVertices - 1);
-          var edge = randStream.getNext(0, graph.numEdges - 1);
+          var vertex = randStream.getNext(localVerticesDomain.low, localVerticesDomain.high);
+          var edge = randStream.getNext(localEdgesDomain.low, localEdgesDomain.high);
           graph.addInclusionBuffered(vertex, edge);
         }
       }
@@ -272,19 +287,42 @@ module Generation {
   
     // Obtain prefix sum of the normalized degree sequences
     // This is used as a table to sample vertex and hyperedges from random number
-    var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq));
-    var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq));
-    
-    // Calculate the set of indices using a histogram from the table above. It will
-    // return an array of pre-computed indices from random values.
-    var vertexIndices = histogram(vertexProbabilityTable, inclusionsToAdd);
-    var edgeIndices = histogram(edgeProbabilityTable, inclusionsToAdd);
-    
-    // Perform addInclusions in parallel...
-    sync forall (vIdx, eIdx) in zip(vertexIndices, edgeIndices) {
-      graph.addInclusionBuffered(verticesDomain.low + vIdx, edgesDomain.low + eIdx);
+    var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq):real);
+    var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq):real);
+
+    if numLocales == 1 {
+      // Perform work evenly across all locales
+      coforall tid in 0..#here.maxTaskPar {
+        // Perform work evenly across all tasks
+        var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
+        var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+        var randStream = new RandomStream(real, _randStream.getNext());
+        for 1..perTaskInclusions {
+          var vertex = getRandomElement(verticesDomain, vertexProbabilityTable, randStream.getNext());
+          var edge = getRandomElement(edgesDomain, edgeProbabilityTable, randStream.getNext());
+          graph.addInclusion(vertex, edge);
+        }
+      }
+    } else {
+      // Perform work evenly across all locales
+      coforall loc in Locales with (in graph) do on loc {
+        const vpt = vertexProbabilityTable;
+        const ept = edgeProbabilityTable;
+        const perLocInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
+        sync coforall tid in 0..#here.maxTaskPar with (in graph) {
+          // Perform work evenly across all tasks
+          var perTaskInclusions = perLocInclusions / here.maxTaskPar + (if tid == 0 then perLocInclusions % here.maxTaskPar else 0);
+          var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+          var randStream = new RandomStream(real, _randStream.getNext());
+          for 1..perTaskInclusions {
+            var vertex = getRandomElement(verticesDomain, vpt, randStream.getNext());
+            var edge = getRandomElement(edgesDomain, ept, randStream.getNext());
+            graph.addInclusionBuffered(vertex, edge);
+          }
+        }
+      }
+      graph.flushBuffers();
     }
-    graph.flushBuffers();
   }
   
   proc generateChungLuAdjusted(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
@@ -349,7 +387,7 @@ module Generation {
         vdDom.size,
         edDom.size
         );
-    var graph = new AdjListHyperGraph(vdDom.size, edDom.size);
+    var graph = new AdjListHyperGraph(vdDom.size, edDom.size, new Cyclic(startIdx=0));
 
     var blockID = 1;
     var expectedDuplicates : int;
@@ -361,6 +399,8 @@ module Generation {
       var nE_int = nE:int;
       blockID += 1;
 
+      writeln("BlockID#" , blockID);
+
       // Check to ensure that blocks are only applied when it fits
       // within the range of the number of vertices and edges provided.
       // This avoids processing a most likely "wrong" value of rho as
@@ -369,8 +409,8 @@ module Generation {
         var verticesDomain = graph.verticesDomain[idV..#nV_int];
         var edgesDomain = graph.edgesDomain[idE..#nE_int];
         expectedDuplicates += (round(nV_int * nE_int * log(1/(1-rho))) - round(nV_int * nE_int * rho)) : int;
-        generateErdosRenyi(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);  
-        writeln("Block #", blockID, ", verticesDomain=", verticesDomain, ", edgesDomain=", edgesDomain, ", output=", (nV, nE, rho), ", input=", (dV, dE, mV, mE));
+        if numLocales == 1 then generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);
+        else generateErdosRenyi(graph, rho, verticesDomain, edgesDomain, couponCollector = true);
         idV += nV_int;
         idE += nE_int;
       } else {
@@ -387,8 +427,7 @@ module Generation {
       ed[e.id] = max(0, oldDeg - eDeg);
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
-    generateChungLu(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
-
+    generateChungLu(graph, vd, ed, nInclusions);
     return graph;
   }
 }

@@ -8,8 +8,12 @@ use Random;
   2. Need to expand buffer size based on how often it is filled...
 */
 
-config param AggregationMaxBuffers = 512;
+config param AggregationMaxBuffers = -1;
 config param AggregationBufferSize = 1024 * 1024;
+
+proc hasBufferLimit() param {
+  return AggregationMaxBuffers > 0;
+}
 
 record AggregationBuffer {
   var instance;
@@ -50,63 +54,89 @@ record AggregationBuffer {
   forwarding _value;
 }
 
+pragma "no doc"
 class BufferPool {
   type msgType;
-  var recycleList : list(Buffer(msgType));
-  var numFreeBuffers : atomic int(64);
-  
-  // Acquires lock bit and returns current number of buffers.
-  // Will spin until lock is acquired and if 'nonzero' is set,
-  // it will also spin until number of free buffers > 0...
-  proc acquire(nonzero : bool) : int {
-    while true {
-      var cnt = numFreeBuffers.read();
-      var freeBuffers = cnt >> 1;
-      var unlocked = cnt & 1 == 0;
-      if unlocked && (!nonzero || freeBuffers > 0) && numFreeBuffers.compareExchangeWeak(cnt, cnt | 1) {
-        return freeBuffers;
-      }
-      chpl_task_yield();
-    }
-    halt("End while loop");
-  }
+  var lock$ : sync bool;
+  // Head of list of all buffers that can be recycled.
+  var freeBufferList : Buffer(msgType);
+  // Head of list of all allocated buffers.
+  var allocatedBufferList : Buffer(msgType);
+  // Number of buffers that are available to be recycled...
+  var numFreeBuffers : atomic int;
+  // Number of buffers that are currently allocated
+  var numAllocatedBuffers : atomic int; 
+  // Maximum number of allocated buffers
+  const maxAllocatedBuffers : int;
 
-  proc release(numBuffers) {
-    assert(((numBuffers << 1) >> 1) == numBuffers, "Overflow of numBuffers(", numBuffers, ")");
-    numFreeBuffers.write(numBuffers << 1);
-  }
-
-  proc init(type msgType, size = AggregationBufferSize) {
+  // Will allow enough for a single buffer per destination locale.
+  proc init(type msgType, maxBufferSize = AggregationMaxBuffers) {
     this.msgType = msgType;
-    this.complete();
-    this.numFreeBuffers.write(size);
+    this.maxAllocatedBuffers = if maxBufferSize >= 0 then max(numLocales * 2, maxBufferSize) else -1;
   }
 
   proc deinit() {
-    for b in recycleList do delete b;
+    while allocatedBufferList != nil {
+      var buf = allocatedBufferList;
+      allocatedBufferList = buf._nextAllocatedBuffer;
+      delete buf;
+    }
+  }
+
+  inline proc canAllocateBuffer() {
+    return maxAllocatedBuffers == -1 || numAllocatedBuffers.peek() < maxAllocatedBuffers;
   }
 
   proc getBuffer(desiredSize : int(64) = -1) : Buffer(msgType) {
     var buf : Buffer(msgType);
-    
-    var freeBuffers = acquire(nonzero=true);
-    if recycleList.size == 0 {
-      assert(freeBuffers > 0, "Attempted to allocate with 0 free buffers left...");
-      buf = new Buffer(msgType);
-      freeBuffers -= 1;
-    } else {
-      buf = recycleList.pop_front();
-    }
-    release(freeBuffers);
+     
+    while buf == nil {
+      // Yield while we wait for a free buffer...
+      while numFreeBuffers.peek() == 0 && !canAllocateBuffer() {
+        chpl_task_yield();
+      }
 
+      lock$ = true;
+      // Out of buffers, try to create a new one.
+      // Note: Since we do this inside the lock we can relax all atomics
+      if numFreeBuffers.peek() == 0 {
+        if canAllocateBuffer() {
+          buf = new Buffer(msgType);
+          numAllocatedBuffers.add(1, memory_order_relaxed);
+          buf._nextAllocatedBuffer = allocatedBufferList;
+          allocatedBufferList = buf;
+        }
+      } else {
+        numFreeBuffers.sub(1, memory_order_relaxed);
+        buf = freeBufferList;
+        freeBufferList = buf._nextFreeBuffer;
+      }
+      lock$;
+    }
+    
     buf._bufferPool = this;
     return buf;
   }
   
   proc recycleBuffer(buf : Buffer(msgType)) {
-    var freeBuffers = acquire(nonzero=false);
-    recycleList.push_back(buf);
-    release(freeBuffers);
+    lock$ = true;
+    numFreeBuffers.add(1, memory_order_relaxed);
+    buf._nextFreeBuffer = freeBufferList;
+    freeBufferList = buf;
+    lock$;
+  }
+  
+  // Waits for all buffers to finish being processed, and prevents other
+  // buffers from being recycled/used. A buffer is considered being 'processed'
+  // when it is marked as 'stolen'. The buffer list can be scanned without the lock
+  // as the buffer list is guaranteed to not delete any buffers until the buffer pool
+  // is entirely deleted...
+  proc awaitFinish() {
+    var buf = allocatedBufferList;
+    while buf != nil {
+      buf._stolen.waitFor(false);
+      buf = buf._nextAllocatedBuffer;
+    }
   }
 }
 
@@ -138,8 +168,10 @@ class Buffer {
   var _filled : atomic int;
   pragma "no doc"
   var _stolen : atomic bool;
-
-  // Parent handle
+  pragma "no doc"
+  var _nextAllocatedBuffer : Buffer(msgType);
+  pragma "no doc"
+  var _nextFreeBuffer : Buffer(msgType);
   pragma "no doc"
   var _bufferPool : BufferPool(msgType);
   
@@ -147,18 +179,6 @@ class Buffer {
   proc init(type msgType) {
     this.msgType = msgType;
     this._bufDom = {0..#AggregationBufferSize};
-  }
-  
-  // Not thread safe to copy...
-  pragma "no doc"
-  proc init(other : Buffer(?msgType)) {
-    this.msgType = other.msgType;
-    this._bufDom = other._bufDom;
-    this._buf = other._buf;
-    this.complete();
-    this._claimed.write(other._claimed.read());
-    this._filled.write(other._filled.write());
-    this._stolen.write(other._stolen.read());
   }
   
   pragma "no doc"
@@ -342,7 +362,6 @@ class AggregationBufferImpl {
 
   proc deinit() {
     delete this.bufferPool;
-    delete this.destinationBuffers;
   }
   
   proc dsiPrivatize(pid) {
@@ -368,18 +387,19 @@ class AggregationBufferImpl {
     last to fill the buffer, they are chosen to handle emptying the buffer. Example usage
     would be...
     
-    var buffer = aggregator.aggregate(locid, msg);
-    if buffer != nil {
-      var arr = buffer.getArray();
-      begin with (in arr) do on Locales[locid] {
-        process(arr);
+    var buf = aggregator.aggregate(msg, loc);
+    if buf != nil {
+      begin {
+        var ret = coalesce(buf);
+        buf.done();
+        on loc do process(ret);
       }
-      aggregator.processed(buffer);
     }
     
-    The above will aggregate the 'msg' for the required locale, and if it is full, it will
-    asynchronously handle processing the buffer, then pass the buffer and notify it has finished
-    processing it.
+    The above will aggregate the 'msg' for the target locale, and if it is full, it will
+    asynchronously handle both coalescing the buffer locally and processing the coalesced
+    data remotely. The buffer can be returned as soon as it has been coalesced, but it can
+    also be used directly on the other locales; its up to the user to minimize 'down-time'
   */
   proc aggregate(msg : msgType, locid : int) : Buffer(msgType) {
     while true {
@@ -459,7 +479,7 @@ proc main() {
   }
 
   var t: Timer;
-  t.start();
+  /*t.start();
   /* main loop */
   forall r in rindex {
       on A[r] do A[r].add(1); //atomic add
@@ -467,7 +487,7 @@ proc main() {
   t.stop();
   writeln("Histogram (RA) Time: ", t.elapsed());
 
-  t.clear();
+  t.clear();*/
   t.start();
   forall r in rindex {
     A[r].add(1);
@@ -508,8 +528,8 @@ proc main() {
   }
   //stopVdebug();
   t.stop();
-  aggregator.destroy();
   writeln("Histogram-Aggregated Time: ", t.elapsed());
+  aggregator.destroy();
   //stopVdebug();
   //stopVerboseComm();
 }

@@ -674,14 +674,22 @@ module AdjListHyperGraph {
       var vLoc = verticesDist.idxToLocale(vDesc.id);
       var eLoc = edgesDist.idxToLocale(eDesc.id);
       
-      var vBuf = _destBuffer.aggregate((vDesc.id, eDesc.id, InclusionType.Vertex), vLoc);
-      if vBuf != nil {
-        begin emptyBuffer(vBuf, vLoc);
+      if vLoc == here {
+        getVertex(vDesc).addNodes(eDesc);
+      } else {
+        var vBuf = _destBuffer.aggregate((vDesc.id, eDesc.id, InclusionType.Vertex), vLoc);
+        if vBuf != nil {
+          begin emptyBuffer(vBuf, vLoc);
+        }
       }
 
-      var eBuf = _destBuffer.aggregate((eDesc.id, vDesc.id, InclusionType.Edge), eLoc);
-      if eBuf != nil {
-        begin emptyBuffer(eBuf, eLoc);
+      if eLoc == here {
+        getEdge(eDesc).addNodes(vDesc);
+      } else {
+        var eBuf = _destBuffer.aggregate((eDesc.id, vDesc.id, InclusionType.Edge), eLoc);
+        if eBuf != nil {
+          begin emptyBuffer(eBuf, eLoc);
+        }
       }
     }
 
@@ -749,7 +757,7 @@ module AdjListHyperGraph {
       // remote data in local block. Chapel arrays somehow lift
       // this issue for normal array access. Need further investigation...
       on Locales[0] {
-        var _this = chpl_getPrivatizedInstance();
+        var _this = getPrivatizedInstance();
         forall (degree, v) in zip(degreeArr, _this._vertices) {
           degree = v.neighborList.size;
         }
