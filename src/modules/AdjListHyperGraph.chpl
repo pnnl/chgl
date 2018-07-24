@@ -772,7 +772,7 @@ module AdjListHyperGraph {
       const degreeDom = edgesDomain;
       var degreeArr : [degreeDom] int(64);
       on Locales[0] {
-        var _this = chpl_getPrivatizedInstance();
+        var _this = getPrivatizedInstance();
         forall (degree, e) in zip(degreeArr, _this._edges) {
           degree = e.neighborList.size;
         }

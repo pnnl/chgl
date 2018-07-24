@@ -14,7 +14,7 @@ for i in 0..9 {
 var scanProb = (+ scan probabilities);
 
 // used arbitrary odd number seed for 3rd parameter.
-var results = histogram(scanProb, numRandom, 1234567);
+var results = histogram(scanProb, numRandom);
 
 for i in results {
     generated[i] += 1;
@@ -46,7 +46,7 @@ probabilities[9] = 0.0;
 scanProb = (+ scan probabilities);
 
 // Using a different arbitrarily chosen seed
-results = histogram(scanProb, numRandom, 123456789);
+results = histogram(scanProb, numRandom);
 
 var biasedGenerated: [0..9] int;
 

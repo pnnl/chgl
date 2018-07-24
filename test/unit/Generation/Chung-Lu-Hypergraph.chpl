@@ -23,7 +23,7 @@ for e in 0..count-1{
     	initial += 1;
     }
 }
-graph = generateChungLu(graph, graph.verticesDomain, graph.edgesDomain, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
+graph = generateChungLu(graph, original_vertex_degrees, original_edge_degrees, inclusions_to_add);
 
 count = graph.numVertices;
 var edgecount: int = 0;

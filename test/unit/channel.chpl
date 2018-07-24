@@ -12,6 +12,7 @@ proc main() {
     while !inchan.isClosed() {
       total += (+ reduce inchan.recv());
     }
+    total += (+ reduce inchan.recv());
     writeln("Received total: ", total);
   }
   forall ix in 1..1024 do outchan.send(ix);

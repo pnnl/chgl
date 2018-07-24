@@ -193,23 +193,6 @@ module Generation {
     return graph;
   }
 
-  proc generateErdosRenyiAdjusted(graph, vertices_domain, edges_domain, p, targetLocales = Locales, couponCollector = true) {
-    if p == 0 then return graph;
-    if isnan(p) then halt("Error: p = NAN, vertices_domain = ", vertices_domain, ", edges_domain=", edges_domain);
-    var desired_vertex_degrees: [vertices_domain] real;
-    var desired_edge_degrees: [edges_domain] real;
-    var num_vertices = vertices_domain.size;
-    var num_edges = edges_domain.size;
-    desired_vertex_degrees = num_edges * p;
-    desired_edge_degrees = num_vertices * p;
-    // Adjust p for coupon collector
-    var adjusted_p = if couponCollector then log(1/(1-p)) else p;
-    var inclusions_to_add = (num_vertices*num_edges * adjusted_p): int;
-    var new_graph = generateChungLu(graph, vertices_domain, edges_domain, desired_vertex_degrees, desired_edge_degrees, inclusions_to_add, targetLocales);
-    return new_graph;
-  }
-
-
   //Pending: Take seed as input
   proc generateErdosRenyiNaive(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
     // Spawn a remote task on each node...
@@ -283,7 +266,7 @@ module Generation {
       graph, vDegSeq : [?vDegSeqDom] int, eDegSeq : [?eDegSeqDom] int, inclusionsToAdd : int(64),
       verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain) {
     // Check if empty...
-    if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return;
+    if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return graph;
   
     // Obtain prefix sum of the normalized degree sequences
     // This is used as a table to sample vertex and hyperedges from random number
@@ -323,6 +306,7 @@ module Generation {
       }
       graph.flushBuffers();
     }
+    return graph;
   }
   
   proc generateChungLuAdjusted(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees){
@@ -398,8 +382,6 @@ module Generation {
       var nV_int = nV:int;
       var nE_int = nE:int;
       blockID += 1;
-
-      writeln("BlockID#" , blockID);
 
       // Check to ensure that blocks are only applied when it fits
       // within the range of the number of vertices and edges provided.

@@ -11,16 +11,31 @@ use Random;
 config param AggregationMaxBuffers = -1;
 config param AggregationBufferSize = 1024 * 1024;
 
-proc hasBufferLimit() param {
-  return AggregationMaxBuffers > 0;
+/*
+  Example of an aggregation handler. Aggregation handler must
+  implement two methods: "this(buf, loc)" and "clone(loc)". 'this'
+  will be invoked ot handle coalescing and processing of the
+  buffer, and 'clone' is used to duplicate the handler across
+  all nodes in case it has state that must be allocated, which
+  always be called on another locale (hence the user may want
+  to wrap portions of code in `on this` clause)
+*/
+record DummyAggregationHandler {
+  proc this(buf : Buffer(?dataType), loc : locale) {
+    halt("DummyAggregationHandler called...");
+  }
+
+  proc clone() : this.type {
+    halt("DummyAggregationHandler called...");
+  }
 }
 
 record AggregationBuffer {
   var instance;
   var pid = -1;
 
-  proc init(type msgType) {
-    this.instance = nil : AggregationBufferImpl(msgType);
+  proc init(type msgType, aggregationHandler = new DummyAggregationHandler()) {
+    this.instance = nil : AggregationBufferImpl(msgType, aggregationHandler.type);
   }
 
   proc init(other) {
@@ -28,10 +43,10 @@ record AggregationBuffer {
     this.pid = other.pid;
   }
 
-  proc create() {
+  proc create(aggregationHandler = new DummyAggregationHandler()) {
     if pid != -1 then halt("Attempt to create AggregationBuffer when already initialized...");
     type instanceType = instance.type;
-    this.instance = new instanceType(instanceType.msgType);
+    this.instance = new instanceType(instanceType.msgType, aggregationHandler);
     this.pid = this.instance.pid;
   }
 
@@ -337,13 +352,18 @@ class Buffer {
 
 class AggregationBufferImpl {
   type msgType;
+  pragma "no doc"
   var destinationBuffers : [LocaleSpace] Buffer(msgType);
+  pragma "no doc"
   var bufferPool: BufferPool(msgType);
+  pragma "no doc"
   var pid = -1;
+  pragma "no doc"
+  var aggregationHandler;
 
-  proc init(type msgType) {
+  proc init(type msgType, aggregationHandler = new DummyAggregationHandler()) {
     this.msgType = msgType;
-    
+    this.aggregationHandler = aggregationHandler;
     complete();
     
     this.pid = _newPrivatizedClass(this);
@@ -353,7 +373,9 @@ class AggregationBufferImpl {
   
   proc init(other, pid : int) {
     this.msgType = other.msgType;
-
+    if other.hasAggregationHandler() then this.aggregationHandler = other.aggregationHandler.clone();
+    else this.aggregationHandler = new DummyAggregationHandler();
+    
     complete();
     
     this.bufferPool = new BufferPool(msgType);
@@ -374,6 +396,14 @@ class AggregationBufferImpl {
 
   inline proc getPrivatizedInstance() {
     return chpl_getPrivatizedCopy(this.type, pid);
+  }
+
+  inline proc hasAggregationHandler() where aggregationHandler.type != DummyAggregationHandler {
+    return true;
+  }
+
+  inline proc hasAggregationHandler() where aggregationHandler.type == DummyAggregationHandler {
+    return false;
   }
   
   proc aggregate(msg : msgType, loc : locale) : Buffer(msgType) {
@@ -416,11 +446,20 @@ class AggregationBufferImpl {
         }
         when BufferStatus.SuccessSwap {
           destinationBuffers[locid] = bufferPool.getBuffer();
-          return buf;
+          if hasAggregationHandler() {
+            aggregationHandler(buf, Locales[locid]);
+          } else return buf;
         }
       }
     }
     halt("Somehow broke out of while loop...");
+  }
+
+  proc flush(targetLocales = Locales) {
+    assert(hasAggregationBuffer(), "Attempt to invoke 'flush' without handler set; please use 'flushGlobal' and 'flushLocal' parallel iterators...");
+    sync forall (buf, loc) in flushGlobal(targetLocales) {
+      aggregationHandler(buf, loc);
+    }
   }
   
   iter flushGlobal(targetLocales = Locales) : (Buffer(msgType), locale) {
@@ -503,8 +542,8 @@ proc main() {
     for idx in buf do counters[idx] += 1;
     buf.done();
     on loc {
-      var tmp = counters;
-      local do for (cnt, idx) in zip(tmp, tmp.domain) do if cnt > 0 then A[idx].add(cnt);
+      var _tmp = counters;
+      local do for (cnt, idx) in zip(_tmp, _tmp.domain) do if cnt > 0 then A[idx].add(cnt);
     }
   }
   var rloc : [rindex.domain] locale;

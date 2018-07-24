@@ -13,7 +13,7 @@ for e in 0..count-1{
 		initial += 1;
 	}
 }
-var new_graph = generateErdosRenyiAdjusted(graph, graph.verticesDomain, graph.edgesDomain, prob);
+var new_graph = generateErdosRenyi(graph, prob);
 count = 0;
 for e in graph.vertices{
 	count += 1;
