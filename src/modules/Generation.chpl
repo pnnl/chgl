@@ -131,7 +131,8 @@ module Generation {
     const numEdges = edgesDomain.size;
     const vertLow = verticesDomain.low;
     const edgeLow = edgesDomain.low;
-    var inclusionsToAdd = (numVertices * numEdges * probability) : int;
+    var newP = if couponCollector then log(1/(1-probability)) else probability;
+    var inclusionsToAdd = (numVertices * numEdges * newP) : int;
     var space = {1..inclusionsToAdd};
     var dom = space dmapped Block(boundingBox=space, targetLocales=targetLocales);
     var verticesRNG : [dom] real;
@@ -332,15 +333,14 @@ module Generation {
         var verticesDomain = graph.verticesDomain[idV..#nV_int];
         var edgesDomain = graph.edgesDomain[idE..#nE_int];
         expectedDuplicates += (round(nV_int * nE_int * log(1/(1-rho))) - round(nV_int * nE_int * rho)) : int;
-        if numLocales == 1 then generateErdosRenyiSMP(graph, rho, verticesDomain, edgesDomain,  couponCollector = true);
-        else generateErdosRenyi(graph, rho, verticesDomain, edgesDomain, couponCollector = true);
+        generateErdosRenyi(graph, rho, verticesDomain, edgesDomain, couponCollector = true);
         idV += nV_int;
         idE += nE_int;
       } else {
         break;
       }
     }
-    graph.removeDuplicates(); 
+    writeln("Duplicates: ", graph.removeDuplicates(), " and expect: ", expectedDuplicates); 
     forall (v, vDeg) in graph.forEachVertexDegree() {
       var oldDeg = vd[v.id];
       vd[v.id] = max(0, oldDeg - vDeg);
