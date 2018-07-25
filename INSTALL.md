@@ -35,7 +35,7 @@ The following sections detail the compilation, packaging, and installation of th
 Environment Requirements
 ------------------------
 
-**Programming Language:** Chapel 1.17.1
+**Programming Language:** Chapel 1.18 pre-release (master branch as of 7/25/2018)
 
 **Operating System & Version:** Tested on Chapel Docker containers (Debian) and internal RHEL 7 system
 
@@ -52,24 +52,34 @@ A compiled version of the Chapel programming language with is test virtual envir
 
 | Name | Version | Download Location | Country of Origin | Special Instructions |
 | ---- | ------- | ----------------- | ----------------- | -------------------- |
-| Chapel | 1.17.1 | https://github.com/chapel-lang/chapel/tree/release/1.17 | USA | None |  
+| Chapel | 1.18 pre-release | https://github.com/chapel-lang/chapel | USA | None |  
 
 Distribution Files
 ------------------
 
-_List the files included within the distribution, including a brief overview of what is in each file / tarball. These files will include your source code, test data, configuration files, or other files associated with the installation of your software. Avoid including binaries if at all possible as this makes transferring the software to secure sponsor spaces difficult – instead include these in the dependencies list above with a documented way to retrieve them separately._  
+CHGL is released as a Git repository found at https://gitlab.com/marcinz/chgl. No additional files are required. 
 
 Installation Instructions
 -------------------------
 
-_Include detailed step-by-step instructions to compile, package, and install the software. A good place to start is a clean-state machine similar to the deployment environment and document the installation as you get it working there. Where possible, use Docker containers (like https://hub.docker.com/\_/centos/) in build & test systems to ensure that your builds are reproducable at the sponsor independent of internal hardware. Provide detailed documentation on configuration settings or files required for compilation or runtime._
+CHGL can be compiled by first installing Chapel (see https://chapel-lang.org/docs/usingchapel/QUICKSTART.html) or using a Chapel Docker image (see https://hub.docker.com/r/chapel/chapel/). Note however that CHGL uses features found in the Chapel 1.18 pre-release and these features are currently unavailable in Docker images. Once a 1.18 release is made, Docker images can be used.
+
+With Chapel installed, you can compile the CHGL module as follows:
+
+**TODO**
+
+See the ``.gitlab-ci.yml`` file for an example of our continuous integration build.
 
 Test Cases
 ----------
 
-_Include test data in the distribution that can be used to verify the installation was successful. Document detailed steps of how to execute these tests and the ways to identify success or failure. Example input & output data files is preferred over manual data entry. Do not include hard-coded paths within test scripts to allow flexibility in the installation. If possible, include test cases that can be performed on systems smaller than the target system, allowing the sponsor to demonstrate an installation on a different machine._
+CHGL includes both unit & performance tests utilizing the ``start_test`` Python script supplied by Chapel. Change directories into ``test/unit`` or ``test/performance`` and execute ``start_test`` to run the tests. View the [unit test README](test/unit/README.md) or [perfomrance test README](test/performance/README.md) for more information.
+
+_Note that the build on GitlabCI currently fails as we wait on Chapel 1.18 to be released as it uses the Chapel Docker images to build._
 
 User Guide
 ==========
+
+**TODO** -- @Marcin, should we include a link to the paper (if one exists?). Otherwise we may be able to leave this section out.
 
 _This section is largely up to the project to determine its contents. Include information on how to run & configure the system, common usage, special configurations, etc. This section should demonstrate to the sponsor how to generally use the software to perform the desired analysis. Consider including troubleshooting guides for known, common problems._
