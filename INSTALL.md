@@ -18,12 +18,14 @@ Project Overview
 
 **Principle Investigator:** Marcin Zalewski (marcin.zalewski@pnnl.gov) 
 
-**General Area or Topic of Investigation:** _Short field of study_
+**General Area or Topic of Investigation:** High performance, parallel hypergraph metrics and algorithms
 
-**Release Number:** _Formal version number or Git branch & tag that must uniquely (and reproducibly) identify this delivery_
+**Release Number:** 1.0 pre-release **TODO** create Git tag for release and link here
 
 Detailed Summary
 ----------------
+
+**TODO** -- @marcinz can you fill this in?
 
 _Include the purpose of the research and an explanation of what it does from a high level._
 
@@ -66,7 +68,7 @@ CHGL can be compiled by first installing Chapel (see https://chapel-lang.org/doc
 
 With Chapel installed, you can compile the CHGL module as follows:
 
-**TODO**
+**TODO** @tjstavenger-pnnl add compile instructions that create module but not run tests
 
 See the ``.gitlab-ci.yml`` file for an example of our continuous integration build.
 
@@ -75,11 +77,11 @@ Test Cases
 
 CHGL includes both unit & performance tests utilizing the ``start_test`` Python script supplied by Chapel. Change directories into ``test/unit`` or ``test/performance`` and execute ``start_test`` to run the tests. View the [unit test README](test/unit/README.md) or [perfomrance test README](test/performance/README.md) for more information.
 
-_Note that the build on GitlabCI currently fails as we wait on Chapel 1.18 to be released as it uses the Chapel Docker images to build._
+_Note that the build on GitlabCI currently fails as we wait on Chapel 1.18 to be released. The GitlabCI build uses the Chapel Docker images to build, but a 1.18 version is unavailable._
 
 User Guide
 ==========
 
-**TODO** -- @Marcin, should we include a link to the paper (if one exists?). Otherwise we may be able to leave this section out.
+**TODO** -- @marcinz, should we include a link to the paper (if one exists?). Otherwise we may be able to leave this section out.
 
 _This section is largely up to the project to determine its contents. Include information on how to run & configure the system, common usage, special configurations, etc. This section should demonstrate to the sponsor how to generally use the software to perform the desired analysis. Consider including troubleshooting guides for known, common problems._
