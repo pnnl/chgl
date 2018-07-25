@@ -126,69 +126,25 @@ module Generation {
     return graph;
   }
   
-  proc generateErdosRenyiSMP(graph, probability) {
-    var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
-    // Perform work evenly across all tasks
-    coforall tid in 0..#here.maxTaskPar {
-      var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
-      // Each thread gets its own random stream to avoid acquiring sync var
-      var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-      var randStream = new RandomStream(int, _randStream.getNext());
-      for 1..perTaskInclusions {
-        var vertex = randStream.getNext(0, graph.numVertices - 1);
-        var edge = randStream.getNext(0, graph.numEdges - 1);
-        graph.addInclusion(vertex, edge);
-      }
-    }
-
-    return graph;
-  }
-
   proc generateErdosRenyi(graph, probability, verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, couponCollector = true, targetLocales = Locales){
     const numVertices = verticesDomain.size;
     const numEdges = edgesDomain.size;
+    const vertLow = verticesDomain.low;
+    const edgeLow = edgesDomain.low;
     var inclusionsToAdd = (numVertices * numEdges * probability) : int;
-    // Perform work evenly across all locales
-    coforall loc in targetLocales with (in graph) do on loc {
-      const localVerticesDomain = verticesDomain;
-      const localEdgesDomain = edgesDomain;
-      var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-      sync coforall tid in 0..#here.maxTaskPar {
-        // Perform work evenly across all tasks
-        var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
-        // Each thread gets its own random stream to avoid acquiring sync var
-        var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-        var randStream = new RandomStream(int, _randStream.getNext());
-        for 1..perTaskInclusions {
-          var vertex = randStream.getNext(localVerticesDomain.low, localVerticesDomain.high);
-          var edge = randStream.getNext(localEdgesDomain.low, localEdgesDomain.high);
-          graph.addInclusionBuffered(vertex, edge);
-        }
-      }
+    var space = {1..inclusionsToAdd};
+    var dom = space dmapped Block(boundingBox=space, targetLocales=targetLocales);
+    var verticesRNG : [dom] real;
+    var edgesRNG : [dom] real;
+    fillRandom(verticesRNG);
+    fillRandom(edgesRNG);
+
+    forall (v, e) in zip(verticesRNG, edgesRNG) with (in graph) {
+      var vertex = (v * numVertices) : int;
+      var edge = (e * numEdges) : int;
+      graph.addInclusionBuffered(vertLow + vertex, edgeLow + edge);
     }
     graph.flushBuffers();
-    
-    return graph;
-  }
-
-  proc generateErdosRenyiUnbuffered(graph, probability, targetLocales = Locales){
-    var inclusionsToAdd = (graph.numVertices * graph.numEdges * probability) : int;
-    // Perform work evenly across all locales
-    coforall loc in targetLocales with (in graph) do on loc {
-      var perLocaleInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-      coforall tid in 0..#here.maxTaskPar {
-        // Perform work evenly across all tasks
-        var perTaskInclusions = perLocaleInclusions / here.maxTaskPar + (if tid == 0 then perLocaleInclusions % here.maxTaskPar else 0);
-        // Each thread gets its own random stream to avoid acquiring sync var
-        var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-        var randStream = new RandomStream(int, _randStream.getNext());
-        for 1..perTaskInclusions {
-          var vertex = randStream.getNext(0, graph.numVertices - 1);
-          var edge = randStream.getNext(0, graph.numEdges - 1);
-          graph.addInclusion(vertex, edge);
-        }
-      }
-    }
     
     return graph;
   }
@@ -273,35 +229,20 @@ module Generation {
     var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq):real);
     var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq):real);
 
-    if numLocales == 1 {
-      // Perform work evenly across all locales
-      coforall tid in 0..#here.maxTaskPar {
+    // Perform work evenly across all locales
+    coforall loc in Locales with (in graph) do on loc {
+      const vpt = vertexProbabilityTable;
+      const ept = edgeProbabilityTable;
+      const perLocInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
+      sync coforall tid in 0..#here.maxTaskPar with (in graph) {
         // Perform work evenly across all tasks
-        var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
+        var perTaskInclusions = perLocInclusions / here.maxTaskPar + (if tid == 0 then perLocInclusions % here.maxTaskPar else 0);
         var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
         var randStream = new RandomStream(real, _randStream.getNext());
         for 1..perTaskInclusions {
-          var vertex = getRandomElement(verticesDomain, vertexProbabilityTable, randStream.getNext());
-          var edge = getRandomElement(edgesDomain, edgeProbabilityTable, randStream.getNext());
-          graph.addInclusion(vertex, edge);
-        }
-      }
-    } else {
-      // Perform work evenly across all locales
-      coforall loc in Locales with (in graph) do on loc {
-        const vpt = vertexProbabilityTable;
-        const ept = edgeProbabilityTable;
-        const perLocInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-        sync coforall tid in 0..#here.maxTaskPar with (in graph) {
-          // Perform work evenly across all tasks
-          var perTaskInclusions = perLocInclusions / here.maxTaskPar + (if tid == 0 then perLocInclusions % here.maxTaskPar else 0);
-          var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-          var randStream = new RandomStream(real, _randStream.getNext());
-          for 1..perTaskInclusions {
-            var vertex = getRandomElement(verticesDomain, vpt, randStream.getNext());
-            var edge = getRandomElement(edgesDomain, ept, randStream.getNext());
-            graph.addInclusionBuffered(vertex, edge);
-          }
+          var vertex = getRandomElement(verticesDomain, vpt, randStream.getNext());
+          var edge = getRandomElement(edgesDomain, ept, randStream.getNext());
+          graph.addInclusionBuffered(vertex, edge);
         }
       }
       graph.flushBuffers();

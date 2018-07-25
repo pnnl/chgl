@@ -38,3 +38,4 @@ timer.start();
 var graph = generateBTER(vertexDegrees, edgeDegrees, vertexMetamorphs, edgeMetamorphs);
 timer.stop();
 writeln("Time: ", timer.elapsed());
+writeln(+ reduce graph.getVertexButterflies() / 2);
