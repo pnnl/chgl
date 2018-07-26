@@ -132,7 +132,7 @@ module Generation {
     const vertLow = verticesDomain.low;
     const edgeLow = edgesDomain.low;
     var newP = if couponCollector then log(1/(1-probability)) else probability;
-    var inclusionsToAdd = (numVertices * numEdges * newP) : int;
+    var inclusionsToAdd = round(numVertices * numEdges * newP) : int;
     var space = {1..inclusionsToAdd};
     var dom = space dmapped Block(boundingBox=space, targetLocales=targetLocales);
     var verticesRNG : [dom] real;
@@ -141,8 +141,8 @@ module Generation {
     fillRandom(edgesRNG);
 
     sync forall (v, e) in zip(verticesRNG, edgesRNG) with (in graph) {
-      var vertex = (v * (numVertices - 1)) : int;
-      var edge = (e * (numEdges - 1)) : int;
+      var vertex = round(v * (numVertices - 1)) : int;
+      var edge = round(e * (numEdges - 1)) : int;
       graph.addInclusionBuffered(vertLow + vertex, edgeLow + edge);
     }
     graph.flushBuffers();
