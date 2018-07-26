@@ -17,11 +17,28 @@ module Butterfly {
 
     return res;
   }
+    
+    /* Checks if the given vertex and edge are neighbors
+    
+    :arg v: ID of vertex to check
+    :type v: int(64)
 
+    :arg e: ID of edge to check
+    :type e: int(64)
+
+    :returns: True if the vertex and edge are neighbors or false if vertex and edge are not neighbors
+    :rtype: boolean
+    */
   proc AdjListHyperGraphImpl.vertexHasNeighbor(v, e){
     return getVertex(toVertex(v)).hasNeighbor(toEdge(e));
   }
-
+  
+    */ Counts the number of 4-cycles for each vertex and stores that number as an int(64) in an array under the ID of that vertex
+    
+    :returns: An array of range 0..N where N is the highest vertex ID int the AdjListHyperGraph object
+    :rtype: [] int(64)
+  
+    */
   proc AdjListHyperGraphImpl.getVertexButterflies() {
     var butterfliesDom = verticesDomain;
     var butterflies : [butterfliesDom] atomic int(64);
@@ -50,15 +67,34 @@ module Butterfly {
     return stripAtomic(butterflies);
   }
 
+  /* Yields all vertices that share a neighboring edge with this vertex
+  
+  :arg v: ID of the target vertex
+  :type v: int(64)
+  
+  :yields: All vertices that share at least one neighboring edge with this vertex
+  :ytype: [] int(64)
+  */
   iter AdjListHyperGraphImpl.getAdjacentVertices(v) {
     for e in getVertex(v).neighborList do for w in getEdge(e).neighborList do yield w;
   }
-
+  //todo figure out how to do tag
   iter AdjListHyperGraphImpl.getAdjacentVertices(v, param tag) where tag == iterKind.standalone {   
     forall e in getVertex(v).neighborList do forall w in getEdge(e).neighborList do yield w; 
   }
   
   // Inefficient!
+  /* Checks if two vertices share a common neighboring edge
+  
+  :arg v: first vertex to compare neighborlists
+  :type v: int(64)
+  
+  :arg w: second vertex to compare neighborlists
+  :type w: int(64)
+  
+  :returns: boolean value indicating the truth of the two input vertices sharing an edge neighbor
+  :rtype: boolean
+  */
   proc AdjListHyperGraphImpl.areAdjacentVertices(v, w) {
     for e in getVertex(v).neighborList {
       for ee in getVertex(w).neighborList {
@@ -68,6 +104,17 @@ module Butterfly {
     return false;
   }
 
+  /* Calculates the number of 4-cycles that contain the inclusion defined by the given vertex and edge
+  
+  :arg v: the vertex contained in the inclusion to be tested
+  :type v: vDescType
+  
+  :arg e: the edge contained in the inclusion to be tested
+  :type e: eDescType
+  
+  :returns: the number of 4 cylces containing the given inclusion
+  :rtype: int(64)
+  */
   proc AdjListHyperGraphImpl.getInclusionNumButterflies(v, e){
     var twoHopNeighbors : [verticesDomain] atomic int(64); //this is C[x] in the paper
     
@@ -87,10 +134,32 @@ module Butterfly {
     return numButterflies;
   }
 
+  /* Calculates the number of 3 cycles that contains the inclusion defined by the given vertex and edge
+  
+  :arg v: the vertex contained within the inclusion to be tested
+  :type v: vDescType
+  
+  :arg e: the edge contained within the inclusion to be tested
+  :type e: eDescType
+  
+  :returns: the number of 3 cycles containing the given inclusion
+  :rtype: int(64)
+  */
   proc AdjListHyperGraphImpl.getInclusionNumCaterpillars(v, e) {
     return (numNeighbors(v) - 1) * (numNeighbors(e) - 1);
   }
 
+  /* Calculates the metamorphosis coefficient of the inclusion defined by the given vertex and edge
+  
+  :arg v: the vertex contained within the inclusion to be tested
+  :type v: vDescType
+  
+  :arg e: the edge contained within the inclusion to be tested
+  :type e: eDescType
+  
+  :returns: the metamorphosis coefficient of the tested inclusion
+  :rtype: real(64)
+  */
   proc AdjListHyperGraphImpl.getInclusionMetamorphCoef(v, e) {
     const numCaterpillars : real = getInclusionNumCaterpillars(v, e);
     if numCaterpillars != 0 {
@@ -99,6 +168,11 @@ module Butterfly {
     } else return 0;
   }
 
+  /* Calcuates the metamorphosis coefficient for every vertex in the AdjListHyperGraph object
+  
+  :returns: an array of metamorphosis coefficients where the index of each value is the ID of the associated vertex
+  :rtype: [] real(64)
+  */
   proc AdjListHyperGraphImpl.getVertexMetamorphCoefs(){
     var vertexMetamorphCoefs : [verticesDomain] real;
     // TODO: Need leader-follower iterators to make this forall
@@ -114,6 +188,11 @@ module Butterfly {
     return vertexMetamorphCoefs;
   }
 
+  /* Calcuates the metamorphosis coefficient for every edge in the AdjListHyperGraph object
+  
+  :returns: an array of metamorphosis coefficients where the index of each value is the ID of the associated edge
+  :rtype: [] real(64)
+  */
   proc AdjListHyperGraphImpl.getEdgeMetamorphCoefs(){
     var edgeMetamorphCoefs : [edgesDomain] real;
     // TODO: Need leader-follower iterators to make this forall
@@ -128,8 +207,7 @@ module Butterfly {
     return edgeMetamorphCoefs;
   }
 
-  // N.B: May want to make a lot of these into a single larger procedure with many
-  // inner procedures so we can avoid having to pass '' to everything...
+  // TODO FIGURE OUT HOW TO DO THESE
   iter AdjListHyperGraphImpl.verticesWithDegree(value : int(64)){
     for v in getVertices() do if numNeighbors(v) == value then yield v;
   }
@@ -146,6 +224,11 @@ module Butterfly {
     forall e in getEdges() do if numNeighbors(e) == value then yield e;
   }
 
+  /* Calcuates the per degree metamorphosis coefficient for the vertices in the AdjListHyperGraph object
+  
+  :returns: a list of range 1..n where n is the value of the highest existing degree of all vertices in the AdjListHyperGraph object
+  :rtype: [] int(64)
+  */
   proc AdjListHyperGraphImpl.getVertexPerDegreeMetamorphosisCoefficients() {
     var vertexDegrees = getVertexDegrees();
     var maxDegree = max reduce vertexDegrees;
@@ -165,6 +248,11 @@ module Butterfly {
     return perDegreeMetamorphCoefs;
   }
 
+  /* Calcuates the per degree metamorphosis coefficient for the edges in the AdjListHyperGraph object
+  
+  :returns: a list of range 1..n where n is the value of the highest existing degree of all edges in the AdjListHyperGraph object
+  :rtype: [] int(64)
+  */
   proc AdjListHyperGraphImpl.getEdgePerDegreeMetamorphosisCoefficients(){
     var edgeDegrees = getEdgeDegrees();
     var maxDegree = max reduce edgeDegrees;
@@ -182,8 +270,12 @@ module Butterfly {
     }
     return perDegreeMetamorphCoefs;
   }
-
-
+  
+  */ Counts the number of 4-cycles for each edge and stores that number as an int(64) in an array under the ID of that edge
+  
+  :returns: An array of range 0..N where N is the highest edge ID int the AdjListHyperGraph object
+  :rtype: [] int(64)
+  */
   proc AdjListHyperGraphImpl.getEdgeButterflies() {
     var butterflies : [edgesDomain] atomic int(64);
     
@@ -211,6 +303,11 @@ module Butterfly {
     return stripAtomics(butterflies);
   }
 
+  /* Calcuates the number of 3-cycles that include each vertex
+  
+  :returns: An array of range 0..n where n is the highest ID of all vertices in the AdjListHyperGraph object
+  :rtype: [] int(64)
+  */
   proc AdjListHyperGraphImpl.getVertexCaterpillars() {
     var caterpillarsDomain = verticesDomain;
     var caterpillars : [caterpillarsDomain] int(64);
@@ -240,6 +337,11 @@ module Butterfly {
     return  caterpillars;
   }
 
+  /* Calcuates the number of 3-cycles that include each edge
+  
+  :returns: An array of range 0..n where n is the highest ID of all edges in the AdjListHyperGraph object
+  :rtype: [] int(64)
+  */
   proc AdjListHyperGraphImpl.getEdgeCaterpillars() {
     var caterpillars : [edgesDomain] int(64);
     
