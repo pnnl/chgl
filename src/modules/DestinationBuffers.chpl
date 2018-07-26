@@ -8,34 +8,26 @@ use Random;
   2. Need to expand buffer size based on how often it is filled...
 */
 
-config param AggregationMaxBuffers = -1;
-config param AggregationBufferSize = 1024 * 1024;
+config param AggregatorMaxBuffers = -1;
+config param AggregatorBufferSize = 1024 * 1024;
+config param AggregatorDebug = false;
 
-/*
-  Example of an aggregation handler. Aggregation handler must
-  implement two methods: "this(buf, loc)" and "clone(loc)". 'this'
-  will be invoked ot handle coalescing and processing of the
-  buffer, and 'clone' is used to duplicate the handler across
-  all nodes in case it has state that must be allocated, which
-  always be called on another locale (hence the user may want
-  to wrap portions of code in `on this` clause)
-*/
-record DummyAggregationHandler {
-  proc this(buf : Buffer(?dataType), loc : locale) {
-    halt("DummyAggregationHandler called...");
-  }
-
-  proc clone() : this.type {
-    halt("DummyAggregationHandler called...");
-  }
+proc debug(args...?nArgs) where AggregatorDebug {
+  writeln(args);
 }
 
-record AggregationBuffer {
+proc debug(args...?nArgs) where !AggregatorDebug {
+  // NOP
+}
+
+
+record Aggregator {
   var instance;
   var pid = -1;
 
-  proc init(type msgType, aggregationHandler = new DummyAggregationHandler()) {
-    this.instance = nil : AggregationBufferImpl(msgType, aggregationHandler.type);
+  proc init(type msgType) {
+    this.instance = new AggregatorImpl(msgType);
+    this.pid = this.instance.pid;
   }
 
   proc init(other) {
@@ -43,15 +35,8 @@ record AggregationBuffer {
     this.pid = other.pid;
   }
 
-  proc create(aggregationHandler = new DummyAggregationHandler()) {
-    if pid != -1 then halt("Attempt to create AggregationBuffer when already initialized...");
-    type instanceType = instance.type;
-    this.instance = new instanceType(instanceType.msgType, aggregationHandler);
-    this.pid = this.instance.pid;
-  }
-
   proc destroy() {
-    if pid == -1 || instance == nil then halt("Attempt to destroy AggregationBuffer not initialized...");
+    if pid == -1 || instance == nil then halt("Attempt to destroy Aggregator not initialized...");
     coforall loc in Locales do on loc {
       delete chpl_getPrivatizedCopy(instance.type, pid);
     }
@@ -60,7 +45,7 @@ record AggregationBuffer {
 
   proc _value {
     if pid == -1 {
-      halt("AggregationBuffer: Not initialized...");
+      halt("Aggregator: Not initialized...");
     }
 
     return chpl_getPrivatizedCopy(instance.type, pid);
@@ -85,7 +70,7 @@ class BufferPool {
   const maxAllocatedBuffers : int;
 
   // Will allow enough for a single buffer per destination locale.
-  proc init(type msgType, maxBufferSize = AggregationMaxBuffers) {
+  proc init(type msgType, maxBufferSize = AggregatorMaxBuffers) {
     this.msgType = msgType;
     this.maxAllocatedBuffers = if maxBufferSize >= 0 then max(numLocales * 2, maxBufferSize) else -1;
   }
@@ -102,12 +87,14 @@ class BufferPool {
     return maxAllocatedBuffers == -1 || numAllocatedBuffers.peek() < maxAllocatedBuffers;
   }
 
-  proc getBuffer(desiredSize : int(64) = -1) : Buffer(msgType) {
+  proc getBuffer() : Buffer(msgType) {
     var buf : Buffer(msgType);
      
     while buf == nil {
       // Yield while we wait for a free buffer...
       while numFreeBuffers.peek() == 0 && !canAllocateBuffer() {
+        debug(here, ": waiting on free buffer..., numAllocatedBuffers(", 
+            numAllocatedBuffers.peek(), ") / maxAllocatedBuffers(", maxAllocatedBuffers, ")");
         chpl_task_yield();
       }
 
@@ -134,6 +121,7 @@ class BufferPool {
   }
   
   proc recycleBuffer(buf : Buffer(msgType)) {
+    assert(buf._stolen.peek() == false, "Buffer is considered stolen when attempting to recycle...", buf);
     lock$ = true;
     numFreeBuffers.add(1, memory_order_relaxed);
     buf._nextFreeBuffer = freeBufferList;
@@ -193,7 +181,7 @@ class Buffer {
   pragma "no doc"
   proc init(type msgType) {
     this.msgType = msgType;
-    this._bufDom = {0..#AggregationBufferSize};
+    this._bufDom = {0..#AggregatorBufferSize};
   }
   
   pragma "no doc"
@@ -350,7 +338,7 @@ class Buffer {
   inline proc getArray() return _buf[0..#_filled.peek()];
 }
 
-class AggregationBufferImpl {
+class AggregatorImpl {
   type msgType;
   pragma "no doc"
   var destinationBuffers : [LocaleSpace] Buffer(msgType);
@@ -358,12 +346,10 @@ class AggregationBufferImpl {
   var bufferPool: BufferPool(msgType);
   pragma "no doc"
   var pid = -1;
-  pragma "no doc"
-  var aggregationHandler;
 
-  proc init(type msgType, aggregationHandler = new DummyAggregationHandler()) {
+  proc init(type msgType) {
     this.msgType = msgType;
-    this.aggregationHandler = aggregationHandler;
+    
     complete();
     
     this.pid = _newPrivatizedClass(this);
@@ -373,8 +359,6 @@ class AggregationBufferImpl {
   
   proc init(other, pid : int) {
     this.msgType = other.msgType;
-    if other.hasAggregationHandler() then this.aggregationHandler = other.aggregationHandler.clone();
-    else this.aggregationHandler = new DummyAggregationHandler();
     
     complete();
     
@@ -387,7 +371,7 @@ class AggregationBufferImpl {
   }
   
   proc dsiPrivatize(pid) {
-    return new AggregationBufferImpl(this, pid);
+    return new AggregatorImpl(this, pid);
   }
 
   proc dsiGetPrivatizeData() {
@@ -398,14 +382,6 @@ class AggregationBufferImpl {
     return chpl_getPrivatizedCopy(this.type, pid);
   }
 
-  inline proc hasAggregationHandler() where aggregationHandler.type != DummyAggregationHandler {
-    return true;
-  }
-
-  inline proc hasAggregationHandler() where aggregationHandler.type == DummyAggregationHandler {
-    return false;
-  }
-  
   proc aggregate(msg : msgType, loc : locale) : Buffer(msgType) {
     return aggregate(msg, loc.id);
   }
@@ -439,27 +415,23 @@ class AggregationBufferImpl {
           return nil;
         }
         when BufferStatus.Failure {
+          debug("Waiting on buffer ", buf, "  for locale ", here.id, " to locale ", locid);
           chpl_task_yield();
         }
         when BufferStatus.FailureSwap {
           halt("FailureSwap not implemented...");
         }
         when BufferStatus.SuccessSwap {
-          destinationBuffers[locid] = bufferPool.getBuffer();
-          if hasAggregationHandler() {
-            aggregationHandler(buf, Locales[locid]);
-          } else return buf;
+          debug("Swapping buffer for locale ", here.id, " to locale ", locid);
+          var newBuf = bufferPool.getBuffer();
+          assert(newBuf._stolen.peek() == false, "New buffer still set as stolen...", newBuf);
+          destinationBuffers[locid] = newBuf;
+          debug("Finished swapping buffer for locale", here.id, " to locale ", locid);
+          return buf;
         }
       }
     }
     halt("Somehow broke out of while loop...");
-  }
-
-  proc flush(targetLocales = Locales) {
-    assert(hasAggregationBuffer(), "Attempt to invoke 'flush' without handler set; please use 'flushGlobal' and 'flushLocal' parallel iterators...");
-    sync forall (buf, loc) in flushGlobal(targetLocales) {
-      aggregationHandler(buf, loc);
-    }
   }
   
   iter flushGlobal(targetLocales = Locales) : (Buffer(msgType), locale) {
@@ -486,7 +458,10 @@ class AggregationBufferImpl {
         destinationBuffers[loc.id] = bufferPool.getBuffer();
         buf.waitFilled(numFlush);
         yield (buf, loc);
-        bufferPool.recycleBuffer(buf);
+        buf.done();
+      } else {
+        // Clear the 'stolen' status
+        buf.reset();
       }
     }
   }
@@ -549,7 +524,7 @@ proc main() {
   var rloc : [rindex.domain] locale;
   forall (r, loc) in zip(rindex, rloc) do loc = r.locale;
   // TODO: File bug where not invoking 'new' but declaring as type results in type being 'nil'...
-  var aggregator = new AggregationBuffer(int);
+  var aggregator = new Aggregator(int);
   aggregator.create();
   t.start();
   sync forall (r, loc) in zip(rindex, rloc) with (in aggregator) {

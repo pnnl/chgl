@@ -430,7 +430,7 @@ module AdjListHyperGraph {
 
     var _vertices : [_verticesDomain] NodeData(eDescType);
     var _edges : [_edgesDomain] NodeData(vDescType);
-    var _destBuffer = new AggregationBuffer((vIndexType, eIndexType, InclusionType));
+    var _destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
     var _privatizedVerticesPID = _vertices.pid;
@@ -450,7 +450,6 @@ module AdjListHyperGraph {
       forall v in _vertices do v = new NodeData(eDescType);
       forall e in _edges do e = new NodeData(vDescType);
 
-      this._destBuffer.create();
       this.pid = _newPrivatizedClass(this);
     }
   
@@ -466,8 +465,6 @@ module AdjListHyperGraph {
       
       forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new NodeData(theirV);
       forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new NodeData(theirE);     
-      
-      this._destBuffer.create();
       this.pid = _newPrivatizedClass(this);
     }
 
@@ -622,7 +619,7 @@ module AdjListHyperGraph {
         var buf = buffer.getArray();
         buffer.done();
         var localThis = getPrivatizedInstance();
-        forall (srcId, destId, srcType) in buf {
+        local do forall (srcId, destId, srcType) in buf {
           select srcType {
             when InclusionType.Vertex {
               if !localThis.verticesDomain.member(srcId) {

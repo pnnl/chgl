@@ -140,9 +140,9 @@ module Generation {
     fillRandom(verticesRNG);
     fillRandom(edgesRNG);
 
-    forall (v, e) in zip(verticesRNG, edgesRNG) with (in graph) {
-      var vertex = (v * numVertices) : int;
-      var edge = (e * numEdges) : int;
+    sync forall (v, e) in zip(verticesRNG, edgesRNG) with (in graph) {
+      var vertex = (v * (numVertices - 1)) : int;
+      var edge = (e * (numEdges - 1)) : int;
       graph.addInclusionBuffered(vertLow + vertex, edgeLow + edge);
     }
     graph.flushBuffers();
@@ -229,6 +229,9 @@ module Generation {
     // This is used as a table to sample vertex and hyperedges from random number
     var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq):real);
     var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq):real);
+
+    writeln(max reduce vertexProbabilityTable);
+    writeln(max reduce edgeProbabilityTable);
 
     // Perform work evenly across all locales
     coforall loc in Locales with (in graph) do on loc {
@@ -330,9 +333,11 @@ module Generation {
       // This avoids processing a most likely "wrong" value of rho as
       // mentioned by Sinan.
       if (((idV + nV_int) <= numV) && ((idE + nE_int) <= numE)) {
-        var verticesDomain = graph.verticesDomain[idV..#nV_int];
-        var edgesDomain = graph.edgesDomain[idE..#nE_int];
-        expectedDuplicates += (round(nV_int * nE_int * log(1/(1-rho))) - round(nV_int * nE_int * rho)) : int;
+        const ref fullVerticesDomain = graph.verticesDomain;
+        const verticesDomain = fullVerticesDomain[idV..#nV_int];
+        const ref fullEdgesDomain = graph.edgesDomain;
+        const edgesDomain = fullEdgesDomain[idE..#nE_int];
+        expectedDuplicates += round((nV_int * nE_int * log(1/(1-rho))) - (nV_int * nE_int * rho)) : int;
         generateErdosRenyi(graph, rho, verticesDomain, edgesDomain, couponCollector = true);
         idV += nV_int;
         idE += nE_int;
