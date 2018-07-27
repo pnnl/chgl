@@ -10,14 +10,14 @@ stages:
   - doc
 
 test:
-  image: chapel/chapel:1.17.1
+  image: pnnl/chapel:master
   stage: test
   script:
   - cd test/unit
   - start_test -junit-xml -numlocales 4
 
 chpldoc:
-  image: chapel/chapel:1.17.1
+  image: pnnl/chapel:master
   stage: doc
   script: chpldoc src/*.chpl src/*/*.chpl
   when: always
