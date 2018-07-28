@@ -458,7 +458,6 @@ class AggregatorImpl {
         destinationBuffers[loc.id] = bufferPool.getBuffer();
         buf.waitFilled(numFlush);
         yield (buf, loc);
-        buf.done();
       } else {
         // Clear the 'stolen' status
         buf.reset();
