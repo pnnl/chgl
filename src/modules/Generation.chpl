@@ -230,9 +230,6 @@ module Generation {
     var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq):real);
     var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq):real);
 
-    writeln(max reduce vertexProbabilityTable);
-    writeln(max reduce edgeProbabilityTable);
-
     // Perform work evenly across all locales
     coforall loc in Locales with (in graph) do on loc {
       const vpt = vertexProbabilityTable;
@@ -345,7 +342,8 @@ module Generation {
         break;
       }
     }
-    writeln("Duplicates: ", graph.removeDuplicates(), " and expect: ", expectedDuplicates); 
+    graph.removeDuplicates();
+    
     forall (v, vDeg) in graph.forEachVertexDegree() {
       var oldDeg = vd[v.id];
       vd[v.id] = max(0, oldDeg - vDeg);
