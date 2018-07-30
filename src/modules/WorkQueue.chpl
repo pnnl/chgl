@@ -1,4 +1,4 @@
-use DestinationBuffers;
+use AggregationBuffer;
 
 record WorkQueue {
   var instance;
@@ -36,7 +36,7 @@ class WorkQueueImpl {
   var lock$ : atomic bool;
   var head : WorkQueueNode(workType);
   var tail : WorkQueueNode(workType);
-  var destBuffer = new AggregationBuffer(workType);
+  var destBuffer = new Aggregator(workType);
   
   proc init(type workType) {
     this.workType = workType;

@@ -18,7 +18,7 @@ module AdjListHyperGraph {
   use List;
   use Sort;
   use Search;
-  use DestinationBuffers;
+  use AggregationBuffer;
 
   /*
     Record-wrapper for the AdjListHyperGraphImpl. The record-wrapper follows from the optimization

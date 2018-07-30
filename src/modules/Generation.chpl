@@ -4,7 +4,6 @@ module Generation {
   use Random;
   use CyclicDist;
   use AdjListHyperGraph;
-  use DestinationBuffers;
   use BlockDist;
   use Math;
   use Sort;
