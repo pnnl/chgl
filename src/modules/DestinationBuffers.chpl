@@ -3,8 +3,7 @@ use Random;
 
 /*
   TODO List:
-  1. Need to add a way to await all buffers being flushed... maybe have each bufferPool keep
-     maintain a list of all buffers it has created, as well as a list of buffers that are free.
+  1. Need to add a way to await all buffers being flushed... maybe have each bufferPool keep maintain a list of all buffers it has created, as well as a list of buffers that are free.
   2. Need to expand buffer size based on how often it is filled...
 */
 
@@ -391,16 +390,16 @@ class AggregatorImpl {
     Buffers are created on-the-fly by the buffer pool, so depending on the implementation,
     the 'down-time' is kept to an absolute minimum. If the task calling this function is the
     last to fill the buffer, they are chosen to handle emptying the buffer. Example usage
-    would be...
+    would be::
     
-    var buf = aggregator.aggregate(msg, loc);
-    if buf != nil {
-      begin {
-        var ret = coalesce(buf);
-        buf.done();
-        on loc do process(ret);
+      var buf = aggregator.aggregate(msg, loc);
+      if buf != nil {
+        begin {
+          var ret = coalesce(buf);
+          buf.done();
+          on loc do process(ret);
+        }
       }
-    }
     
     The above will aggregate the 'msg' for the target locale, and if it is full, it will
     asynchronously handle both coalescing the buffer locally and processing the coalesced
