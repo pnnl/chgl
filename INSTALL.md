@@ -70,6 +70,8 @@ In the future, CHGL will be compiled and packaged into a Mason library. For the 
 
 Also see the ``.gitlab-ci.yml`` file for an example of our continuous integration build.
 
+**NOTE:** The COMPOPTS files in ``test/unit`` and ``test/performance`` make use of ``--no-lifetime-checking --no-warnings`` for successful compilation. If you are compiling independent code that uses CHGL, be sure to use these options as well.
+
 Test Cases
 ----------
 
