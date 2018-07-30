@@ -66,18 +66,14 @@ Installation Instructions
 
 CHGL can be compiled by first installing Chapel (see https://chapel-lang.org/docs/usingchapel/QUICKSTART.html) or using a Chapel Docker image (see https://hub.docker.com/r/chapel/chapel/). Note however that CHGL uses features found in the Chapel 1.18 pre-release and these features are currently unavailable in Docker images. Once a 1.18 release is made, Docker images can be used.
 
-With Chapel installed, you can compile the CHGL module as follows:
+In the future, CHGL will be compiled and packaged into a Mason library. For the time being, CHGL is used directly (see unit tests for examples). The code is compiled and tested simultaneously -- see the Test Cases section below for running the unit tests.
 
-**TODO** @tjstavenger-pnnl add compile instructions that create module but not run tests
-
-See the ``.gitlab-ci.yml`` file for an example of our continuous integration build.
+Also see the ``.gitlab-ci.yml`` file for an example of our continuous integration build.
 
 Test Cases
 ----------
 
 CHGL includes both unit & performance tests utilizing the ``start_test`` Python script supplied by Chapel. Change directories into ``test/unit`` or ``test/performance`` and execute ``start_test`` to run the tests. View the [unit test README](test/unit/README.md) or [perfomrance test README](test/performance/README.md) for more information.
-
-_Note that the build on GitlabCI currently fails as we wait on Chapel 1.18 to be released. The GitlabCI build uses the Chapel Docker images to build, but a 1.18 version is unavailable._
 
 User Guide
 ==========
