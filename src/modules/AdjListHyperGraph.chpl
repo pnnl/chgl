@@ -86,6 +86,14 @@ module AdjListHyperGraph {
       instance = new AdjListHyperGraphImpl(other);
       pid = instance.pid;
     }
+    
+    proc destroy() {
+      if pid == -1 then halt("Attempt to destroy 'AdjListHyperGraph' which is not initialized...");
+      coforall loc in Locales do on loc {
+        delete chpl_getPrivatizedCopy(instance.type, pid);
+      }
+      pid = -1;
+    }
 
     forwarding _value;
   }
@@ -331,10 +339,6 @@ module AdjListHyperGraph {
         	<~> neighborListDom
         	<~> new ioLiteral(", neighborlist = ")
         	<~> neighborList
-        	<~> new ioLiteral(", lock$ = ")
-        	<~> lock.read()
-        	<~> new ioLiteral("(isFull: ")
-        	<~> lock.read()
         	<~> new ioLiteral(") }");
       }
     }
@@ -499,6 +503,16 @@ module AdjListHyperGraph {
       }
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
+    }
+    
+    pragma "no doc"
+    proc deinit() {
+      // Only delete data from master locale
+      if this._masterHandle == nil {
+        _destBuffer.destroy();
+        delete _vertices;
+        delete _edges;
+      }
     }
 
     pragma "no doc"
