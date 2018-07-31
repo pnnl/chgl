@@ -1,7 +1,9 @@
 Time:
-Inclusions:
+Probability:
 Nodes:
-NumEdges:
 NumVertices:
+NumEdges:
+Memory Used: 0
 ProbabilityMultiple:
-Naive:
+Contention:
+maxTaskPar:

@@ -1,7 +1,7 @@
-perfkeys: Time:, Inclusions:, Nodes:, NumVertices:, NumEdges:, ProbabilityMultiple:, Naive:
+perfkeys: Time:, Inclusions:, Nodes:, NumVertices:, NumEdges:, ProbabilityMultiple:
 graphkeys: Performance
-files: ChungLu.dat
-graphtitle: Performance of ChungLu
+files: ErdosRenyi.dat
+graphtitle: Performance of ErdosRenyi
 ylabel: Time (seconds)
 xlabel: Nodes
-graphname: ChungLu Performance
+graphname: ErdosRenyi Performance
