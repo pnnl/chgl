@@ -1,13 +1,15 @@
-
 use AdjListHyperGraph;
 use CommDiagnostics;
+use VisualDebug;
 use Generation;
 use Time;
 
 /* Performance Test for ChungLu algorithm */
-config const isBuffered = true;
 config const dataset = "Very Small";
 config const dataDirectory = "../../data/LiveJournal/";
+config const doCommDiagnostics = false;
+config const doVerboseComm = false;
+config const doVisualDebug = false;
 var vertexDegreeDistributionFile = "";
 var edgeDegreeDistributionFile = "";
 var numVertices = 0;
@@ -53,9 +55,7 @@ select dataset {
   otherwise do halt("Need a size: 'Very Small, Small, Medium, Large, Very Large'");
 }
 
-config const profileCommunications = false;
-config const profileVerboseCommunications = false;
-
+// TODO: Make not naive... Will crash when reading large dataset
 // Read in ChungLu degree distributions...
 var vDegF = open(dataDirectory + vertexDegreeDistributionFile, iomode.r).reader();
 var eDegF = open(dataDirectory + edgeDegreeDistributionFile, iomode.r).reader();
@@ -80,55 +80,27 @@ while true {
   deg += 1;
 }
 
-/*
-var dvsSpace = {vDegSeq.domain.low..vDegSeq.domain.high};
-var dvsDom = dvsSpace dmapped Block(boundingBox = dvsSpace);
-var desSpace = {eDegSeq.domain.low..eDegSeq.domain.high};
-var desDom = desSpace dmapped Block(boundingBox = desSpace);
-var dvs : [dvsDom] int = vDegSeq;
-var des : [desDom] int = eDegSeq;
-*/
+if doCommDiagnostics then startCommDiagnostics();
+if doVerboseComm then startVerboseComm();
+if doVisualDebug then startVdebug("ChungLu-VisualDebug");
 
-if profileCommunications then startCommDiagnostics();
-if profileVerboseCommunications then startVerboseComm();
-
+if doVisualDebug then tagVdebug("Initialization");
 var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, targetLocales=Locales));
+if doVisualDebug then tagVdebug("Generation");
 var timer = new Timer();
 timer.start();
-if numLocales == 1 || isBuffered then generateChungLu(graph, vDegSeq, eDegSeq, numInclusions);
-else {
-  var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq):real);
-  var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq):real);
-  const verticesDomain = graph.verticesDomain;
-  const edgesDomain = graph.edgesDomain;
-  const inclusionsToAdd = numInclusions;
-  // Perform work evenly across all locales
-  coforall loc in Locales with (in graph) do on loc {
-    const vpt = vertexProbabilityTable;
-    const ept = edgeProbabilityTable;
-    const perLocInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-    sync coforall tid in 0..#here.maxTaskPar with (in graph) {
-      // Perform work evenly across all tasks
-      var perTaskInclusions = perLocInclusions / here.maxTaskPar + (if tid == 0 then perLocInclusions % here.maxTaskPar else 0);
-      var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-      var randStream = new RandomStream(real, _randStream.getNext());
-      for 1..perTaskInclusions {
-        var vertex = getRandomElement(verticesDomain, vpt, randStream.getNext());
-        var edge = getRandomElement(edgesDomain, ept, randStream.getNext());
-        graph.addInclusion(vertex, edge);
-      }
-    }
-  }
-}
+generateChungLu(graph, vDegSeq, eDegSeq, numInclusions);
 timer.stop();
 
+if doVisualDebug then stopVdebug();
+if doVerboseComm then stopVerboseComm();
+if doCommDiagnostics then writeln(getCommDiagnostics());
+
 writeln("Time:", timer.elapsed());
+writeln("Dataset:", dataset);
 writeln("Nodes:", numLocales);
 writeln("NumVertices: ", numVertices);
 writeln("NumEdges: ", numEdges);
-writeln("NumInclusions: ", numInclusions);
-writeln("ActualInclusions: ", graph.getInclusions());
+writeln("Inclusions: ", graph.getInclusions());
 writeln("Contention:", Debug.contentionCnt);
 writeln("maxTaskPar:", here.maxTaskPar);
-
-if profileCommunications then writeln(getCommDiagnostics());

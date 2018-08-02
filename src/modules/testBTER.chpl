@@ -39,3 +39,10 @@ var graph = generateBTER(vertexDegrees, edgeDegrees, vertexMetamorphs, edgeMetam
 timer.stop();
 writeln("Time: ", timer.elapsed());
 writeln(+ reduce graph.getVertexButterflies() / 2);
+
+for v in graph.getVertices() {
+  graph.getVertex(v).sortNeighbors();
+  for e in graph.getNeighbors(v) {
+    writeln(v.id, ", ", e.id);
+  }
+}

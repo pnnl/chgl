@@ -14,12 +14,21 @@ module Generation {
 
   //Pending: Take seed as input
   //Returns index of the desired item
-  inline proc getRandomElement(elements, probabilities,randValue){
-    for (idx, probability) in zip(0..#probabilities.size, probabilities) {
-      if probability > randValue then return elements.low + idx;
+  inline proc weightedRandomSample(items, probabilities,randValue){
+    assert(randValue >= 0 && randValue <= 1, "Random Value ", randValue, " is not between 0 and 1");
+    const low = probabilities.domain.low;
+    const high = probabilities.domain.high;
+    const size = probabilities.domain.size;
+    const stride = probabilities.domain.stride;
+    var offset = 1;
+    while low + offset * stride < high  && probabilities[low + (offset - 1) * stride] < randValue {
+      offset *= 2;
     }
-    halt("Bad probability randValue: ", randValue, ", requires one between ",
-         probabilities[probabilities.domain.low], " and ", probabilities[probabilities.domain.high]);
+    offset = min(offset, size);
+    while offset != 1 && randValue <= probabilities[low + (offset - 2) * stride] {
+      offset -= 1;
+    }
+    return items.low + (offset - 1) * items.stride;
   }
   
   proc distributedHistogram(probTable, numRandoms, targetLocales) {
@@ -199,8 +208,8 @@ module Generation {
       var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
       var randStream = new RandomStream(real, _randStream.getNext());
       for 1..perTaskInclusions {
-        var vertex = getRandomElement(verticesDomain, vertexScan, randStream.getNext());
-        var edge = getRandomElement(edgesDomain, edgeScan, randStream.getNext());
+        var vertex = weightedRandomSample(verticesDomain, vertexScan, randStream.getNext());
+        var edge = weightedRandomSample(edgesDomain, edgeScan, randStream.getNext());
         graph.addInclusion(vertex, edge);
       }
     }
@@ -240,8 +249,8 @@ module Generation {
         var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
         var randStream = new RandomStream(real, _randStream.getNext());
         for 1..perTaskInclusions {
-          var vertex = getRandomElement(verticesDomain, vpt, randStream.getNext());
-          var edge = getRandomElement(edgesDomain, ept, randStream.getNext());
+          var vertex = weightedRandomSample(verticesDomain, vpt, randStream.getNext());
+          var edge = weightedRandomSample(edgesDomain, ept, randStream.getNext());
           graph.addInclusionBuffered(vertex, edge);
         }
       }
