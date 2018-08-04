@@ -217,42 +217,159 @@ module Generation {
     return graph;
   }
   
+  // Compute Table degrees to vertices...
+  record DynamicArray {
+    var dom = {0..-1};
+    var arr : [dom] int;
+    
+    proc init() {
+
+    }
+    
+    proc init(other) {
+      this.dom = other.dom;
+      this.arr = other.arr;
+    }
+    
+    inline proc this(idx : integral) const ref { return arr[idx]; }
+  }
+  
   /*
     Generates a graph from the desired vertex and edge degree sequence.
 
     :arg graph: Mutable graph to generate.
-    :arg vDegSeq: Vertex degree sequence.
-    :arg eDegSeq: HyperEdge degree sequence.
+    :arg vDegSeq: Vertex degree sequence. Must be sorted.
+    :arg eDegSeq: HyperEdge degree sequence. Must be sorted.
     :arg inclusionsToAdd: Number of edges to create between vertices and hyperedges.
     :arg verticesDomain: Subset of vertices to generate edges between. Defaults to the entire set of vertices.
     :arg edgesDomain: Subset of hyperedges to generate edges between. Defaults to the entire set of hyperedges.
   */
   proc generateChungLu(
       graph, vDegSeq : [?vDegSeqDom] int, eDegSeq : [?eDegSeqDom] int, inclusionsToAdd : int(64),
-      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain) {
+      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, param profiling = false) {
     // Check if empty...
     if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return graph;
-  
-    // Obtain prefix sum of the normalized degree sequences
-    // This is used as a table to sample vertex and hyperedges from random number
-    var vertexProbabilityTable = + scan (vDegSeq / (+ reduce vDegSeq):real);
-    var edgeProbabilityTable = + scan (eDegSeq / (+ reduce eDegSeq):real);
+    
+    // Create a table of random vertices
+    var vDegTableDom = {0..-1};
+    var eDegTableDom = {0..-1};
+    var vDegTable : [vDegTableDom] real;
+    var eDegTable : [eDegTableDom] real;
+    var vMaxDeg = 0;
+    var eMaxDeg = 0;
+    cobegin with (ref vMaxDeg, ref eMaxDeg, ref vDegTableDom, ref eDegTableDom) {
+      {
+        var sortedVDegSeq = vDegSeq;
+        sort(sortedVDegSeq);
+        vMaxDeg = max reduce sortedVDegSeq;
+        vDegTableDom = {1..vMaxDeg};
+        var prevDeg = 0;
+        for deg in sortedVDegSeq {
+          if deg != prevDeg {
+            prevDeg = deg;
+            vDegTable[deg] = deg : real;
+          }
+        }
+        vDegTable /= + reduce vDegTable;
+        vDegTable = + scan vDegTable;
+      }
+      {
+        var sortedEDegSeq = eDegSeq;
+        sort(sortedEDegSeq);
+        eMaxDeg = max reduce sortedEDegSeq;
+        eDegTableDom = {1..eMaxDeg};
+        var prevDeg = 0;
+        for deg in sortedEDegSeq {
+          if deg != prevDeg {
+            prevDeg = deg;
+            eDegTable[deg] = deg : real;
+          }
+        }
+        eDegTable /= + reduce eDegTable;
+        eDegTable = + scan eDegTable;
+      }
+    }
+    
+    var vTable : [1..vMaxDeg] DynamicArray;
+    var eTable : [1..eMaxDeg] DynamicArray;
+    cobegin with (ref vTable, ref eTable) {
+      {
+        for (vDeg, v) in zip(vDegSeq, vDegSeqDom) {
+          if vDeg != 0 then vTable[vDeg].arr.push_back(v);
+        }
+      }
+      {
+        for (eDeg, e) in zip(eDegSeq, eDegSeqDom) {
+          if eDeg != 0 then eTable[eDeg].arr.push_back(e);
+        }
+      }
+    }
+    
+    var seedGenerator = makeRandomStream(int);
+    var seed = seedGenerator.getNext();
+    delete seedGenerator;
+
+    record WorkInfo {
+      // Seed to use for random number generator
+      var rngSeed : int;
+      // Offset in seed to calculate random number generator for
+      var rngOffset : int;
+      // Number of operations for locale
+      var numOperations : int;
+    }
+    var workInfo : [0..#numLocales, 1..here.maxTaskPar] WorkInfo;
+    var offset = 0;
+
+    // Calculate and setup work information for each task on each locale
+    for loc in Locales {
+      const numOperations = inclusionsToAdd / numLocales + (if loc == here then inclusionsToAdd % numLocales else 0);
+      for tid in 1..here.maxTaskPar {
+        const numTaskOperations = numOperations / here.maxTaskPar + (if tid == 1 then numOperations % here.maxTaskPar else 0);
+        workInfo[loc.id, tid] = new WorkInfo(
+          rngSeed=seed,
+          numOperations = numTaskOperations,
+          rngOffset = offset
+        );
+        // We need to increment counter for each task twice per iteration
+        // Once for the vertex, another for the edge... offset is shared
+        // by both degreeRNG and nodeRNG. 
+        offset += numTaskOperations * 2;
+      }
+    }
+    
 
     // Perform work evenly across all locales
     coforall loc in Locales with (in graph) do on loc {
-      const vpt = vertexProbabilityTable;
-      const ept = edgeProbabilityTable;
-      const perLocInclusions = inclusionsToAdd / numLocales + (if here.id == 0 then inclusionsToAdd % numLocales else 0);
-      sync coforall tid in 0..#here.maxTaskPar with (in graph) {
+      const _vDegTable = vDegTable;
+      const _eDegTable = eDegTable;
+      var _vTable = vTable;
+      var _eTable = eTable;
+      
+      sync coforall tid in 1..here.maxTaskPar with (in graph) {
+        const work = workInfo[here.id, tid];
         // Perform work evenly across all tasks
-        var perTaskInclusions = perLocInclusions / here.maxTaskPar + (if tid == 0 then perLocInclusions % here.maxTaskPar else 0);
-        var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-        var randStream = new RandomStream(real, _randStream.getNext());
-        for 1..perTaskInclusions {
-          var vertex = weightedRandomSample(verticesDomain, vpt, randStream.getNext());
-          var edge = weightedRandomSample(edgesDomain, ept, randStream.getNext());
+        var degreeRNG = new RandomStream(real, work.rngSeed);
+        var nodeRNG = new RandomStream(int, work.rngSeed);
+        if work.rngOffset != 0 { 
+          degreeRNG.skipToNth(work.rngOffset);
+          nodeRNG.skipToNth(work.rngOffset);
+        }
+
+        for 1..work.numOperations {
+          const vDegIdx = weightedRandomSample({1..vMaxDeg}, _vDegTable, degreeRNG.getNext());  
+          const eDegIdx = weightedRandomSample({1..eMaxDeg}, _eDegTable, degreeRNG.getNext());
+          const ref vTableRef = _vTable[vDegIdx];
+          const ref eTableRef = _eTable[eDegIdx];
+          const vIdx = nodeRNG.getNext(vTableRef.dom.low, vTableRef.dom.high);
+          const eIdx = nodeRNG.getNext(eTableRef.dom.low, eTableRef.dom.high);
+          if vIdx < vTableRef.dom.low || eIdx < vTableRef.dom.low || vIdx > vTableRef.dom.high || eIdx > eTableRef.dom.high 
+            then halt((vIdx, vTableRef.dom), (eIdx, eTableRef.dom));
+          const vertex = vTableRef[vIdx];
+          const edge = eTableRef[eIdx];
           graph.addInclusionBuffered(vertex, edge);
         }
+        delete degreeRNG;
+        delete nodeRNG;
       }
       graph.flushBuffers();
     }

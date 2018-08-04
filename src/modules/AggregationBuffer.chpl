@@ -7,8 +7,8 @@ module AggregationBuffer {
   use Time;
   use Random;
 
-  config param AggregatorMaxBuffers = -1;
-  config param AggregatorBufferSize = 1024 * 1024;
+  config const AggregatorMaxBuffers = -1;
+  config const AggregatorBufferSize = 1024 * 1024;
   config param AggregatorDebug = false;
 
   proc debug(args...?nArgs) where AggregatorDebug {
@@ -19,13 +19,13 @@ module AggregationBuffer {
     // NOP
   }
 
-
+  pragma "always RVF"
   record Aggregator {
     var instance;
     var pid = -1;
 
     proc init(type msgType) {
-      this.instance = new AggregatorImpl(msgType);
+      this.instance = new unmanaged AggregatorImpl(msgType);
       this.pid = this.instance.pid;
     }
 
@@ -325,9 +325,9 @@ module AggregationBuffer {
     proc aggregate(msg : msgType, locid : int) : Buffer(msgType) {
       // Performs sanity checks to ensure that returned buffer is valid
       proc doSanityCheck(buf : Buffer(msgType)) where AggregatorDebug {
-        assert(buf._stolen.peek() == false, "Buffer is still stolen!", buf);
-        assert(buf._claimed.peek() == 0, "Buffer has not had claim reset...", buf);
-        assert(buf._filled.peek() == 0, "Buffer has not had filled reset...", buf);
+        if buf._stolen.peek() != false then halt("Buffer is still stolen!", buf);
+        if buf._claimed.peek() != 0 then halt("Buffer has not had claim reset...", buf);
+        if buf._filled.peek() != 0 then halt("Buffer has not had filled reset...", buf);
       }
       proc doSanityCheck(buf : Buffer(msgType)) where !AggregatorDebug {}
       
@@ -374,8 +374,10 @@ module AggregationBuffer {
     }
 
     iter flushGlobal(targetLocales = Locales, param tag : iterKind) : (Buffer(msgType), locale) where tag == iterKind.standalone {
+      const pid = this.pid;
+      type thisType = this.type;
       coforall loc in targetLocales do on loc {
-        var _this = getPrivatizedInstance();
+        var _this = chpl_getPrivatizedCopy(thisType, pid);
         forall buf in _this.flushLocal() do yield buf;
       }
     }

@@ -104,3 +104,4 @@ writeln("NumEdges: ", numEdges);
 writeln("Inclusions: ", graph.getInclusions());
 writeln("Contention:", Debug.contentionCnt);
 writeln("maxTaskPar:", here.maxTaskPar);
+graph.destroy();
