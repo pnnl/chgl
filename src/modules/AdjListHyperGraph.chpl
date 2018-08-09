@@ -19,6 +19,17 @@ module AdjListHyperGraph {
   use Sort;
   use Search;
   use AggregationBuffer;
+  
+  /*
+    Disable aggregation. This will cause all calls to `addInclusionBuffered` to go to `addInclusion` and
+    all calls to `flush` to do a NOP.
+  */
+  config const AdjListHyperGraphDisableAggregation = false;
+
+  /*
+    This will forward all calls to the original instance rather than the privatized instance.
+  */
+  config const AdjListHyperGraphDisablePrivatization = false;
 
   /*
     Record-wrapper for the AdjListHyperGraphImpl. The record-wrapper follows from the optimization
@@ -56,6 +67,7 @@ module AdjListHyperGraph {
     record-wrapper to prevent it from being used by-reference, thereby negating the whole point of privatization.
     Hint: A reference to a remote object is treated as a wide pointer.
   */
+  pragma "always RVF"
   record AdjListHyperGraph {
     // Instance of our AdjListHyperGraphImpl from node that created the record
     var instance;
@@ -67,8 +79,9 @@ module AdjListHyperGraph {
         halt("AdjListHyperGraph is uninitialized...");
       }
 
-      return chpl_getPrivatizedCopy(instance.type, pid);
+      return if AdjListHyperGraphDisablePrivatization then instance else chpl_getPrivatizedCopy(instance.type, pid);
     }
+
 
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
       instance = new AdjListHyperGraphImpl(numVertices, numEdges, map);
@@ -93,6 +106,7 @@ module AdjListHyperGraph {
         delete chpl_getPrivatizedCopy(instance.type, pid);
       }
       pid = -1;
+      instance = nil;
     }
 
     forwarding _value;
@@ -678,8 +692,15 @@ module AdjListHyperGraph {
     }
 
     proc addInclusionBuffered(v, e) {
+      // Forward to normal 'addInclusion' if aggregation is disabled
+      if AdjListHyperGraphDisableAggregation {
+        addInclusion(v,e);
+        return;
+      }
+      
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
+      
 
       // Push on local buffers to send later...
       var vLoc = verticesDist.idxToLocale(vDesc.id);

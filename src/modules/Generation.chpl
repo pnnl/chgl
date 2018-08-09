@@ -3,6 +3,7 @@ module Generation {
   use IO;
   use Random;
   use CyclicDist;
+  use Utilities;
   use AdjListHyperGraph;
   use BlockDist;
   use Math;
@@ -11,6 +12,48 @@ module Generation {
 
   param GenerationSeedOffset = 0xDEADBEEF;
   config const GenerationUseAggregation = true;
+  
+  // Work for each task on each locale...
+  record WorkInfo {
+    // Seed to use for random number generator
+    var rngSeed : int;
+    // Offset in seed to calculate random number generator for
+    var rngOffset : int;
+    // Number of operations for locale
+    var numOperations : int;
+  }
+
+  // Calculates work for each locale; does it in such a way that
+  // we the random number generators can share the same seed safely.
+  inline proc calculateWork(numInclusions, targetLoc = Locales) {
+    // Generate seed...
+    var seedGenerator = makeRandomStream(int);
+    var seed = seedGenerator.getNext();
+    seedGenerator;
+
+    
+    var workInfo : [0..#numLocales, 1..here.maxTaskPar] WorkInfo;
+    var offset = 0;
+
+    // Calculate and setup work information for each task on each locale
+    for loc in targetLoc {
+      const numOperations = numInclusions / numLocales + (if loc == here then numInclusions % numLocales else 0);
+      for tid in 1..here.maxTaskPar {
+        const numTaskOperations = numOperations / here.maxTaskPar + (if tid == 1 then numOperations % here.maxTaskPar else 0);
+        workInfo[loc.id, tid] = new WorkInfo(
+          rngSeed=seed,
+          numOperations = numTaskOperations,
+          rngOffset = offset
+        );
+        // We need to increment counter for each task twice per iteration
+        // Once for the vertex, another for the edge... offset is shared
+        // by both degreeRNG and nodeRNG. 
+        offset += numTaskOperations * 2;
+      }
+    }
+
+    return workInfo;
+  }
 
   //Pending: Take seed as input
   //Returns index of the desired item
@@ -138,56 +181,35 @@ module Generation {
     const numVertices = verticesDomain.size;
     const numEdges = edgesDomain.size;
     const vertLow = verticesDomain.low;
+    const vertHigh = verticesDomain.high;
+    const vertSize = verticesDomain.size;
+    const vertStride = verticesDomain.stride;
     const edgeLow = edgesDomain.low;
+    const edgeHigh = edgesDomain.high;
+    const edgeSize = edgesDomain.size;
+    const edgeStride = edgesDomain.stride;
     var newP = if couponCollector then log(1/(1-probability)) else probability;
-    var inclusionsToAdd = round(numVertices * numEdges * newP) : int;
-    var space = {1..inclusionsToAdd};
-    var dom = space dmapped Block(boundingBox=space, targetLocales=targetLocales);
-    var verticesRNG : [dom] real;
-    var edgesRNG : [dom] real;
-    fillRandom(verticesRNG);
-    fillRandom(edgesRNG);
-
-    sync forall (v, e) in zip(verticesRNG, edgesRNG) with (in graph) {
-      var vertex = round(v * (numVertices - 1)) : int;
-      var edge = round(e * (numEdges - 1)) : int;
-      graph.addInclusionBuffered(vertLow + vertex, edgeLow + edge);
+    var inclusionsToAdd = round(numVertices * numEdges * newP) : int; 
+    var workInfo = calculateWork(inclusionsToAdd, targetLocales);
+    
+    coforall loc in targetLocales do on loc {
+      coforall tid in 1..here.maxTaskPar {
+        var work = workInfo[here.id, tid];
+        var rng = new RandomStream(int, seed=work.rngSeed);
+        if work.rngOffset != 0 then rng.skipToNth(work.rngOffset);
+        for 1..work.numOperations {
+          var vertex = rng.getNext(0, vertSize - 1) * vertStride + vertLow;
+          var edge = rng.getNext(0, edgeSize - 1) * edgeStride + edgeLow;
+          graph.addInclusionBuffered(vertex, edge);
+        }
+        delete rng;
+      }
     }
     graph.flushBuffers();
     
     return graph;
   }
 
-  //Pending: Take seed as input
-  proc generateErdosRenyiNaive(graph, vertices_domain, edges_domain, p, targetLocales = Locales) {
-    // Spawn a remote task on each node...
-    coforall loc in targetLocales with (in graph) do on loc {
-      var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar);
-      var randStream = new RandomStream(int, _randStream.getNext());
-
-      // Process either vertices of edges in parallel based on relative size.
-      if graph.numVertices > graph.numEdges {
-        forall v in graph.localVerticesDomain {
-          for e in graph.localEdgesDomain {
-            if randStream.getNext() <= p {
-              graph.addInclusion(v,e);
-            }
-          }
-        }
-      } else {
-        forall e in graph.localEdgesDomain {
-          for v in graph.localVerticesDomain {
-            if randStream.getNext() <= p {
-              graph.addInclusion(v,e);
-            }
-          }
-        }
-      }
-    }
-    
-    return graph;
-  }
-  
   proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd) {
     const reducedVertex = + reduce desiredVertexDegrees : real;
     const reducedEdge = + reduce desiredEdgeDegrees : real;
@@ -235,7 +257,7 @@ module Generation {
   }
   
   /*
-    Generates a graph from the desired vertex and edge degree sequence.
+    Generates a graph from the desired vertex and edge degree sequence. 
 
     :arg graph: Mutable graph to generate.
     :arg vDegSeq: Vertex degree sequence. Must be sorted.
@@ -243,10 +265,11 @@ module Generation {
     :arg inclusionsToAdd: Number of edges to create between vertices and hyperedges.
     :arg verticesDomain: Subset of vertices to generate edges between. Defaults to the entire set of vertices.
     :arg edgesDomain: Subset of hyperedges to generate edges between. Defaults to the entire set of hyperedges.
+    :arg targetLoc: Locales to perform computation over. Defaults to Locales, which includes all locales.
   */
   proc generateChungLu(
       graph, vDegSeq : [?vDegSeqDom] int, eDegSeq : [?eDegSeqDom] int, inclusionsToAdd : int(64),
-      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, param profiling = false) {
+      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLoc = Locales) {
     // Check if empty...
     if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return graph;
     
@@ -255,98 +278,118 @@ module Generation {
     var eDegTableDom = {0..-1};
     var vDegTable : [vDegTableDom] real;
     var eDegTable : [eDegTableDom] real;
-    var vMaxDeg = 0;
-    var eMaxDeg = 0;
+    var vMaxDeg = max reduce vDegSeq; 
+    var eMaxDeg = max reduce eDegSeq;
+   
     cobegin with (ref vMaxDeg, ref eMaxDeg, ref vDegTableDom, ref eDegTableDom) {
       {
-        var sortedVDegSeq = vDegSeq;
-        sort(sortedVDegSeq);
         vMaxDeg = max reduce sortedVDegSeq;
         vDegTableDom = {1..vMaxDeg};
-        var prevDeg = 0;
-        for deg in sortedVDegSeq {
-          if deg != prevDeg {
-            prevDeg = deg;
-            vDegTable[deg] = deg : real;
-          }
-        }
+        forall deg in vDegSeq do if deg > 0 then vDegTable[deg] = deg : real;
         vDegTable /= + reduce vDegTable;
         vDegTable = + scan vDegTable;
       }
       {
-        var sortedEDegSeq = eDegSeq;
-        sort(sortedEDegSeq);
         eMaxDeg = max reduce sortedEDegSeq;
         eDegTableDom = {1..eMaxDeg};
         var prevDeg = 0;
-        for deg in sortedEDegSeq {
-          if deg != prevDeg {
-            prevDeg = deg;
-            eDegTable[deg] = deg : real;
-          }
-        }
+        forall deg in eDegSeq do if deg > 0 then eDegTable[deg] = deg : real;
         eDegTable /= + reduce eDegTable;
         eDegTable = + scan eDegTable;
       }
     }
     
-    var vTable : [1..vMaxDeg] DynamicArray;
-    var eTable : [1..eMaxDeg] DynamicArray;
-    cobegin with (ref vTable, ref eTable) {
-      {
-        for (vDeg, v) in zip(vDegSeq, vDegSeqDom) {
-          if vDeg != 0 then vTable[vDeg].arr.push_back(v);
+    var vTableDom = createCyclic(0);
+    var eTableDom = createCyclic(0);
+    var vTable : [vTableDom] int;
+    var eTable : [eTableDom] int;
+    // Holds beginning of offset into each distributed array table; (offset, size) pairs
+    var vTableMeta : [1..vMaxDeg] (int, int);
+    var eTableMeta : [1..eMaxDeg] (int, int);
+    {
+      var vDegSize : [1..vMaxDeg] chpl__processorAtomicType(int);
+      forall (vDeg, v) in zip(vDegSeq, vDegSeqDom) {
+        if vDeg != 0 then vDegSize[vDeg].add(1);
+      }
+
+      var currOffset = 0;
+      for (size, (offset, sz)) in zip(vDegSize, vTableMeta) {
+        sz = size.peek();
+        offset = currOffset;
+        currOffset += sz;
+      }
+
+      vTableDom = {0..#currOffset};
+      
+      // Fill in distributed edge table
+      // Aggregates (idx, vertex) pairs; will turn into vTable[idx] = vertex
+      var aggregator = new Aggregator((int, int));
+      sync forall (vertex, deg) in zip(vDegSeq.domain, vDegSeq) {
+        var idx = vDegSize[deg].fetchSub(1) - 1;
+        if idx < 0 then halt("Bad degree index: ", idx, " for degree ", deg);
+        idx += vTableMeta[deg][1];
+        const loc = getLocale(vTable.domain, idx);
+        var buf = aggregator.aggregate((idx, vertex), loc);
+        if buf != nil then begin on loc { 
+          [(i,v) in buf] vTable[i] = v;
+          buf.done();
         }
       }
-      {
-        for (eDeg, e) in zip(eDegSeq, eDegSeqDom) {
-          if eDeg != 0 then eTable[eDeg].arr.push_back(e);
+      forall (buf, loc) in aggregator.flushGlobal() {
+        on loc do [(i,v) in buf] vTable[i] = v;
+        buf.done();
+      }
+      aggregator.destroy();
+    }
+    {
+      // Obtain size of distributed edges domain
+      var eDegSize : [1..eMaxDeg] chpl__processorAtomicType(int);
+      forall (eDeg, e) in zip(eDegSeq, eDegSeqDom) {
+        if eDeg != 0 then eDegSize[eDeg].add(1);
+      }
+
+      var currOffset = 0;
+      for (size, (offset, sz)) in zip(eDegSize, eTableMeta) {
+        sz = size.peek();
+        offset = currOffset;
+        currOffset += sz;
+      }
+
+      eTableDom = {0..#currOffset};
+
+      // Fill in distributed edge table
+      // Aggregates (idx, edge) pairs; will turn into eTable[idx] = edge
+      var aggregator = new Aggregator((int, int));
+      sync forall (edge, deg) in zip(eDegSeq.domain, eDegSeq) {
+        var idx = eDegSize[deg].fetchSub(1) - 1;
+        if idx < 0 then halt("Bad degree index: ", idx, " for degree ", deg);
+        idx += eTableMeta[deg][1];
+        const loc = getLocale(eTable.domain, idx);
+        var buf = aggregator.aggregate((idx, edge), loc);
+        if buf != nil then begin on loc { 
+          [(i,e) in buf] eTable[i] = e;
+          buf.done();
         }
       }
-    }
-    
-    var seedGenerator = makeRandomStream(int);
-    var seed = seedGenerator.getNext();
-    delete seedGenerator;
-
-    record WorkInfo {
-      // Seed to use for random number generator
-      var rngSeed : int;
-      // Offset in seed to calculate random number generator for
-      var rngOffset : int;
-      // Number of operations for locale
-      var numOperations : int;
-    }
-    var workInfo : [0..#numLocales, 1..here.maxTaskPar] WorkInfo;
-    var offset = 0;
-
-    // Calculate and setup work information for each task on each locale
-    for loc in Locales {
-      const numOperations = inclusionsToAdd / numLocales + (if loc == here then inclusionsToAdd % numLocales else 0);
-      for tid in 1..here.maxTaskPar {
-        const numTaskOperations = numOperations / here.maxTaskPar + (if tid == 1 then numOperations % here.maxTaskPar else 0);
-        workInfo[loc.id, tid] = new WorkInfo(
-          rngSeed=seed,
-          numOperations = numTaskOperations,
-          rngOffset = offset
-        );
-        // We need to increment counter for each task twice per iteration
-        // Once for the vertex, another for the edge... offset is shared
-        // by both degreeRNG and nodeRNG. 
-        offset += numTaskOperations * 2;
+      forall (buf, loc) in aggregator.flushGlobal() {
+        on loc do [(i,e) in buf] eTable[i] = e;
+        buf.done();
       }
+      aggregator.destroy();
     }
-    
 
+    var workInfo = calculateWork(inclusionsToAdd, targetLoc);
+    
     // Perform work evenly across all locales
-    coforall loc in Locales with (in graph) do on loc {
+    coforall loc in targetLoc with (in graph) do on loc {
       const _vDegTable = vDegTable;
       const _eDegTable = eDegTable;
-      var _vTable = vTable;
-      var _eTable = eTable;
+      const _vTableMeta = vTableMeta;
+      const _eTableMeta = eTableMeta;
+      const _workInfo = workInfo;
       
       sync coforall tid in 1..here.maxTaskPar with (in graph) {
-        const work = workInfo[here.id, tid];
+        const work = _workInfo[here.id, tid];
         // Perform work evenly across all tasks
         var degreeRNG = new RandomStream(real, work.rngSeed);
         var nodeRNG = new RandomStream(int, work.rngSeed);
@@ -358,14 +401,12 @@ module Generation {
         for 1..work.numOperations {
           const vDegIdx = weightedRandomSample({1..vMaxDeg}, _vDegTable, degreeRNG.getNext());  
           const eDegIdx = weightedRandomSample({1..eMaxDeg}, _eDegTable, degreeRNG.getNext());
-          const ref vTableRef = _vTable[vDegIdx];
-          const ref eTableRef = _eTable[eDegIdx];
-          const vIdx = nodeRNG.getNext(vTableRef.dom.low, vTableRef.dom.high);
-          const eIdx = nodeRNG.getNext(eTableRef.dom.low, eTableRef.dom.high);
-          if vIdx < vTableRef.dom.low || eIdx < vTableRef.dom.low || vIdx > vTableRef.dom.high || eIdx > eTableRef.dom.high 
-            then halt((vIdx, vTableRef.dom), (eIdx, eTableRef.dom));
-          const vertex = vTableRef[vIdx];
-          const edge = eTableRef[eIdx];
+          const (vDegOffset, vDegSize) = _vTableMeta[vDegIdx];
+          const (eDegOffset, eDegSize) = _eTableMeta[eDegIdx];
+          const vIdx = nodeRNG.getNext(vDegOffset, vDegOffset + vDegSize - 1);
+          const eIdx = nodeRNG.getNext(eDegOffset, eDegOffset + eDegSize - 1);
+          const vertex = vTable[vIdx];
+          const edge = eTable[eIdx];
           graph.addInclusionBuffered(vertex, edge);
         }
         delete degreeRNG;
