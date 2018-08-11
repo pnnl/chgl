@@ -455,6 +455,7 @@ module AdjListHyperGraph {
     var _privatizedVerticesPID = _vertices.pid;
     var _privatizedEdgesPID = _edges.pid;
     var _masterHandle : object;
+    var _useAggregation : bool;
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
@@ -596,9 +597,12 @@ module AdjListHyperGraph {
       return verticesDomain.dist;
     }
 
-
     inline proc edgesDist {
       return edgesDomain.dist;
+    }
+
+    inline proc useAggregation {
+      return _useAggregation;
     }
 
     inline proc numEdges return edgesDomain.size;
@@ -698,6 +702,27 @@ module AdjListHyperGraph {
       vertices.setIndices({0..(size-1)});
     }
 
+    proc startAggregation() {
+      // Must copy on stack to utilize remote-value forwarding
+      const _pid = pid;
+      coforall loc in Locales do on loc {
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
+        _this.useAggregation = true;
+      }
+    }
+
+    proc stopAggregation() {
+      // Must copy on stack to utilize remote-value forwarding
+      const _pid = pid;
+      coforall loc in Locales do on loc {
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
+        _this.useAggregation = false;
+      }
+    }
+  
+    /*
+      Explicitly aggregate the vertex and element.
+    */
     proc addInclusionBuffered(v, e) {
       // Forward to normal 'addInclusion' if aggregation is disabled
       if AdjListHyperGraphDisableAggregation {
@@ -731,9 +756,18 @@ module AdjListHyperGraph {
         }
       }
     }
-
-
+    
+    /*
+      Adds 'e' as a neighbor of 'v' and 'v' as a neighbor of 'e'.
+      If aggregation is enabled via 'startAggregation', this will 
+      forward to the aggregated version, 'addInclusionBuffered'.
+    */
     inline proc addInclusion(v, e) {
+      if !AdjListHyperGraphDisableAggregation && useAggregation {
+        addInclusionBuffered(v,e);
+        return;
+      }
+
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
       
