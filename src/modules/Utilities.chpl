@@ -2,7 +2,7 @@ use CyclicDist;
 use BlockDist;
 
 inline proc getLocale(dom, idx) {
-  var loc = dom.dist.idxToLocale(0);
+  var loc = dom.dist.idxToLocale(idx);
   var locID = chpl_nodeFromLocaleID(__primitive("_wide_get_locale", loc));
   
   // Handles cases where we get a locale that is allocated on another locale...

@@ -373,7 +373,8 @@ module AdjListHyperGraph {
 
   record Vertex {}
   record Edge   {}
-
+  
+  pragma "always RVF"
   record Wrapper {
     type nodeType;
     type idType;
@@ -934,6 +935,14 @@ module AdjListHyperGraph {
       return ret;
     }
   } // class Graph
+
+  inline proc +=(graph : AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
+    graph.addInclusion(v,e);
+  }
+  
+  inline proc +=(graph : AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
+    graph.addInclusion(v,e);
+  }
 
   module Debug {
     // Determines whether or not we profile for contention...

@@ -1,1 +1,1 @@
--M ../../../src/modules
+-M ../../../src/modules -M ../../../src/aggregation

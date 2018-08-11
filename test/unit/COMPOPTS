@@ -1,1 +1,1 @@
--M=../../src/modules -M=../../src --no-dead-code-elimination --devel --no-lifetime-checking
+-M=../../src/modules -M=../../src -M=../../src/aggregation --no-dead-code-elimination --devel --no-lifetime-checking
