@@ -972,17 +972,21 @@ module AdjListHyperGraph {
       return ret;
     }
   } // class Graph
+  
+  inline proc +=(graph : AdjListHyperGraph, other) {
+    graph._value += other;
+  }
 
-  inline proc +=(ref graph : AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
+  inline proc +=(graph : AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
     graph.addInclusion(v,e);
   }
   
-  inline proc +=(ref graph : AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
+  inline proc +=(graph : AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
     graph.addInclusion(v,e);
   }
 
-  inline proc += (ref graph : AdjListHyperGraphImpl, other) {
-    badArgs(other, (graph.vDescType, graph.eDescType), (graph.eDescType, graph.vDescType));
+  inline proc +=(graph : AdjListHyperGraphImpl, other) {
+    Debug.badArgs(other, (graph.vDescType, graph.eDescType), (graph.eDescType, graph.vDescType));
   }
 
   module Debug {
