@@ -1,1 +1,1 @@
--M../../src -M../../src/modules --dynamic --no-lifetime-checking
+-M../../src -M../../src/modules -M../../src/aggregation --dynamic --no-lifetime-checking --no-warnings

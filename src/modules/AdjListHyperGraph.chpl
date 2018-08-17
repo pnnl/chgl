@@ -324,8 +324,8 @@ module AdjListHyperGraph {
       return retval;
     }
 
-    inline proc hasNeighbor(n) {
-      compilerError("Attempt to invoke 'hasNeighbor' with wrong type: ", n.type : string, ", requires type ", nodeIdType : string);
+    inline proc hasNeighbor(other) {
+      badArgs(other, nodeIdType);
     }
 
     inline proc numNeighbors {
@@ -458,6 +458,9 @@ module AdjListHyperGraph {
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
+      if numVertices > max(int(32)) || numVertices < 0 then halt("numVertices must be between 0..", max(int(32)), " but got ", numVertices);
+      if numEdges > max(int(32)) || numEdges < 0 then halt("numEdges must be between 0..", max(int(32)), " but got ", numEdges);
+
       var verticesDomain = {0..#numVertices} dmapped new dmap(map);
       var edgesDomain = {0..#numEdges} dmapped new dmap(map);
       this._verticesDomain = verticesDomain;
@@ -569,12 +572,16 @@ module AdjListHyperGraph {
       return _privatizedEdges;
     }
 
-    inline proc getVertex(idx) ref {
+    inline proc getVertex(idx : integral) ref {
       return vertices.dsiAccess(idx);
     }
 
     inline proc getVertex(desc : vDescType) ref {
       return getVertex(desc.id);
+    }
+
+    inline proc getVertex(other) {
+      badArgs(other, vIndexType, vDescType);  
     }
 
     inline proc getEdge(idx) ref {
@@ -600,8 +607,7 @@ module AdjListHyperGraph {
     inline proc numNeighbors(vDesc : vDescType) return getVertex(vDesc).numNeighbors;
     inline proc numNeighbors(eDesc : eDescType) return getEdge(eDesc).numNeighbors;
     inline proc numNeighbors(other) {
-      compilerError("'numNeighbors(",  other.type : string, ")' is not supported, require either ",
-          vDescType : string, " or ", eDescType : string);
+      badArgs(other, vDescType, eDescType);
     }
 
     iter getNeighbors(vDesc : vDescType) : eDescType {
@@ -759,8 +765,8 @@ module AdjListHyperGraph {
     }
 
     // Bad argument...
-    inline proc toEdge(desc) param {
-      compilerError("toEdge(" + desc.type : string + ") is not permitted, required type ", eIndexType : string);
+    inline proc toEdge(other) param {
+      badArgs(other, eIndexType, eDescType);
     }
 
     inline proc toVertex(id : vIndexType) {
@@ -775,8 +781,8 @@ module AdjListHyperGraph {
     }
 
     // Bad argument...
-    inline proc toVertex(desc) param {
-      compilerError("toVertex(" + desc.type : string + ") is not permitted, required ", vIndexType : string);
+    inline proc toVertex(other) {
+      badArgs(other, vIndexType, vDescType);
     }
     
     // TODO: Should we add a way to obtain subset of vertex degree and hyperedge cardinality sequences? 
@@ -828,9 +834,8 @@ module AdjListHyperGraph {
     }
     
     pragma "no doc"
-    inline proc getLocale(obj) {
-      compilerError("'getLocale(", obj.type : string, ")' is not supported; requires",
-          " a descriptor of type ", vDescType : string, " or ", eDescType : string);
+    inline proc getLocale(other) {
+      badArgs(other, vDescType, eDescType);
     }
     
     /*
@@ -894,14 +899,12 @@ module AdjListHyperGraph {
 
     // Bad argument
     iter neighbors(arg) {
-      compilerError("neighbors(" + arg.type : string + ") not supported, "
-      + "argument must be of type " + vDescType : string + " or " + eDescType : string);
+      badArgs(arg, vDescType, eDescType);
     }
 
     // Bad Argument
     iter neighbors(arg, param tag : iterKind) where tag == iterKind.standalone {
-      compilerError("neighbors(" + arg.type : string + ") not supported, "
-      + "argument must be of type " + vDescType : string + " or " + eDescType : string);
+      badArgs(arg, vDescType, eDescType);
     }
 
     // Iterates over all vertex-edge pairs in graph...
@@ -936,15 +939,24 @@ module AdjListHyperGraph {
     }
   } // class Graph
 
-  inline proc +=(graph : AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
+  inline proc +=(ref graph : AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
     graph.addInclusion(v,e);
   }
   
-  inline proc +=(graph : AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
+  inline proc +=(ref graph : AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
     graph.addInclusion(v,e);
   }
 
+  inline proc += (ref graph : AdjListHyperGraphImpl, other) {
+    badArgs(other, (graph.vDescType, graph.eDescType), (graph.eDescType, graph.vDescType));
+  }
+
   module Debug {
+    // Provides a nice error message for when user provides invalid type.
+    proc badArgs(bad, type good...?n) param {
+      compilerError("Expected argument of type to be in ", good : string, " but received argument of type ", bad.type : string);
+    }
+
     // Determines whether or not we profile for contention...
     config param ALHG_PROFILE_CONTENTION : bool;
     // L.J: Keeps track of amount of *potential* contended accesses. It is not absolute

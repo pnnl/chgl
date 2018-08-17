@@ -193,7 +193,7 @@ module Generation {
     var workInfo = calculateWork(inclusionsToAdd, targetLocales);
     
     coforall loc in targetLocales do on loc {
-      coforall tid in 1..here.maxTaskPar {
+      sync coforall tid in 1..here.maxTaskPar {
         var work = workInfo[here.id, tid];
         var rng = new RandomStream(int, seed=work.rngSeed);
         if work.rngOffset != 0 then rng.skipToNth(work.rngOffset);
@@ -283,14 +283,14 @@ module Generation {
    
     cobegin with (ref vMaxDeg, ref eMaxDeg, ref vDegTableDom, ref eDegTableDom) {
       {
-        vMaxDeg = max reduce sortedVDegSeq;
+        vMaxDeg = max reduce vDegSeq;
         vDegTableDom = {1..vMaxDeg};
         forall deg in vDegSeq do if deg > 0 then vDegTable[deg] = deg : real;
         vDegTable /= + reduce vDegTable;
         vDegTable = + scan vDegTable;
       }
       {
-        eMaxDeg = max reduce sortedEDegSeq;
+        eMaxDeg = max reduce eDegSeq;
         eDegTableDom = {1..eMaxDeg};
         var prevDeg = 0;
         forall deg in eDegSeq do if deg > 0 then eDegTable[deg] = deg : real;
@@ -483,6 +483,7 @@ module Generation {
 
     var blockID = 1;
     var expectedDuplicates : int;
+    graph.startAggregation();
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
@@ -501,13 +502,22 @@ module Generation {
         const ref fullEdgesDomain = graph.edgesDomain;
         const edgesDomain = fullEdgesDomain[idE..#nE_int];
         expectedDuplicates += round((nV_int * nE_int * log(1/(1-rho))) - (nV_int * nE_int * rho)) : int;
-        generateErdosRenyi(graph, rho, verticesDomain, edgesDomain, couponCollector = true);
+        
+        // Compute affinity blocks
+        var rng = new RandomStream(int, parSafe=true);
+        forall v in verticesDomain {
+          for (e, p) in zip(edgesDomain, rng.iterate(edgesDomain)) {
+            if p > rho then graph += (v,e);
+          }
+        }
+
         idV += nV_int;
         idE += nE_int;
       } else {
         break;
       }
     }
+    graph.stopAggregation();
     graph.removeDuplicates();
     
     forall (v, vDeg) in graph.forEachVertexDegree() {
