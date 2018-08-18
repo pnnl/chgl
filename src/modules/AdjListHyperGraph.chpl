@@ -83,7 +83,7 @@ module AdjListHyperGraph {
     }
 
 
-    proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
+    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist) {
       instance = new unmanaged AdjListHyperGraphImpl(numVertices, numEdges, map);
       pid = instance.pid;
     }
@@ -114,7 +114,7 @@ module AdjListHyperGraph {
 
   // TODO: Improve space-complexity so we do not read all of file into memory.
   // TODO: Improve time-complexity so that we read in the graph in a distributed way
-  proc fromAdjacencyList(fileName : string, separator = ",", map : ?t = new DefaultDist) throws {
+  proc fromAdjacencyList(fileName : string, separator = ",", map : ?t = new unmanaged DefaultDist) throws {
     var f = open(fileName, iomode.r);
     var r = f.reader();
     var vertices : [0..-1] int;
@@ -445,7 +445,7 @@ module AdjListHyperGraph {
     var _useAggregation : bool;
 
     // Initialize a graph with initial domains
-    proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist, param indexBits = 32) {
+    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist, param indexBits = 32) {
       if numVertices > max(int(indexBits)) || numVertices < 0 { 
         halt("numVertices must be between 0..", max(int(indexBits)), " but got ", numVertices);
       }
@@ -542,7 +542,7 @@ module AdjListHyperGraph {
     }
 
     inline proc verticesDomain {
-      return _getDomain(_privatizedVertices.dom);
+      return _to_unmanaged(_getDomain(_privatizedVertices.dom));
     }
 
     inline proc localVerticesDomain {
@@ -550,7 +550,7 @@ module AdjListHyperGraph {
     }
 
     inline proc edgesDomain {
-      return _getDomain(_privatizedEdges.dom);
+      return _to_unmanaged(_getDomain(_privatizedEdges.dom));
     }
 
     inline proc localEdgesDomain {
@@ -586,11 +586,11 @@ module AdjListHyperGraph {
     }
 
     inline proc verticesDist {
-      return verticesDomain.dist;
+      return _to_unmanaged(verticesDomain.dist);
     }
 
     inline proc edgesDist {
-      return edgesDomain.dist;
+      return _to_unmanaged(edgesDomain.dist);
     }
 
     inline proc useAggregation {
@@ -645,7 +645,7 @@ module AdjListHyperGraph {
     // but is currently being processed remotely (maybe have a counter
     // determining how many tasks are still processing the buffer), so
     // that user knows when all operations have finished/termination detection.
-    inline proc emptyBuffer(buffer : Buffer, loc : locale) {
+    inline proc emptyBuffer(buffer : unmanaged Buffer, loc : locale) {
       on loc {
         var buf = buffer.getArray();
         buffer.done();
@@ -699,7 +699,7 @@ module AdjListHyperGraph {
       const _pid = pid;
       coforall loc in Locales do on loc {
         var _this = chpl_getPrivatizedCopy(this.type, _pid);
-        _this.useAggregation = true;
+        _this._useAggregation = true;
       }
     }
 
@@ -708,7 +708,7 @@ module AdjListHyperGraph {
       const _pid = pid;
       coforall loc in Locales do on loc {
         var _this = chpl_getPrivatizedCopy(this.type, _pid);
-        _this.useAggregation = false;
+        _this._useAggregation = false;
       }
     }
   
@@ -965,19 +965,19 @@ module AdjListHyperGraph {
     }
   } // class Graph
   
-  inline proc +=(graph : AdjListHyperGraph, other) {
+  inline proc +=(graph : unmanaged AdjListHyperGraph, other) {
     graph._value += other;
   }
 
-  inline proc +=(graph : AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
+  inline proc +=(graph : unmanaged AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
     graph.addInclusion(v,e);
   }
   
-  inline proc +=(graph : AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
+  inline proc +=(graph : unmanaged AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
     graph.addInclusion(v,e);
   }
 
-  inline proc +=(graph : AdjListHyperGraphImpl, other) {
+  inline proc +=(graph : unmanaged AdjListHyperGraphImpl, other) {
     Debug.badArgs(other, (graph.vDescType, graph.eDescType), (graph.eDescType, graph.vDescType));
   }
 

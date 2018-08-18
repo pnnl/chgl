@@ -166,8 +166,8 @@ module Generation {
     var newP = if couponCollector then log(1/(1-probability)) else probability;
     var inclusionsToAdd = _round(numVertices * numEdges * newP);
     // Perform work evenly across all tasks
-    var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar);
-    var randStream = new RandomStream(int, _randStream.getNext());
+    var _randStream = new owned RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar);
+    var randStream = new owned RandomStream(int, _randStream.getNext());
     forall 1..inclusionsToAdd {
       var vertex = randStream.getNext(vertexDomain.low, vertexDomain.high);
       var edge = randStream.getNext(edgeDomain.low, edgeDomain.high);
@@ -195,17 +195,15 @@ module Generation {
     sync coforall loc in targetLocales do on loc {
       coforall tid in 1..here.maxTaskPar {
         var work = workInfo[here.id, tid];
-        var rng = new RandomStream(int, seed=work.rngSeed);
+        var rng = new owned RandomStream(int, seed=work.rngSeed);
         if work.rngOffset != 0 then rng.skipToNth(work.rngOffset);
         for 1..work.numOperations {
           var vertex = rng.getNext(0, vertSize - 1) * vertStride + vertLow;
           var edge = rng.getNext(0, edgeSize - 1) * edgeStride + edgeLow;
-          graph.addInclusionBuffered(vertex, edge);
+          graph.addInclusion(vertex, edge);
         }
-        delete rng;
       }
     }
-    graph.flushBuffers();
     
     return graph;
   }
@@ -227,8 +225,8 @@ module Generation {
     coforall tid in 0..#here.maxTaskPar {
       // Perform work evenly across all tasks
       var perTaskInclusions = inclusionsToAdd / here.maxTaskPar + (if tid == 0 then inclusionsToAdd % here.maxTaskPar else 0);
-      var _randStream = new RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
-      var randStream = new RandomStream(real, _randStream.getNext());
+      var _randStream = new owned RandomStream(int, GenerationSeedOffset + here.id * here.maxTaskPar + tid);
+      var randStream = new owned RandomStream(real, _randStream.getNext());
       for 1..perTaskInclusions {
         var vertex = weightedRandomSample(verticesDomain, vertexScan, randStream.getNext());
         var edge = weightedRandomSample(edgesDomain, edgeScan, randStream.getNext());
@@ -269,7 +267,7 @@ module Generation {
   */
   proc generateChungLu(
       graph, vDegSeq : [?vDegSeqDom] int, eDegSeq : [?eDegSeqDom] int, inclusionsToAdd : int(64),
-      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLoc = Locales) throws {
+      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLoc = Locales) {
     // Check if empty...
     if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return graph;
    
@@ -393,12 +391,12 @@ module Generation {
       const _eTableMeta = eTableMeta;
       const _workInfo = workInfo;
       
-      coforall tid in 1..here.maxTaskPar {
+      sync coforall tid in 1..here.maxTaskPar {
         const work = _workInfo[here.id, tid];
         writeln(here, "~", tid, ": ", work);
         // Perform work evenly across all tasks
-        var degreeRNG = new RandomStream(real, work.rngSeed);
-        var nodeRNG = new RandomStream(int, work.rngSeed);
+        var degreeRNG = new owned RandomStream(real, work.rngSeed);
+        var nodeRNG = new owned RandomStream(int, work.rngSeed);
         if work.rngOffset != 0 { 
           try! degreeRNG.skipToNth(work.rngOffset);
           try! nodeRNG.skipToNth(work.rngOffset);
@@ -415,8 +413,6 @@ module Generation {
           const edge = eTable[eIdx];
           graph.addInclusionBuffered(vertex, edge);
         }
-        delete degreeRNG;
-        delete nodeRNG;
       }
       graph.flushBuffers();
     }
@@ -472,9 +468,10 @@ module Generation {
 
     // Check if data begins at index 0...
     assert(vdDom.low == 0 && edDom.low == 0 && vmcDom.low == 0 && emcDom.low == 0);
-
-    sort(vd);
-    sort(ed);
+    cobegin {
+      sort(vd);
+      sort(ed);
+    }
 
     var (nV, nE, rho) : 3 * real;
     var (idV, idE, numV, numE) = (
@@ -483,11 +480,11 @@ module Generation {
         vdDom.size,
         edDom.size
         );
-    var graph = new AdjListHyperGraph(vdDom.size, edDom.size, new Cyclic(startIdx=0:int(32)));
+    var graph = new AdjListHyperGraph(vdDom.size, edDom.size, new unmanaged Cyclic(startIdx=0:int(32)));
 
     var blockID = 1;
     var expectedDuplicates : int;
-    //graph.startAggregation();
+    graph.startAggregation();
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
@@ -506,9 +503,9 @@ module Generation {
         const ref fullEdgesDomain = graph.edgesDomain;
         const edgesDomain = fullEdgesDomain[idE..#nE_int];
         expectedDuplicates += round((nV_int * nE_int * log(1/(1-rho))) - (nV_int * nE_int * rho)) : int;
-        
+        write("BlockID: ", blockID, "\n");  
         // Compute affinity blocks
-        var rng = new RandomStream(int, parSafe=true);
+        var rng = new owned RandomStream(int, parSafe=true);
         forall v in verticesDomain {
           for (e, p) in zip(edgesDomain, rng.iterate(edgesDomain)) {
             if p > rho then graph.addInclusion(v,e);
@@ -521,7 +518,7 @@ module Generation {
         break;
       }
     }
-    //graph.stopAggregation();
+    graph.stopAggregation();
     graph.removeDuplicates();
     
     forall (v, vDeg) in graph.forEachVertexDegree() {
@@ -533,7 +530,7 @@ module Generation {
       ed[e.id] = max(0, oldDeg - eDeg);
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
-    try! generateChungLu(graph, vd, ed, nInclusions);
+    generateChungLu(graph, vd, ed, nInclusions);
     return graph;
   }
 }
