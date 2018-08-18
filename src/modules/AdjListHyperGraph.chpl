@@ -356,20 +356,7 @@ module AdjListHyperGraph {
         	<~> new ioLiteral(") }");
       }
     }
-  } // record
-
-  proc =(ref lhs: NodeData, ref rhs: NodeData) {
-    if lhs == rhs then return;
-
-    lhs.lock.acquire();
-    rhs.lock.acquire();
-
-    lhs.neighborListDom = rhs.neighborListDom;
-    lhs.neighborList = rhs.neighborList;
-
-    rhs.lock.release();
-    lhs.lock.release();
-  }
+  } 
 
   record Vertex {}
   record Edge   {}
