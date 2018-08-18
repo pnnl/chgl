@@ -63,7 +63,7 @@ module AggregationBuffer {
   }
   
   proc type Aggregator.chpl__deserialize((pid, instance)) {
-    return new Aggregator(pid, instance);
+    return new unmanaged Aggregator(pid, instance);
   }
 
   pragma "no doc"
@@ -71,9 +71,9 @@ module AggregationBuffer {
     type msgType;
     var lock$ : sync bool;
     // Head of list of all buffers that can be recycled.
-    var freeBufferList : Buffer(msgType);
+    var freeBufferList : unmanaged Buffer(msgType);
     // Head of list of all allocated buffers.
-    var allocatedBufferList : Buffer(msgType);
+    var allocatedBufferList : unmanaged Buffer(msgType);
     // Number of buffers that are available to be recycled...
     var numFreeBuffers : chpl__processorAtomicType(int);
     // Number of buffers that are currently allocated
@@ -89,9 +89,9 @@ module AggregationBuffer {
 
     proc deinit() {
       while allocatedBufferList != nil {
-        var buf = allocatedBufferList;
-        allocatedBufferList = buf._nextAllocatedBuffer;
-        delete buf;
+        var tmp = allocatedBufferList;
+        allocatedBufferList = tmp._nextAllocatedBuffer;
+        delete tmp;
       }
     }
 
@@ -99,8 +99,8 @@ module AggregationBuffer {
       return maxAllocatedBuffers == -1 || numAllocatedBuffers.peek() < maxAllocatedBuffers;
     }
 
-    proc getBuffer() : Buffer(msgType) {
-      var buf : Buffer(msgType);
+    proc getBuffer() : unmanaged Buffer(msgType) {
+      var buf : unmanaged Buffer(msgType);
 
       while buf == nil {
         // Yield while we wait for a free buffer...
@@ -115,10 +115,11 @@ module AggregationBuffer {
         // Note: Since we do this inside the lock we can relax all atomics
         if numFreeBuffers.peek() == 0 {
           if canAllocateBuffer() {
-            buf = new Buffer(msgType);
+            var tmp = new unmanaged Buffer(msgType);
             numAllocatedBuffers.add(1, memory_order_relaxed);
-            buf._nextAllocatedBuffer = allocatedBufferList;
-            allocatedBufferList = buf;
+            tmp._nextAllocatedBuffer = allocatedBufferList;
+            allocatedBufferList = tmp;
+            buf = tmp;
           }
         } else {
           numFreeBuffers.sub(1, memory_order_relaxed);
@@ -129,11 +130,11 @@ module AggregationBuffer {
       }
 
       buf.reset();
-      buf._bufferPool = this;
+      buf._bufferPool = _to_unmanaged(this);
       return buf;
     }
 
-    proc recycleBuffer(buf : Buffer(msgType)) {
+    proc recycleBuffer(buf : unmanaged Buffer(msgType)) {
       lock$ = true;
       numFreeBuffers.add(1, memory_order_relaxed);
       buf._nextFreeBuffer = freeBufferList;
@@ -174,11 +175,11 @@ module AggregationBuffer {
     pragma "no doc"
     var _stolen : chpl__processorAtomicType(bool);
     pragma "no doc"
-    var _nextAllocatedBuffer : Buffer(msgType);
+    var _nextAllocatedBuffer : unmanaged Buffer(msgType);
     pragma "no doc"
-    var _nextFreeBuffer : Buffer(msgType);
+    var _nextFreeBuffer : unmanaged Buffer(msgType);
     pragma "no doc"
-    var _bufferPool : BufferPool(msgType);
+    var _bufferPool : unmanaged BufferPool(msgType);
 
     pragma "no doc"
     proc init(type msgType) {
@@ -215,7 +216,7 @@ module AggregationBuffer {
        method is subject to undefined behavior.
     */
     proc done() {
-      on this do this._bufferPool.recycleBuffer(this);
+      on this do this._bufferPool.recycleBuffer(_to_unmanaged(this));
     }
 
     /*
@@ -273,9 +274,9 @@ module AggregationBuffer {
   class AggregatorImpl {
     type msgType;
     pragma "no doc"
-    var destinationBuffers : [LocaleSpace] Buffer(msgType);
+    var destinationBuffers : [LocaleSpace] unmanaged Buffer(msgType);
     pragma "no doc"
-    var bufferPools : [LocaleSpace] BufferPool(msgType);
+    var bufferPools : [LocaleSpace] unmanaged BufferPool(msgType);
     pragma "no doc"
     var pid = -1;
 
@@ -284,10 +285,10 @@ module AggregationBuffer {
 
       complete();
 
-      this.pid = _newPrivatizedClass(this);
-      forall (buf, locid) in zip (destinationBuffers, destinationBuffers.domain) { 
-        bufferPools[locid] = new BufferPool(msgType);
-        buf = bufferPools[locid].getBuffer();
+      this.pid = _newPrivatizedClass(_to_unmanaged(this));
+      forall (buf, pool) in zip (destinationBuffers, bufferPools) { 
+        pool = new unmanaged BufferPool(msgType);
+        buf = pool.getBuffer();
       }
     }
 
@@ -296,9 +297,9 @@ module AggregationBuffer {
 
       complete();
 
-      forall (buf, locid) in zip (destinationBuffers, destinationBuffers.domain) { 
-        bufferPools[locid] = new BufferPool(msgType);
-        buf = bufferPools[locid].getBuffer();
+      forall (buf, pool) in zip (destinationBuffers, bufferPools) { 
+        pool = new unmanaged BufferPool(msgType);
+        buf = pool.getBuffer();
       }
     }
 
@@ -307,7 +308,7 @@ module AggregationBuffer {
     }
 
     proc dsiPrivatize(pid) {
-      return new AggregatorImpl(this, pid);
+      return new unmanaged AggregatorImpl(this, pid);
     }
 
     proc dsiGetPrivatizeData() {
@@ -318,18 +319,18 @@ module AggregationBuffer {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
 
-    proc aggregate(msg : msgType, loc : locale) : Buffer(msgType) {
+    proc aggregate(msg : msgType, loc : locale) : unmanaged Buffer(msgType) {
       return aggregate(msg, loc.id);
     }
     
-    proc aggregate(msg : msgType, locid : int) : Buffer(msgType) {
+    proc aggregate(msg : msgType, locid : int) : unmanaged Buffer(msgType) {
       // Performs sanity checks to ensure that returned buffer is valid
-      proc doSanityCheck(buf : Buffer(msgType)) where AggregatorDebug {
+      proc doSanityCheck(buf : unmanaged Buffer(msgType)) where AggregatorDebug {
         if buf._stolen.peek() != false then halt("Buffer is still stolen!", buf);
         if buf._claimed.peek() != 0 then halt("Buffer has not had claim reset...", buf);
         if buf._filled.peek() != 0 then halt("Buffer has not had filled reset...", buf);
       }
-      proc doSanityCheck(buf : Buffer(msgType)) where !AggregatorDebug {}
+      proc doSanityCheck(buf : unmanaged Buffer(msgType)) where !AggregatorDebug {}
       
       while true {
         // Grab current buffer
@@ -369,11 +370,11 @@ module AggregationBuffer {
       halt("Somehow broke out of while loop...");
     }
 
-    iter flushGlobal(targetLocales = Locales) : (Buffer(msgType), locale) {
+    iter flushGlobal(targetLocales = Locales) : (unmanaged Buffer(msgType), locale) {
       halt("Serial 'flushGlobal' not implemented...");
     }
 
-    iter flushGlobal(targetLocales = Locales, param tag : iterKind) : (Buffer(msgType), locale) where tag == iterKind.standalone {
+    iter flushGlobal(targetLocales = Locales, param tag : iterKind) : (unmanaged Buffer(msgType), locale) where tag == iterKind.standalone {
       const pid = this.pid;
       type thisType = this.type;
       coforall loc in targetLocales do on loc {
@@ -382,11 +383,11 @@ module AggregationBuffer {
       }
     }
 
-    iter flushLocal(targetLocales = Locales) : (Buffer(msgType), locale) {
+    iter flushLocal(targetLocales = Locales) : (unmanaged Buffer(msgType), locale) {
       halt("Serial 'flushLocal' not implemented...");
     }
 
-    iter flushLocal(targetLocales = Locales, param tag : iterKind) where tag == iterKind.standalone {
+    iter flushLocal(targetLocales = Locales, param tag : iterKind) : (unmanaged Buffer(msgType), locale) where tag == iterKind.standalone {
       forall loc in targetLocales {
         // Flush destination buffer for each locale
         var buf = destinationBuffers[loc.id];

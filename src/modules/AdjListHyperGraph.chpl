@@ -84,7 +84,7 @@ module AdjListHyperGraph {
 
 
     proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
-      instance = new AdjListHyperGraphImpl(numVertices, numEdges, map);
+      instance = new unmanaged AdjListHyperGraphImpl(numVertices, numEdges, map);
       pid = instance.pid;
     }
     
@@ -95,8 +95,8 @@ module AdjListHyperGraph {
 
     // TODO: Copy initializer produces an internal compiler error (compilation error after codegen),
     // COde that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
-    proc clone(other) {
-      instance = new AdjListHyperGraphImpl(other);
+    proc clone(other : this.type) {
+      instance = new unmanaged AdjListHyperGraphImpl(other._value);
       pid = instance.pid;
     }
     
@@ -325,7 +325,7 @@ module AdjListHyperGraph {
     }
 
     inline proc hasNeighbor(other) {
-      badArgs(other, nodeIdType);
+      Debug.badArgs(other, nodeIdType);
     }
 
     inline proc numNeighbors {
@@ -406,8 +406,8 @@ module AdjListHyperGraph {
     return a.id < b.id;
   }
 
-  proc _cast(type t: Wrapper(?nodeType, ?idType), id : idType) {
-    return t.make(id);
+  proc _cast(type t: Wrapper(?nodeType, ?idType), id : integral) {
+    return t.make(id : idType);
   }
 
   proc _cast(type t: Wrapper(?nodeType, ?idType), id : Wrapper(nodeType, idType)) {
@@ -447,33 +447,43 @@ module AdjListHyperGraph {
     type vDescType = Wrapper(Vertex, vIndexType);
     type eDescType = Wrapper(Edge, eIndexType);
 
-    var _vertices : [_verticesDomain] NodeData(eDescType);
-    var _edges : [_edgesDomain] NodeData(vDescType);
+    var _vertices : [_verticesDomain] unmanaged NodeData(eDescType);
+    var _edges : [_edgesDomain] unmanaged NodeData(vDescType);
     var _destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
     var _privatizedVerticesPID = _vertices.pid;
     var _privatizedEdgesPID = _edges.pid;
-    var _masterHandle : object;
+    var _masterHandle : unmanaged object;
     var _useAggregation : bool;
 
     // Initialize a graph with initial domains
-    proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist) {
-      if numVertices > max(int(32)) || numVertices < 0 then halt("numVertices must be between 0..", max(int(32)), " but got ", numVertices);
-      if numEdges > max(int(32)) || numEdges < 0 then halt("numEdges must be between 0..", max(int(32)), " but got ", numEdges);
+    proc init(numVertices = 0, numEdges = 0, map : ?t = new DefaultDist, param indexBits = 32) {
+      if numVertices > max(int(indexBits)) || numVertices < 0 { 
+        halt("numVertices must be between 0..", max(int(indexBits)), " but got ", numVertices);
+      }
+      if numEdges > max(int(indexBits)) || numEdges < 0 { 
+        halt("numEdges must be between 0..", max(int(indexBits)), " but got ", numEdges);
+      }
 
-      var verticesDomain = {0..#numVertices} dmapped new dmap(map);
-      var edgesDomain = {0..#numEdges} dmapped new dmap(map);
+      var verticesDomain = {0:int(indexBits)..#numVertices:int(indexBits)} dmapped new dmap(map);
+      var edgesDomain = {0:int(indexBits)..#numEdges:int(indexBits)} dmapped new dmap(map);
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
 
       complete();
 
-      // Fill vertices and edges with default class instances...
-      forall v in _vertices do v = new NodeData(eDescType);
-      forall e in _edges do e = new NodeData(vDescType);
+      // Currently bugged 
+      forall v in _vertices {
+        var node : unmanaged NodeData(eDescType) = new unmanaged NodeData(eDescType);
+        v = node;
+      }
+      forall e in _edges {
+        var node : unmanaged NodeData(vDescType) = new unmanaged NodeData(vDescType);
+        e = node;
+      }
 
-      this.pid = _newPrivatizedClass(this);
+      this.pid = _newPrivatizedClass(_to_unmanaged(this));
     }
   
     // Note: Do not create a copy initializer as it is called whenever you create a copy
@@ -486,16 +496,11 @@ module AdjListHyperGraph {
 
       complete();
       
-      forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new NodeData(theirV);
-      forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new NodeData(theirE);     
-      this.pid = _newPrivatizedClass(this);
+      forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new unmanaged NodeData(theirV);
+      forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new unmanaged NodeData(theirE);     
+      this.pid = _newPrivatizedClass(_to_unmanaged(this));
     }
 
-    // creates an array sharing storage with the source array
-    // ref x = _getArray(other.vertices._value);
-    // could we just store privatized and vertices in separate types?
-    // array element access privatizedVertices.dsiAccess(idx)
-    // push_back won't work - Need to emulate implementation
     proc init(other, pid : int(64)) {
       var verticesDomain = other._verticesDomain;
       var edgesDomain = other._edgesDomain;
@@ -508,12 +513,12 @@ module AdjListHyperGraph {
 
       // Obtain privatized instance...
       if other.locale.id == 0 {
-        this._masterHandle = other;
+        this._masterHandle = _to_unmanaged(other);
         this._privatizedVertices = other._vertices._value;
         this._privatizedEdges = other._edges._value;
         this._destBuffer = other._destBuffer;
       } else {
-        assert(other._masterHandle != nil, "Parent not properly privatized... Race Condition Detected... here: ", here, ", other: ", other.locale);
+        assert(other._masterHandle != nil, "Parent not properly privatized on Locale0... here: ", here, ", other: ", other.locale);
         this._masterHandle = other._masterHandle;
         var instance = this._masterHandle : this.type;
         this._privatizedVertices = instance._vertices._value;
@@ -536,7 +541,7 @@ module AdjListHyperGraph {
 
     pragma "no doc"
     proc dsiPrivatize(pid) {
-      return new AdjListHyperGraphImpl(this, pid);
+      return new unmanaged AdjListHyperGraphImpl(this, pid);
     }
 
     pragma "no doc"
@@ -582,7 +587,7 @@ module AdjListHyperGraph {
     }
 
     inline proc getVertex(other) {
-      badArgs(other, vIndexType, vDescType);  
+      Debug.badArgs(other, vIndexType, vDescType);  
     }
 
     inline proc getEdge(idx) ref {
@@ -611,7 +616,7 @@ module AdjListHyperGraph {
     inline proc numNeighbors(vDesc : vDescType) return getVertex(vDesc).numNeighbors;
     inline proc numNeighbors(eDesc : eDescType) return getEdge(eDesc).numNeighbors;
     inline proc numNeighbors(other) {
-      badArgs(other, vDescType, eDescType);
+      Debug.badArgs(other, vDescType, eDescType);
     }
 
     iter getNeighbors(vDesc : vDescType) : eDescType {
@@ -787,8 +792,8 @@ module AdjListHyperGraph {
       return (vertexNeighborsRemoved, edgeNeighborsRemoved);
     }
 
-    inline proc toEdge(id : eIndexType) {
-      if !edgesDomain.member(id) {
+    inline proc toEdge(id : integral) {
+      if !edgesDomain.member(id : eIndexType) {
         halt(id, " is out of range, expected within ", edgesDomain);
       }
       return id : eDescType;
@@ -800,11 +805,11 @@ module AdjListHyperGraph {
 
     // Bad argument...
     inline proc toEdge(other) param {
-      badArgs(other, eIndexType, eDescType);
+      Debug.badArgs(other, eIndexType, eDescType);
     }
 
-    inline proc toVertex(id : vIndexType) {
-      if !verticesDomain.member(id) {
+    inline proc toVertex(id : integral) {
+      if !verticesDomain.member(id : vIndexType) {
         halt(id, " is out of range, expected within ", verticesDomain);
       }
       return id : vDescType;
@@ -816,7 +821,7 @@ module AdjListHyperGraph {
 
     // Bad argument...
     inline proc toVertex(other) {
-      badArgs(other, vIndexType, vDescType);
+      Debug.badArgs(other, vIndexType, vDescType);
     }
     
     // TODO: Should we add a way to obtain subset of vertex degree and hyperedge cardinality sequences? 
@@ -869,7 +874,7 @@ module AdjListHyperGraph {
     
     pragma "no doc"
     inline proc getLocale(other) {
-      badArgs(other, vDescType, eDescType);
+      Debug.badArgs(other, vDescType, eDescType);
     }
     
     /*
@@ -933,12 +938,12 @@ module AdjListHyperGraph {
 
     // Bad argument
     iter neighbors(arg) {
-      badArgs(arg, vDescType, eDescType);
+      Debug.badArgs(arg, vDescType, eDescType);
     }
 
     // Bad Argument
     iter neighbors(arg, param tag : iterKind) where tag == iterKind.standalone {
-      badArgs(arg, vDescType, eDescType);
+      Debug.badArgs(arg, vDescType, eDescType);
     }
 
     // Iterates over all vertex-edge pairs in graph...
