@@ -566,23 +566,27 @@ module AdjListHyperGraph {
     }
 
     inline proc getVertex(idx : integral) ref {
-      return vertices.dsiAccess(idx);
+      return getVertex(toVertex(idx));
     }
 
     inline proc getVertex(desc : vDescType) ref {
-      return getVertex(desc.id);
+      return vertices.dsiAccess(desc.id);
     }
 
     inline proc getVertex(other) {
       Debug.badArgs(other, vIndexType, vDescType);  
     }
 
-    inline proc getEdge(idx) ref {
-      return edges.dsiAccess(idx);
+    inline proc getEdge(idx : integral) ref {
+      return getEdge(toEdge(idx));
     }
 
     inline proc getEdge(desc : eDescType) ref {
-      return getEdge(desc.id);
+      return edges.dsiAccess(desc.id);
+    }
+    
+    inline proc getEdge(other) {
+      Debug.badArgs(other, eIndexType, eDescType);  
     }
 
     inline proc verticesDist {
@@ -783,7 +787,7 @@ module AdjListHyperGraph {
       if !edgesDomain.member(id : eIndexType) {
         halt(id, " is out of range, expected within ", edgesDomain);
       }
-      return id : eDescType;
+      return id : eIndexType : eDescType;
     }
 
     inline proc toEdge(desc : eDescType) {
@@ -799,7 +803,7 @@ module AdjListHyperGraph {
       if !verticesDomain.member(id : vIndexType) {
         halt(id, " is out of range, expected within ", verticesDomain);
       }
-      return id : vDescType;
+      return id : vIndexType : vDescType;
     }
 
     inline proc toVertex(desc : vDescType) {

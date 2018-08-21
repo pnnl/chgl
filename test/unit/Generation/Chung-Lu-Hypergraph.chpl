@@ -10,10 +10,10 @@ var original_vertex_degrees = graph.getVertexDegrees();
 var original_edge_degrees = graph.getEdgeDegrees();
 
 forall e in 6..9{
-       original_vertex_degrees[e] = 2;
+       original_vertex_degrees[e:int(32)] = 2;
 }
 forall e in 9..12{
-       original_edge_degrees[e] = 2;
+       original_edge_degrees[e:int(32)] = 2;
 }
 
 var count : int = 0;

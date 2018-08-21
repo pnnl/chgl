@@ -398,8 +398,8 @@ module Generation {
         var degreeRNG = new owned RandomStream(real, work.rngSeed);
         var nodeRNG = new owned RandomStream(int, work.rngSeed);
         if work.rngOffset != 0 { 
-          try! degreeRNG.skipToNth(work.rngOffset);
-          try! nodeRNG.skipToNth(work.rngOffset);
+          degreeRNG.skipToNth(work.rngOffset);
+          nodeRNG.skipToNth(work.rngOffset);
         }
 
         for 1..work.numOperations {
