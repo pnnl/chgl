@@ -601,6 +601,10 @@ module AdjListHyperGraph {
       return _useAggregation;
     }
 
+    inline proc useAggregation {
+      return _useAggregation;
+    }
+
     inline proc numEdges return edgesDomain.size;
     inline proc numVertices return verticesDomain.size;
     
@@ -983,6 +987,14 @@ module AdjListHyperGraph {
 
   inline proc +=(graph : unmanaged AdjListHyperGraphImpl, other) {
     Debug.badArgs(other, (graph.vDescType, graph.eDescType), (graph.eDescType, graph.vDescType));
+  }
+
+  inline proc +=(ref graph : AdjListHyperGraphImpl, (v,e) : (graph.vDescType, graph.eDescType)) {
+    graph.addInclusion(v,e);
+  }
+  
+  inline proc +=(ref graph : AdjListHyperGraphImpl, (e,v) : (graph.eDescType, graph.vDescType)) {
+    graph.addInclusion(v,e);
   }
 
   module Debug {
