@@ -542,7 +542,7 @@ module AdjListHyperGraph {
     }
 
     inline proc verticesDomain {
-      return _to_unmanaged(_getDomain(_privatizedVertices.dom));
+      return _getDomain(_to_unmanaged(_privatizedVertices.dom));
     }
 
     inline proc localVerticesDomain {
@@ -550,7 +550,7 @@ module AdjListHyperGraph {
     }
 
     inline proc edgesDomain {
-      return _to_unmanaged(_getDomain(_privatizedEdges.dom));
+      return _getDomain(_to_unmanaged(_privatizedEdges.dom));
     }
 
     inline proc localEdgesDomain {
