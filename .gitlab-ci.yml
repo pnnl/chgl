@@ -19,7 +19,7 @@ test:
 chpldoc:
   image: pnnl/chapel:master
   stage: doc
-  script: chpldoc src/*.chpl src/*/*.chpl
+  script: chpldoc src/*/*.chpl
   when: always
   artifacts:
     paths: 
