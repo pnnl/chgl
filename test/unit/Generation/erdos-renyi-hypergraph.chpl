@@ -8,7 +8,6 @@ var num_edges = 2048;
 var num_inclusions = 0: int;
 var graph = new AdjListHyperGraph(num_vertices, num_edges);
 graph = generateErdosRenyi(graph, prob);
-writeln("Removing duplicates...");
 graph.removeDuplicates();
 for vertex_id in graph.verticesDomain {
 	num_inclusions += graph.getVertex(vertex_id).neighborList.size;

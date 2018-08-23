@@ -403,8 +403,6 @@ module Generation {
           const eDegIdx = weightedRandomSample({1..eMaxDeg}, _eDegTable, degreeRNG.getNext());
           const (vDegOffset, vDegSize) = _vTableMeta[vDegIdx];
           const (eDegOffset, eDegSize) = _eTableMeta[eDegIdx];
-          assert(vDegOffset + vDegSize - 1 > vDegOffset, vDegOffset..vDegOffset + vDegSize - 1);
-          assert(eDegOffset + eDegSize - 1 > eDegOffset, eDegOffset..eDegOffset + eDegSize - 1);
           const vIdx = nodeRNG.getNext(vDegOffset, vDegOffset + vDegSize - 1);
           const eIdx = nodeRNG.getNext(eDegOffset, eDegOffset + eDegSize - 1);
           const vertex = vTable[vIdx];

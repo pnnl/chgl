@@ -36,7 +36,7 @@ module FIFOChannel {
     this.other = other;
     this.inBuf = other.outBuf;
     other.inBuf = this.outBuf;
-    other.other = this;
+    other.other = _to_unmanaged(this);
   }
   
   proc Channel.send(elt : eltType) {
