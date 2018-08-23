@@ -8,7 +8,7 @@ module FIFOChannel {
     type eltType;
 
     // Channel we are paired with
-    var other : Channel(eltType);
+    var other : unmanaged Channel(eltType);
   
     // Output buffer that we are writing to. other.inBuf == this.outBuf
     var outBuf : c_ptr(eltType);
@@ -32,7 +32,7 @@ module FIFOChannel {
     this.outBufSize = len;
   }
 
-  proc Channel.pair(other : Channel) {
+  proc Channel.pair(other : unmanaged Channel) {
     this.other = other;
     this.inBuf = other.outBuf;
     other.inBuf = this.outBuf;

@@ -1,10 +1,10 @@
 use FIFOChannel;
 
 proc main() {
-  var outchan = new Channel(int);
-  var inchan : Channel(int);
-  if numLocales == 1 then inchan = new Channel(int, len=1024);
-  else on Locales[1] do inchan = new Channel(int, len=1024);
+  var outchan = new unmanaged Channel(int);
+  var inchan : unmanaged Channel(int);
+  if numLocales == 1 then inchan = new unmanaged Channel(int, len=1024);
+  else on Locales[1] do inchan = new unmanaged Channel(int, len=1024);
 
   outchan.pair(inchan);
   begin on inchan {
