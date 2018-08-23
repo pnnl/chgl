@@ -15,6 +15,8 @@ writeln("WRS(arr, 0.9) = ", weightedRandomSample(arr.domain, arr, 0.9));
 writeln("WRS(arr, 0.99) = ", weightedRandomSample(arr.domain, arr, 0.99));
 writeln("WRS(arr, 1.0) = ", weightedRandomSample(arr.domain, arr, 1.0));
 
+// Re-enable once we support strided arrays again for `weightedRandomSample`
+/*
 var stridedArr : [1..10 by 2] real;
 stridedArr[1] = 0.1;
 stridedArr[3] = 0.3;
@@ -30,3 +32,4 @@ writeln("WRS(stridedArr, 0.7) = ", weightedRandomSample(stridedArr.domain, strid
 writeln("WRS(stridedArr, 0.9) = ", weightedRandomSample(stridedArr.domain, stridedArr, 0.9));
 writeln("WRS(stridedArr, 0.99) = ", weightedRandomSample(stridedArr.domain, stridedArr, 0.99));
 writeln("WRS(stridedArr, 1.0) = ", weightedRandomSample(stridedArr.domain, stridedArr, 1.0));
+*/
