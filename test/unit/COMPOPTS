@@ -1,1 +1,1 @@
--M=../../src/modules -M=../../src -M=../../src/aggregation --no-dead-code-elimination --devel --no-warnings
+-M=../../src/modules -M=../../src -M=../../src/aggregation --override-checking --no-dead-code-elimination --devel --no-warnings

@@ -57,25 +57,23 @@ module Generation {
 
   //Pending: Take seed as input
   //Returns index of the desired item
-  inline proc weightedRandomSample(items, probabilities,randValue){
+  inline proc weightedRandomSample(items, probabilities, randValue){
     assert(randValue >= 0 && randValue <= 1, "Random Value ", randValue, " is not between 0 and 1");
-    const low = probabilities.domain.low;
-    const high = probabilities.domain.high;
-    const size = probabilities.domain.size;
-    const stride = probabilities.domain.stride;
-    var offset = 1;
-    while low + offset * stride < high  && probabilities[low + (offset - 1) * stride] < randValue {
-      offset *= 2;
+    var l = probabilities.domain.low;
+    var r = probabilities.domain.high;
+    while l < r {
+      var m = floor((l + r) / 2) : int;
+      if probabilities[m] < randValue {
+        l = m + 1;
+      } else {
+        r = m;
+      }
     }
-    offset = min(offset, size);
-    while offset != 1 && randValue <= probabilities[low + (offset - 2) * stride] {
-      offset -= 1;
-    }
-    return items.low + (offset - 1) * items.stride;
+    return l - (probabilities.domain.low - items.low);
   }
   
   proc distributedHistogram(probTable, numRandoms, targetLocales) {
-    assert(probTable.domain.stride == 1, "Cannot perform histogram on strided arrays yet");;
+    assert(probTable.domain.stride == 1, "Cannot perform histogram on strided arrays yet");
     var indicesSpace = {1..#numRandoms};
     var indicesDom = indicesSpace dmapped Block(boundingBox = indicesSpace, targetLocales = targetLocales);
     var indices : [indicesDom] int;
@@ -271,7 +269,6 @@ module Generation {
     // Check if empty...
     if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return graph;
    
-    writeln("Inside ChungLu");
     // Create a table of random vertices
     var vDegTableDom = {0..-1};
     var eDegTableDom = {0..-1};
@@ -393,7 +390,6 @@ module Generation {
       
       sync coforall tid in 1..here.maxTaskPar {
         const work = _workInfo[here.id, tid];
-        writeln(here, "~", tid, ": ", work);
         // Perform work evenly across all tasks
         var degreeRNG = new owned RandomStream(real, work.rngSeed);
         var nodeRNG = new owned RandomStream(int, work.rngSeed);
@@ -407,6 +403,8 @@ module Generation {
           const eDegIdx = weightedRandomSample({1..eMaxDeg}, _eDegTable, degreeRNG.getNext());
           const (vDegOffset, vDegSize) = _vTableMeta[vDegIdx];
           const (eDegOffset, eDegSize) = _eTableMeta[eDegIdx];
+          assert(vDegOffset + vDegSize - 1 > vDegOffset, vDegOffset..vDegOffset + vDegSize - 1);
+          assert(eDegOffset + eDegSize - 1 > eDegOffset, eDegOffset..eDegOffset + eDegSize - 1);
           const vIdx = nodeRNG.getNext(vDegOffset, vDegOffset + vDegSize - 1);
           const eIdx = nodeRNG.getNext(eDegOffset, eDegOffset + eDegSize - 1);
           const vertex = vTable[vIdx];
@@ -503,7 +501,6 @@ module Generation {
         const ref fullEdgesDomain = graph.edgesDomain;
         const edgesDomain = fullEdgesDomain[idE..#nE_int];
         expectedDuplicates += round((nV_int * nE_int * log(1/(1-rho))) - (nV_int * nE_int * rho)) : int;
-        write("BlockID: ", blockID, "\n");  
         // Compute affinity blocks
         var rng = new owned RandomStream(int, parSafe=true);
         forall v in verticesDomain {
