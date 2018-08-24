@@ -57,6 +57,7 @@ var idE = 4178;
 var numV = vertexDegrees.size;
 var numE = edgeDegrees.size;
 
+var graph = new AdjListHyperGraph(vertexDegrees.size, edgeDegrees.size);
 
 var probDiff : real;
 var blockID = 1;

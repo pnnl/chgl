@@ -295,13 +295,16 @@ module Generation {
       }
     }
     
-    var vTableDom = createCyclic(0);
-    var eTableDom = createCyclic(0);
+    var vTableDom = {0..-1} dmapped Cyclic(startIdx = 0);
+    var eTableDom = {0..-1} dmapped Cyclic(startIdx = 0);
     var vTable : [vTableDom] int;
     var eTable : [eTableDom] int;
     // Holds beginning of offset into each distributed array table; (offset, size) pairs
     var vTableMeta : [1..vMaxDeg] (int, int);
     var eTableMeta : [1..eMaxDeg] (int, int);
+    var aggregator = new Aggregator((int, int));
+    
+    // Construct vTable
     {
       var vDegSize : [1..vMaxDeg] chpl__processorAtomicType(int);
       forall (vDeg, v) in zip(vDegSeq, vDegSeqDom) {
@@ -319,13 +322,14 @@ module Generation {
       
       // Fill in distributed edge table
       // Aggregates (idx, vertex) pairs; will turn into vTable[idx] = vertex
-      var aggregator = new Aggregator((int, int));
       sync forall (vertex, deg) in zip(vDegSeq.domain, vDegSeq) {
         if deg >= 1 {
           var idx = vDegSize[deg].fetchSub(1) - 1;
           if idx < 0 then halt("Bad degree index: ", idx, " for degree ", deg);
+          
+          // Apply offset of degree to index
           idx += vTableMeta[deg][1];
-          const loc = getLocale(vTable.domain, idx);
+          const loc = vTable.domain.dist.idxToLocale(idx);
           var buf = aggregator.aggregate((idx, vertex), loc);
           if buf != nil then begin on loc { 
             [(i,v) in buf] vTable[i] = v;
@@ -337,8 +341,9 @@ module Generation {
         on loc do [(i,v) in buf] vTable[i] = v;
         buf.done();
       }
-      aggregator.destroy();
     }
+
+    //Construct eTable
     {
       // Obtain size of distributed edges domain
       var eDegSize : [1..eMaxDeg] chpl__processorAtomicType(int);
@@ -357,13 +362,14 @@ module Generation {
 
       // Fill in distributed edge table
       // Aggregates (idx, edge) pairs; will turn into eTable[idx] = edge
-      var aggregator = new Aggregator((int, int));
       sync forall (edge, deg) in zip(eDegSeq.domain, eDegSeq) {
         if deg >= 1 {
           var idx = eDegSize[deg].fetchSub(1) - 1;
           if idx < 0 then halt("Bad degree index: ", idx, " for degree ", deg);
+          
+          // Apply offset of degree to index
           idx += eTableMeta[deg][1];
-          const loc = getLocale(eTable.domain, idx);
+          const loc = eTable.domain.dist.idxToLocale(idx);
           var buf = aggregator.aggregate((idx, edge), loc);
           if buf != nil then begin on loc { 
             [(i,e) in buf] eTable[i] = e;
@@ -375,18 +381,18 @@ module Generation {
         on loc do [(i,e) in buf] eTable[i] = e;
         buf.done();
       }
-      aggregator.destroy();
     }
+    aggregator.destroy();
 
     var workInfo = calculateWork(inclusionsToAdd, targetLoc);
 
     // Perform work evenly across all locales
     coforall loc in targetLoc do on loc {
-      const _vDegTable = vDegTable;
-      const _eDegTable = eDegTable;
-      const _vTableMeta = vTableMeta;
-      const _eTableMeta = eTableMeta;
-      const _workInfo = workInfo;
+      var _vDegTable = vDegTable;
+      var _eDegTable = eDegTable;
+      var _vTableMeta = vTableMeta;
+      var _eTableMeta = eTableMeta;
+      var _workInfo = workInfo;
       
       sync coforall tid in 1..here.maxTaskPar {
         const work = _workInfo[here.id, tid];

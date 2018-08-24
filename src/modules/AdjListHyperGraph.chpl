@@ -784,10 +784,10 @@ module AdjListHyperGraph {
     }
 
     inline proc toEdge(id : integral) {
-      if !edgesDomain.member(id : eIndexType) {
+      if boundsChecking && !edgesDomain.member(id : eIndexType) {
         halt(id, " is out of range, expected within ", edgesDomain);
       }
-      return id : eIndexType : eDescType;
+      return (id : eIndexType) : eDescType;
     }
 
     inline proc toEdge(desc : eDescType) {
@@ -800,10 +800,10 @@ module AdjListHyperGraph {
     }
 
     inline proc toVertex(id : integral) {
-      if !verticesDomain.member(id : vIndexType) {
+      if boundsChecking && !verticesDomain.member(id : vIndexType) {
         halt(id, " is out of range, expected within ", verticesDomain);
       }
-      return id : vIndexType : vDescType;
+      return (id : vIndexType) : vDescType;
     }
 
     inline proc toVertex(desc : vDescType) {
