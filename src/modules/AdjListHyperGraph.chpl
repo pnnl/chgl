@@ -731,8 +731,8 @@ module AdjListHyperGraph {
       
 
       // Push on local buffers to send later...
-      var vLoc = verticesDist.idxToLocale(vDesc.id);
-      var eLoc = edgesDist.idxToLocale(eDesc.id);
+      var vLoc = verticesDomain.dist.idxToLocale(vDesc.id);
+      var eLoc = edgesDomain.dist.idxToLocale(eDesc.id);
       
       if vLoc == here {
         getVertex(vDesc).addNodes(eDesc);

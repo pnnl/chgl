@@ -2,6 +2,7 @@ module Generation {
 
   use IO;
   use Random;
+  use BlockDist;
   use CyclicDist;
   use Utilities;
   use AdjListHyperGraph;
@@ -295,8 +296,8 @@ module Generation {
       }
     }
     
-    var vTableDom = {0..-1} dmapped Cyclic(startIdx = 0);
-    var eTableDom = {0..-1} dmapped Cyclic(startIdx = 0);
+    var vTableDom = {0..-1} dmapped Cyclic(startIdx=0);
+    var eTableDom = {0..-1} dmapped Cyclic(startIdx=0);
     var vTable : [vTableDom] int;
     var eTable : [eTableDom] int;
     // Holds beginning of offset into each distributed array table; (offset, size) pairs
@@ -388,10 +389,15 @@ module Generation {
 
     // Perform work evenly across all locales
     coforall loc in targetLoc do on loc {
-      var _vDegTable = vDegTable;
-      var _eDegTable = eDegTable;
-      var _vTableMeta = vTableMeta;
-      var _eTableMeta = eTableMeta;
+      const _vDegDom = vDegTable.domain;
+      const _eDegDom = eDegTable.domain;
+      var _vDegTable : [_vDegDom] real = vDegTable;
+      var _eDegTable : [_eDegDom] real = eDegTable;
+      
+      const _vTableDom = vTableMeta.domain;
+      const _eTableDom = eTableMeta.domain;
+      var _vTableMeta : [_vTableDom] (int, int) = vTableMeta;
+      var _eTableMeta : [_eTableDom] (int, int) = eTableMeta;
       var _workInfo = workInfo;
       
       sync coforall tid in 1..here.maxTaskPar {
