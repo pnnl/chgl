@@ -506,10 +506,25 @@ module Generation {
       // This avoids processing a most likely "wrong" value of rho as
       // mentioned by Sinan.
       if (((idV + nV_int) <= numV) && ((idE + nE_int) <= numE)) {
-        const ref fullVerticesDomain = graph.verticesDomain;
-        const verticesDomain = fullVerticesDomain[idV..#nV_int];
-        const ref fullEdgesDomain = graph.edgesDomain;
-        const edgesDomain = fullEdgesDomain[idE..#nE_int];
+        if nE_int < 0 || nV_int < 0 {
+          writeln("idV = ", idV);
+          writeln("idE = ", idE);
+          writeln("numV = ", numV);
+          writeln("numE = ", numE);
+          writeln("nV = ", nV);
+          writeln("nV : int = ", nV : int);
+          writeln("nE = ", nE);
+          writeln("nE : int = ", nE : int);
+          writeln("rho = ", rho);
+          writeln("dV = ", dV);
+          writeln("dE = ", dE);
+          writeln("mV = ", mV);
+          writeln("mE = ", mE);
+          writeln("blockID = ", blockID);
+          halt("Bad idx");
+        }
+        const ref verticesDomain = graph.verticesDomain[idV..#nV_int];
+        const ref edgesDomain = graph.edgesDomain[idE..#nE_int];
         expectedDuplicates += round((nV_int * nE_int * log(1/(1-rho))) - (nV_int * nE_int * rho)) : int;
         // Compute affinity blocks
         var rng = new owned RandomStream(int, parSafe=true);
