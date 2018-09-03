@@ -15,6 +15,7 @@ class Vector {
   proc this(idx : integral) ref { 
     return _dummy;
   }
+  proc getDomain() { halt(); }
   proc these() : eltType {halt();}
 }
 
@@ -49,5 +50,7 @@ class VectorImpl : Vector {
   override proc this(idx : integral) ref {
     return arr[idx];
   }
+
+  override getDomain() { return this.dom; }
 }
 

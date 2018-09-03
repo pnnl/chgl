@@ -19,7 +19,8 @@ module AdjListHyperGraph {
   use Sort;
   use Search;
   use AggregationBuffer;
-  
+  use Vector;
+
   /*
     Disable aggregation. This will cause all calls to `addInclusionBuffered` to go to `addInclusion` and
     all calls to `flush` to do a NOP.
@@ -193,8 +194,7 @@ module AdjListHyperGraph {
   */
   class NodeData {
     type nodeIdType;
-    var neighborListDom = {0..-1};
-    var neighborList: [neighborListDom] nodeIdType;
+    var neighborList : Vector(nodeIdType);
 
     // Due to issue with qthreads, we need to keep this as an atomic and implement as a spinlock
     // TODO: Can parameterize this to use SpinLockTAS (Test & Set), SpinlockTATAS (Test & Test & Set),
@@ -204,10 +204,6 @@ module AdjListHyperGraph {
     //  Keeps track of whether or not the neighborList is sorted; any insertion must set this to false
     var isSorted : bool;
 
-    // As neighborList is protected by a lock, the size would normally have to be computed in a mutually exclusive way.
-    // By keeping a separate counter, it makes it fast and parallel-safe to check for the size of the neighborList.
-    var neighborListSize : atomic int;
-
     proc init(type nodeIdType) {
       this.nodeIdType = nodeIdType;
     }
@@ -216,16 +212,10 @@ module AdjListHyperGraph {
       this.nodeIdType = other.nodeIdType;
       complete();
 
-      on other {
-        other.lock.acquire();
-
-        this.neighborListDom = other.neighborListDom;
-        this.neighborList = other.neighborList;
-        this.isSorted = other.isSorted;
-        this.neighborListSize.write(other.neighborListSize.read());
-
-        other.lock.release();
-      }
+      other.lock.acquire();
+      this.neighborList = new VectorImpl(other.neighborList);
+      this.isSorted = other.isSorted;
+      other.lock.release();
     }
     
     // Removes duplicates... sorts the neighborlist before doing so
@@ -234,22 +224,28 @@ module AdjListHyperGraph {
       on this {
         lock.acquire();
 
-        sortNeighbors();
+        if !neighborList.isEmpty() {
+          sortNeighbors();
+          
+          // Create new vector that will hold the updated list of neighbors.
+          var newDom = neighborList.getDomain();
+          const high = newDom.high;
+          const low = newDom.low;
+          const size = newDom.size;
+          var newNeighbors = new VectorImpl(nodeIdType, newDom);
+          var oldNeighborIdx = low;
+          var newNeighborIdx = low;
 
-        var newDom = neighborListDom;
-        var newNeighbors : [newDom] nodeIdType;
-        var oldNeighborIdx = neighborListDom.low;
-        var newNeighborIdx = newDom.low;
-        if neighborList.size != 0 {
+          // Copy over first neighbor as it is guaranteed to be unique
           newNeighbors[newNeighborIdx] = neighborList[newNeighborIdx];
-          while (oldNeighborIdx <= neighborListDom.high) {
+          while (oldNeighborIdx <= newDom.high) {
             if neighborList[oldNeighborIdx] != newNeighbors[newNeighborIdx] {
               newNeighborIdx += 1;
               newNeighbors[newNeighborIdx] = neighborList[oldNeighborIdx];
             }
             oldNeighborIdx += 1;
           }
-          
+
           neighborsRemoved = neighborListDom.high - newNeighborIdx;
           neighborListDom = {newDom.low..newNeighborIdx};
           neighborList = newNeighbors[newDom.low..newNeighborIdx];

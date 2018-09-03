@@ -1,6 +1,11 @@
 
 /*
   TODO: Experiment with expanding buffer sizes
+  TODO: Experiment with a more global aggregation scheme, it feels a bit clunky having to
+        create and destroy an aggregator for each usage. Perhaps keep a pool of data by type.
+        One way to do this is to provide a run-time mapping of the `type : string` to the privatization
+        identifier, and use the `type` to cast back to the appropriate AggregationBuffer, and then construct
+        the appropriate record-wrapper.
 */
 module AggregationBuffer {
 
@@ -17,6 +22,7 @@ module AggregationBuffer {
 
   proc debug(args...?nArgs) where !AggregatorDebug {
     // NOP
+
   }
 
   pragma "always RVF"
@@ -325,6 +331,7 @@ module AggregationBuffer {
     
     proc aggregate(msg : msgType, locid : int) : unmanaged Buffer(msgType) {
       // Performs sanity checks to ensure that returned buffer is valid
+      // TODO: Investigate why the buffer is not properly sanitized when we enable this check...
       proc doSanityCheck(buf : unmanaged Buffer(msgType)) where AggregatorDebug {
         if buf._stolen.peek() != false then halt("Buffer is still stolen!", buf);
         if buf._claimed.peek() != 0 then halt("Buffer has not had claim reset...", buf);

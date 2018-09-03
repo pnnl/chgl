@@ -271,6 +271,9 @@ module Generation {
     if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return graph;
    
     // Create a table of random vertices
+    // TODO: Make this distributed so we do not
+    // localize anything, as we want to make it
+    // more fair to Chapel.
     var vDegTableDom = {0..-1};
     var eDegTableDom = {0..-1};
     var vDegTable : [vDegTableDom] real;
@@ -529,7 +532,7 @@ module Generation {
         // Compute affinity blocks
         var rng = new owned RandomStream(int, parSafe=true);
         forall v in verticesDomain {
-          for (e, p) in zip(edgesDomain, rng.iterate(edgesDomain)) {
+          forall (e, p) in zip(edgesDomain, rng.iterate(edgesDomain)) {
             if p > rho then graph.addInclusion(v,e);
           }
         }
@@ -552,6 +555,10 @@ module Generation {
       ed[e.id] = max(0, oldDeg - eDeg);
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
+    // TODO: Make this a very special case ChungLu that does keep track
+    // of the mappings between vertices and edges and their degrees. This
+    // is so we can squeeze out a lot more performance for this particular
+    // use-case and can make use optimizations specific to BTER.
     generateChungLu(graph, vd, ed, nInclusions);
     return graph;
   }
