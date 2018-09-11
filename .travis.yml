@@ -14,3 +14,6 @@ jobs:
     - script: |
         docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git pnnl/chapel:master /bin/bash -c '
         chpldoc src/*/*.chpl'
+
+notifications:
+    slack: hypergraphs:D6dV0BOxuu3GjVNcp3jokIXb
