@@ -1,28 +1,16 @@
-before_script:
-  - pushd $CHPL_HOME
-  - make test-venv
-  - make chpldoc
-  - popd
+language: minimal
 
-stages:
-  - build
-  - test
-  - doc
+sudo: required
 
-test:
-  image: pnnl/chapel:master
-  stage: test
-  script:
-  - cd test/unit
-  - start_test -junit-xml -numlocales 4
+services:
+  - docker
 
-chpldoc:
-  image: pnnl/chapel:master
-  stage: doc
-  script: chpldoc src/*/*.chpl
-  when: always
-  artifacts:
-    paths: 
-    - docs
-    expire_in: 1 month
-  allow_failure: true
+jobs:
+  include:
+    - script: |
+        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git pnnl/chapel:master /bin/bash -c '
+        cd test/unit
+        start_test -junit-xml -numlocales 4'
+    - script: |
+        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git pnnl/chapel:master /bin/bash -c '
+        chpldoc src/*/*.chpl'
