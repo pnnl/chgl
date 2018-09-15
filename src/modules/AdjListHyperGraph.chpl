@@ -445,7 +445,7 @@ module AdjListHyperGraph {
     var _useAggregation : bool;
 
     // Initialize a graph with initial domains
-    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist, param indexBits = 32) {
+    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist, param indexBits = 64) {
       if numVertices > max(int(indexBits)) || numVertices < 0 { 
         halt("numVertices must be between 0..", max(int(indexBits)), " but got ", numVertices);
       }
@@ -969,7 +969,7 @@ module AdjListHyperGraph {
     }
   } // class Graph
   
-  inline proc +=(graph : unmanaged AdjListHyperGraph, other) {
+  inline proc +=(graph : AdjListHyperGraph, other) {
     graph._value += other;
   }
 

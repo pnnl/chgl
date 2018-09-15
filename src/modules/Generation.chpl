@@ -11,6 +11,8 @@ module Generation {
   use Sort;
   use Search;
 
+
+
   param GenerationSeedOffset = 0xDEADBEEF;
   config const GenerationUseAggregation = true;
   
@@ -176,35 +178,25 @@ module Generation {
     return graph;
   }
   
-  proc generateErdosRenyi(graph, probability, verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, couponCollector = true, targetLocales = Locales){
-    const numVertices = verticesDomain.size;
-    const numEdges = edgesDomain.size;
-    const vertLow = verticesDomain.low;
-    const vertHigh = verticesDomain.high;
-    const vertSize = verticesDomain.size;
-    const vertStride = verticesDomain.stride;
-    const edgeLow = edgesDomain.low;
-    const edgeHigh = edgesDomain.high;
-    const edgeSize = edgesDomain.size;
-    const edgeStride = edgesDomain.stride;
-    var newP = if couponCollector then log(1/(1-probability)) else probability;
-    var inclusionsToAdd = round(numVertices * numEdges * newP) : int; 
-    var workInfo = calculateWork(inclusionsToAdd, targetLocales);
-    
-    sync coforall loc in targetLocales do on loc {
-      coforall tid in 1..here.maxTaskPar {
-        var work = workInfo[here.id, tid];
-        var rng = new owned RandomStream(int, seed=work.rngSeed);
-        if work.rngOffset != 0 then rng.skipToNth(work.rngOffset);
-        for 1..work.numOperations {
-          var vertex = rng.getNext(0, vertSize - 1) * vertStride + vertLow;
-          var edge = rng.getNext(0, edgeSize - 1) * edgeStride + edgeLow;
-          graph.addInclusion(vertex, edge);
+  /*
+    Performs Miller/Hagberg's variation of Erdos-Renyi: http://aric.hagberg.org/papers/miller-2011-efficient.pdf 
+  */
+  proc generateErdosRenyi(graph, probability, verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLocales = Locales){
+    const numEdges = graph.numEdges;
+    var seed = randomInt();
+    forall v in graph.getVertices() {
+      var e : real = 0;
+      var rand = new owned RandomStream(real, seed=seed);
+      if v.id > 0 then try! rand.skipToNth(v.id * numEdges);
+      while e < numEdges {
+        var r = rand.getNext();
+        e += log(r) / log(1-probability);
+        if e < numEdges {
+          graph.addInclusion(v,floor(e):int);
+          e += 1;
         }
       }
     }
-    
-    return graph;
   }
 
   proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd) {

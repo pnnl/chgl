@@ -1,5 +1,20 @@
 use CyclicDist;
 use BlockDist;
+use Random;
+
+/*
+  Obtain global variable
+*/
+var globalRealRandomStream = new owned RandomStream(real, parSafe = true);
+var globalIntegerRandomStream = new owned RandomStream(int, parSafe = true);
+
+inline proc randomInt(start = min(int), end = max(int)) {
+  return globalIntegerRandomStream.getNext(start,end);
+}
+
+inline proc randomReal() {
+  return globalRealRandomStream.getNext();
+}
 
 inline proc getLocale(dom, idx) {
   var loc = dom.dist.idxToLocale(idx);

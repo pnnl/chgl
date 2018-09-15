@@ -22,14 +22,15 @@ if doCommDiagnostics then startCommDiagnostics();
 if doVerboseComm then startVerboseComm();
 if doVisualDebug then startVdebug("ErdosRenyiBenchmark-VisualDebug");
 if doVisualDebug then tagVdebug("Initialization");
-var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0, targetLocales=Locales));
+var graph = new AdjListHyperGraph(numVertices, numEdges, new unmanaged Cyclic(startIdx=0, targetLocales=Locales));
 if doVisualDebug then tagVdebug("Generation");
 var timer = new Timer();
 timer.start();
+graph.startAggregation();
 generateErdosRenyi(graph, edgeProbability);
+graph.stopAggregation();
 timer.stop();
 if doVisualDebug then tagVdebug("Deinitialization");
-graph.destroy();
 
 
 writeln("Time:", timer.elapsed());
@@ -42,6 +43,11 @@ writeln("ProbabilityMultiple:", probability);
 writeln("Naive:", isNaive);
 writeln("Contention:", Debug.contentionCnt);
 writeln("maxTaskPar:", here.maxTaskPar);
+writeln("Duplicates: ", graph.removeDuplicates());
+writeln("Inclusions: ", graph.getInclusions());
+writeln("Expected Inclusions: ", round(numVertices * numEdges * probability) : int);
+
+graph.destroy();
 
 if doVisualDebug then stopVdebug();
 if doCommDiagnostics then writeln(getCommDiagnostics());

@@ -63,7 +63,7 @@ module AggregationBuffer {
   }
   
   proc type Aggregator.chpl__deserialize((pid, instance)) {
-    return new unmanaged Aggregator(pid, instance);
+    return new Aggregator(pid, instance);
   }
 
   pragma "no doc"
