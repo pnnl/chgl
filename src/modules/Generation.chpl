@@ -197,6 +197,7 @@ module Generation {
         }
       }
     }
+    return graph;
   }
 
   proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd) {
