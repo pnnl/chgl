@@ -35,7 +35,7 @@ systems.
 Environment Requirements
 ------------------------
 
-**Programming Language:** Chapel 1.18 pre-release (master branch as of 7/25/2018)
+**Programming Language:** Chapel 1.18 pre-release (master branch as of 8/22/2018)
 
 **Operating System & Version:** Tested on Chapel Docker containers (Debian) and internal RHEL 7 system
 
