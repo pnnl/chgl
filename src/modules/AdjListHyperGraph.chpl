@@ -969,7 +969,7 @@ module AdjListHyperGraph {
     }
   } // class Graph
   
-  inline proc +=(graph : unmanaged AdjListHyperGraph, other) {
+  inline proc +=(graph : AdjListHyperGraph, other) {
     graph._value += other;
   }
 
