@@ -35,7 +35,7 @@ systems.
 Environment Requirements
 ------------------------
 
-**Programming Language:** Chapel 1.18 pre-release (master branch as of 8/22/2018)
+**Programming Language:** Chapel 1.18 pre-release (master branch as of 9/17/2018)
 
 **Operating System & Version:** Tested on Chapel Docker containers (Debian) and internal RHEL 7 system
 
@@ -44,11 +44,11 @@ Environment Requirements
 Dependencies
 ------------
 
-A compiled version of the Chapel programming language with is test virtual environment is all that is required to compile and test CHGL. Unit tests were run on the GitLab-CI continuous integration system using Chapel's Docker container (see included ``.gitlab-ci.yml`` file for details).
+A compiled version of the Chapel programming language with is test virtual environment is all that is required to compile and test CHGL. Unit tests were run on the Travis CI continuous integration system using Chapel's Docker container (see included ``.travis.yml`` file for details).
 
 | Name | Version | Download Location | Country of Origin | Special Instructions |
 | ---- | ------- | ----------------- | ----------------- | -------------------- |
-| Chapel | 1.18 pre-release | https://github.com/chapel-lang/chapel | USA | None |  
+| Chapel | 1.18 pre-release | https://github.com/chapel-lang/chapel | USA | Tested with commit [155a8837560da1645b31784a7df301fca400f048](https://github.com/chapel-lang/chapel/commit/155a8837560da1645b31784a7df301fca400f048) |  
 
 Distribution Files
 ------------------
@@ -60,18 +60,22 @@ Installation Instructions
 
 CHGL can be compiled by first installing Chapel 
 (see https://chapel-lang.org/docs/usingchapel/QUICKSTART.html) or using a Chapel 
-Docker image (see https://hub.docker.com/r/chapel/chapel/). Note however that 
-CHGL uses features found in the Chapel 1.18 pre-release and these features are 
-currently unavailable in Docker images. Once a 1.18 release is made, Docker 
-images can be used.
+Docker image (see https://hub.docker.com/r/chapel/chapel/). Be sure to pull the required
+commit CHGL has been tested with (see Dependencies above). Using a newer version
+of Chapel may cause errors.
+
+Note that CHGL uses features found in the Chapel 1.18 pre-release. These features are 
+currently unavailable in Cray's published Docker images at https://hub.docker.com/r/chapel/chapel/. 
+Once a 1.18 release is made, Cray Docker images can be used. PNNL used custom-built 
+Docker imsages compiled from the master branch of the Chapel source (see https://hub.docker.com/r/pnnl/chapel/).
 
 In the future, CHGL will be compiled and packaged into a Mason library. For the 
 time being, CHGL is used directly (see unit tests for examples). The code is 
 compiled and tested simultaneously -- see the Test Cases section below for 
 running the unit tests.
 
-Also see the ``.gitlab-ci.yml`` file for an example of our continuous 
-integration build.
+Also see the ``.travis.yml`` file for an example of our continuous 
+integration build. Or view the current status at https://travis-ci.org/pnnl/chgl.
 
 **NOTE:** The COMPOPTS files in ``test/unit`` and ``test/performance`` make use 
 of ``--no-lifetime-checking --no-warnings`` for successful compilation. If you 
@@ -87,7 +91,13 @@ script supplied by Chapel. Change directories into ``test/unit`` or
 [unit test README](test/unit/README.md) or 
 [perfomrance test README](test/performance/README.md) for more information.
 
+The unit tests are best run to verify the CHGL build. Performance tests were not routinely
+run by a continuous integration environment and were written targeting particular hardware
+systems, leading them to be not as useful for verifying a CHGL build.
+
 User Guide
 ==========
 
-TBD
+A full User Guide is still under development; however, the CHGL API documentation 
+can be generated using Chapel's chpldoc application at the root of the source tree. 
+E.g., ``chpldoc src/*/*.chpl``. 
