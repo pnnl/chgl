@@ -771,6 +771,13 @@ module AdjListHyperGraph {
       getEdge(eDesc).addNodes(vDesc);
     }
 
+    proc hasInclusion(v, e) {
+      const vDesc = toVertex(v);
+      const eDesc = toEdge(e);
+
+      return getVertex(vDesc).hasNeighbor(e);
+    }
+
     proc removeDuplicates() {
       var vertexNeighborsRemoved = 0;
       var edgeNeighborsRemoved = 0;
@@ -912,19 +919,23 @@ module AdjListHyperGraph {
     iter intersection(v1 : vDescType, v2 : vDescType, param tag : iterKind) where tag == iterKind.standalone {
       forall n in getVertex(v1).neighborIntersection(getEdge(v2)) do yield n;
     }
+    
+    iter neighbors(e : eDescType) ref {
+      for v in getEdge(e).neighborList do yield v;
+    }
 
     iter neighbors(e : eDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
-      forall v in edges[e.id].neighborList do yield v;
+      forall v in getEdge(e).neighborList do yield v;
     }
 
     iter neighbors(v : vDescType) ref {
-      for e in vertices[v.id].neighborList do yield e;
+      for e in getVertex(v).neighborList do yield e;
     }
 
     iter neighbors(v : vDescType, param tag : iterKind) ref
       where tag == iterKind.standalone {
-      forall e in vertices[v.id].neighborList do yield e;
+      forall e in getVertex(v).neighborList do yield e;
     }
 
     // Bad argument
