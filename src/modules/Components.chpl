@@ -16,14 +16,14 @@ module Components {
       var component : int(64);
 
       for v in graph.getVertices() {
-        var sequence = new owned Vector(graph._value.vDescType);
+        var sequence = new borrowed VectorImpl(graph._value.vDescType, {0..-1});
         if components[v.id] != 0 then continue;
         components[v.id] = component;
         sequence.append(v);
         for vv in vertexBFS(graph, v, s) {
           if components[vv.id] != 0 {
             components[vv.id] = component;
-            sequence.append(components);
+            sequence.append(vv);
           }
         }
         yield sequence;
@@ -36,15 +36,15 @@ module Components {
       // current componentID 
       var component : int(64);
 
-      for v in graph.getEdge() {
-        var sequence = new owned Vector(graph._value.eDescType);
+      for e in graph.getEdges() {
+        var sequence = new borrowed VectorImpl(graph._value.eDescType, {0..-1});
         if components[e.id] != 0 then continue;
         components[e.id] = component;
         sequence.append(e);
         for ee in edgeBFS(graph, e, s) {
           if components[ee.id] != 0 {
             components[ee.id] = component;
-            sequence.append(components);
+            sequence.append(ee);
           }
         }
         yield sequence;

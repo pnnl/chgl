@@ -4,12 +4,13 @@
 */
 
 use List;
+use AdjListHyperGraph;
 
 iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType {
   var queue = new list(v.type);
   queue.push_back(v);
-  while !queue.isEmpty() {
-    var currV = queue.remove();
+  while queue.size != 0 {
+    var currV = queue.pop_front();
     if v != currV then yield currV;
     for vv in graph.walk(currV, s) {
       queue.push_back(vv);
@@ -20,8 +21,8 @@ iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType 
 iter edgeBFS(graph, e : graph._value.eDescType, s=1) : graph._value.eDescType {
   var queue = new list(e.type);
   queue.push_back(e);
-  while !queue.isEmpty() {
-    var currE = queue.remove();
+  while queue.size != 0 {
+    var currE = queue.pop_front();
     if e != currE then yield currE;
     for ee in graph.walk(currE, s) {
       queue.push_back(ee);

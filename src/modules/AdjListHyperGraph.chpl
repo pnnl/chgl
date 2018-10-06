@@ -693,11 +693,13 @@ module AdjListHyperGraph {
     }
 
     proc isConnected(v1 : vDescType, v2 : vDescType, s) {
-      return intersection(v1, v2).size >= s;
+      var intersect = intersection(v1, v2);
+      return intersect.size >= s;
     }
 
     proc isConnected(e1 : eDescType, e2 : eDescType, s) {
-      return intersection(e1, e2).size >= s;
+      var intersect = intersection(e1, e2);
+      return intersect.size >= s;
     }
     
     proc getInclusions() return + reduce getVertexDegrees();
@@ -987,11 +989,11 @@ module AdjListHyperGraph {
     }
 
     iter intersection(v1 : vDescType, v2 : vDescType) {
-      for n in getVertex(v1).neighborIntersection(getEdge(v2)) do yield n;
+      for n in getVertex(v1).neighborIntersection(getVertex(v2)) do yield n;
     }
 
     iter intersection(v1 : vDescType, v2 : vDescType, param tag : iterKind) where tag == iterKind.standalone {
-      forall n in getVertex(v1).neighborIntersection(getEdge(v2)) do yield n;
+      forall n in getVertex(v1).neighborIntersection(getVertex(v2)) do yield n;
     }
     
     iter neighbors(e : eDescType) ref {

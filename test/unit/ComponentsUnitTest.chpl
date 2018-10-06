@@ -10,12 +10,27 @@ graph.addInclusion(2,2);
 // Create a line... (v1 -> e1)
 graph.addInclusion(1,1);
 
-// Leave v3 as isolated... 
-// Largest component is of size 4...
-writeln(graph.maximalComponentSize());
-// 3 Components of at least size 1...
-writeln(graph.countComponents(1));
-// 2 Components of at least size 2...
-writeln(graph.countComponents(2));
-// 1 Component of at least size 3...
-writeln(graph.countComponents(3));
+
+writeln("Calculating components for s = 1...");
+for component in getVertexComponents(graph, s = 1) {
+  writeln(component);
+}
+for component in getEdgeComponents(graph, s = 1) {
+  writeln(component);
+}
+
+writeln("Calculating components for s = 2...");
+for component in getVertexComponents(graph, s = 2) {
+  writeln(component);
+}
+for component in getEdgeComponents(graph, s = 2) {
+  writeln(component);
+}
+
+writeln("Calculating components for s = 3...");
+for component in getVertexComponents(graph, s = 3) {
+  writeln(component);
+}
+for component in getEdgeComponents(graph, s = 3) {
+  writeln(component);
+}
