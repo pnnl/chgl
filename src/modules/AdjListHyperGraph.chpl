@@ -670,7 +670,7 @@ module AdjListHyperGraph {
       for e in getEdges() {
         var isToplex = true;
         for ee in getEdges() {
-          if ee != e && !isConnected(e, ee s=1) {
+          if ee != e && !isConnected(e, ee, s=1) {
             isToplex = false;
             break;
           }
@@ -683,7 +683,7 @@ module AdjListHyperGraph {
       forall e in getEdges() {
         var isToplex = true;
         for ee in getEdges() {
-          if ee != e && !isConnected(e, ee s=1) {
+          if ee != e && !isConnected(e, ee, s=1) {
             isToplex = false;
             break;
           }
