@@ -619,13 +619,87 @@ module AdjListHyperGraph {
     }
 
     iter getNeighbors(eDesc : eDescType) : vDescType {
-      for v in getEdge(eDesc).neighborList do yield v;
+      for v in getEdge(eDesc).neighborList do yield v; 
     }
 
     iter getNeighbors(eDesc : eDescType, param tag) : vDescType where tag == iterKind.standalone {
       forall v in getEdge(eDesc).neighborList do yield v;
     }
+    
+    iter walk(eDesc : eDescType, s = 1) : eDescType {
+      for v in getNeighbors(eDesc) {
+        for e in getNeighbors(v) {
+          if eDesc != e && isConnected(eDesc, e, s) {
+            yield e;
+          }
+        }
+      }
+    }
 
+    iter walk(eDesc : eDescType, s = 1, param tag : iterKind) : eDescType where tag == iterKind.standalone {
+      forall v in getNeighbors(eDesc) {
+        forall e in getNeighbors(v) {
+          if eDesc != e && isConnected(eDesc, e, s) {
+            yield e;
+          }
+        }
+      }
+    }
+
+    iter walk(vDesc : vDescType, s = 1) : vDescType {
+      for e in getNeighbors(vDesc) {
+        for v in getNeighbors(e) {
+          if vDesc != v && isConnected(vDesc, v, s) {
+            yield v;
+          }
+        }
+      }
+    }
+
+    iter walk(vDesc : vDescType, s = 1, param tag : iterKind) : vDescType where tag == iterKind.standalone {
+      forall e in getNeighbors(vDesc) {
+        forall v in getNeighbors(e) {
+          if vDesc != v && isConnected(vDesc, v, s) {
+            yield v;
+          }
+        }
+      }
+    }
+
+    iter getToplexes() {
+      for e in getEdges() {
+        var isToplex = true;
+        for ee in getEdges() {
+          if ee != e && !isConnected(e, ee s=1) {
+            isToplex = false;
+            break;
+          }
+        }
+        if isToplex then yield e;
+      }
+    }
+
+    iter getToplexes(param tag : iterKind) : eDescType where tag == iterKind.standalone  {
+      forall e in getEdges() {
+        var isToplex = true;
+        for ee in getEdges() {
+          if ee != e && !isConnected(e, ee s=1) {
+            isToplex = false;
+            break;
+          }
+        }
+        if isToplex then yield e;
+      }
+    }
+
+    proc isConnected(v1 : vDescType, v2 : vDescType, s) {
+      return intersection(v1, v2).size >= s;
+    }
+
+    proc isConnected(e1 : eDescType, e2 : eDescType, s) {
+      return intersection(e1, e2).size >= s;
+    }
+    
     proc getInclusions() return + reduce getVertexDegrees();
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
