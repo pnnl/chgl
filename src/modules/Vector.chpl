@@ -49,5 +49,9 @@ class VectorImpl : Vector {
   override proc this(idx : integral) ref {
     return arr[idx];
   }
+
+  proc readWriteThis(f) {
+    f <~> arr;
+  }
 }
 
