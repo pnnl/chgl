@@ -20,7 +20,7 @@ Project Overview
 
 **Travis CI Build Status:** [![Build Status](https://travis-ci.org/pnnl/chgl.svg?branch=master)](https://travis-ci.org/pnnl/chgl)
 
-Detailed Summary
+Summary
 ----------------
 
 **C**hapel **H**per**g**raph **L**ibrary (CHGL), a library
