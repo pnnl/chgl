@@ -488,7 +488,7 @@ module Generation {
         vdDom.size,
         edDom.size
         );
-    var graph = new AdjListHyperGraph(vdDom.size, edDom.size, new unmanaged Cyclic(startIdx=0:int(32)));
+    var graph = new AdjListHyperGraph(vdDom.size, edDom.size, new unmanaged Cyclic(startIdx=0));
 
     var blockID = 1;
     var expectedDuplicates : int;

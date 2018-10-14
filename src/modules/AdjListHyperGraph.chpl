@@ -445,7 +445,7 @@ module AdjListHyperGraph {
     var _useAggregation : bool;
 
     // Initialize a graph with initial domains
-    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist, param indexBits = 32) {
+    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist, param indexBits = 64) {
       if numVertices > max(int(indexBits)) || numVertices < 0 { 
         halt("numVertices must be between 0..", max(int(indexBits)), " but got ", numVertices);
       }
@@ -574,7 +574,7 @@ module AdjListHyperGraph {
     }
 
     inline proc getVertex(other) {
-      Debug.badArgs(other, vIndexType, vDescType);  
+      Debug.badArgs(other, (vIndexType, vDescType));  
     }
 
     inline proc getEdge(idx : integral) ref {
@@ -586,7 +586,7 @@ module AdjListHyperGraph {
     }
     
     inline proc getEdge(other) {
-      Debug.badArgs(other, eIndexType, eDescType);  
+      Debug.badArgs(other, (eIndexType, eDescType));  
     }
 
     inline proc verticesDist {
@@ -607,7 +607,7 @@ module AdjListHyperGraph {
     inline proc numNeighbors(vDesc : vDescType) return getVertex(vDesc).numNeighbors;
     inline proc numNeighbors(eDesc : eDescType) return getEdge(eDesc).numNeighbors;
     inline proc numNeighbors(other) {
-      Debug.badArgs(other, vDescType, eDescType);
+      Debug.badArgs(other, (vDescType, eDescType));
     }
 
     iter getNeighbors(vDesc : vDescType) : eDescType {
@@ -619,13 +619,89 @@ module AdjListHyperGraph {
     }
 
     iter getNeighbors(eDesc : eDescType) : vDescType {
-      for v in getEdge(eDesc).neighborList do yield v;
+      for v in getEdge(eDesc).neighborList do yield v; 
     }
 
     iter getNeighbors(eDesc : eDescType, param tag) : vDescType where tag == iterKind.standalone {
       forall v in getEdge(eDesc).neighborList do yield v;
     }
+    
+    iter walk(eDesc : eDescType, s = 1) : eDescType {
+      for v in getNeighbors(eDesc) {
+        for e in getNeighbors(v) {
+          if eDesc != e && isConnected(eDesc, e, s) {
+            yield e;
+          }
+        }
+      }
+    }
 
+    iter walk(eDesc : eDescType, s = 1, param tag : iterKind) : eDescType where tag == iterKind.standalone {
+      forall v in getNeighbors(eDesc) {
+        forall e in getNeighbors(v) {
+          if eDesc != e && isConnected(eDesc, e, s) {
+            yield e;
+          }
+        }
+      }
+    }
+
+    iter walk(vDesc : vDescType, s = 1) : vDescType {
+      for e in getNeighbors(vDesc) {
+        for v in getNeighbors(e) {
+          if vDesc != v && isConnected(vDesc, v, s) {
+            yield v;
+          }
+        }
+      }
+    }
+
+    iter walk(vDesc : vDescType, s = 1, param tag : iterKind) : vDescType where tag == iterKind.standalone {
+      forall e in getNeighbors(vDesc) {
+        forall v in getNeighbors(e) {
+          if vDesc != v && isConnected(vDesc, v, s) {
+            yield v;
+          }
+        }
+      }
+    }
+
+    iter getToplexes() {
+      for e in getEdges() {
+        var isToplex = true;
+        for ee in getEdges() {
+          if ee != e && !isConnected(e, ee, s=1) {
+            isToplex = false;
+            break;
+          }
+        }
+        if isToplex then yield e;
+      }
+    }
+
+    iter getToplexes(param tag : iterKind) : eDescType where tag == iterKind.standalone  {
+      forall e in getEdges() {
+        var isToplex = true;
+        for ee in getEdges() {
+          if ee != e && !isConnected(e, ee, s=1) {
+            isToplex = false;
+            break;
+          }
+        }
+        if isToplex then yield e;
+      }
+    }
+
+    proc isConnected(v1 : vDescType, v2 : vDescType, s) {
+      var intersect = intersection(v1, v2);
+      return intersect.size >= s;
+    }
+
+    proc isConnected(e1 : eDescType, e2 : eDescType, s) {
+      var intersect = intersection(e1, e2);
+      return intersect.size >= s;
+    }
+    
     proc getInclusions() return + reduce getVertexDegrees();
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
@@ -719,17 +795,13 @@ module AdjListHyperGraph {
     /*
       Explicitly aggregate the vertex and element.
     */
-    proc addInclusionBuffered(v, e) {
+    proc addInclusionBuffered(vDesc : vDescType, eDesc : eDescType) {
       // Forward to normal 'addInclusion' if aggregation is disabled
       if AdjListHyperGraphDisableAggregation {
-        addInclusion(v,e);
+        addInclusion(vDesc, eDesc);
         return;
       }
       
-      const vDesc = toVertex(v);
-      const eDesc = toEdge(e);
-      
-
       // Push on local buffers to send later...
       var vLoc = verticesDomain.dist.idxToLocale(vDesc.id);
       var eLoc = edgesDomain.dist.idxToLocale(eDesc.id);
@@ -753,30 +825,87 @@ module AdjListHyperGraph {
       }
     }
     
+    inline proc addInclusionBuffered(v : vIndexType, e : eIndexType) {
+      const vDesc = toVertex(v);
+      const eDesc = toEdge(e);
+      addInclusionBuffered(vDesc, eDesc);
+    }
+
+    inline proc addInclusionBuffered(vDesc : vDescType, e : eIndexType) {
+      const eDesc = toEdge(e);
+      addInclusionBuffered(vDesc, eDesc);
+    }
+
+    inline proc addInclusionBuffered(v : vIndexType, eDesc : eDescType) {
+      const vDesc = toVertex(v);
+      addInclusionBuffered(vDesc, eDesc);
+    }
+    
+    inline proc addInclusionBuffered(v, e) {
+      Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
+    }
+    
     /*
       Adds 'e' as a neighbor of 'v' and 'v' as a neighbor of 'e'.
       If aggregation is enabled via 'startAggregation', this will 
       forward to the aggregated version, 'addInclusionBuffered'.
     */
-    inline proc addInclusion(v, e) {
+    inline proc addInclusion(vDesc : vDescType, eDesc : eDescType) {
       if !AdjListHyperGraphDisableAggregation && useAggregation {
-        addInclusionBuffered(v,e);
+        addInclusionBuffered(vDesc, eDesc);
         return;
       }
-
-      const vDesc = toVertex(v);
-      const eDesc = toEdge(e);
       
       getVertex(vDesc).addNodes(eDesc);
       getEdge(eDesc).addNodes(vDesc);
     }
+    
+    inline proc addInclusion(v : vIndexType, e : eIndexType) {
+      const vDesc = toVertex(v);
+      const eDesc = toEdge(e);
+      addInclusion(vDesc, eDesc);
+    }
 
-    proc hasInclusion(v, e) {
+    inline proc addInclusion(vDesc : vDescType, e : eIndexType) {
+      const eDesc = toEdge(e);
+      addInclusion(vDesc, eDesc);
+    }
+
+    inline proc addInclusion(v : vIndexType, eDesc : eDescType) {
+      const vDesc = toVertex(v);
+      addInclusion(vDesc, eDesc);
+    }
+    
+    inline proc addInclusion(v, e) {
+      Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
+    }
+
+
+    proc hasInclusion(v : vIndexType, e : eIndexType) {
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
 
-      return getVertex(vDesc).hasNeighbor(e);
+      return getVertex(vDesc).hasNeighbor(eDesc);
     }
+
+    proc hasInclusion(vDesc : vDescType, e : eIndexType) {
+      const eDesc = toEdge(e);
+      return getVertex(vDesc).hasNeighbor(eDesc);
+    }
+
+    proc hasInclusion(v : vIndexType, eDesc : eDescType) {
+      const vDesc = toVertex(v);
+      return getVertex(vDesc).hasNeighbor(eDesc);
+    }
+
+    proc hasInclusion(vDesc : vDescType, eDesc : eDescType) {
+      return getVertex(vDesc).hasNeighbor(eDesc);     
+    }
+
+    proc hasInclusion(v, e) {
+      Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
+    }
+
 
     proc removeDuplicates() {
       var vertexNeighborsRemoved = 0;
@@ -803,7 +932,7 @@ module AdjListHyperGraph {
 
     // Bad argument...
     inline proc toEdge(other) param {
-      Debug.badArgs(other, eIndexType, eDescType);
+      Debug.badArgs(other, (eIndexType, eDescType));
     }
 
     inline proc toVertex(id : integral) {
@@ -819,7 +948,7 @@ module AdjListHyperGraph {
 
     // Bad argument...
     inline proc toVertex(other) {
-      Debug.badArgs(other, vIndexType, vDescType);
+      Debug.badArgs(other, (vIndexType, vDescType));
     }
     
     // TODO: Should we add a way to obtain subset of vertex degree and hyperedge cardinality sequences? 
@@ -872,7 +1001,7 @@ module AdjListHyperGraph {
     
     pragma "no doc"
     inline proc getLocale(other) {
-      Debug.badArgs(other, vDescType, eDescType);
+      Debug.badArgs(other, (vDescType, eDescType));
     }
     
     /*
@@ -913,11 +1042,11 @@ module AdjListHyperGraph {
     }
 
     iter intersection(v1 : vDescType, v2 : vDescType) {
-      for n in getVertex(v1).neighborIntersection(getEdge(v2)) do yield n;
+      for n in getVertex(v1).neighborIntersection(getVertex(v2)) do yield n;
     }
 
     iter intersection(v1 : vDescType, v2 : vDescType, param tag : iterKind) where tag == iterKind.standalone {
-      forall n in getVertex(v1).neighborIntersection(getEdge(v2)) do yield n;
+      forall n in getVertex(v1).neighborIntersection(getVertex(v2)) do yield n;
     }
     
     iter neighbors(e : eDescType) ref {
@@ -940,12 +1069,12 @@ module AdjListHyperGraph {
 
     // Bad argument
     iter neighbors(arg) {
-      Debug.badArgs(arg, vDescType, eDescType);
+      Debug.badArgs(arg, (vDescType, eDescType));
     }
 
     // Bad Argument
     iter neighbors(arg, param tag : iterKind) where tag == iterKind.standalone {
-      Debug.badArgs(arg, vDescType, eDescType);
+      Debug.badArgs(arg, (vDescType, eDescType));
     }
 
     // Iterates over all vertex-edge pairs in graph...
@@ -993,13 +1122,13 @@ module AdjListHyperGraph {
   }
 
   inline proc +=(graph : unmanaged AdjListHyperGraphImpl, other) {
-    Debug.badArgs(other, (graph.vDescType, graph.eDescType), (graph.eDescType, graph.vDescType));
+    Debug.badArgs(other, (graph.vDescType, graph.eDescType));
   }
 
   module Debug {
     // Provides a nice error message for when user provides invalid type.
-    proc badArgs(bad, type good...?n) param {
-      compilerError("Expected argument of type to be in ", good : string, " but received argument of type ", bad.type : string);
+    proc badArgs(bad, type good, param errorDepth = 2) param {
+      compilerError("Expected argument of type to be in ", good : string, " but received argument of type ", bad.type : string, errorDepth);
     }
 
     // Determines whether or not we profile for contention...

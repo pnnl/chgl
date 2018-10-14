@@ -1,21 +1,54 @@
 use AdjListHyperGraph;
 use Components;
 
-var graph = new AdjListHyperGraph(numVertices = 4, numEdges = 3);
-// Create a butterfly... (v0 -> e0), (e0 -> v2), (v2 -> e2), (e2 -> v0)
-graph.addInclusion(0,0);
-graph.addInclusion(2,0);
-graph.addInclusion(2,2);
+var graph = new AdjListHyperGraph(numVertices = 10, numEdges = 10);
+forall v in 0..4 {
+  forall e in 0..6 {
+    graph.addInclusion(v,e);
+  }
+}
+forall v in 5..9 {
+  forall e in 7..9 {
+    graph.addInclusion(v,e);
+  }
+}
 
-// Create a line... (v1 -> e1)
-graph.addInclusion(1,1);
+writeln("Calculating components for s = 1...");
+var nComponents = 1;
+for component in getVertexComponents(graph, s = 1) {
+  writeln("#", nComponents, ": ", component);
+  nComponents += 1;
+}
+nComponents = 0;
+for component in getEdgeComponents(graph, s = 1) {
+  writeln("#", nComponents, ": ", component);
+  nComponents += 1;
+}
+nComponents = 0;
 
-// Leave v3 as isolated... 
-// Largest component is of size 4...
-writeln(graph.maximalComponentSize());
-// 3 Components of at least size 1...
-writeln(graph.countComponents(1));
-// 2 Components of at least size 2...
-writeln(graph.countComponents(2));
-// 1 Component of at least size 3...
-writeln(graph.countComponents(3));
+writeln("Calculating components for s = 2...");
+for component in getVertexComponents(graph, s = 2) {
+  writeln("#", nComponents, ": ", component);
+  nComponents += 1;
+}
+nComponents = 0;
+for component in getEdgeComponents(graph, s = 2) {
+  writeln("#", nComponents, ": ", component);
+  nComponents += 1;
+}
+nComponents = 0;
+
+writeln("Calculating components for s = 3...");
+for component in getVertexComponents(graph, s = 3) {
+  writeln("#", nComponents, ": ", component);
+  nComponents += 1;
+}
+nComponents = 0;
+for component in getEdgeComponents(graph, s = 3) {
+  writeln("#", nComponents, ": ", component);
+  nComponents += 1;
+}
+nComponents = 0;
+
+writeln(graph.walk(graph.toVertex(5), 3));
+writeln(graph.neighbors(graph.toVertex(5)));
