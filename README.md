@@ -23,7 +23,7 @@ Project Overview
 Summary
 ----------------
 
-**C**hapel **H**per**g**raph **L**ibrary (CHGL), a library
+**C**hapel **H**yper**g**raph **L**ibrary (CHGL), a library
 for hypergraph computation in the emerging Chapel language.  Hypergraphs
 generalize graphs, where a hypergraph edge can connect any number of vertices.
 Thus, hypergraphs capture high-order, high-dimensional interactions between
