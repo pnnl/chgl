@@ -496,6 +496,13 @@ module Generation {
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
+      if mV == 0 {
+        idV += 1;
+      }
+      if mE == 0 {
+        idE += 1;
+      }
+      if mE == 0 || mV == 0 then continue;
       (nV, nE, rho) = computeAffinityBlocks(dV, dE, mV, mE);
       var nV_int = nV:int;
       var nE_int = nE:int;

@@ -6,15 +6,31 @@ use Butterfly;
 
 proc main() {
     var graph = fromAdjacencyList("../../data/condMat/condMat.txt", " ");
-    var vertexMetamorphs: [0..115] real;
-    
-    var vm_file = open("../../data/condMatBTER/mpdBTER_V.csv", iomode.r).reader();
-    for i in 0..115{
-        vm_file.read(vertexMetamorphs);
+    var vertexDegreeDist : [graph.verticesDomain] int;
+    for (v, deg) in zip(graph.getVertices(), vertexDegreeDist) {
+        deg = graph.numNeighbors(v);
     }
-    writeln("Expected Metamorph: ", vertexMetamorphs);
-    var test = graph.getVertexPerDegreeMetamorphosisCoefficients();
-    writeln("Actual Metamorph: ", test);
-    writeln(test.size);
-    writeln("Done");
+    writeln("Have vDegreeDist");
+    var edgeDegreeDist : [graph.edgesDomain] int;
+    for (e, deg) in zip(graph.getEdges(), edgeDegreeDist) {
+        deg = graph.numNeighbors(e);
+    }
+    writeln("Have eDegreeDist");
+    var vertexPDMC = graph.getVertexPerDegreeMetamorphosisCoefficients();
+    var edgePDMC = graph.getEdgePerDegreeMetamorphosisCoefficients();
+    writeln("have vertexPDMC and edgePDMC");
+
+    var newGraph = generateBTER(vertexDegreeDist, edgeDegreeDist, vertexPDMC, edgePDMC);
+    
+    writeln("have bter graph");
+    {
+        writeln(newGraph.removeDuplicates());
+        var vertexDegreeDist : [newGraph.verticesDomain] int;
+        for (v, deg) in zip(graph.getVertices(), vertexDegreeDist) {
+            deg = newGraph.numNeighbors(v);
+        }
+        writeln("Degree Dist: ", vertexDegreeDist);
+        writeln("vertex PDMC: ", newGraph.getVertexPerDegreeMetamorphosisCoefficients());
+    }
+
 }
