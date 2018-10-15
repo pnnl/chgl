@@ -10,10 +10,11 @@ module Generation {
   use Math;
   use Sort;
   use Search;
+  use Metrics;
 
   param GenerationSeedOffset = 0xDEADBEEF;
   config const GenerationUseAggregation = true;
-  
+
   // Work for each task on each locale...
   record WorkInfo {
     // Seed to use for random number generator
@@ -559,7 +560,7 @@ module Generation {
       ed[e.id] = max(0, oldDeg - eDeg);
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
-    generateChungLu(graph, vd, ed, nInclusions);
+    generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
     return graph;
   }
 }
