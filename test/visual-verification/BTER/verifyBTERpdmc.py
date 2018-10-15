@@ -13,7 +13,7 @@ with open("../../../test/graphing/ddBTER_V.csv", 'r') as f:
 with open("../../../test/graphing/mpdBTER_E.csv", 'r') as f:
 	output_mpdBTER_E = f.read().splitlines()
 
-with open("../../../test/graphing/ddBTER_V.csv", 'r') as f:
+with open("../../../test/graphing/mpdBTER_V.csv", 'r') as f:
 	output_mpdBTER_V = f.read().splitlines()
 
 

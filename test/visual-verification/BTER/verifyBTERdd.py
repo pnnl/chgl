@@ -13,7 +13,7 @@ with open("../../../test/graphing/ddBTER_V.csv", 'r') as f:
 with open("../../../test/graphing/mpdBTER_E.csv", 'r') as f:
 	output_mpdBTER_E = f.read().splitlines()
 
-with open("../../../test/graphing/ddBTER_V.csv", 'r') as f:
+with open("../../../test/graphing/mpdBTER_V.csv", 'r') as f:
 	output_mpdBTER_V = f.read().splitlines()
 
 
@@ -48,28 +48,28 @@ for i in range(len(output_mpdBTER_E)):
 	#	output_e_x.append(i+1)
 	#	output_e_y.append(output_mpdBTER_E[i])
     output_e_x.append(i+1)
-    output_e_y.append(float(output_mpdBTER_E[i]))
+    output_e_y.append(float(output_ddBTER_E[i]))
 
 for i in range(len(output_mpdBTER_V)):
 	#for j in range(len(output_ddBTER_V[i])):
 	#	output_v_x.append(i+1)
 	#	output_v_y.append(output_mpdBTER_V[i])
     output_v_x.append(i+1)
-    output_v_y.append(float(output_mpdBTER_V[i]))
+    output_v_y.append(float(output_ddBTER_V[i]))
 
 for i in range(len(input_mpd_E)):
 	#for j in range(len(input_dd_E[i])):
 	#	input_e_x.append(i+1)
 	#	input_e_y.append(input_mpd_E[i])
     input_e_x.append(i+1)
-    input_e_y.append(float(input_mpd_E[i]))
+    input_e_y.append(float(input_dd_E[i]))
 
 for i in range(len(input_mpd_V)):
 	#for j in range(len(input_dd_V[i])):
 	#	input_v_x.append(i+1)
 	#	input_v_y.append(input_mpd_V[i])
     input_v_x.append(i+1)
-    input_v_y.append(float(input_mpd_V[i]))
+    input_v_y.append(float(input_dd_V[i]))
     #print(input_mpd_V[i])
 
 #plt.axis(xscale='log', yscale='log')
@@ -85,6 +85,6 @@ plt.semilogx(input_e_x, input_e_y, marker = 'o', linestyle = '--', color='g', la
 plt.semilogx(input_v_x, input_v_y, marker = 'o', linestyle = '--', color='black', label='Input V')
 plt.xlabel('Degree')
 plt.ylabel('Count')
-plt.title('BTER PDMC Verification')
+plt.title('BTER Degree Distribution Verification')
 plt.legend()
 plt.show()
