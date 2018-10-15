@@ -29,8 +29,27 @@ proc main() {
         for (v, deg) in zip(graph.getVertices(), vertexDegreeDist) {
             deg = newGraph.numNeighbors(v);
         }
-        writeln("Degree Dist: ", vertexDegreeDist);
-        writeln("vertex PDMC: ", newGraph.getVertexPerDegreeMetamorphosisCoefficients());
+       
+        var f = open("ddBTER_V.csv", iomode.cw).writer();
+        for deg in vertexDegreeDist do f.writeln(deg); 
+        f.close();
+
+        var edgeDegreeDist : [graph.edgesDomain] int;
+        for (e, deg) in zip(graph.getEdges(), edgeDegreeDist) {
+            deg = newGraph.numNeighbors(e);
+        }
+
+        f = open("ddBTER_E.csv", iomode.cw).writer();
+        for deg in edgeDegreeDist do f.writeln(deg);
+        f.close();
+        
+        f = open("mpdBTER_V.csv", iomode.cw).writer();
+        for deg in newGraph.getVertexPerDegreeMetamorphosisCoefficients() do f.writeln(deg);
+        f.close();
+
+        f = open("mpdBTER_E.csv", iomode.cw).writer();
+        for deg in newGraph.getEdgePerDegreeMetamorphosisCoefficients() do f.writeln(deg);
+        f.close();
     }
 
 }
