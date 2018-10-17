@@ -27,14 +27,14 @@ proc main() {
     writeln("have bter graph");
     {
         writeln(newGraph.removeDuplicates());
-        var vertexDegreeDist = vertexDegreeDistribution(graph);
+        var vertexDegreeDist = vertexDegreeDistribution(newGraph);
         writeln("Have synthetic vDegreeDist, max vDeg is ", max reduce vertexDegreeDist);
        
         var f = open("ddBTER_V.csv", iomode.cw).writer();
         for deg in vertexDegreeDist[1..] do f.writeln(if isnan(deg) then 0 else deg); 
         f.close();
         
-        var edgeDegreeDist = edgeDegreeDistribution(graph);
+        var edgeDegreeDist = edgeDegreeDistribution(newGraph);
         writeln("Have synthetic eDegreeDist, max eDeg is ", max reduce edgeDegreeDist);
 
         f = open("ddBTER_E.csv", iomode.cw).writer();
@@ -42,11 +42,11 @@ proc main() {
         f.close();
         
         f = open("mpdBTER_V.csv", iomode.cw).writer();
-        for deg in graph.getVertexPerDegreeMetamorphosisCoefficients()[1..] do f.writeln(if isnan(deg) then 0 else deg);
+        for deg in newGraph.getVertexPerDegreeMetamorphosisCoefficients()[1..] do f.writeln(if isnan(deg) then 0 else deg);
         f.close();
 
         f = open("mpdBTER_E.csv", iomode.cw).writer();
-        for deg in graph.getEdgePerDegreeMetamorphosisCoefficients()[1..] do f.writeln(if isnan(deg) then 0 else deg);
+        for deg in newGraph.getEdgePerDegreeMetamorphosisCoefficients()[1..] do f.writeln(if isnan(deg) then 0 else deg);
         f.close();
     }
 

@@ -560,7 +560,7 @@ module Generation {
       ed[e.id] = max(0, oldDeg - eDeg);
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
-    generateChungLuSMP(graph, graph.verticesDomain, graph.edgesDomain, vd, ed, nInclusions);
+    generateChungLu(graph, vd, ed, nInclusions);
     return graph;
   }
 }

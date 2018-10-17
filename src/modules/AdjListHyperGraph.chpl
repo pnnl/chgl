@@ -679,6 +679,142 @@ module AdjListHyperGraph {
       }
     }
 
+    // Collapses both vertices and hyperedges; it is not safe to access the map while invoking
+    // this method; it will entirely alter the state of the hypergraph in ways that will cause
+    // operations to fail.
+    proc collapse() {
+      // Enforce on Locale 0 (presumed master locale...)
+      if here != Locales[0] {
+        getPrivatizedInstance().collapse();
+        return;
+      }
+
+      var duplicateVertices : [_verticesDomain] int = -1;
+      var duplicateEdges : [_edgesDomain] int = -1;
+      var newVerticesDomain = _verticesDomain;
+      var newEdgesDomain = _edgesDomain;
+      var vertexMappings : [_verticesDomain] int = -1;
+      var edgeMappings : [_edgesDomain] int = -1;
+
+      // Pass 1, collapse vertices
+      {
+        // Look for vertices that are duplicates
+        for v in _verticesDomain {
+          if duplicateVertices[v] != -1 then continue;
+          forall vv in _verticesDomain {
+            if v != vv {
+              if _vertices[v].neighborList == _vertices[vv].neighborList {
+                duplicateVertices[vv] = v;
+              }
+            }
+          }
+        }
+
+        // Delete all Nodes that are duplicates...
+        forall (vIdx, vDup) in zip(_verticesDomain, duplicateVertices) {
+          if vDup != -1 {
+            delete _vertices[vIdx];
+            _vertices[vIdx] = nil;
+          }
+        }
+
+        // Obtain number of unique vertices; this becomes the size of the new domain.
+        var numUnique : int;
+        forall dup in duplicateVertices with (+ reduce numUnique) {
+          if dup == -1 then numUnique += 1;
+        }
+        newVerticesDomain = {0..#numUnique};
+      }
+      
+      // Pass 2, collapse edges
+      {
+        // Look for edges that are duplicates
+        for e in _edgesDomain {
+          if duplicateEdges[e] != -1 then continue;
+          forall ee in _edgesDomain {
+            if e != ee {
+              if _edges[e].neighborList == _edges[ee].neighborList {
+                duplicateEdges[ee] = e;
+              }
+            }
+          }
+        }
+
+        // Delete all Nodes that are duplicates...
+        forall (eIdx, eDup) in zip(_edgesDomain, duplicateEdges) {
+          if eDup != -1 {
+            delete _edges[eIdx];
+            _edges[eIdx] = nil;
+          }
+        }
+
+        // Obtain number of unique edges; this becomes the size of the new domain.
+        var numUnique : int;
+        forall dup in duplicateEdges with (+ reduce numUnique) {
+          if dup == -1 then numUnique += 1;
+        }
+        newEdgesDomain = {0..#numUnique};
+      }
+
+      // Move current array into auxiliary...
+      var oldVertices = this._vertices;
+      var oldEdges = this._edges;
+      this._verticesDomain = newVerticesDomain;
+      this._edgesDomain = newEdgesDomain;
+
+      // Pass 3, Move down unique NodeData into 'nil' spots. In parallel we will
+      // claim indices in the new array via an atomic counter.
+      {
+        var idx : atomic int;
+        forall v in oldVertices.domain {
+          if oldVertices[v] != nil {
+            var ix = idx.fetchAdd(1);
+            on _vertices[ix] do _vertices[ix] = new NodeData(oldVertices[v]);
+            delete oldVertices[v];
+            oldVertices[v] = nil;
+            vertexMappings[v] = ix;
+          }
+        }
+
+        idx.write(0);
+        forall e in oldEdges.domain {
+          if oldEdges[e] != nil {
+            var ix = idx.fetchAdd(1);
+            on _edges[ix] do _edges[ix] = new NodeData(oldEdges[e]);
+            delete oldEdges[e];
+            oldEdges[e] = nil;
+            edgeMappings[e] = ix;
+          }
+        }
+      }
+      
+      // Pass 4: Redirect references to collapsed vertices and edges to new mappings
+      {
+        forall v in _vertices {
+          for e in v.neighborList {
+            // If the edge has been collapsed, first obtain the id of the edge it was collapsed
+            // into, and then obtain the mapping for the collapsed edge. Otherwise just
+            // get the mapping for the unique edge.
+            if duplicateEdges[e.id] != -1 {
+              e = edgeMappings[duplicateEdges[e.id]] : eDescType;
+            } else {
+              e = edgeMappings[e.id] : eDescType;
+            }
+          }
+        }
+
+        forall e in _edges {
+          for v in e.neighborList {
+            if duplicateVertices[v.id] != -1 {
+              v = vertexMappings[duplicateVertices[v.id]] : vDescType;
+            } else {
+              v = vertexMappings[v.id] : vDescType;
+            }
+          }
+        }
+      }
+    }
+
     iter getToplexes(param tag : iterKind) : eDescType where tag == iterKind.standalone  {
       forall e in getEdges() {
         var isToplex = true;
