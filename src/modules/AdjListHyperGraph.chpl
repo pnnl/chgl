@@ -685,7 +685,7 @@ module AdjListHyperGraph {
     proc collapse() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
-        getPrivatizedInstance().collapse();
+        on Loclaes[0] do getPrivatizedInstance().collapse();
         return;
       }
 
