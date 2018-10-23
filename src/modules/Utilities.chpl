@@ -32,3 +32,36 @@ inline proc createBlock(rng : range) {
 inline proc createBlock(sz : integral, startIdx = 1) {
   return createBlock(startIdx..#sz);
 }
+
+iter readCSV(file : string) : string {
+  var f = open(file, iomode.r).reader();
+  var tmp : string;
+  while f.readline(tmp) do yield tmp;
+}
+
+iter readCSV(file : string, chunkSize = 1024, param tag : iterKind) : string where tag == iterKind.standalone {
+  var chunk : atomic int;
+  coforall loc in Locales do on loc {
+    coforall tid in 1..#here.maxTaskPar {
+      var f = open(file, iomode.r).reader();
+      var currentIdx = 0;
+      var readChunks = true;
+      while readChunks {
+        // Claim a chunk...
+        var ix = chunk.fetchAdd(chunkSize);
+        // Skip ahead to chunk we claimed...
+        var tmp : string;
+        for 1..#(ix - currentIdx) do f.readline(tmp);
+        // Begin processing our chunk...
+        for 1..#chunkSize {
+          if f.readline(tmp) {
+            yield tmp;
+          } else {
+            readChunks = false;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
