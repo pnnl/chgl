@@ -1,5 +1,6 @@
 use Utilities;
 use PropertyMap;
+use AdjListHyperGraph;
 
 var propMap = new PropertyMap(string, string);
 forall line in readCSV("../../data/DNS-Test-Data.csv") {
@@ -10,4 +11,7 @@ forall line in readCSV("../../data/DNS-Test-Data.csv") {
     propMap.addEdgeProperty(rdata);
 }
 
-writeln(propMap.vPropMap.dom);
+var graph = new AdjListHyperGraph(propMap);
+forall v in graph.getVertices() {
+    writeln(v, " -> ", graph.getProperty(v));
+}

@@ -19,6 +19,7 @@ module AdjListHyperGraph {
   use Sort;
   use Search;
   use AggregationBuffer;
+  use PropertyMap;
   
   /*
     Disable aggregation. This will cause all calls to `addInclusionBuffered` to go to `addInclusion` and
@@ -30,6 +31,8 @@ module AdjListHyperGraph {
     This will forward all calls to the original instance rather than the privatized instance.
   */
   config const AdjListHyperGraphDisablePrivatization = false;
+
+  config param AdjListHyperGraphIndexBits = 64;
 
   /*
     Record-wrapper for the AdjListHyperGraphImpl. The record-wrapper follows from the optimization
@@ -83,12 +86,34 @@ module AdjListHyperGraph {
     }
 
 
-    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist) {
-      instance = new unmanaged AdjListHyperGraphImpl(numVertices, numEdges, map);
+    proc init(
+      // Number of vertices
+      numVertices = 0,
+      // Number of edges
+      numEdges = 0,
+      // Distribution of vertices
+      verticesMappings = new unmanaged DefaultDist, 
+      // Distribution of edges
+      edgesMappings = verticesMappings
+    ) {
+      instance = new unmanaged AdjListHyperGraphImpl(
+        numVertices, numEdges, verticesMappings, edgesMappings
+      );
+      pid = instance.pid;
+    }
+
+    proc init(
+      propMap : PropertyMap(?vPropType, ?ePropType), 
+      vertexMappings = new unmanaged DefaultDist, 
+      edgeMappings = vertexMappings
+    ) {
+      instance = new unmanaged AdjListHyperGraphImpl(
+        propMap, vertexMappings, edgeMappings
+      );
       pid = instance.pid;
     }
     
-    proc init(other) {
+    proc init(other : AdjListHyperGraph) {
       instance = other.instance;
       pid = other.pid;
     }
@@ -193,6 +218,8 @@ module AdjListHyperGraph {
   */
   class NodeData {
     type nodeIdType;
+    type propertyType;
+    var property : propertyType;
     var neighborListDom = {0..-1};
     var neighborList: [neighborListDom] nodeIdType;
 
@@ -208,17 +235,25 @@ module AdjListHyperGraph {
     // By keeping a separate counter, it makes it fast and parallel-safe to check for the size of the neighborList.
     var neighborListSize : atomic int;
 
-    proc init(type nodeIdType) {
-      this.nodeIdType = nodeIdType;
+    proc init(type nodeIdType, property : ?propertyType) {
+      this.init(nodeIdType, propertyType);
+      this.property = property;
     }
 
-    proc init(other) {
-      this.nodeIdType = other.nodeIdType;
+    proc init(type nodeIdType, type propertyType) {
+      this.nodeIdType = nodeIdType;
+      this.propertyType = propertyType;
+    }
+
+    proc init(other : NodeData(?nodeIdType, ?propertyType)) {
+      this.nodeIdType = nodeIdType;
+      this.propertyType = propertyType;
       complete();
 
       on other {
         other.lock.acquire();
 
+        this.property = other.property;
         this.neighborListDom = other.neighborListDom;
         this.neighborList = other.neighborList;
         this.isSorted = other.isSorted;
@@ -425,7 +460,9 @@ module AdjListHyperGraph {
   class AdjListHyperGraphImpl {
     var _verticesDomain; // domain of vertices
     var _edgesDomain; // domain of edges
-
+    type _vPropType; // Vertex property
+    type _ePropType; // Edge property
+  
     // Privatization id
     var pid = -1;
 
@@ -434,9 +471,10 @@ module AdjListHyperGraph {
     type vDescType = Wrapper(Vertex, vIndexType);
     type eDescType = Wrapper(Edge, eIndexType);
 
-    var _vertices : [_verticesDomain] unmanaged NodeData(eDescType);
-    var _edges : [_edgesDomain] unmanaged NodeData(vDescType);
+    var _vertices : [_verticesDomain] unmanaged NodeData(eDescType, _ePropType);
+    var _edges : [_edgesDomain] unmanaged NodeData(vDescType, _vPropType);
     var _destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
+    var _propertyMap : PropertyMap(_vPropType, _ePropType);
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
     var _privatizedVerticesPID = _vertices.pid;
@@ -445,18 +483,25 @@ module AdjListHyperGraph {
     var _useAggregation : bool;
 
     // Initialize a graph with initial domains
-    proc init(numVertices = 0, numEdges = 0, map : ?t = new unmanaged DefaultDist, param indexBits = 64) {
-      if numVertices > max(int(indexBits)) || numVertices < 0 { 
-        halt("numVertices must be between 0..", max(int(indexBits)), " but got ", numVertices);
+    proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings) {
+      if numVertices > max(int(AdjListHyperGraphIndexBits)) || numVertices < 0 { 
+        halt("numVertices must be between 0..", max(int(AdjListHyperGraphIndexBits)), " but got ", numVertices);
       }
-      if numEdges > max(int(indexBits)) || numEdges < 0 { 
-        halt("numEdges must be between 0..", max(int(indexBits)), " but got ", numEdges);
+      if numEdges > max(int(AdjListHyperGraphIndexBits)) || numEdges < 0 { 
+        halt("numEdges must be between 0..", max(int(AdjListHyperGraphIndexBits)), " but got ", numEdges);
       }
 
-      var verticesDomain = {0:int(indexBits)..#numVertices:int(indexBits)} dmapped new dmap(map);
-      var edgesDomain = {0:int(indexBits)..#numEdges:int(indexBits)} dmapped new dmap(map);
+      var verticesDomain = {
+        0:int(AdjListHyperGraphIndexBits)..#numVertices:int(AdjListHyperGraphIndexBits)
+      } dmapped new dmap(vertexMappings);
+      var edgesDomain = {
+        0:int(AdjListHyperGraphIndexBits)..#numEdges:int(AdjListHyperGraphIndexBits)
+      } dmapped new dmap(edgeMappings);
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
+      this._vPropType = EmptyPropertyMap.vPropType;
+      this._ePropType = EmptyPropertyMap.ePropType;
+      this._propertyMap = EmptyPropertyMap;
 
       complete();
 
@@ -472,14 +517,50 @@ module AdjListHyperGraph {
 
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
     }
+
+    proc init(
+      propMap : PropertyMap(?vPropType, ?ePropType), 
+      vertexMappings = new unmanaged DefaultDist, 
+      edgeMappings = vertexMappings
+    ) {
+      var verticesDomain = {
+        0:int(AdjListHyperGraphIndexBits)..#propMap.numVertexProperties():int(AdjListHyperGraphIndexBits)
+      } dmapped new dmap(vertexMappings);
+      var edgesDomain = {
+        0:int(AdjListHyperGraphIndexBits)..#propMap.numEdgeProperties():int(AdjListHyperGraphIndexBits)
+      } dmapped new dmap(edgeMappings);
+      this._verticesDomain = verticesDomain;
+      this._edgesDomain = edgesDomain;
+      this._vPropType = vPropType;
+      this._ePropType = ePropType;
+      const _tmp = propMap;
+      this._propertyMap = _tmp;
+
+      complete();
+ 
+      for (vIdx, vProp) in zip(_verticesDomain, this._propertyMap.vPropMap.dom) {
+        on _vertices[vIdx] do _vertices[vIdx] = new unmanaged NodeData(eDescType, vProp);
+        _propertyMap.setVertexProperty(vProp, vIdx);
+      }
+
+      for (eIdx, eProp) in zip(_edgesDomain, this._propertyMap.ePropMap.dom) {
+        on _edges[eIdx] do _edges[eIdx] = new unmanaged NodeData(vDescType, eProp);
+        _propertyMap.setEdgeProperty(eProp, eIdx);
+      }
+
+      this.pid = _newPrivatizedClass(_to_unmanaged(this));
+    }
   
     // Note: Do not create a copy initializer as it is called whenever you create a copy
     // of the object. This is undesirable.
-    proc clone(other) {
+    proc clone(other : AdjListHyperGraphImpl) {
       const verticesDomain = other._verticesDomain;
       const edgesDomain = other._edgesDomain;
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
+      this._vPropType = other._vPropType;
+      this._ePropType = other._ePropType;
+      this._propertyMap = new PropertyMap(other._propertyMap);
 
       complete();
       
@@ -488,13 +569,16 @@ module AdjListHyperGraph {
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
     }
 
-    proc init(other, pid : int(64)) {
+    proc init(other : AdjListHyperGraphImpl, pid : int(64)) {
       var verticesDomain = other._verticesDomain;
       var edgesDomain = other._edgesDomain;
       verticesDomain.clear();
       edgesDomain.clear();
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
+      this._vPropType = other._vPropType;
+      this._ePropType = other._ePropType;
+      this._propertyMap = other._propertyMap;
 
       complete();
 
@@ -505,7 +589,9 @@ module AdjListHyperGraph {
         this._privatizedEdges = other._edges._value;
         this._destBuffer = other._destBuffer;
       } else {
-        assert(other._masterHandle != nil, "Parent not properly privatized on Locale0... here: ", here, ", other: ", other.locale);
+        assert(other._masterHandle != nil, 
+          "Parent not properly privatized on Locale0... here: ", here, ", other: ", other.locale
+        );
         this._masterHandle = other._masterHandle;
         var instance = this._masterHandle : this.type;
         this._privatizedVertices = instance._vertices._value;
@@ -677,6 +763,18 @@ module AdjListHyperGraph {
         }
         if isToplex then yield e;
       }
+    }
+
+    proc getProperty(vDesc : vDescType) : this._propertyMap.vertexPropertyType {
+      return getVertex(vDesc).property;
+    }
+
+    proc getProperty(eDesc : eDescType) : this._propertyMap.edgePropertyType {
+      return getEdge(eDesc).property;
+    }
+
+    inline proc getProperty(other) {
+      Debug.badArgs(other, (vDescType, eDescType));
     }
 
     // Collapses both vertices and hyperedges; it is not safe to access the map while invoking
