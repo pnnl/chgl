@@ -94,7 +94,7 @@ module AdjListHyperGraph {
       // Distribution of vertices
       verticesMappings = new unmanaged DefaultDist, 
       // Distribution of edges
-      edgesMappings = verticesMappings
+      edgesMappings = new unmanaged DefaultDist
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
         numVertices, numEdges, verticesMappings, edgesMappings
@@ -471,8 +471,8 @@ module AdjListHyperGraph {
     type vDescType = Wrapper(Vertex, vIndexType);
     type eDescType = Wrapper(Edge, eIndexType);
 
-    var _vertices : [_verticesDomain] unmanaged NodeData(eDescType, _ePropType);
-    var _edges : [_edgesDomain] unmanaged NodeData(vDescType, _vPropType);
+    var _vertices : [_verticesDomain] unmanaged NodeData(eDescType, _vPropType);
+    var _edges : [_edgesDomain] unmanaged NodeData(vDescType, _ePropType);
     var _destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
     var _propertyMap : PropertyMap(_vPropType, _ePropType);
     var _privatizedVertices = _vertices._value;
@@ -499,19 +499,19 @@ module AdjListHyperGraph {
       } dmapped new dmap(edgeMappings);
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
-      this._vPropType = EmptyPropertyMap.vPropType;
-      this._ePropType = EmptyPropertyMap.ePropType;
+      this._vPropType = EmptyPropertyMap.vertexPropertyType;
+      this._ePropType = EmptyPropertyMap.edgePropertyType;
       this._propertyMap = EmptyPropertyMap;
 
       complete();
 
       // Currently bugged 
       forall v in _vertices {
-        var node : unmanaged NodeData(eDescType) = new unmanaged NodeData(eDescType);
+        var node : unmanaged NodeData(eDescType, _vPropType) = new unmanaged NodeData(eDescType, _vPropType);
         v = node;
       }
       forall e in _edges {
-        var node : unmanaged NodeData(vDescType) = new unmanaged NodeData(vDescType);
+        var node : unmanaged NodeData(vDescType, _ePropType) = new unmanaged NodeData(vDescType, _ePropType);
         e = node;
       }
 
