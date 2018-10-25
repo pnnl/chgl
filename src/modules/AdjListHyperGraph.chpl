@@ -19,6 +19,7 @@ module AdjListHyperGraph {
   use Sort;
   use Search;
   use AggregationBuffer;
+  use Vector;
   use PropertyMap;
   
   /*
@@ -803,10 +804,33 @@ module AdjListHyperGraph {
       var vertexMappings : [__verticesDomain] int = -1;
       var edgeMappings : [__edgesDomain] int = -1;
 
+      record _R {
+        var d : domain(uint(64));
+        var a : [d] Vector(int);
+        var l$ : sync bool;
+      }
+      var vertexSet : _R;
+      var edgeSet : _R;
+
       writeln("Collapsing vertices...");
       // Pass 1, collapse vertices
       {
-        writeln("Marking duplicate NodeData for Vertices...");
+        forall v in _verticesDomain with (ref vertexSet) {
+          var h : uint(64);
+          for e in getVertex(v).neighborList {
+            h ^= e.id;
+          }
+
+          vertexSet.l$.writeEF(true);
+          vertexSet.d.add(h);
+          if vertexSet.a[h] == nil {
+            vertexSet.a[h] = new unmanaged VectorImpl(int, {0..0});
+          }
+          vertexSet.a[h].append(v);
+          vertexSet.l$.readFE();
+        }
+
+        /*writeln("Marking duplicate NodeData for Vertices...");
         // Look for vertices that are duplicates
         for v in _verticesDomain {
           if duplicateVertices[v] != -1 then continue;
@@ -817,26 +841,59 @@ module AdjListHyperGraph {
               }
             }
           }
-        }
+        }*/
 
         writeln("Deleting duplicate NodeData for Vertices");
         // Delete all Nodes that are duplicates...
-        var numUnique : int;
-        forall (vIdx, vDup) in zip(_verticesDomain, duplicateVertices) with (+ reduce numUnique) {
+        forall vDup in vertexSet.a {
+          if vDup.size() > 1 {
+            const vRep = vDup[0];
+
+            for vIdx in 1..#(vDup.size()-1) {
+              const v = vDup[vIdx];
+              duplicateVertices[v] = vRep;
+              _propertyMap.setVertexProperty(getVertex(v).property, vRep);
+              delete _vertices[v];
+              _vertices[v] = nil;
+            }
+          }
+        }
+        /*forall (vIdx, vDup) in zip(_verticesDomain, duplicateVertices) with (+ reduce numUnique) {
           if vDup != -1 {
             // Update property map to point to duplicate
             _propertyMap.setVertexProperty(_vertices[vIdx].property, vDup);
             delete _vertices[vIdx];
             _vertices[vIdx] = nil;
           } else numUnique += 1;
-        }
-        newVerticesDomain = {0..#numUnique};
+        }*/
+        newVerticesDomain = {0..#vertexSet.a.size};
 
-        writeln("Unique Vertices: ", numUnique, ", Duplicate Vertices: ", _verticesDomain.size - numUnique, ", New Vertices Domain: ", newVerticesDomain);
+        writeln(
+          "Unique Vertices: ", vertexSet.a.size, 
+          ", Duplicate Vertices: ", _verticesDomain.size - vertexSet.a.size, 
+          ", New Vertices Domain: ", newVerticesDomain
+        );
       }
+
       writeln("Collapsing edges...");
       // Pass 2, collapse edges
       {
+        forall e in _edgesDomain with (ref edgeSet) {
+          var h : uint(64);
+          for v in getEdge(e).neighborList {
+            h ^= v.id;
+          }
+
+          edgeSet.l$.writeEF(true);
+          edgeSet.d.add(h);
+          if edgeSet.a[h] == nil {
+            edgeSet.a[h] = new unmanaged VectorImpl(int, {0..0});
+          }
+          edgeSet.a[h].append(e);
+          edgeSet.l$.readFE();
+        }
+
+        /*
         writeln("Marking duplicate NodeData for Edges...");
         // Look for edges that are duplicates
         for e in _edgesDomain {
@@ -848,9 +905,24 @@ module AdjListHyperGraph {
               }
             }
           }
-        }
+        }*/
 
         writeln("Deleting duplicate NodeData for Edges");
+        // Delete all Nodes that are duplicates...
+        forall eDup in edgeSet.a {
+          if eDup.size() > 1 {
+            const eRep = eDup[0];
+            for eIdx in 1..#(eDup.size() - 1) {
+              const e = eDup[eIdx];
+              duplicateEdges[e] = eRep;
+              _propertyMap.setEdgeProperty(getEdge(e).property, eRep);
+              delete _edges[e];
+              _edges[e] = nil;
+            }
+          }
+        }
+
+        /*
         // Delete all Nodes that are duplicates...
         var numUnique : int;
         forall (eIdx, eDup) in zip(_edgesDomain, duplicateEdges) with (+ reduce numUnique) {
@@ -860,10 +932,14 @@ module AdjListHyperGraph {
             delete _edges[eIdx];
             _edges[eIdx] = nil;
           } else numUnique += 1;
-        }
-        newEdgesDomain = {0..#numUnique};
-        
-        writeln("Unique Edges: ", numUnique, ", Duplicate Edges: ", _edgesDomain.size - numUnique, ", New Edges: ", newEdgesDomain);
+        }*/
+        newEdgesDomain = {0..#edgeSet.a.size};
+
+        writeln(
+          "Unique Edges: ", edgeSet.a.size, 
+          ", Duplicate Edges: ", _edgesDomain.size - edgeSet.a.size, 
+          ", New Edges Domain: ", newEdgesDomain
+        );        
       };
 
       writeln("Moving into temporary array...");

@@ -4,7 +4,7 @@ use AdjListHyperGraph;
 
 writeln("Constructing PropertyMap...");
 var propMap = new PropertyMap(string, string);
-forall line in readCSV("../../data/DNS-Test-Data.csv") {
+for line in readCSV("../../data/DNS-Test-Data.csv") {
     var attrs = line.split("\t");
     var qname = attrs[2];
     var rdata = attrs[4];
@@ -16,7 +16,7 @@ writeln("Constructing HyperGraph...");
 var graph = new AdjListHyperGraph(propMap);
 
 writeln("Add inclusions to HyperGraph...");
-forall line in readCSV("../../data/DNS-Test-Data.csv") {
+for line in readCSV("../../data/DNS-Test-Data.csv") {
     var attrs = line.split("\t");
     var qname = attrs[2];
     var rdata = attrs[4];

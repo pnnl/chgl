@@ -15,6 +15,12 @@ class Vector {
   proc this(idx : integral) ref { 
     return _dummy;
   }
+
+  proc these(param tag : iterKind) {
+    halt();
+  }
+
+  proc size() return 0;
   proc these() : eltType {halt();}
 }
 
@@ -22,7 +28,7 @@ class VectorImpl : Vector {
   const growthRate;
   var dom;
   var arr : [dom] eltType;
-  var size : int;
+  var sz : int;
   var cap : int;
   
   proc init(type eltType, dom, growthRate = VectorGrowthRate) {
@@ -35,20 +41,30 @@ class VectorImpl : Vector {
   }
 
   override proc append(elt : eltType) {
-    if size == cap {
+    if sz == cap {
       var oldCap = cap;
       cap = round(cap * growthRate) : int;
       if oldCap == cap then cap += 1;
       this.dom = {0..#cap};
     }
     
-    this.arr[size] = elt;
-    size += 1;
+    this.arr[sz] = elt;
+    sz += 1;
   }
 
   override proc this(idx : integral) ref {
     return arr[idx];
   }
+
+  override iter these() ref {
+    for a in arr do yield a;
+  }
+
+  override iter these(param tag : iterKind) where tag == iterKind.standalone {
+    forall a in arr do yield a;
+  }
+
+  override proc size() return sz;
 
   proc readWriteThis(f) {
     f <~> arr;

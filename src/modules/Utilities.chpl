@@ -43,7 +43,8 @@ iter readCSV(file : string, chunkSize = 1024, param tag : iterKind) : string whe
   var chunk : atomic int;
   coforall loc in Locales do on loc {
     coforall tid in 1..#here.maxTaskPar {
-      var f = open(file, iomode.r).reader();
+      proc p() { return open(file, iomode.r).reader(); }
+      var f = p();
       var currentIdx = 0;
       var readChunks = true;
       while readChunks {
