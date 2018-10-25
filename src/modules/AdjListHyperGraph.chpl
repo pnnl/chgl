@@ -19,7 +19,7 @@ module AdjListHyperGraph {
   use Sort;
   use Search;
   use AggregationBuffer;
-  use Vector;
+  use Vectors;
   use PropertyMap;
   
   /*

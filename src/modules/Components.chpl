@@ -1,6 +1,6 @@
 module Components {
     use AdjListHyperGraph;
-    use Vector;
+    use Vectors;
     use Traversal;
 
     /**
