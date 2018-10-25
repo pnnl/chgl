@@ -1017,12 +1017,12 @@ module AdjListHyperGraph {
       // Pass 5: Update PropertyMap
       {
         writeln("Updating PropertyMap for Vertices...");
-        forall (vProp, vIdx) in _propertyMap.vertexProperties() {
+        for (vProp, vIdx) in _propertyMap.vertexProperties() {
           _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
         }
         
         writeln("Updating PropertyMap for Edges...");
-        forall (eProp, eIdx) in _propertyMap.edgeProperties() {
+        for (eProp, eIdx) in _propertyMap.edgeProperties() {
           _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
         }
       }

@@ -32,9 +32,9 @@ writeln("Number of Inclusions: ", graph.getInclusions());
 
 writeln("Printing out inclusions...");
 forall e in graph.getEdges() {
-    write(graph.getProperty(e), "\t");
+    var str = graph.getProperty(e) + "\t";
     for v in graph.getVertices() {
-        writeln(graph.getProperty(v) + ",");
+        str += graph.getProperty(v) + ",";
     }
-    writeln();
+    writeln(str[0..str.size - 1]);
 }
