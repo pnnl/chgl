@@ -85,16 +85,23 @@ module AdjListHyperGraph {
       return if AdjListHyperGraphDisablePrivatization then instance else chpl_getPrivatizedCopy(instance.type, pid);
     }
 
+    proc init(numVertices : integral, numEdges : integral) {
+      init(numVertices, numEdges, new unmanaged DefaultDist, new unmanaged DefaultDist);
+    }
+
+    proc init(numVertices : integral, numEdges : integral, mapping) {
+      init(numVertices, numEdges, mapping, mapping);
+    }
 
     proc init(
       // Number of vertices
-      numVertices = 0,
+      numVertices : integral,
       // Number of edges
-      numEdges = 0,
+      numEdges : integral,
       // Distribution of vertices
-      verticesMappings = new unmanaged DefaultDist, 
+      verticesMappings, 
       // Distribution of edges
-      edgesMappings = new unmanaged DefaultDist
+      edgesMappings
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
         numVertices, numEdges, verticesMappings, edgesMappings
@@ -105,7 +112,7 @@ module AdjListHyperGraph {
     proc init(
       propMap : PropertyMap(?vPropType, ?ePropType), 
       vertexMappings = new unmanaged DefaultDist, 
-      edgeMappings = vertexMappings
+      edgeMappings = new unmanaged DefaultDist
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
         propMap, vertexMappings, edgeMappings
