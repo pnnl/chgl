@@ -422,6 +422,10 @@ module AdjListHyperGraph {
     proc type make(id) {
       return new Wrapper(nodeType, idType, id);
     }
+
+    proc type null() {
+      return new Wrapper(nodeType, idType, -1);
+    }
     
     proc readWriteThis(f) {
       f <~> new ioLiteral("\"")
@@ -830,19 +834,6 @@ module AdjListHyperGraph {
           vertexSet.l$.readFE();
         }
 
-        /*writeln("Marking duplicate NodeData for Vertices...");
-        // Look for vertices that are duplicates
-        for v in _verticesDomain {
-          if duplicateVertices[v] != -1 then continue;
-          forall vv in _verticesDomain[v..] {
-            if v != vv && duplicateVertices[vv] == -1 {
-              if _vertices[v].neighborList.equals(_vertices[vv].neighborList) {
-                duplicateVertices[vv] = v;
-              }
-            }
-          }
-        }*/
-
         writeln("Deleting duplicate NodeData for Vertices");
         // Delete all Nodes that are duplicates...
         forall vDup in vertexSet.a {
@@ -858,14 +849,6 @@ module AdjListHyperGraph {
             }
           }
         }
-        /*forall (vIdx, vDup) in zip(_verticesDomain, duplicateVertices) with (+ reduce numUnique) {
-          if vDup != -1 {
-            // Update property map to point to duplicate
-            _propertyMap.setVertexProperty(_vertices[vIdx].property, vDup);
-            delete _vertices[vIdx];
-            _vertices[vIdx] = nil;
-          } else numUnique += 1;
-        }*/
         newVerticesDomain = {0..#vertexSet.a.size};
 
         writeln(
@@ -893,20 +876,6 @@ module AdjListHyperGraph {
           edgeSet.l$.readFE();
         }
 
-        /*
-        writeln("Marking duplicate NodeData for Edges...");
-        // Look for edges that are duplicates
-        for e in _edgesDomain {
-          if duplicateEdges[e] != -1 then continue;
-          forall ee in _edgesDomain[e..] {
-            if e != ee && duplicateEdges[ee] == -1 {
-              if _edges[e].neighborList.equals(_edges[ee].neighborList) {
-                duplicateEdges[ee] = e;
-              }
-            }
-          }
-        }*/
-
         writeln("Deleting duplicate NodeData for Edges");
         // Delete all Nodes that are duplicates...
         forall eDup in edgeSet.a {
@@ -921,18 +890,6 @@ module AdjListHyperGraph {
             }
           }
         }
-
-        /*
-        // Delete all Nodes that are duplicates...
-        var numUnique : int;
-        forall (eIdx, eDup) in zip(_edgesDomain, duplicateEdges) with (+ reduce numUnique) {
-          if eDup != -1 {
-            // Update property map to point to duplicate
-            _propertyMap.setEdgeProperty(_edges[eIdx].property, eDup);
-            delete _edges[eIdx];
-            _edges[eIdx] = nil;
-          } else numUnique += 1;
-        }*/
         newEdgesDomain = {0..#edgeSet.a.size};
 
         writeln(
@@ -960,8 +917,18 @@ module AdjListHyperGraph {
         forall v in oldVertices.domain {
           if oldVertices[v] != nil {
             var ix = idx.fetchAdd(1);
-            on _vertices[ix] do _vertices[ix] = new unmanaged NodeData(oldVertices[v]);
-            delete oldVertices[v];
+
+            // If the locations in the old and new array are the same, we just move it over
+            if oldVertices[v].locale == _vertices[ix].locale {
+              _vertices[ix] = oldVertices[v];
+            } 
+            // If the locations are different, we make a copy of the NodeData so that it is local
+            // to the new locale.
+            else on _vertices[ix] {
+              _vertices[ix] = new unmanaged NodeData(oldVertices[v]);
+              delete oldVertices[v];
+            }
+
             oldVertices[v] = nil;
             vertexMappings[v] = ix;
           }
@@ -973,8 +940,14 @@ module AdjListHyperGraph {
         forall e in oldEdges.domain {
           if oldEdges[e] != nil {
             var ix = idx.fetchAdd(1);
-            on _edges[ix] do _edges[ix] = new unmanaged NodeData(oldEdges[e]);
-            delete oldEdges[e];
+            
+            if oldEdges[e].locale == _edges[ix].locale {
+              _edges[ix] = oldEdges[e];
+            } else on _edges[ix] {
+              _edges[ix] = new unmanaged NodeData(oldEdges[e]);
+              delete oldEdges[e];
+            }
+            
             oldEdges[e] = nil;
             edgeMappings[e] = ix;
           }
@@ -1015,6 +988,141 @@ module AdjListHyperGraph {
 
       writeln("Updating PropertyMap...");
       // Pass 5: Update PropertyMap
+      {
+        writeln("Updating PropertyMap for Vertices...");
+        for (vProp, vIdx) in _propertyMap.vertexProperties() {
+          _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
+        }
+        
+        writeln("Updating PropertyMap for Edges...");
+        for (eProp, eIdx) in _propertyMap.edgeProperties() {
+          _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
+        }
+      }
+
+      writeln("Removing duplicates: ", removeDuplicates());
+    }
+
+    proc removeIsolatedComponents() {
+      // Enforce on Locale 0 (presumed master locale...)
+      if here != Locales[0] {
+        on Locales[0] do getPrivatizedInstance().removeIsolatedComponents();
+        return;
+      }
+
+      // Pass 1: Remove isolated components
+      writeln("Removing isolated components...");
+      var numIsolatedComponents : int;    
+      var dummy = new unmanaged NodeData(eDescType, _vPropType);
+      {
+        forall e in _edgesDomain with (+ reduce numIsolatedComponents) {
+          var n = getEdge(e).neighborList.size;
+          assert(n > 0, e, " has no neighbors... n=", n);
+          if n == 1 {
+            var v = getEdge(e).neighborList[0];
+
+            assert(getVertex(v) != dummy, "A neighbor of ", e, " references a dummy ", v);
+            assert(getVertex(v) != nil, "A neighbor of ", e, " has an invalid reference ", v);
+            var nn = getVertex(v).neighborList.size;
+            assert(nn > 0, v, " has no neighbors... nn=", nn);
+            if nn == 1 {
+              _propertyMap.setEdgeProperty(_edges[e].property, -1);
+              delete _edges[e];
+              _edges[e] = nil;
+              
+              _propertyMap.setVertexProperty(_vertices[v.id].property, -1);
+              delete _vertices[v.id];
+              _vertices[v.id] = dummy;
+              
+              numIsolatedComponents += 1;
+            }
+          }
+        }
+      }
+
+      const __verticesDomain = _verticesDomain;
+      const __edgesDomain = _edgesDomain;
+      var vertexMappings : [__verticesDomain] int = -1;
+      var edgeMappings : [__edgesDomain] int = -1;
+      
+      writeln("Moving into temporary array...");
+      // Move current array into auxiliary...
+      const oldVerticesDom = this._verticesDomain;
+      const oldEdgesDom = this._edgesDomain;
+      var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices;
+      var oldEdges : [oldEdgesDom] unmanaged NodeData(vDescType, _ePropType) = this._edges;
+      this._verticesDomain = {0..#(oldVerticesDom.size - numIsolatedComponents)};
+      this._edgesDomain = {0..#(oldEdgesDom.size - numIsolatedComponents)};
+
+      
+      // Pass 2: Shift down non-nil spots...
+      writeln("Shifting down NodeData...");
+      {
+        writeln("Shifting down NodeData for Vertices...");
+        var idx : atomic int;
+        forall v in oldVerticesDom {
+          if oldVertices[v] != nil {
+            var ix = idx.fetchAdd(1);
+            
+            // If the locations in the old and new array are the same, we just move it over
+            if oldVertices[v].locale == _vertices[ix].locale {
+              _vertices[ix] = oldVertices[v];
+            } 
+            // If the locations are different, we make a copy of the NodeData so that it is local
+            // to the new locale.
+            else on _vertices[ix] {
+              _vertices[ix] = new unmanaged NodeData(oldVertices[v]);
+              delete oldVertices[v];
+            }
+
+            oldVertices[v] = nil;
+            vertexMappings[v] = ix;
+          }
+        }
+        writeln("Shifted down to idx ", idx.read(), " for oldVertices.domain = ", oldVertices.domain);
+
+        writeln("Shifting down NodeData for Edges...");
+        idx.write(0);
+        forall e in oldEdgesDom {
+          if oldEdges[e] != nil {
+            var ix = idx.fetchAdd(1);
+            
+            if oldEdges[e].locale == _edges[ix].locale {
+              _edges[ix] = oldEdges[e];
+            } else on _edges[ix] {
+              _edges[ix] = new unmanaged NodeData(oldEdges[e]);
+              delete oldEdges[e];
+            }
+            
+            oldEdges[e] = nil;
+            edgeMappings[e] = ix;
+          }
+        }
+        writeln("Shifted down to idx ", idx.read(), " for oldEdges.domain = ", oldEdges.domain);
+      }
+
+      writeln("Redirecting references...");
+      // Pass 3: Redirect references to shifted vertices and edges to new mappings
+      {
+        writeln("Redirecting references for Vertices...");
+        forall v in _vertices {
+          assert(v != nil, "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
+          for e in v.neighborList {
+            e = edgeMappings[e.id] : eDescType;
+          }
+        }
+
+        writeln("Redirecting references for Edges...");
+        forall e in _edges {
+          assert(e != nil, "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
+          for v in e.neighborList {
+            v = vertexMappings[v.id] : vDescType;
+          }
+        }
+      }
+
+      writeln("Updating PropertyMap...");
+      // Pass 4: Update PropertyMap
       {
         writeln("Updating PropertyMap for Vertices...");
         for (vProp, vIdx) in _propertyMap.vertexProperties() {
