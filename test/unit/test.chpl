@@ -25,9 +25,9 @@ for line in readCSV("../../data/DNS-Test-Data.csv") {
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-writeln("Collapsing HyperGraph...");
-graph.collapse();
-
+//writeln("Removing isolated components...");
+//graph.removeIsolatedComponents();
+//writeln("Removing duplicates: ", graph.removeDuplicates());
 writeln("Number of Inclusions: ", graph.getInclusions());
 
 forall v in graph.getVertices() {
@@ -36,6 +36,15 @@ forall v in graph.getVertices() {
     forall e in graph.getNeighbors(v) {
         assert(graph.getEdge(e) != nil, "Edge ", e, " is nil...");
         assert(graph.numNeighbors(e) > 0, "Edge has 0 neighbors...");
+        var isValid : bool;
+        for vv in graph.getNeighbors(e) {
+            if vv == v {
+                isValid = true;
+                break;
+            }
+        }
+
+        assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...");
     }
 }
 
@@ -45,8 +54,25 @@ forall e in graph.getEdges() {
     forall v in graph.getNeighbors(e) {
         assert(graph.getVertex(v) != nil, "Vertex ", v, " is nil...");
         assert(graph.numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+    
+        var isValid : bool;
+        for ee in graph.getNeighbors(v) {
+            if ee == e {
+                isValid = true;
+                break;
+            }
+        }
+
+        assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...");    
     }
 }
+
+writeln("Collapsing HyperGraph...");
+graph.collapse();
+
+writeln("Number of Inclusions: ", graph.getInclusions());
+
+
 
 writeln("Removing isolated components...");
 graph.removeIsolatedComponents();
@@ -59,6 +85,16 @@ forall v in graph.getVertices() {
     forall e in graph.getNeighbors(v) {
         assert(graph.getEdge(e) != nil, "Edge ", e, " is nil...");
         assert(graph.numNeighbors(e) > 0, "Edge has 0 neighbors...");
+
+        var isValid : bool;
+        for vv in graph.getNeighbors(e) {
+            if vv == v {
+                isValid = true;
+                break;
+            }
+        }
+
+        assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...");
     }
 }
 
@@ -68,6 +104,16 @@ forall e in graph.getEdges() {
     forall v in graph.getNeighbors(e) {
         assert(graph.getVertex(v) != nil, "Vertex ", v, " is nil...");
         assert(graph.numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+
+        var isValid : bool;
+        for ee in graph.getNeighbors(v) {
+            if ee == e {
+                isValid = true;
+                break;
+            }
+        }
+
+        assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...");
     }
 }
 

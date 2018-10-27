@@ -789,24 +789,17 @@ module AdjListHyperGraph {
       Debug.badArgs(other, (vDescType, eDescType));
     }
 
-    // Collapses both vertices and hyperedges; it is not safe to access the map while invoking
-    // this method; it will entirely alter the state of the hypergraph in ways that will cause
-    // operations to fail.
-    proc collapse() {
+    proc collapseVertices() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
-        on Locales[0] do getPrivatizedInstance().collapse();
+        on Locales[0] do getPrivatizedInstance().collapseVertices();
         return;
       }
 
       const __verticesDomain = _verticesDomain;
-      const __edgesDomain = _edgesDomain;
       var duplicateVertices : [__verticesDomain] int = -1;
-      var duplicateEdges : [__edgesDomain] int = -1;
       var newVerticesDomain = __verticesDomain;
-      var newEdgesDomain = __edgesDomain;
       var vertexMappings : [__verticesDomain] int = -1;
-      var edgeMappings : [__edgesDomain] int = -1;
 
       record _R {
         var d : domain(uint(64));
@@ -814,17 +807,18 @@ module AdjListHyperGraph {
         var l$ : sync bool;
       }
       var vertexSet : _R;
-      var edgeSet : _R;
 
-      writeln("Collapsing vertices...");
-      // Pass 1, collapse vertices
+      writeln("Collapsing Vertices...");
+      // Pass 1: Collapse Vertices via a hashing the vertex neighborList to eliminate duplicates.
       {
         forall v in _verticesDomain with (ref vertexSet) {
+          // Compute hash
           var h : uint(64);
           for e in getVertex(v).neighborList {
             h ^= e.id;
           }
 
+          // Append to hash map
           vertexSet.l$.writeEF(true);
           vertexSet.d.add(h);
           if vertexSet.a[h] == nil {
@@ -834,85 +828,70 @@ module AdjListHyperGraph {
           vertexSet.l$.readFE();
         }
 
+        var numUnique : int;
         writeln("Deleting duplicate NodeData for Vertices");
         // Delete all Nodes that are duplicates...
-        forall vDup in vertexSet.a {
+        forall vDup in vertexSet.a with (+ reduce numUnique) {
           if vDup.size() > 1 {
-            const vRep = vDup[0];
-
-            for vIdx in 1..#(vDup.size()-1) {
+            var vReps : [0..-1] int;
+          
+            // For each duplicate, map them to the vertex they collapsed into
+            label outer for vIdx in 0..#vDup.size() {
               const v = vDup[vIdx];
-              duplicateVertices[v] = vRep;
-              _propertyMap.setVertexProperty(getVertex(v).property, vRep);
-              delete _vertices[v];
-              _vertices[v] = nil;
+              
+              for (ix, vRep) in zip(vReps.domain, vReps) {
+                if getVertex(vRep).neighborList.equals(getVertex(v).neighborList) {
+                  duplicateVertices[v] = vRep;
+                  _propertyMap.setVertexProperty(getVertex(v).property, vRep);
+                  delete _vertices[v];
+                  _vertices[v] = nil;
+                  continue outer;
+                }
+              }
+
+              numUnique += 1;
+              vReps.push_back(v);
             }
-          }
+          } else numUnique += 1;
         }
-        newVerticesDomain = {0..#vertexSet.a.size};
+        newVerticesDomain = {0..#numUnique};
 
         writeln(
-          "Unique Vertices: ", vertexSet.a.size, 
-          ", Duplicate Vertices: ", _verticesDomain.size - vertexSet.a.size, 
+          "Unique Vertices: ", numUnique, 
+          ", Duplicate Vertices: ", _verticesDomain.size - numUnique, 
           ", New Vertices Domain: ", newVerticesDomain
         );
-      }
 
-      writeln("Collapsing edges...");
-      // Pass 2, collapse edges
-      {
-        forall e in _edgesDomain with (ref edgeSet) {
-          var h : uint(64);
-          for v in getEdge(e).neighborList {
-            h ^= v.id;
-          }
-
-          edgeSet.l$.writeEF(true);
-          edgeSet.d.add(h);
-          if edgeSet.a[h] == nil {
-            edgeSet.a[h] = new unmanaged VectorImpl(int, {0..0});
-          }
-          edgeSet.a[h].append(e);
-          edgeSet.l$.readFE();
-        }
-
-        writeln("Deleting duplicate NodeData for Edges");
-        // Delete all Nodes that are duplicates...
-        forall eDup in edgeSet.a {
-          if eDup.size() > 1 {
-            const eRep = eDup[0];
-            for eIdx in 1..#(eDup.size() - 1) {
-              const e = eDup[eIdx];
-              duplicateEdges[e] = eRep;
-              _propertyMap.setEdgeProperty(getEdge(e).property, eRep);
-              delete _edges[e];
-              _edges[e] = nil;
+        // Verification...
+        if Debug.ALHG_DEBUG {
+          forall v in _verticesDomain {
+            var vv = if _vertices[v] == nil then duplicateVertices[v] else v;
+            assert(vv != -1, "A vertex no longer has a valid mapping... ", v, " -> ", vv);
+            assert(_vertices[vv] != nil, "A vertex mapping ", v, " -> ", vv, " is nil");
+            var containsVV : bool;
+            label outer for e in _vertices[vv].neighborList {
+              for vvv in _edges[e.id].neighborList {
+                if vvv.id == vv {
+                  containsVV = true;
+                  break outer;
+                }
+              }
             }
+            assert(containsVV, "Broke dual property for ", v);
           }
         }
-        newEdgesDomain = {0..#edgeSet.a.size};
-
-        writeln(
-          "Unique Edges: ", edgeSet.a.size, 
-          ", Duplicate Edges: ", _edgesDomain.size - edgeSet.a.size, 
-          ", New Edges Domain: ", newEdgesDomain
-        );        
-      };
+      }
 
       writeln("Moving into temporary array...");
       // Move current array into auxiliary...
       const oldVerticesDom = this._verticesDomain;
-      const oldEdgesDom = this._edgesDomain;
       var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices;
-      var oldEdges : [oldEdgesDom] unmanaged NodeData(vDescType, _ePropType) = this._edges;
       this._verticesDomain = newVerticesDomain;
-      this._edgesDomain = newEdgesDomain;
 
-      writeln("Shifting down NodeData...");
-      // Pass 3, Move down unique NodeData into 'nil' spots. In parallel we will
+      writeln("Shifting down NodeData for Vertices...");
+      // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
       {
-        writeln("Shifting down NodeData for Vertices...");
         var idx : atomic int;
         forall v in oldVertices.domain {
           if oldVertices[v] != nil {
@@ -934,9 +913,141 @@ module AdjListHyperGraph {
           }
         }
         writeln("Shifted down to idx ", idx.read(), " for oldVertices.domain = ", oldVertices.domain);
+      }
+      
+      writeln("Redirecting references to Vertices...");
+      // Pass 3: Redirect references to collapsed vertices to new mappings
+      {
+        forall e in _edges {
+          for v in e.neighborList {
+            // If the vertex has been collapsed, first obtain the id of the vertex it was collapsed
+            // into, and then obtain the mapping for the collapsed vertex. Otherwise just
+            // get the mapping for the unique vertex.
+            if duplicateVertices[v.id] != -1 {
+              v.id = vertexMappings[duplicateVertices[v.id]];
+            } else {
+              v.id = vertexMappings[v.id];
+            }
+          }
+        }
+      }
 
-        writeln("Shifting down NodeData for Edges...");
-        idx.write(0);
+      writeln("Updating PropertyMap...");
+      // Pass 4: Update PropertyMap
+      {
+        writeln("Updating PropertyMap for Vertices...");
+        for (vProp, vIdx) in _propertyMap.vertexProperties() {
+          _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
+        }
+      }
+
+      writeln("Removing duplicates: ", removeDuplicates());
+    }
+
+    proc collapseEdges() {
+      // Enforce on Locale 0 (presumed master locale...)
+      if here != Locales[0] {
+        on Locales[0] do getPrivatizedInstance().collapseEdges();
+        return;
+      }
+
+      const __edgesDomain = _edgesDomain;
+      var duplicateEdges : [__edgesDomain] int = -1;
+      var newEdgesDomain = __edgesDomain;
+      var edgeMappings : [__edgesDomain] int = -1;
+
+      record _R {
+        var d : domain(uint(64));
+        var a : [d] Vector(int);
+        var l$ : sync bool;
+      }
+      var edgeSet : _R;
+
+      writeln("Collapsing Edges...");
+      // Pass 1: Collapse Edges via a hashing the vertex neighborList to eliminate duplicates.
+      {
+        forall e in _edgesDomain with (ref edgeSet) {
+          // Compute hash
+          var h : uint(64);
+          for v in getEdge(e).neighborList {
+            h ^= v.id;
+          }
+
+          // Append to hash map
+          edgeSet.l$.writeEF(true);
+          edgeSet.d.add(h);
+          if edgeSet.a[h] == nil {
+            edgeSet.a[h] = new unmanaged VectorImpl(int, {0..0});
+          }
+          edgeSet.a[h].append(e);
+          edgeSet.l$.readFE();
+        }
+
+        var numUnique : int;
+        writeln("Deleting duplicate NodeData for Edges");
+        // Delete all Nodes that are duplicates...
+        forall eDup in edgeSet.a with (+ reduce numUnique) {
+          if eDup.size() > 1 {
+            var eReps : [0..-1] int;
+          
+            // For each duplicate, map them to the vertex they collapsed into
+            label outer for eIdx in 0..#eDup.size() {
+              const e = eDup[eIdx];
+              
+              for (ix, eRep) in zip(eReps.domain, eReps) {
+                if getEdge(eRep).neighborList.equals(getEdge(e).neighborList) {
+                  duplicateEdges[e] = eRep;
+                  _propertyMap.setEdgeProperty(getEdge(e).property, eRep);
+                  delete _edges[e];
+                  _edges[e] = nil;
+                  continue outer;
+                }
+              }
+
+              numUnique += 1;
+              eReps.push_back(e);
+            }
+          } else numUnique += 1;
+        }
+        newEdgesDomain = {0..#numUnique};
+
+        writeln(
+          "Unique Edges: ", numUnique, 
+          ", Duplicate Edges: ", _edgesDomain.size - numUnique, 
+          ", New Edges Domain: ", newEdgesDomain
+        );
+
+        // Verification
+        if Debug.ALHG_DEBUG {
+          forall e in _edgesDomain {
+            var ee = if _edges[e] == nil then duplicateEdges[e] else e;
+            assert(ee != -1, "A edge no longer has a valid mapping... ", e, " -> ", ee);
+            assert(_edges[ee] != nil, "A edge mapping ", e, " -> ", ee, " is nil");
+            var containsEE : bool;
+            label outer for v in _edges[ee].neighborList {
+              for eee in _vertices[v.id].neighborList {
+                if eee.id == ee {
+                  containsEE = true;
+                  break outer;
+                }
+              }
+            }
+            assert(containsEE, "Broke dual property for ", e);
+          }
+        }
+      };
+
+      writeln("Moving into temporary array...");
+      // Move current array into auxiliary...
+      const oldEdgesDom = this._edgesDomain;
+      var oldEdges : [oldEdgesDom] unmanaged NodeData(vDescType, _ePropType) = this._edges;
+      this._edgesDomain = newEdgesDomain;
+
+      writeln("Shifting down NodeData for Edges...");
+      // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
+      // claim indices in the new array via an atomic counter.
+      {
+        var idx : atomic int;
         forall e in oldEdges.domain {
           if oldEdges[e] != nil {
             var ix = idx.fetchAdd(1);
@@ -955,52 +1066,117 @@ module AdjListHyperGraph {
         writeln("Shifted down to idx ", idx.read(), " for oldEdges.domain = ", oldEdges.domain);
       }
       
-      writeln("Redirecting references...");
-      // Pass 4: Redirect references to collapsed vertices and edges to new mappings
+      writeln("Redirecting references to Edges...");
+      // Pass 3: Redirect references to collapsed vertices and edges to new mappings
       {
-        writeln("Redirecting references for Vertices...");
         forall v in _vertices {
-          assert(v != nil, "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
           for e in v.neighborList {
             // If the edge has been collapsed, first obtain the id of the edge it was collapsed
             // into, and then obtain the mapping for the collapsed edge. Otherwise just
             // get the mapping for the unique edge.
             if duplicateEdges[e.id] != -1 {
-              e = edgeMappings[duplicateEdges[e.id]] : eDescType;
+              e.id = edgeMappings[duplicateEdges[e.id]];
             } else {
-              e = edgeMappings[e.id] : eDescType;
-            }
-          }
-        }
-
-        writeln("Redirecting references for Edges...");
-        forall e in _edges {
-          assert(e != nil, "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
-          for v in e.neighborList {
-            if duplicateVertices[v.id] != -1 {
-              v = vertexMappings[duplicateVertices[v.id]] : vDescType;
-            } else {
-              v = vertexMappings[v.id] : vDescType;
+              e.id = edgeMappings[e.id];
             }
           }
         }
       }
 
-      writeln("Updating PropertyMap...");
-      // Pass 5: Update PropertyMap
+      writeln("Updating PropertyMap for Edges...");
+      // Pass 4: Update PropertyMap
       {
-        writeln("Updating PropertyMap for Vertices...");
-        for (vProp, vIdx) in _propertyMap.vertexProperties() {
-          _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
-        }
-        
-        writeln("Updating PropertyMap for Edges...");
         for (eProp, eIdx) in _propertyMap.edgeProperties() {
           _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
         }
       }
 
       writeln("Removing duplicates: ", removeDuplicates());
+    }
+
+    proc collapse() {
+      collapseVertices();
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+          forall e in getNeighbors(v) {
+            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+
+            var isValid : bool;
+            for vv in getNeighbors(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...\nNeighbors = ", getNeighbors(e));
+          }
+        }
+
+        forall e in getEdges() {
+          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+          forall v in getNeighbors(e) {
+            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in getNeighbors(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...\n"
+             + "Neighbors of ", v, " = ", getNeighbors(v), "\nNeighbors of ", e, " = ", getNeighbors(e));
+          }
+        }
+      }
+      collapseEdges();
+
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+          forall e in getNeighbors(v) {
+            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+
+            var isValid : bool;
+            for vv in getNeighbors(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...");
+          }
+        }
+
+        forall e in getEdges() {
+          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+          forall v in getNeighbors(e) {
+            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in getNeighbors(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...");
+          }
+        }
+      }
     }
 
     proc removeIsolatedComponents() {
@@ -1013,7 +1189,6 @@ module AdjListHyperGraph {
       // Pass 1: Remove isolated components
       writeln("Removing isolated components...");
       var numIsolatedComponents : int;    
-      var dummy = new unmanaged NodeData(eDescType, _vPropType);
       {
         forall e in _edgesDomain with (+ reduce numIsolatedComponents) {
           var n = getEdge(e).neighborList.size;
@@ -1021,7 +1196,6 @@ module AdjListHyperGraph {
           if n == 1 {
             var v = getEdge(e).neighborList[0];
 
-            assert(getVertex(v) != dummy, "A neighbor of ", e, " references a dummy ", v);
             assert(getVertex(v) != nil, "A neighbor of ", e, " has an invalid reference ", v);
             var nn = getVertex(v).neighborList.size;
             assert(nn > 0, v, " has no neighbors... nn=", nn);
@@ -1032,7 +1206,7 @@ module AdjListHyperGraph {
               
               _propertyMap.setVertexProperty(_vertices[v.id].property, -1);
               delete _vertices[v.id];
-              _vertices[v.id] = dummy;
+              _vertices[v.id] = nil;
               
               numIsolatedComponents += 1;
             }
@@ -1587,6 +1761,8 @@ module AdjListHyperGraph {
     proc badArgs(bad, type good, param errorDepth = 2) param {
       compilerError("Expected argument of type to be in ", good : string, " but received argument of type ", bad.type : string, errorDepth);
     }
+
+    config param ALHG_DEBUG : bool;
 
     // Determines whether or not we profile for contention...
     config param ALHG_PROFILE_CONTENTION : bool;
