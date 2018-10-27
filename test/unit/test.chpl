@@ -11,7 +11,7 @@ var t = new Timer();
 writeln("Constructing PropertyMap...");
 t.start();
 var propMap = new PropertyMap(string, string);
-for line in readCSV("../../data/DNS-Test-Data.csv") {
+for line in readCSV(dataset) {
     var attrs = line.split("\t");
     var qname = attrs[2];
     var rdata = attrs[4];
@@ -28,7 +28,7 @@ writeln("Constructing HyperGraph...");
 var graph = new AdjListHyperGraph(propMap);
 
 writeln("Adding inclusions to HyperGraph...");
-for line in readCSV("../../data/DNS-Test-Data.csv") {
+for line in readCSV(dataset) {
     var attrs = line.split("\t");
     var qname = attrs[2];
     var rdata = attrs[4];
