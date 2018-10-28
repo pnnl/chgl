@@ -4,11 +4,15 @@ use AdjListHyperGraph;
 use Time;
 use Regexp;
 use WorkQueue;
+use Metrics;
+use Components;
 
 config const dataset = "../../data/DNS-Test-Data.csv";
 config const dnsRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
-var dnsRegexp = compile(dnsRegex);
+config const preCollapseMetrics = false;
 
+var dnsRegexp = compile(dnsRegex);
+var f = open("metrics.txt", iomode.cw).writer();
 var t = new Timer();
 var wq = new WorkQueue(string);
 
@@ -103,6 +107,54 @@ t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
+if preCollapseMetrics {
+    t.start();
+    f.writeln("(Pre-Collapse) #V = ", graph.numVertices);
+    f.writeln("(Pre-Collapse) #E = ", graph.numEdges);
+    f.flush();
+    f.writeln("(Pre-Collapse) Vertex Degree Distribution");
+    {
+        var vDeg = vertexDegreeDistribution(graph);
+        for (deg, freq) in zip(vDeg.domain, vDeg) {
+            if freq != 0 then f.writeln("\t", deg, ",", freq);
+        }
+    }
+    f.flush();
+    f.writeln("(Pre-Collapse) Edge Cardinality Distribution");
+    {
+        var eDeg = edgeDegreeDistribution(graph);
+        for (deg, freq) in zip(eDeg.domain, eDeg) {
+            if freq != 0 then f.writeln("\t", deg, ",", freq);
+        }
+    }
+    f.flush();
+    f.writeln("(Pre-Collapse) Vertex Connected Component Size Distribution");
+    {
+        var vComponentSizes = [vc in getVertexComponents(graph)] vc.size();
+        var largestComponent = max reduce vComponentSizes;
+        var componentSizes : [1..largestComponent] int;
+        for vcSize in vComponentSizes do componentSizes[vcSize] += 1;
+        for (sz, freq) in zip(componentSizes.domain, componentSizes) {
+            if freq != 0 then f.writeln("\t", sz, ",", freq);
+        }
+    }
+    f.flush();
+    f.writeln("(Pre-Collapse) Edge Connected Component Size Distribution");
+    {
+        var eComponentSizes = [ec in getEdgeComponents(graph)] ec.size();
+        var largestComponent = max reduce eComponentSizes;
+        var componentSizes : [1..largestComponent] int;
+        for ecSize in eComponentSizes do componentSizes[ecSize] += 1;
+        for (sz, freq) in zip(componentSizes.domain, componentSizes) {
+            if freq != 0 then f.writeln("\t", sz, ",", freq);
+        }
+    }
+    f.flush();
+    t.stop();
+    writeln("(Pre-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
+    t.clear();
+}
+
 writeln("Collapsing HyperGraph...");
 t.start();
 graph.collapse();
@@ -111,6 +163,52 @@ writeln("Collapsed Hypergraph: ", t.elapsed());
 t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
+
+t.start();
+f.writeln("(Post-Collapse) #V = ", graph.numVertices);
+f.writeln("(Post-Collapse) #E = ", graph.numEdges);
+f.flush();
+f.writeln("(Post-Collapse) Vertex Degree Distribution");
+{
+    var vDeg = vertexDegreeDistribution(graph);
+    for (deg, freq) in zip(vDeg.domain, vDeg) {
+        if freq != 0 then f.writeln("\t", deg, ",", freq);
+    }
+}
+f.flush();
+f.writeln("(Post-Collapse) Edge Cardinality Distribution");
+{
+    var eDeg = edgeDegreeDistribution(graph);
+    for (deg, freq) in zip(eDeg.domain, eDeg) {
+        if freq != 0 then f.writeln("\t", deg, ",", freq);
+    }
+}
+f.flush();
+f.writeln("(Post-Collapse) Vertex Connected Component Size Distribution");
+{
+    var vComponentSizes = [vc in getVertexComponents(graph)] vc.size();
+    var largestComponent = max reduce vComponentSizes;
+    var componentSizes : [1..largestComponent] int;
+    for vcSize in vComponentSizes do componentSizes[vcSize] += 1;
+    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
+        if freq != 0 then f.writeln("\t", sz, ",", freq);
+    }
+}
+f.flush();
+f.writeln("(Post-Collapse) Edge Connected Component Size Distribution");
+{
+    var eComponentSizes = [ec in getEdgeComponents(graph)] ec.size();
+    var largestComponent = max reduce eComponentSizes;
+    var componentSizes : [1..largestComponent] int;
+    for ecSize in eComponentSizes do componentSizes[ecSize] += 1;
+    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
+        if freq != 0 then f.writeln("\t", sz, ",", freq);
+    }
+}
+f.flush();
+t.stop();
+writeln("(Post-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
+t.clear();
 
 writeln("Removing isolated components...");
 t.start();
@@ -159,12 +257,58 @@ forall e in graph.getEdges() {
     }
 }
 
+t.start();
+f.writeln("(Post-Removal) #V = ", graph.numVertices);
+f.writeln("(Post-Removal) #E = ", graph.numEdges);
+f.flush();
+f.writeln("(Post-Removal) Vertex Degree Distribution");
+{
+    var vDeg = vertexDegreeDistribution(graph);
+    for (deg, freq) in zip(vDeg.domain, vDeg) {
+        if freq != 0 then f.writeln("\t", deg, ",", freq);
+    }
+}
+f.flush();
+f.writeln("(Post-Removal) Edge Cardinality Distribution");
+{
+    var eDeg = edgeDegreeDistribution(graph);
+    for (deg, freq) in zip(eDeg.domain, eDeg) {
+        if freq != 0 then f.writeln("\t", deg, ",", freq);
+    }
+}
+f.flush();
+f.writeln("(Post-Removal) Vertex Connected Component Size Distribution");
+{
+    var vComponentSizes = [vc in getVertexComponents(graph)] vc.size();
+    var largestComponent = max reduce vComponentSizes;
+    var componentSizes : [1..largestComponent] int;
+    for vcSize in vComponentSizes do componentSizes[vcSize] += 1;
+    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
+        if freq != 0 then f.writeln("\t", sz, ",", freq);
+    }
+}
+f.flush();
+f.writeln("(Post-Removal) Edge Connected Component Size Distribution");
+{
+    var eComponentSizes = [ec in getEdgeComponents(graph)] ec.size();
+    var largestComponent = max reduce eComponentSizes;
+    var componentSizes : [1..largestComponent] int;
+    for ecSize in eComponentSizes do componentSizes[ecSize] += 1;
+    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
+        if freq != 0 then f.writeln("\t", sz, ",", freq);
+    }
+}
+f.flush();
+t.stop();
+writeln("(Post-Removal) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
+t.clear();
+
 writeln("Printing out inclusions...");
-var f = open("collapsed-hypergraph.txt", iomode.cw).writer();
+var ff = open("collapsed-hypergraph.txt", iomode.cw).writer();
 forall e in graph.getEdges() {
     var str = graph.getProperty(e) + "\t";
     for v in graph.getNeighbors(e) {
         str += graph.getProperty(v) + ",";
     }
-    f.writeln(str[1..#(str.size - 1)]);
+    ff.writeln(str[1..#(str.size - 1)]);
 }

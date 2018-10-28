@@ -12,31 +12,31 @@ proc list.contains(elt : eltType) {
 }
 
 iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType {
-  var explored = new list(v.type);
-  var queue = new list(v.type);
-  queue.push_back(v);
+  var explored : domain(int);
+  var queue = new list(int);
+  queue.push_back(v.id);
   while queue.size != 0 {
     var currV = queue.pop_front();
-    if explored.contains(currV) then continue;
-    explored.push_back(currV);
-    if v != currV then yield currV;
-    for vv in graph.walk(currV, s) {
-      queue.push_back(vv);
+    if explored.member(currV) then continue;
+    explored += currV;
+    if v.id != currV then yield graph.toVertex(currV);
+    for vv in graph.walk(graph.toVertex(currV), s) {
+      queue.push_back(vv.id);
     }
   }
 }
 
 iter edgeBFS(graph, e : graph._value.eDescType, s=1) : graph._value.eDescType {
-  var explored = new list(e.type);
-  var queue = new list(e.type);
-  queue.push_back(e);
+  var explored : domain(int);
+  var queue = new list(int);
+  queue.push_back(e.id);
   while queue.size != 0 {
     var currE = queue.pop_front();
-    if explored.contains(currE) then continue;
-    explored.push_back(currE);
-    if e != currE then yield currE;
-    for ee in graph.walk(currE, s) {
-      queue.push_back(ee);
+    if explored.member(currE) then continue;
+    explored += currE;
+    if e.id != currE then yield graph.toEdge(currE);
+    for ee in graph.walk(graph.toEdge(currE), s) {
+      queue.push_back(ee.id);
     }
   }
 }

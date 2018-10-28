@@ -22,10 +22,9 @@ module Components {
         components[v.id] = component;
         sequence.append(v);
         for vv in vertexBFS(graph, v, s) {
-          if components[vv.id] == 0 {
-            components[vv.id] = component;
-            sequence.append(vv);
-          }
+          assert(components[vv.id] == 0, "Already visited a vertex during BFS...", vv);
+          components[vv.id] = component;
+          sequence.append(vv);
         }
         yield sequence;
       }
@@ -44,10 +43,9 @@ module Components {
         components[e.id] = component;
         sequence.append(e);
         for ee in edgeBFS(graph, e, s) {
-          if components[ee.id] == 0 {
-            components[ee.id] = component;
-            sequence.append(ee);
-          }
+          assert(components[ee.id] == 0, "Already visited an edge during BFS...", ee);
+          components[ee.id] = component;
+          sequence.append(ee);
         }
         yield sequence;
       }
