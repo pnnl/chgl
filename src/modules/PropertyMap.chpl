@@ -3,12 +3,12 @@ const EmptyPropertyMap = new PropertyMap(string, string, true);
 record PropertyMap {
     type vertexPropertyType;
     type edgePropertyType;
-    var map : shared PropertyMapImpl(vertexPropertyType, edgePropertyType);
+    var map : unmanaged PropertyMapImpl(vertexPropertyType, edgePropertyType);
     
     proc init(type vertexPropertyType, type edgePropertyType, param isEmpty = false) {
         this.vertexPropertyType = vertexPropertyType;
         this.edgePropertyType = edgePropertyType;
-        if !isEmpty then map = new owned PropertyMapImpl(vertexPropertyType, edgePropertyType);
+        if !isEmpty then map = new unmanaged PropertyMapImpl(vertexPropertyType, edgePropertyType);
     }
 
     proc init(other : PropertyMap(?vertexPropertyType, ?edgePropertyType)) {
@@ -20,7 +20,7 @@ record PropertyMap {
     proc clone(other : PropertyMap(?vertexPropertyType, ?edgePropertyType)) {
         this.vertexPropertyType = vertexPropertyType;
         this.edgePropertyType = edgePropertyType;
-        this.map = new PropertyMap(other.map);
+        this.map = new unmanaged PropertyMap(other.map);
     }
 
     proc isInitialized return map != nil;

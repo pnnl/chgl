@@ -1,11 +1,14 @@
 use AggregationBuffer;
+use LocalAtomicObject;
+use VisualDebug;
 
+pragma "always RVF"
 record WorkQueue {
   var instance;
   var pid = -1;
   
   proc init(type workType) {
-    this.instance = new WorkQueueImpl(workType);
+    this.instance = new unmanaged WorkQueueImpl(workType);
     this.pid = this.instance.pid;
   }
 
@@ -20,8 +23,8 @@ record WorkQueue {
 class WorkQueueNode {
   type workType;
   var work : workType;
-  var next : WorkQueueNode(workType);
-  var prev : WorkQueueNode(workType);
+  var next : unmanaged WorkQueueNode(workType);
+  var prev : unmanaged WorkQueueNode(workType);
 
   proc init(work : ?workType) {
     this.workType = workType;
@@ -29,19 +32,16 @@ class WorkQueueNode {
   }
 }
 
-// TODO: Use CC-Synch algorithm for scalability...
 class WorkQueueImpl {
   type workType;
   var pid = -1;
-  var lock$ : atomic bool;
-  var head : WorkQueueNode(workType);
-  var tail : WorkQueueNode(workType);
+  var queue = new unmanaged CCQueue(workType); 
   var destBuffer = new Aggregator(workType);
   
   proc init(type workType) {
     this.workType = workType;
     this.complete();
-    this.pid = _newPrivatizedClass(this);
+    this.pid = _newPrivatizedClass(_to_unmanaged(this));
   }
 
   proc init(other, pid) {
@@ -50,7 +50,7 @@ class WorkQueueImpl {
   }
 
   proc dsiPrivatize(pid) {
-    return new WorkQueueImpl(this, pid);
+    return new unmanaged WorkQueueImpl(this, pid);
   }
 
   proc dsiGetPrivatizeData() {
@@ -60,140 +60,280 @@ class WorkQueueImpl {
   inline proc getPrivatizedInstance() {
     return chpl_getPrivatizedCopy(this.type, pid);
   }
-
-  inline proc acquire() {
-    // Fast path
-    var ret = lock$.testAndSet();
-    if ret == false then return;
-    
-    // Slow path (Test and Test and Set)
-    while true {
-      ret = lock$.peek();
-      if ret == true {
-        chpl_task_yield();
-        continue;
-      }
-
-      ret = lock$.testAndSet();
-      if ret == false then break;
-    }
-  }
-
-  inline proc release() {
-    lock$.clear();
-  }
-
   proc addWork(work : workType, loc : locale) {
     addWork(work, loc.id);
   }
 
   proc addWork(work : workType, locid = here.id) {
     if locid != here.id {
-      var buffer = destBuffer.aggregate(locid, work);
+      var buffer = destBuffer.aggregate(work, locid);
       if buffer != nil {
         // TODO: Profile if we need to fetch 'pid' in local variable
         // to avoid communications...
         begin on Locales[locid] {
           var arr = buffer.getArray();
           var _this = getPrivatizedInstance();
-          
-          // Append in bulk locally...
-          var workHead : WorkQueueNode(workType);
-          var workTail : WorkQueueNode(workType);
-          for w in arr {
-            var node = new WorkQueueNode(w);
-            if workHead == nil {
-              workHead = node;
-              workTail = workHead;
-            } else {
-              workTail.next = node;
-              node.prev = workTail;
-              workTail = node;
-            }
-          }
-          on this do destBuffer.processed(buffer);
-          _this.acquire();
-          _this.tail.next = workHead;
-          workHead.prev = _this.tail;
-          _this.tail = workTail;
-          _this.release();
+          buffer.done();
+          queue.bulkEnqueue(arr);
         }
       }
       return;
     }
 
-    // Handle local adding work
-    acquire();
-    
-    var node = new WorkQueueNode(work);
-    if head == nil {
-      head = node;
-      tail = head;
-    } else {
-      tail.next = node;
-      node.prev = tail;
-      tail = node;
-    }
-
-    release();
+    queue.enqueue(work);
   }
 
   proc getWork() : (bool, workType) {
-    var (hasWork, work) : (bool, workType);
-    
-    acquire();
-    if head != nil {
-      assert(tail != nil);
-      hasWork = true;
-      work = head.work;
-      
-      // Cleanup list
-      if head == tail {
-        delete head;
-        head = nil;
-        tail = nil;
-      } else {
-        var tmp = head;
-        head = head.next;
-        head.prev = nil;
-        delete tmp;
-      }
-    } else {
-      assert(tail == nil);
-    }
-    release();
-
-    return (hasWork, work);
+    return queue.dequeue();
   }
 
   proc flush() {
-    forall arr in destBuffer.flushLocal() {
+    forall (buf, loc) in destBuffer.flushGlobal() do on loc {
       var _this = getPrivatizedInstance();
+      var arr = buf.getArray();
+      buf.done();
+      _this.queue.bulkEnqueue(arr);
+    }
+  }
 
+  proc deinit() {
+    delete queue;
+  }
+}
+
+class CCSynchEnqueueNode {
+  type eltType;
+
+  // Head and Tail to enqueue
+  var head : unmanaged QueueNode(eltType);
+  var tail : unmanaged QueueNode(eltType);
+
+  // If wait is false, we spin
+  // If wait is true, but completed is false, we are the new combiner thread
+  // If wait is true and completed is true, we are done and can exit
+  var wait : atomic bool;
+  var completed : bool;
+
+  // Next in the waitlist
+  var next : unmanaged CCSynchEnqueueNode(eltType);
+
+  proc init(type eltType, head : unmanaged QueueNode(eltType) = nil, tail : unmanaged QueueNode(eltType) = nil) {
+    this.eltType = eltType;
+    this.head = head;
+    this.tail = tail;
+  }
+}
+
+class CCSynchDequeueNode {
+  type eltType;
+
+  // Used for return value if dequeue, or element to be added if enqueue
+  var ret : eltType;
+  var found : bool;
+
+  // If wait is false, we spin
+  // If wait is true, but completed is false, we are the new combiner thread
+  // If wait is true and completed is true, we are done and can exit
+  var wait : atomic bool;
+  var completed : bool;
+
+  // Next in the waitlist
+  var next : unmanaged CCSynchDequeueNode(eltType);
+
+  proc init(type eltType) {
+    this.eltType = eltType;
+  }
+}
+
+// Maybe an unrolled linked list?
+class QueueNode {
+  type eltType;
+  var elt : eltType;
+  var next : unmanaged QueueNode(eltType);
+
+  proc init(type eltType) {
+    this.eltType = eltType;
+  }
+
+  proc init(elt : ?eltType) {
+    this.eltType = eltType;
+    this.elt = elt;
+  }
+}
+
+class CCQueue {
+  type eltType;
+  var maxRequests = 1024;
+
+  var head : unmanaged QueueNode(eltType);
+  var dequeueWaitList : LocalAtomicObject(unmanaged CCSynchDequeueNode(eltType));
+  var tail : unmanaged QueueNode(eltType);
+  var enqueueWaitList : LocalAtomicObject(unmanaged CCSynchEnqueueNode(eltType));
+
+  proc init(type eltType) {
+    this.eltType = eltType;
+
+    // Create a dummy node...
+    var n = new unmanaged QueueNode(eltType);
+    head = n;
+    tail = n;
+
+    this.complete();
+
+    // Construct CCSynch wait list...
+    dequeueWaitList.write(new unmanaged CCSynchDequeueNode(eltType));
+    enqueueWaitList.write(new unmanaged CCSynchEnqueueNode(eltType));
+  }
+
+  proc bulkEnqueue(arr : [?dom] eltType) {
+    on this {
       // Append in bulk locally...
-      var workHead : WorkQueueNode(workType);
-      var workTail : WorkQueueNode(workType);
+      var workHead : unmanaged QueueNode(eltType);
+      var workTail : unmanaged QueueNode(eltType);
       for w in arr {
-        var node = new WorkQueueNode(w);
+        var node = new unmanaged QueueNode(w);
         if workHead == nil {
           workHead = node;
           workTail = workHead;
         } else {
           workTail.next = node;
-          node.prev = workTail;
           workTail = node;
         }
       }
-      _this.acquire();
-      _this.tail.next = workHead;
-      workHead.prev = _this.tail;
-      _this.tail = workTail;
-      _this.release();
+
+      doEnqueue(workHead, workTail);
     }
+  }
+
+  proc enqueue(elt : eltType) {
+    on this do doEnqueue(new unmanaged QueueNode(elt));
+  }
+
+  proc doEnqueue(head : unmanaged QueueNode(eltType), tail = head) {
+    var counter = 0;
+    var nextNode = new unmanaged CCSynchEnqueueNode(eltType, head, tail);
+    nextNode.wait.write(true);
+    nextNode.completed = false;
+
+    // Register our dummy node so that the next task can add theirs safely,
+    // then fill out the node we assigned to use
+    var currNode = enqueueWaitList.exchange(nextNode);
+    currNode.head = head;
+    currNode.tail = tail;
+    currNode.next = nextNode;
+
+    // Spin until we are finished...
+    currNode.wait.waitFor(false);
+
+    // If our operation is marked complete, we may safely reclaim it, as it is no
+    // longer being touched by the combiner thread
+    if currNode.completed {
+      delete currNode;
+      return;
+    }
+
+    // If we are not marked as complete, we *are* the combiner thread
+    var tmpNode = currNode;
+    var tmpNodeNext : unmanaged CCSynchEnqueueNode(eltType);
+
+    while (tmpNode.next != nil && counter < maxRequests) {
+      counter = counter + 1;
+      // Note: Ensures that we do not touch the current node after it is freed
+      // by the owning thread...
+      tmpNodeNext = tmpNode.next;
+
+      // Process...
+      this.tail.next = tmpNode.head; 
+      this.tail = tmpNode.tail;
+
+      // We are done with this one... Note that this uses an acquire barrier so
+      // that the owning task sees it as completed before wait is no longer true.
+      tmpNode.completed = true;
+      tmpNode.wait.write(false);
+
+      tmpNode = tmpNodeNext;
+    }
+
+    // At this point, it means one thing: Either we are on the dummy node, on which
+    // case nothing happens, or we exceeded the number of requests we can do at once,
+    // meaning we wake up the next thread as the combiner.
+    tmpNode.wait.write(false);
+    delete currNode;
+  }
+
+  proc dequeue () : (bool, eltType) {
+    var retval : (bool, eltType);
+    on this do retval = doDequeue();
+    return retval;
+  }
+
+  proc doDequeue () : (bool, eltType) {
+    var counter = 0;
+    var nextNode = new unmanaged CCSynchDequeueNode(eltType);
+    nextNode.wait.write(true);
+    nextNode.completed = false;
+
+    // Register our dummy node so that the next task can add theirs safely,
+    // then fill out the node we assigned to use
+    var currNode = dequeueWaitList.exchange(nextNode);
+    currNode.next = nextNode;
+
+    // Spin until we are finished...
+    currNode.wait.waitFor(false);
+
+    // If our operation is marked complete, we may safely reclaim it, as it is no
+    // longer being touched by the combiner thread
+    if currNode.completed {
+      var (present, elt) = (currNode.found, currNode.ret);
+      delete currNode;
+      return (present, elt);
+    }
+
+    // If we are not marked as complete, we *are* the combiner thread
+    var tmpNode = currNode;
+    var tmpNodeNext : unmanaged CCSynchDequeueNode(eltType);
+
+    while (tmpNode.next != nil && counter < maxRequests) {
+      counter = counter + 1;
+      // Note: Ensures that we do not touch the current node after it is freed
+      // by the owning thread...
+      tmpNodeNext = tmpNode.next;
+
+      // Process...
+      var node = this.head;
+      var newHead = this.head.next;
+
+      // Has some item
+      if newHead != nil {
+        // Grab and clean up
+        tmpNode.ret = newHead.elt;
+        tmpNode.found = true;
+        head = newHead;
+        delete node;
+      }
+
+      // We are done with this one... Note that this uses an acquire barrier so
+      // that the owning task sees it as completed before wait is no longer true.
+      tmpNode.completed = true;
+      tmpNode.wait.write(false);
+
+      tmpNode = tmpNodeNext;
+    }
+
+    // At this point, it means one thing: Either we are on the dummy node, on which
+    // case nothing happens, or we exceeded the number of requests we can do at once,
+    // meaning we wake up the next thread as the combiner.
+    tmpNode.wait.write(false);
+    var (present, elt) = (currNode.found, currNode.ret);
+    delete currNode;
+    return (present, elt);
+  }
+
+  proc deinit() {
+    delete head;
   }
 }
 
-use VisualDebug;
 proc main() {
   startVdebug("WorkQueueVisual");
   var wq = new WorkQueue(int);

@@ -2,21 +2,54 @@ use Utilities;
 use PropertyMap;
 use AdjListHyperGraph;
 use Time;
-
+use Regexp;
+use WorkQueue;
 
 config const dataset = "../../data/DNS-Test-Data.csv";
+config const dnsRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+var dnsRegexp = compile(dnsRegex);
 
 var t = new Timer();
+var wq = new WorkQueue(string);
 
 writeln("Constructing PropertyMap...");
 t.start();
 var propMap = new PropertyMap(string, string);
-for line in readCSV(dataset) {
-    var attrs = line.split("\t");
-    var qname = attrs[2];
-    var rdata = attrs[4];
-    propMap.addVertexProperty(qname);
-    propMap.addEdgeProperty(rdata);
+var done : atomic bool;
+var lines : atomic int;
+begin {
+    for line in readCSV(dataset) {
+        lines.add(1);
+        wq.addWork(line);
+    }
+    wq.flush();
+    done.write(true);
+}
+
+coforall loc in Locales do on loc {
+    coforall tid in 1..here.maxTaskPar {
+        while true {
+            var (hasElt, line) = wq.getWork();
+            if !hasElt {
+                if lines.read() == 0 && done.read() {
+                    break;
+                }
+                chpl_task_yield();
+                continue;
+            } else {
+                lines.sub(1);
+            }
+
+            var attrs = line.split("\t");
+            var qname = attrs[2];
+            var rdata = attrs[4];
+            var reg = rdata.matches(dnsRegexp);
+            if reg.size != 0 {
+                propMap.addVertexProperty(qname);
+                propMap.addEdgeProperty(rdata);
+            }
+        }
+    }
 }
 
 t.stop();
@@ -28,11 +61,40 @@ writeln("Constructing HyperGraph...");
 var graph = new AdjListHyperGraph(propMap);
 
 writeln("Adding inclusions to HyperGraph...");
-for line in readCSV(dataset) {
-    var attrs = line.split("\t");
-    var qname = attrs[2];
-    var rdata = attrs[4];
-    graph.addInclusion(propMap.getVertexProperty(qname), propMap.getEdgeProperty(rdata));
+done.write(false);
+begin {
+    for line in readCSV(dataset) {
+        lines.add(1);
+        wq.addWork(line);
+    }
+    wq.flush();
+    done.write(true);
+}
+
+coforall loc in Locales do on loc {
+    coforall tid in 1..here.maxTaskPar {
+        while true {
+            var (hasElt, line) = wq.getWork();
+            if !hasElt {
+                if lines.read() == 0 && done.read() {
+                    break;
+                }
+                chpl_task_yield();
+                continue;
+            } else {
+                lines.sub(1);
+            }
+
+            var attrs = line.split("\t");
+            var qname = attrs[2];
+            var rdata = attrs[4];
+            
+            var reg = rdata.matches(dnsRegexp);
+            if reg.size != 0 {
+                graph.addInclusion(propMap.getVertexProperty(qname), propMap.getEdgeProperty(rdata));
+            }
+        }
+    }
 }
 
 t.stop();
