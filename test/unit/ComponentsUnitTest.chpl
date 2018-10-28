@@ -13,42 +13,20 @@ forall v in 5..9 {
   }
 }
 
-writeln("Calculating components for s = 1...");
-var nComponents = 1;
-for component in getVertexComponents(graph, s = 1) {
-  writeln("#", nComponents, ": ", component);
-  nComponents += 1;
+for s in 1..10 {
+  writeln("Calculating components for s = ", s, "...");
+  var nComponents : int;
+  for component in getVertexComponents(graph, s) {
+    writeln("Vertex Component #", nComponents, ": ", component.size());
+    nComponents += 1;
+  }
+  nComponents = 0;
+  for component in getEdgeComponents(graph, s) {
+    writeln("Edge Component #", nComponents, ": ", component.size());
+    nComponents += 1;
+  }
+  nComponents = 0;
 }
-nComponents = 0;
-for component in getEdgeComponents(graph, s = 1) {
-  writeln("#", nComponents, ": ", component);
-  nComponents += 1;
-}
-nComponents = 0;
-
-writeln("Calculating components for s = 2...");
-for component in getVertexComponents(graph, s = 2) {
-  writeln("#", nComponents, ": ", component);
-  nComponents += 1;
-}
-nComponents = 0;
-for component in getEdgeComponents(graph, s = 2) {
-  writeln("#", nComponents, ": ", component);
-  nComponents += 1;
-}
-nComponents = 0;
-
-writeln("Calculating components for s = 3...");
-for component in getVertexComponents(graph, s = 3) {
-  writeln("#", nComponents, ": ", component);
-  nComponents += 1;
-}
-nComponents = 0;
-for component in getEdgeComponents(graph, s = 3) {
-  writeln("#", nComponents, ": ", component);
-  nComponents += 1;
-}
-nComponents = 0;
 
 writeln(graph.walk(graph.toVertex(5), 3));
 writeln(graph.neighbors(graph.toVertex(5)));

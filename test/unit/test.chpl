@@ -127,29 +127,25 @@ if preCollapseMetrics {
             if freq != 0 then f.writeln("\t", deg, ",", freq);
         }
     }
-    f.flush();
-    f.writeln("(Pre-Collapse) Vertex Connected Component Size Distribution");
-    {
-        var vComponentSizes = [vc in getVertexComponents(graph)] vc.size();
-        var largestComponent = max reduce vComponentSizes;
-        var componentSizes : [1..largestComponent] int;
-        for vcSize in vComponentSizes do componentSizes[vcSize] += 1;
-        for (sz, freq) in zip(componentSizes.domain, componentSizes) {
-            if freq != 0 then f.writeln("\t", sz, ",", freq);
+    for s in 1..2 {
+        f.flush();
+        f.writeln("(Pre-Collapse) Vertex Connected Component Size Distribution (s = ", s, ")");
+        {
+            var vComponentSizes = vertexComponentSizeDistribution(graph, s);
+            for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
+                if freq != 0 then f.writeln("\t", sz, ",", freq);
+            }
         }
-    }
-    f.flush();
-    f.writeln("(Pre-Collapse) Edge Connected Component Size Distribution");
-    {
-        var eComponentSizes = [ec in getEdgeComponents(graph)] ec.size();
-        var largestComponent = max reduce eComponentSizes;
-        var componentSizes : [1..largestComponent] int;
-        for ecSize in eComponentSizes do componentSizes[ecSize] += 1;
-        for (sz, freq) in zip(componentSizes.domain, componentSizes) {
-            if freq != 0 then f.writeln("\t", sz, ",", freq);
+        f.flush();
+        f.writeln("(Pre-Collapse) Edge Connected Component Size Distribution (s = ", s, ")");
+        {
+            var eComponentSizes = edgeComponentSizeDistribution(graph, s);
+            for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
+                if freq != 0 then f.writeln("\t", sz, ",", freq);
+            }
         }
+        f.flush();
     }
-    f.flush();
     t.stop();
     writeln("(Pre-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
     t.clear();
@@ -184,28 +180,25 @@ f.writeln("(Post-Collapse) Edge Cardinality Distribution");
     }
 }
 f.flush();
-f.writeln("(Post-Collapse) Vertex Connected Component Size Distribution");
-{
-    var vComponentSizes = [vc in getVertexComponents(graph)] vc.size();
-    var largestComponent = max reduce vComponentSizes;
-    var componentSizes : [1..largestComponent] int;
-    for vcSize in vComponentSizes do componentSizes[vcSize] += 1;
-    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
-        if freq != 0 then f.writeln("\t", sz, ",", freq);
+for s in 1..2 {
+    f.flush();
+    f.writeln("(Post-Collapse) Vertex Connected Component Size Distribution (s = ", s, ")");
+    {
+        var vComponentSizes = vertexComponentSizeDistribution(graph, s);
+        for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
+            if freq != 0 then f.writeln("\t", sz, ",", freq);
+        }
     }
-}
-f.flush();
-f.writeln("(Post-Collapse) Edge Connected Component Size Distribution");
-{
-    var eComponentSizes = [ec in getEdgeComponents(graph)] ec.size();
-    var largestComponent = max reduce eComponentSizes;
-    var componentSizes : [1..largestComponent] int;
-    for ecSize in eComponentSizes do componentSizes[ecSize] += 1;
-    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
-        if freq != 0 then f.writeln("\t", sz, ",", freq);
+    f.flush();
+    f.writeln("(Post-Collapse) Edge Connected Component Size Distribution (s = ", s, ")");
+    {
+        var eComponentSizes = edgeComponentSizeDistribution(graph, s);
+        for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
+            if freq != 0 then f.writeln("\t", sz, ",", freq);
+        }
     }
+    f.flush();
 }
-f.flush();
 t.stop();
 writeln("(Post-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
 t.clear();
@@ -277,28 +270,25 @@ f.writeln("(Post-Removal) Edge Cardinality Distribution");
     }
 }
 f.flush();
-f.writeln("(Post-Removal) Vertex Connected Component Size Distribution");
-{
-    var vComponentSizes = [vc in getVertexComponents(graph)] vc.size();
-    var largestComponent = max reduce vComponentSizes;
-    var componentSizes : [1..largestComponent] int;
-    for vcSize in vComponentSizes do componentSizes[vcSize] += 1;
-    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
-        if freq != 0 then f.writeln("\t", sz, ",", freq);
+for s in 1..2 {
+    f.flush();
+    f.writeln("(Pre-Collapse) Vertex Connected Component Size Distribution (s = ", s, ")");
+    {
+        var vComponentSizes = vertexComponentSizeDistribution(graph, s);
+        for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
+            if freq != 0 then f.writeln("\t", sz, ",", freq);
+        }
     }
-}
-f.flush();
-f.writeln("(Post-Removal) Edge Connected Component Size Distribution");
-{
-    var eComponentSizes = [ec in getEdgeComponents(graph)] ec.size();
-    var largestComponent = max reduce eComponentSizes;
-    var componentSizes : [1..largestComponent] int;
-    for ecSize in eComponentSizes do componentSizes[ecSize] += 1;
-    for (sz, freq) in zip(componentSizes.domain, componentSizes) {
-        if freq != 0 then f.writeln("\t", sz, ",", freq);
+    f.flush();
+    f.writeln("(Pre-Collapse) Edge Connected Component Size Distribution (s = ", s, ")");
+    {
+        var eComponentSizes = edgeComponentSizeDistribution(graph, s);
+        for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
+            if freq != 0 then f.writeln("\t", sz, ",", freq);
+        }
     }
+    f.flush();
 }
-f.flush();
 t.stop();
 writeln("(Post-Removal) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
 t.clear();
