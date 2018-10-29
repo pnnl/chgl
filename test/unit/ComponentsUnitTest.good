@@ -29,9 +29,8 @@ Vertex Component #2: 1
 Vertex Component #3: 1
 Vertex Component #4: 1
 Vertex Component #5: 1
-Edge Component #0: 2
-Edge Component #1: 5
-Edge Component #2: 3
+Edge Component #0: 7
+Edge Component #1: 3
 Calculating components for s = 6...
 Vertex Component #0: 5
 Vertex Component #1: 1
@@ -129,5 +128,5 @@ Edge Component #6: 1
 Edge Component #7: 1
 Edge Component #8: 1
 Edge Component #9: 1
-"Vertex#8" "Vertex#6" "Vertex#9" "Vertex#7" "Vertex#8" "Vertex#6" "Vertex#9" "Vertex#7" "Vertex#8" "Vertex#6" "Vertex#9" "Vertex#7"
+"Vertex#6" "Vertex#7" "Vertex#8" "Vertex#9" "Vertex#6" "Vertex#7" "Vertex#8" "Vertex#9" "Vertex#6" "Vertex#7" "Vertex#8" "Vertex#9"
 "Edge#7" "Edge#8" "Edge#9"
