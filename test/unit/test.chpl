@@ -8,6 +8,8 @@ use Metrics;
 use Components;
 use Traversal;
 
+
+
 config const dataset = "../../data/DNS-Test-Data.csv";
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
@@ -26,6 +28,80 @@ for line in getLines("../../data/ip-most-wanted.txt") {
 }
 for line in getLines("../../data/dns-most-wanted.txt") {
     badDNSNames += line;
+}
+
+proc searchBlacklist(graph, prefix) {
+    // Scan for most wanted...
+    writeln("(" + prefix + ") Searching for known offenders...");
+    forall v in graph.getVertices() {
+        var ip = graph.getProperty(v);
+        if badIPAddresses.member(ip) {
+            writeln("(" + prefix + ") Found blacklisted ip address ", ip);
+            
+            // Print out its local neighbors...
+            f.writeln("(" + prefix + ") Blacklisted IP Address: ", ip);
+            for s in 1..3 {
+                f.writeln("\tLocal Neighborhood (s=", s, "):");
+                for neighbor in graph.walk(v, s) {
+                    var str = "\t\t" + graph.getProperty(neighbor) + "\t";
+                    for n in graph.getNeighbors(neighbor) {
+                        str += graph.getProperty(n) + ",";
+                    }
+                    f.writeln(str[..str.size - 2]);
+                    f.flush();
+                }
+                f.flush();
+            }
+
+            // Print out its component
+            for s in 1..3 {
+                f.writeln("\tComponent (s=", s, "):");
+                for vv in vertexBFS(graph, v, s) {
+                    var str = "\t\t" + graph.getProperty(vv) + "\t";
+                    for n in graph.getNeighbors(vv) {
+                        str += graph.getProperty(n) + ",";
+                    }
+                    f.writeln(str[..str.size - 2]);
+                    f.flush();
+                }
+            }
+        }
+    }
+    forall e in graph.getEdges() {
+        var dnsName = graph.getProperty(e);
+        var isBadDNS = dnsName.matches(badDNSNamesRegexp);
+        if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+            writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
+
+            // Print out its local neighbors...
+            f.writeln("(" + prefix + ") Blacklisted DNS Name: ", dnsName);
+            for s in 1..3 {
+                f.writeln("\tLocal Neighborhood (s=", s, "):");
+                for neighbor in graph.walk(e, s) {
+                    var str = "\t\t" + graph.getProperty(neighbor) + "\t";
+                    for n in graph.getNeighbors(neighbor) {
+                        str += graph.getProperty(n) + ",";
+                    }
+                    f.writeln(str[..str.size - 2]);
+                    f.flush();
+                }
+                f.flush();
+            }
+
+            // Print out its component
+            for s in 1..3 {
+                f.writeln("\tComponent (s=", s, "):");
+                for ee in edgeBFS(graph, e, s) {
+                    var str = "\t\t" + graph.getProperty(ee) + "\t";
+                    for n in graph.getNeighbors(ee) {
+                        str += graph.getProperty(n) + ",";
+                    }
+                    f.writeln(str[..str.size - 2]);
+                    f.flush();
+                }
+            }
+        }
+    }
 }
 
 writeln("Constructing PropertyMap...");
@@ -132,64 +208,9 @@ coforall loc in Locales do on loc {
 t.stop();
 writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
-
-// Scan for most wanted...
-writeln("Searching for known offenders...");
-forall v in graph.getVertices() {
-    var ip = graph.getProperty(v);
-    if badIPAddresses.member(ip) {
-        writeln("(Pre-Collapse) Found blacklisted ip address ", ip);
-        
-        // Print out its local neighbors...
-        f.writeln("(Pre-Collapse) Blacklisted IP Address: ", ip);
-        for s in 1..3 {
-            f.writeln("\tLocal Neighborhood (s=", s, "):");
-            for neighbor in graph.walk(v, s) {
-                var neighborIP = graph.getProperty(neighbor);
-                f.writeln("\t\t", neighborIP);
-            }
-            f.flush();
-        }
-
-        // Print out its component
-        for s in 1..3 {
-            f.writeln("\tComponent (s=", s, "):");
-            for vv in vertexBFS(graph, v, s) {
-                var componentIP = graph.getProperty(vv);
-                f.writeln("\t\t", componentIP);
-            }
-        }
-    }
-}
-forall e in graph.getEdges() {
-    var dnsName = graph.getProperty(e);
-    var isBadDNS = dnsName.matches(badDNSNamesRegexp);
-    if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
-        writeln("(Pre-Collapse) Found blacklisted DNS Name ", dnsName);
-
-        // Print out its local neighbors...
-        f.writeln("(Pre-Collapse) Blacklisted DNS Name: ", dnsName);
-        for s in 1..3 {
-            f.writeln("\tLocal Neighborhood (s=", s, "):");
-            for neighbor in graph.walk(e, s) {
-                var neighborIP = graph.getProperty(neighbor);
-                f.writeln("\t\t", neighborIP);
-            }
-            f.flush();
-        }
-
-        // Print out its component
-        for s in 1..3 {
-            f.writeln("\tComponent (s=", s, "):");
-            for ee in edgeBFS(graph, e, s) {
-                var componentIP = graph.getProperty(ee);
-                f.writeln("\t\t", componentIP);
-            }
-        }
-    }
-}
-
 writeln("Number of Inclusions: ", graph.getInclusions());
+
+searchBlacklist(graph, "Pre-Collapse");
 
 if preCollapseMetrics {
     t.start();
@@ -249,61 +270,7 @@ t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-// Scan for most wanted...
-writeln("Searching for known offenders...");
-forall v in graph.getVertices() {
-    var ip = graph.getProperty(v);
-    if badIPAddresses.member(ip) {
-        writeln("(Post-Collapse) Found blacklisted ip address ", ip);
-        
-        // Print out its local neighbors...
-        f.writeln("(Post-Collapse) Blacklisted IP Address: ", ip);
-        for s in 1..3 {
-            f.writeln("\tLocal Neighborhood (s=", s, "):");
-            for neighbor in graph.walk(v, s) {
-                var neighborIP = graph.getProperty(neighbor);
-                f.writeln("\t\t", neighborIP);
-            }
-            f.flush();
-        }
-
-        // Print out its component
-        for s in 1..3 {
-            f.writeln("\tComponent (s=", s, "):");
-            for vv in vertexBFS(graph, v, s) {
-                var componentIP = graph.getProperty(vv);
-                f.writeln("\t\t", componentIP);
-            }
-        }
-    }
-}
-forall e in graph.getEdges() {
-    var dnsName = graph.getProperty(e);
-    var isBadDNS = dnsName.matches(badDNSNamesRegexp);
-    if badDNSNames.member(dnsName) || (isBadDNS.size != 0 && dnsName.size > 10) {
-        writeln("(Post-Collapse) Found blacklisted DNS Name ", dnsName);
-
-        // Print out its local neighbors...
-        f.writeln("(Post-Collapse) Blacklisted DNS Name: ", dnsName);
-        for s in 1..3 {
-            f.writeln("\tLocal Neighborhood (s=", s, "):");
-            for neighbor in graph.walk(e, s) {
-                var neighborIP = graph.getProperty(neighbor);
-                f.writeln("\t\t", neighborIP);
-            }
-            f.flush();
-        }
-
-        // Print out its component
-        for s in 1..3 {
-            f.writeln("\tComponent (s=", s, "):");
-            for ee in edgeBFS(graph, e, s) {
-                var componentIP = graph.getProperty(ee);
-                f.writeln("\t\t", componentIP);
-            }
-        }
-    }
-}
+searchBlacklist(graph, "Post-Collapse");
 
 f.writeln("Distribution of Duplicate Vertex Counts:");
 for (deg, freq) in zip(vDupeHistogram.domain, vDupeHistogram) {
@@ -367,61 +334,7 @@ t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-// Scan for most wanted...
-writeln("Searching for known offenders...");
-forall v in graph.getVertices() {
-    var ip = graph.getProperty(v);
-    if badIPAddresses.member(ip) {
-        writeln("(Post-Removals) Found blacklisted ip address ", ip);
-        
-        // Print out its local neighbors...
-        f.writeln("(Post-Removal) Blacklisted IP Address: ", ip);
-        for s in 1..3 {
-            f.writeln("\tLocal Neighborhood (s=", s, "):");
-            for neighbor in graph.walk(v, s) {
-                var neighborIP = graph.getProperty(neighbor);
-                f.writeln("\t\t", neighborIP);
-            }
-            f.flush();
-        }
-
-        // Print out its component
-        for s in 1..3 {
-            f.writeln("\tComponent (s=", s, "):");
-            for vv in vertexBFS(graph, v, s) {
-                var componentIP = graph.getProperty(vv);
-                f.writeln("\t\t", componentIP);
-            }
-        }
-    }
-}
-forall e in graph.getEdges() {
-    var dnsName = graph.getProperty(e);
-    var isBadDNS = dnsName.matches(badDNSNamesRegexp);
-    if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
-        writeln("(Post-Removal) Found blacklisted DNS Name ", dnsName);
-
-        // Print out its local neighbors...
-        f.writeln("(Post-Removal) Blacklisted DNS Name: ", dnsName);
-        for s in 1..3 {
-            f.writeln("\tLocal Neighborhood (s=", s, "):");
-            for neighbor in graph.walk(e, s) {
-                var neighborIP = graph.getProperty(neighbor);
-                f.writeln("\t\t", neighborIP);
-            }
-            f.flush();
-        }
-
-        // Print out its component
-        for s in 1..3 {
-            f.writeln("\tComponent (s=", s, "):");
-            for ee in edgeBFS(graph, e, s) {
-                var componentIP = graph.getProperty(ee);
-                f.writeln("\t\t", componentIP);
-            }
-        }
-    }
-}
+searchBlacklist(graph, "Post-Removal");
 
 t.start();
 f.writeln("(Post-Removal) #V = ", graph.numVertices);
