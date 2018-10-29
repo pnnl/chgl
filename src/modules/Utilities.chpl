@@ -33,13 +33,13 @@ inline proc createBlock(sz : integral, startIdx = 1) {
   return createBlock(startIdx..#sz);
 }
 
-iter readCSV(file : string) : string {
+iter getLines(file : string) : string {
   var f = open(file, iomode.r).reader();
   var tmp : string;
   while f.readline(tmp) do yield tmp;
 }
 
-iter readCSV(file : string, chunkSize = 1024, param tag : iterKind) : string where tag == iterKind.standalone {
+iter getLines(file : string, chunkSize = 1024, param tag : iterKind) : string where tag == iterKind.standalone {
   var chunk : atomic int;
   coforall loc in Locales do on loc {
     coforall tid in 1..#here.maxTaskPar {

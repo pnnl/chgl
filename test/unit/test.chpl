@@ -6,15 +6,27 @@ use Regexp;
 use WorkQueue;
 use Metrics;
 use Components;
+use Traversal;
 
 config const dataset = "../../data/DNS-Test-Data.csv";
-config const dnsRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
-config const preCollapseMetrics = false;
+config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+config const badDNSNamesRegex = "[a-zA-Z]{4,5}\\.[pw|us|club|info|site|top]\\.";
+config const preCollapseMetrics = true;
 
-var dnsRegexp = compile(dnsRegex);
+var ValidIPRegexp = compile(ValidIPRegex);
+var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var f = open("metrics.txt", iomode.cw).writer();
 var t = new Timer();
 var wq = new WorkQueue(string);
+
+var badIPAddresses : domain(string);
+var badDNSNames : domain(string);
+for line in getLines("../../data/ip-most-wanted.txt") {
+    badIPAddresses += line;
+}
+for line in getLines("../../data/dns-most-wanted.txt") {
+    badDNSNames += line;
+}
 
 writeln("Constructing PropertyMap...");
 t.start();
@@ -22,7 +34,7 @@ var propMap = new PropertyMap(string, string);
 var done : atomic bool;
 var lines : atomic int;
 begin {
-    for line in readCSV(dataset) {
+    for line in getLines(dataset) {
         lines.add(1);
         wq.addWork(line);
     }
@@ -47,10 +59,19 @@ coforall loc in Locales do on loc {
             var attrs = line.split("\t");
             var qname = attrs[2];
             var rdata = attrs[4];
-            var reg = rdata.matches(dnsRegexp);
-            if reg.size != 0 {
-                propMap.addVertexProperty(qname);
-                propMap.addEdgeProperty(rdata);
+
+            // Empty IP or DNS
+            if qname == "" || rdata == "" then continue;
+            // IP Address as DNS Name
+            var goodQName = qname.matches(ValidIPRegexp);
+            if goodQName.size != 0 then continue;
+            
+            for ip in rdata.split(",") {
+                var goodIP = ip.matches(ValidIPRegexp);
+                if goodIP.size != 0 {
+                    propMap.addVertexProperty(ip);
+                    propMap.addEdgeProperty(qname);
+                }
             }
         }
     }
@@ -67,7 +88,7 @@ var graph = new AdjListHyperGraph(propMap);
 writeln("Adding inclusions to HyperGraph...");
 done.write(false);
 begin {
-    for line in readCSV(dataset) {
+    for line in getLines(dataset) {
         lines.add(1);
         wq.addWork(line);
     }
@@ -92,10 +113,17 @@ coforall loc in Locales do on loc {
             var attrs = line.split("\t");
             var qname = attrs[2];
             var rdata = attrs[4];
-            
-            var reg = rdata.matches(dnsRegexp);
-            if reg.size != 0 {
-                graph.addInclusion(propMap.getVertexProperty(qname), propMap.getEdgeProperty(rdata));
+            // Empty IP or DNS
+            if qname == "" || rdata == "" then continue;
+            // IP Address as DNS Name
+            var goodQName = qname.matches(ValidIPRegexp);
+            if goodQName.size != 0 then continue;
+
+            for ip in rdata.split(",") {
+                var goodIP = ip.matches(ValidIPRegexp);
+                if goodIP.size != 0 {
+                    graph.addInclusion(propMap.getVertexProperty(ip), propMap.getEdgeProperty(qname));
+                }
             }
         }
     }
@@ -104,6 +132,62 @@ coforall loc in Locales do on loc {
 t.stop();
 writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
+
+// Scan for most wanted...
+writeln("Searching for known offenders...");
+forall v in graph.getVertices() {
+    var ip = graph.getProperty(v);
+    if badIPAddresses.member(ip) {
+        writeln("(Pre-Collapse) Found blacklisted ip address ", ip);
+        
+        // Print out its local neighbors...
+        f.writeln("(Pre-Collapse) Blacklisted IP Address: ", ip);
+        for s in 1..3 {
+            f.writeln("\tLocal Neighborhood (s=", s, "):");
+            for neighbor in graph.walk(v, s) {
+                var neighborIP = graph.getProperty(neighbor);
+                f.writeln("\t\t", neighborIP);
+            }
+            f.flush();
+        }
+
+        // Print out its component
+        for s in 1..3 {
+            f.writeln("\tComponent (s=", s, "):");
+            for vv in vertexBFS(graph, v, s) {
+                var componentIP = graph.getProperty(vv);
+                f.writeln("\t\t", componentIP);
+            }
+        }
+    }
+}
+forall e in graph.getEdges() {
+    var dnsName = graph.getProperty(e);
+    var isBadDNS = dnsName.matches(badDNSNamesRegexp);
+    if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+        writeln("(Pre-Collapse) Found blacklisted DNS Name ", dnsName);
+
+        // Print out its local neighbors...
+        f.writeln("(Pre-Collapse) Blacklisted DNS Name: ", dnsName);
+        for s in 1..3 {
+            f.writeln("\tLocal Neighborhood (s=", s, "):");
+            for neighbor in graph.walk(e, s) {
+                var neighborIP = graph.getProperty(neighbor);
+                f.writeln("\t\t", neighborIP);
+            }
+            f.flush();
+        }
+
+        // Print out its component
+        for s in 1..3 {
+            f.writeln("\tComponent (s=", s, "):");
+            for ee in edgeBFS(graph, e, s) {
+                var componentIP = graph.getProperty(ee);
+                f.writeln("\t\t", componentIP);
+            }
+        }
+    }
+}
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
@@ -127,7 +211,7 @@ if preCollapseMetrics {
             if freq != 0 then f.writeln("\t", deg, ",", freq);
         }
     }
-    for s in 1..2 {
+    for s in 1..3 {
         f.flush();
         f.writeln("(Pre-Collapse) Vertex Connected Component Size Distribution (s = ", s, ")");
         {
@@ -153,12 +237,77 @@ if preCollapseMetrics {
 
 writeln("Collapsing HyperGraph...");
 t.start();
-graph.collapse();
+var (vDupeHistogram, eDupeHistogram) = graph.collapse();
 t.stop();
 writeln("Collapsed Hypergraph: ", t.elapsed());
 t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
+
+// Scan for most wanted...
+writeln("Searching for known offenders...");
+forall v in graph.getVertices() {
+    var ip = graph.getProperty(v);
+    if badIPAddresses.member(ip) {
+        writeln("(Post-Collapse) Found blacklisted ip address ", ip);
+        
+        // Print out its local neighbors...
+        f.writeln("(Post-Collapse) Blacklisted IP Address: ", ip);
+        for s in 1..3 {
+            f.writeln("\tLocal Neighborhood (s=", s, "):");
+            for neighbor in graph.walk(v, s) {
+                var neighborIP = graph.getProperty(neighbor);
+                f.writeln("\t\t", neighborIP);
+            }
+            f.flush();
+        }
+
+        // Print out its component
+        for s in 1..3 {
+            f.writeln("\tComponent (s=", s, "):");
+            for vv in vertexBFS(graph, v, s) {
+                var componentIP = graph.getProperty(vv);
+                f.writeln("\t\t", componentIP);
+            }
+        }
+    }
+}
+forall e in graph.getEdges() {
+    var dnsName = graph.getProperty(e);
+    var isBadDNS = dnsName.matches(badDNSNamesRegexp);
+    if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+        writeln("(Post-Collapse) Found blacklisted DNS Name ", dnsName);
+
+        // Print out its local neighbors...
+        f.writeln("(Post-Collapse) Blacklisted DNS Name: ", dnsName);
+        for s in 1..3 {
+            f.writeln("\tLocal Neighborhood (s=", s, "):");
+            for neighbor in graph.walk(e, s) {
+                var neighborIP = graph.getProperty(neighbor);
+                f.writeln("\t\t", neighborIP);
+            }
+            f.flush();
+        }
+
+        // Print out its component
+        for s in 1..3 {
+            f.writeln("\tComponent (s=", s, "):");
+            for ee in edgeBFS(graph, e, s) {
+                var componentIP = graph.getProperty(ee);
+                f.writeln("\t\t", componentIP);
+            }
+        }
+    }
+}
+
+f.writeln("Distribution of Duplicate Vertex Counts");
+for (deg, freq) in zip(vDupeHistogram.domain, vDupeHistogram) {
+    if freq != 0 then f.writeln("\t", deg, ",", freq);
+}
+f.writeln("Distribution of Duplicate Edge Counts");
+for (deg, freq) in zip(eDupeHistogram.domain, eDupeHistogram) {
+    if freq != 0 then f.writeln("\t", deg, ",", freq);
+}
 
 t.start();
 f.writeln("(Post-Collapse) #V = ", graph.numVertices);
@@ -180,7 +329,7 @@ f.writeln("(Post-Collapse) Edge Cardinality Distribution");
     }
 }
 f.flush();
-for s in 1..2 {
+for s in 1..3 {
     f.flush();
     f.writeln("(Post-Collapse) Vertex Connected Component Size Distribution (s = ", s, ")");
     {
@@ -205,48 +354,67 @@ t.clear();
 
 writeln("Removing isolated components...");
 t.start();
-graph.removeIsolatedComponents();
+var numIsolatedComponents = graph.removeIsolatedComponents();
 t.stop();
 writeln("Removed isolated components: ", t.elapsed());
+f.writeln("Isolated Components Removed: ", numIsolatedComponents);
 t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
+// Scan for most wanted...
+writeln("Searching for known offenders...");
 forall v in graph.getVertices() {
-    assert(graph.getVertex(v) != nil, "Vertex ", v, " is nil...");
-    assert(graph.numNeighbors(v) > 0, "Vertex has 0 neighbors...");
-    forall e in graph.getNeighbors(v) {
-        assert(graph.getEdge(e) != nil, "Edge ", e, " is nil...");
-        assert(graph.numNeighbors(e) > 0, "Edge has 0 neighbors...");
-
-        var isValid : bool;
-        for vv in graph.getNeighbors(e) {
-            if vv == v {
-                isValid = true;
-                break;
+    var ip = graph.getProperty(v);
+    if badIPAddresses.member(ip) {
+        writeln("(Post-Removals) Found blacklisted ip address ", ip);
+        
+        // Print out its local neighbors...
+        f.writeln("(Post-Removal) Blacklisted IP Address: ", ip);
+        for s in 1..3 {
+            f.writeln("\tLocal Neighborhood (s=", s, "):");
+            for neighbor in graph.walk(v, s) {
+                var neighborIP = graph.getProperty(neighbor);
+                f.writeln("\t\t", neighborIP);
             }
+            f.flush();
         }
 
-        assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...");
+        // Print out its component
+        for s in 1..3 {
+            f.writeln("\tComponent (s=", s, "):");
+            for vv in vertexBFS(graph, v, s) {
+                var componentIP = graph.getProperty(vv);
+                f.writeln("\t\t", componentIP);
+            }
+        }
     }
 }
-
 forall e in graph.getEdges() {
-    assert(graph.getEdge(e) != nil, "Edge ", e, " is nil...");
-    assert(graph.numNeighbors(e) > 0, "Edge has 0 neighbors...");
-    forall v in graph.getNeighbors(e) {
-        assert(graph.getVertex(v) != nil, "Vertex ", v, " is nil...");
-        assert(graph.numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+    var dnsName = graph.getProperty(e);
+    var isBadDNS = dnsName.matches(badDNSNamesRegexp);
+    if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+        writeln("(Post-Removal) Found blacklisted DNS Name ", dnsName);
 
-        var isValid : bool;
-        for ee in graph.getNeighbors(v) {
-            if ee == e {
-                isValid = true;
-                break;
+        // Print out its local neighbors...
+        f.writeln("(Post-Removal) Blacklisted DNS Name: ", dnsName);
+        for s in 1..3 {
+            f.writeln("\tLocal Neighborhood (s=", s, "):");
+            for neighbor in graph.walk(e, s) {
+                var neighborIP = graph.getProperty(neighbor);
+                f.writeln("\t\t", neighborIP);
             }
+            f.flush();
         }
 
-        assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...");
+        // Print out its component
+        for s in 1..3 {
+            f.writeln("\tComponent (s=", s, "):");
+            for ee in edgeBFS(graph, e, s) {
+                var componentIP = graph.getProperty(ee);
+                f.writeln("\t\t", componentIP);
+            }
+        }
     }
 }
 
@@ -270,9 +438,9 @@ f.writeln("(Post-Removal) Edge Cardinality Distribution");
     }
 }
 f.flush();
-for s in 1..2 {
+for s in 1..3 {
     f.flush();
-    f.writeln("(Pre-Collapse) Vertex Connected Component Size Distribution (s = ", s, ")");
+    f.writeln("(Post-Removal) Vertex Connected Component Size Distribution (s = ", s, ")");
     {
         var vComponentSizes = vertexComponentSizeDistribution(graph, s);
         for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
@@ -280,7 +448,7 @@ for s in 1..2 {
         }
     }
     f.flush();
-    f.writeln("(Pre-Collapse) Edge Connected Component Size Distribution (s = ", s, ")");
+    f.writeln("(Post-Removal) Edge Connected Component Size Distribution (s = ", s, ")");
     {
         var eComponentSizes = edgeComponentSizeDistribution(graph, s);
         for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {

@@ -792,8 +792,7 @@ module AdjListHyperGraph {
     proc collapseVertices() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
-        on Locales[0] do getPrivatizedInstance().collapseVertices();
-        return;
+        halt("Collapse must be performed on master locale #0");
       }
 
       const __verticesDomain = _verticesDomain;
@@ -942,13 +941,26 @@ module AdjListHyperGraph {
       }
 
       writeln("Removing duplicates: ", removeDuplicates());
+
+      // Obtain duplicate stats...
+      var numDupes : [_verticesDomain] atomic int;
+      forall vDup in duplicateVertices {
+        if vDup != -1 {
+          numDupes[vertexMappings[vDup]].add(1);
+        }
+      }
+
+      var maxDupes = max reduce [n in numDupes] n.read();
+      var dupeHistogram : [1..maxDupes] atomic int;
+      forall nDupes in numDupes do dupeHistogram[nDupes.read()].add(1);
+      return [n in dupeHistogram] n.read();
     }
 
     proc collapseEdges() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
-        on Locales[0] do getPrivatizedInstance().collapseEdges();
-        return;
+        // Cannot jump and return as return type is inferred by compiler.
+        halt("Collapse must be performed on master locale #0");
       }
 
       const __edgesDomain = _edgesDomain;
@@ -1092,10 +1104,23 @@ module AdjListHyperGraph {
       }
 
       writeln("Removing duplicates: ", removeDuplicates());
+
+      // Obtain duplicate stats...
+      var numDupes : [_edgesDomain] atomic int;
+      forall eDup in duplicateEdges {
+        if eDup != -1 {
+          numDupes[edgeMappings[eDup]].add(1);
+        }
+      }
+
+      var maxDupes = max reduce [n in numDupes] n.read();
+      var dupeHistogram : [1..maxDupes] atomic int;
+      forall nDupes in numDupes do dupeHistogram[nDupes.read()].add(1);
+      return [n in dupeHistogram] n.read();
     }
 
     proc collapse() {
-      collapseVertices();
+      var vDupeHistogram = collapseVertices();
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
           assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
@@ -1136,8 +1161,8 @@ module AdjListHyperGraph {
           }
         }
       }
-      collapseEdges();
-
+      
+      var eDupeHistogram = collapseEdges();
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
           assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
@@ -1177,13 +1202,15 @@ module AdjListHyperGraph {
           }
         }
       }
+
+      return (vDupeHistogram, eDupeHistogram);
     }
 
     proc removeIsolatedComponents() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
-        on Locales[0] do getPrivatizedInstance().removeIsolatedComponents();
-        return;
+        // Cannot jump and return as return type is inferred by compiler.
+        halt("Remove Isolated Components must be performed on master locale #0");
       }
 
       // Pass 1: Remove isolated components
@@ -1308,6 +1335,48 @@ module AdjListHyperGraph {
           _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
         }
       }
+
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+          forall e in getNeighbors(v) {
+            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+
+            var isValid : bool;
+            for vv in getNeighbors(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...");
+          }
+        }
+
+        forall e in getEdges() {
+          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+          forall v in getNeighbors(e) {
+            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in getNeighbors(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...");
+          }
+        }
+      }
+
+      return numIsolatedComponents;
     }
 
     iter getToplexes(param tag : iterKind) : eDescType where tag == iterKind.standalone  {
