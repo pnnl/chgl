@@ -11,7 +11,7 @@ use ReplicatedDist;
 use FileSystem;
 
 config const datasetDirectory = "../../data/DNS/";
-config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
+config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$";
 config const preCollapseMetrics = true;
 config const doPreCollapseComponents = false;
 
