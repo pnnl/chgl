@@ -17,6 +17,10 @@ record PropertyMap {
         this.map = other.map;
     }
 
+    proc append(other : this.type) {
+        this.map.append(other.map);
+    }
+
     proc clone(other : PropertyMap(?vertexPropertyType, ?edgePropertyType)) {
         this.vertexPropertyType = vertexPropertyType;
         this.edgePropertyType = edgePropertyType;
@@ -43,6 +47,12 @@ class PropertyMapping {
         other.lock$.writeEF(true);
         this.dom = other.dom;
         this.arr = other.arr;
+        other.lock$.readFE();
+    }
+
+    proc append(other : this.type) {
+        other.lock$.writeEF(true);
+        this.dom += other.dom;
         other.lock$.readFE();
     }
 
@@ -103,6 +113,11 @@ class PropertyMapImpl {
         this.edgePropertyType = edgePropertyType;
         this.vPropMap = new owned PropertyMapping(other.vPropMap);
         this.ePropMap = new owned PropertyMapping(other.ePropMap);
+    }
+
+    proc append(other : this.type) {
+        vPropMap.append(other.vPropMap);
+        ePropMap.append(other.ePropMap);
     }
 
     proc addVertexProperty(property : vertexPropertyType) {

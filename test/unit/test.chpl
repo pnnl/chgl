@@ -7,14 +7,14 @@ use WorkQueue;
 use Metrics;
 use Components;
 use Traversal;
+use ReplicatedDist;
+use FileSystem;
 
-config const dataset = "../../data/DNS-Test-Data.csv";
-config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+config const datasetDirectory = "../../data/DNS/";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
 config const preCollapseMetrics = true;
 config const doPreCollapseComponents = false;
 
-var ValidIPRegexp = compile(ValidIPRegex);
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var f = open("metrics.txt", iomode.cw).writer();
 var t = new Timer();
@@ -53,26 +53,26 @@ proc getMetrics(graph, prefix, components = true) {
         var components = getEdgeComponents(graph, s);
         var eMax = max reduce [component in components] component.size();
         var vMax = max reduce [component in components] (+ reduce for edge in component do graph.numNeighbors(edge));         
-        var vComponentSizes : [1..vMax] atomic int;
-        var eComponentSizes : [1..eMax] atomic int;
-        forall component in components {
-            eComponentSizes[component.size()].add(1);
+        var vComponentSizes : [1..vMax] int;
+        var eComponentSizes : [1..eMax] int;
+        forall component in components with (+ reduce vComponentSizes, + reduce eComponentSizes) {
+            eComponentSizes[component.size()] += 1;
             var numVertices : int;
             for e in component {
                 numVertices += graph.numNeighbors(e);
             }
-            vComponentSizes[numVertices].add(1);
+            vComponentSizes[numVertices] += 1;
         }
 
         f.writeln("(", prefix, ") Vertex Connected Component Size Distribution (s = " + s + "):");
         for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
-            if freq.read() != 0 then f.writeln("\t" + sz + "," + freq.read());
+            if freq != 0 then f.writeln("\t" + sz + "," + freq);
         }
         f.flush();
 
         f.writeln("(", prefix, ") Edge Connected Component Size Distribution (s = " + s + "):");
         for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
-            if freq.read() != 0 then f.writeln("\t" + sz + "," + freq.read());
+            if freq != 0 then f.writeln("\t" + sz + "," + freq);
         }
         f.flush();
         delete components;
@@ -156,39 +156,49 @@ proc searchBlacklist(graph, prefix) {
 
 writeln("Constructing PropertyMap...");
 t.start();
-var propMap = new PropertyMap(string, string);
-var done : atomic bool;
-var lines : atomic int;
-begin {
-    for line in getLines(dataset) {
-        lines.add(1);
-        wq.addWork(line);
-    }
-    wq.flush();
-    done.write(true);
+// Fill work queue with files to load up
+var currLoc : int; 
+for fileName in listdir(datasetDirectory, dirs=false) {
+    wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
+    currLoc += 1;
 }
+wq.flush();
 
+// Initialize property maps
+var propertyMapsDomain = {0..#here.maxTaskPar} dmapped Replicated();
+var propertyMaps : [propertyMapsDomain] PropertyMap(string, string);
 coforall loc in Locales do on loc {
-    coforall tid in 1..here.maxTaskPar {
+    coforall tid in 0..#here.maxTaskPar {
+        var propMap = new PropertyMap(string, string);
         while true {
-            var (hasElt, line) = wq.getWork();
-            if !hasElt {
-                if lines.read() == 0 && done.read() {
-                    break;
-                }
-                chpl_task_yield();
-                continue;
-            } else {
-                lines.sub(1);
+            var (hasFile, fileName) = wq.getWork();
+            if !hasFile {
+                break;
             }
-
-            var attrs = line.split(",");
-            assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
-            var qname = attrs[1];
-            var rdata = attrs[2];
-            propMap.addVertexProperty(rdata);
-            propMap.addEdgeProperty(qname);
+            
+            for line in getLines(fileName) {
+                var attrs = line.split(",");
+                assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
+                var qname = attrs[1];
+                var rdata = attrs[2];
+                propMap.addVertexProperty(rdata);
+                propMap.addEdgeProperty(qname);
+            }
         }
+        propertyMaps[tid] = propMap;
+    }
+    // Do Merge...
+    if propertyMaps.size > 1 {
+        for propMap in propertyMaps[1..] {
+            propertyMaps[0].append(propMap);
+        }
+    }
+}
+// Do Merge
+var master = propertyMaps[0];
+if numLocales > 1 {
+    for loc in Locales do on loc {
+        master.append(propertyMaps[0]);
     }
 }
 
@@ -198,38 +208,32 @@ t.clear();
 
 t.start();
 writeln("Constructing HyperGraph...");
-var graph = new AdjListHyperGraph(propMap);
+var graph = new AdjListHyperGraph(master);
 
 writeln("Adding inclusions to HyperGraph...");
-done.write(false);
-begin {
-    for line in getLines(dataset) {
-        lines.add(1);
-        wq.addWork(line);
-    }
-    wq.flush();
-    done.write(true);
+// Fill work queue with files to load up
+currLoc = 0;
+for fileName in listdir(datasetDirectory, dirs=false) {
+    wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
+    currLoc += 1;
 }
+wq.flush();
 
 coforall loc in Locales do on loc {
-    coforall tid in 1..here.maxTaskPar {
+    coforall tid in 0..#here.maxTaskPar {
         while true {
-            var (hasElt, line) = wq.getWork();
-            if !hasElt {
-                if lines.read() == 0 && done.read() {
-                    break;
-                }
-                chpl_task_yield();
-                continue;
-            } else {
-                lines.sub(1);
+            var (hasFile, fileName) = wq.getWork();
+            if !hasFile {
+                break;
             }
-
-           var attrs = line.split(",");
-            assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
-            var qname = attrs[1];
-            var rdata = attrs[2];
-            graph.addInclusion(propMap.getVertexProperty(rdata), propMap.getEdgeProperty(qname));
+            
+            for line in getLines(fileName) {
+                var attrs = line.split(",");
+                assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
+                var qname = attrs[1];
+                var rdata = attrs[2];
+                graph.addInclusion(master.getVertexProperty(rdata), master.getEdgeProperty(qname));
+            }
         }
     }
 }
