@@ -85,70 +85,74 @@ proc searchBlacklist(graph, prefix) {
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
         if badIPAddresses.member(ip) {
+            var str : string;
             writeln("(" + prefix + ") Found blacklisted ip address ", ip);
             
             // Print out its local neighbors...
-            f.writeln("(" + prefix + ") Blacklisted IP Address: ", ip);
+            str += "(" + prefix + ") Blacklisted IP Address: " + ip + "\n";
             for s in 1..3 {
-                f.writeln("\tLocal Neighborhood (s=", s, "):");
+                str += "\tLocal Neighborhood (s=" + s + "):\n";
                 for neighbor in graph.walk(v, s) {
-                    var str = "\t\t" + graph.getProperty(neighbor) + "\t";
+                    str += "\t\t" + graph.getProperty(neighbor) + "\t";
                     for n in graph.getNeighbors(neighbor) {
                         str += graph.getProperty(n) + ",";
                     }
-                    f.writeln(str[..str.size - 2]);
-                    f.flush();
+                    str = str[..str.size - 2];
+                    str += "\n";
                 }
-                f.flush();
             }
 
             // Print out its component
             for s in 1..3 {
-                f.writeln("\tComponent (s=", s, "):");
+                str += "\tComponent (s=" + s + "):\n";
                 for vv in vertexBFS(graph, v, s) {
-                    var str = "\t\t" + graph.getProperty(vv) + "\t";
+                    str += "\t\t" + graph.getProperty(vv) + "\t";
                     for n in graph.getNeighbors(vv) {
                         str += graph.getProperty(n) + ",";
                     }
-                    f.writeln(str[..str.size - 2]);
-                    f.flush();
+                    str = str[..str.size - 2];
+                    str += "\n";
                 }
             }
+            f.writeln(str);
+            f.flush();
         }
     }
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
         if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+            var str : string;
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
 
             // Print out its local neighbors...
-            f.writeln("(" + prefix + ") Blacklisted DNS Name: ", dnsName);
+            str += "(" + prefix + ") Blacklisted DNS Name: " + dnsName + "\n";
             for s in 1..3 {
-                f.writeln("\tLocal Neighborhood (s=", s, "):");
+                str += "\tLocal Neighborhood (s=" + s + "):\n";
                 for neighbor in graph.walk(e, s) {
-                    var str = "\t\t" + graph.getProperty(neighbor) + "\t";
+                    str += "\t\t" + graph.getProperty(neighbor) + "\t";
                     for n in graph.getNeighbors(neighbor) {
                         str += graph.getProperty(n) + ",";
                     }
-                    f.writeln(str[..str.size - 2]);
-                    f.flush();
+                    str = str[..str.size - 2];
+                    str += "\n";
                 }
-                f.flush();
             }
 
             // Print out its component
             for s in 1..3 {
-                f.writeln("\tComponent (s=", s, "):");
+                str += "\tComponent (s=" + s + "):\n";
                 for ee in edgeBFS(graph, e, s) {
-                    var str = "\t\t" + graph.getProperty(ee) + "\t";
+                    str += "\t\t" + graph.getProperty(ee) + "\t";
                     for n in graph.getNeighbors(ee) {
                         str += graph.getProperty(n) + ",";
                     }
-                    f.writeln(str[..str.size - 2]);
-                    f.flush();
+                    str = str[..str.size - 2];
+                    str += "\n";
                 }
             }
+            f.writeln(str);
+            f.flush();
         }
     }
     writeln("Finished searching for blacklisted IPs...");
