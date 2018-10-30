@@ -16,12 +16,13 @@ class Vector {
     return _dummy;
   }
 
-  proc these(param tag : iterKind) {
+  iter these(param tag : iterKind) where tag == iterKind.standalone {
     halt();
   }
 
   proc size() return 0;
-  proc these() : eltType {halt();}
+  iter these() : eltType {halt();}
+  proc clear() {halt();}
 }
 
 class VectorImpl : Vector {
@@ -53,18 +54,23 @@ class VectorImpl : Vector {
   }
 
   override proc this(idx : integral) ref {
+    assert(idx < sz && idx >= dom.low, "Index ", idx, " is out of bounds of ", dom.low..#sz);
     return arr[idx];
   }
 
   override iter these() ref {
-    for a in arr do yield a;
+    for a in arr[dom.low..#sz] do yield a;
   }
 
   override iter these(param tag : iterKind) where tag == iterKind.standalone {
-    forall a in arr do yield a;
+    forall a in arr[dom.low..#sz] do yield a;
   }
 
   override proc size() return sz;
+
+  override proc clear() {
+    this.sz = dom.low;
+  }
 
   proc readWriteThis(f) {
     f <~> arr;

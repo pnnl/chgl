@@ -16,8 +16,8 @@ module Components {
       var component : int(64);
 
       for v in graph.getVertices() {
-        var sequence = new borrowed VectorImpl(graph._value.vDescType, {0..-1});
         if components[v.id] != 0 then continue;
+        var sequence = new unmanaged VectorImpl(graph._value.vDescType, {0..-1});
         component += 1;
         components[v.id] = component;
         sequence.append(v);
@@ -37,8 +37,8 @@ module Components {
       var component : int(64);
 
       for e in graph.getEdges() {
-        var sequence = new borrowed VectorImpl(graph._value.eDescType, {0..-1});
         if components[e.id] != 0 then continue;
+        var sequence = new unmanaged VectorImpl(graph._value.eDescType, {0..-1});
         component += 1;
         components[e.id] = component;
         sequence.append(e);

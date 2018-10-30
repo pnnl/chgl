@@ -19,7 +19,7 @@ iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType 
     var currV = queue.pop_front();
     if explored.member(currV) then continue;
     explored += currV;
-    if v.id != currV then yield graph.toVertex(currV);
+    if v.id != currV then yield graph.toVertex(currV); 
     for vv in graph.walk(graph.toVertex(currV), s) {
       queue.push_back(vv.id);
     }

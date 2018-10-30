@@ -302,6 +302,48 @@ module AdjListHyperGraph {
       return neighborsRemoved;
     }
 
+    // Checks to see if an S-Walk can be performed from this node to other.
+    // This is much more lightweight compared to `neighborIntersection` as it
+    // will short-circuit and will not create an intersection array.
+    proc canWalk(other : this.type, s = 1) {
+      if this == other then halt("Attempt to walk on self... May be a bug!");
+
+      serial other.locale != here && this.locale != here do cobegin {
+        on this do lock.acquire();
+        on other do other.lock.acquire();
+      }
+
+      this.sortNeighbors();
+      other.sortNeighbors();
+      ref A = this.neighborList;
+      ref B = other.neighborList;
+      var idxA = A.domain.low;
+      var idxB = B.domain.low;
+      var match : int;
+      while idxA <= A.domain.high && idxB <= B.domain.high {
+        const a = A[idxA];
+        const b = B[idxB];
+        if a == b { 
+          match += 1;
+          if match == s then break;
+          idxA += 1; 
+          idxB += 1; 
+        }
+        else if a.id > b.id { 
+          idxB += 1;
+        } else { 
+          idxA += 1;
+        }
+      }
+
+      serial other.locale != here && this.locale != here do cobegin {
+        on this do lock.release();
+        on other do other.lock.release();
+      }
+      
+      return match == s;
+    }
+
     // Obtains the intersection of the neighbors of 'this' and 'other'.
     // Associative arrays are extremely inefficient, so we have to roll
     // our own intersection. We do this by sorting both data structures...
@@ -936,7 +978,7 @@ module AdjListHyperGraph {
       {
         writeln("Updating PropertyMap for Vertices...");
         for (vProp, vIdx) in _propertyMap.vertexProperties() {
-          _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
+          if vIdx != -1 then _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
         }
       }
 
@@ -952,7 +994,7 @@ module AdjListHyperGraph {
 
       var maxDupes = max reduce [n in numDupes] n.read();
       var dupeHistogram : [1..maxDupes] atomic int;
-      forall nDupes in numDupes do dupeHistogram[nDupes.read()].add(1);
+      forall nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
       return [n in dupeHistogram] n.read();
     }
 
@@ -1099,7 +1141,7 @@ module AdjListHyperGraph {
       // Pass 4: Update PropertyMap
       {
         for (eProp, eIdx) in _propertyMap.edgeProperties() {
-          _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
+          if eIdx != -1 then _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
         }
       }
 
@@ -1115,7 +1157,7 @@ module AdjListHyperGraph {
 
       var maxDupes = max reduce [n in numDupes] n.read();
       var dupeHistogram : [1..maxDupes] atomic int;
-      forall nDupes in numDupes do dupeHistogram[nDupes.read()].add(1);
+      forall nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
       return [n in dupeHistogram] n.read();
     }
 
@@ -1327,12 +1369,12 @@ module AdjListHyperGraph {
       {
         writeln("Updating PropertyMap for Vertices...");
         for (vProp, vIdx) in _propertyMap.vertexProperties() {
-          _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
+          if vIdx != -1 then _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
         }
         
         writeln("Updating PropertyMap for Edges...");
         for (eProp, eIdx) in _propertyMap.edgeProperties() {
-          _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
+          if eIdx != -1 then _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
         }
       }
 
@@ -1392,6 +1434,18 @@ module AdjListHyperGraph {
       }
     }
 
+    /*
+
+    proc isConnected(v1 : vDescType, v2 : vDescType, s) {
+      return getVertex(v1).canWalk(getVertex(v2), s);
+    }
+
+    proc isConnected(e1 : eDescType, e2 : eDescType, s) {
+      return getEdge(e1).canWalk(getEdge(e2), s);
+    }
+    
+    */
+
     proc isConnected(v1 : vDescType, v2 : vDescType, s) {
       var intersect = intersection(v1, v2);
       return intersect.size >= s;
@@ -1401,7 +1455,7 @@ module AdjListHyperGraph {
       var intersect = intersection(e1, e2);
       return intersect.size >= s;
     }
-    
+
     proc getInclusions() return + reduce getVertexDegrees();
 
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {

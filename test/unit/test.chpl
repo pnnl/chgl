@@ -8,8 +8,6 @@ use Metrics;
 use Components;
 use Traversal;
 
-
-
 config const dataset = "../../data/DNS-Test-Data.csv";
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
@@ -28,6 +26,57 @@ for line in getLines("../../data/ip-most-wanted.txt") {
 }
 for line in getLines("../../data/dns-most-wanted.txt") {
     badDNSNames += line;
+}
+
+proc getMetrics(graph, prefix) {
+    f.writeln("(", prefix, ") #V = ", graph.numVertices);
+    f.writeln("(", prefix, ") #E = ", graph.numEdges);
+    f.flush();
+    f.writeln("(", prefix, ") Vertex Degree Distribution:");
+    {
+        var vDeg = vertexDegreeDistribution(graph);
+        for (deg, freq) in zip(vDeg.domain, vDeg) {
+            if freq != 0 then f.writeln("\t", deg, ",", freq);
+        }
+    }
+    f.flush();
+    f.writeln("(", prefix, ") Edge Cardinality Distribution:");
+    {
+        var eDeg = edgeDegreeDistribution(graph);
+        for (deg, freq) in zip(eDeg.domain, eDeg) {
+            if freq != 0 then f.writeln("\t", deg, ",", freq);
+        }
+    }
+    f.flush();
+    for s in 1..3 {
+        var components = getEdgeComponents(graph, s);
+        var eMax = max reduce [component in components] component.size();
+        var vMax = max reduce [component in components] (+ reduce for edge in component do graph.numNeighbors(edge));         
+        var vComponentSizes : [1..vMax] atomic int;
+        var eComponentSizes : [1..eMax] atomic int;
+        writeln("vComponentsSizes = ", 1..vMax, ", eComponentsSizes = ", 1..eMax);
+        forall component in components {
+            eComponentSizes[component.size()].add(1);
+            var numVertices : int;
+            for e in component {
+                numVertices += graph.numNeighbors(e);
+            }
+            vComponentSizes[numVertices].add(1);
+        }
+
+        f.writeln("(", prefix, ") Vertex Connected Component Size Distribution (s = " + s + "):");
+        for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
+            if freq.read() != 0 then f.writeln("\t" + sz + "," + freq.read());
+        }
+        f.flush();
+
+        f.writeln("(", prefix, ") Edge Connected Component Size Distribution (s = " + s + "):");
+        for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
+            if freq.read() != 0 then f.writeln("\t" + sz + "," + freq.read());
+        }
+        f.flush();
+        delete components;
+    }
 }
 
 proc searchBlacklist(graph, prefix) {
@@ -102,6 +151,7 @@ proc searchBlacklist(graph, prefix) {
             }
         }
     }
+    writeln("Finished searching for blacklisted IPs...");
 }
 
 writeln("Constructing PropertyMap...");
@@ -210,52 +260,11 @@ writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-searchBlacklist(graph, "Pre-Collapse");
+//searchBlacklist(graph, "Pre-Collapse");
 
 if preCollapseMetrics {
     t.start();
-    f.writeln("(Pre-Collapse) #V = ", graph.numVertices);
-    f.writeln("(Pre-Collapse) #E = ", graph.numEdges);
-    f.flush();
-    f.writeln("(Pre-Collapse) Vertex Degree Distribution:");
-    {
-        var vDeg = vertexDegreeDistribution(graph);
-        for (deg, freq) in zip(vDeg.domain, vDeg) {
-            if freq != 0 then f.writeln("\t", deg, ",", freq);
-        }
-    }
-    f.flush();
-    f.writeln("(Pre-Collapse) Edge Cardinality Distribution:");
-    {
-        var eDeg = edgeDegreeDistribution(graph);
-        for (deg, freq) in zip(eDeg.domain, eDeg) {
-            if freq != 0 then f.writeln("\t", deg, ",", freq);
-        }
-    }
-    f.flush();
-    for s in 1..3 {
-        var vccStr : string;
-        var eccStr : string;
-        cobegin with (ref vccStr, ref eccStr) {
-            {
-                vccStr += "(Pre-Collapse) Vertex Connected Component Size Distribution (s = " + s + "):\n";
-                var vComponentSizes = vertexComponentSizeDistribution(graph, s);
-                for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
-                    if freq != 0 then vccStr += "\t" + sz + "," + freq + "\n";
-                }
-            }
-            {
-                eccStr += "(Pre-Collapse) Edge Connected Component Size Distribution (s = " + s + "):\n";
-                var eComponentSizes = edgeComponentSizeDistribution(graph, s);
-                for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
-                    if freq != 0 then eccStr += "\t" + sz + "," + freq + "\n";
-                }
-            }
-        }
-        f.writeln(vccStr);
-        f.writeln(eccStr);
-        f.flush();
-    }
+    getMetrics(graph, "Pre-Collapse");
     t.stop();
     writeln("(Pre-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
     t.clear();
@@ -282,44 +291,7 @@ for (deg, freq) in zip(eDupeHistogram.domain, eDupeHistogram) {
 }
 
 t.start();
-f.writeln("(Post-Collapse) #V = ", graph.numVertices);
-f.writeln("(Post-Collapse) #E = ", graph.numEdges);
-f.flush();
-f.writeln("(Post-Collapse) Vertex Degree Distribution:");
-{
-    var vDeg = vertexDegreeDistribution(graph);
-    for (deg, freq) in zip(vDeg.domain, vDeg) {
-        if freq != 0 then f.writeln("\t", deg, ",", freq);
-    }
-}
-f.flush();
-f.writeln("(Post-Collapse) Edge Cardinality Distribution:");
-{
-    var eDeg = edgeDegreeDistribution(graph);
-    for (deg, freq) in zip(eDeg.domain, eDeg) {
-        if freq != 0 then f.writeln("\t", deg, ",", freq);
-    }
-}
-f.flush();
-for s in 1..3 {
-    f.flush();
-    f.writeln("(Post-Collapse) Vertex Connected Component Size Distribution (s = ", s, "):");
-    {
-        var vComponentSizes = vertexComponentSizeDistribution(graph, s);
-        for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
-            if freq != 0 then f.writeln("\t", sz, ",", freq);
-        }
-    }
-    f.flush();
-    f.writeln("(Post-Collapse) Edge Connected Component Size Distribution (s = ", s, "):");
-    {
-        var eComponentSizes = edgeComponentSizeDistribution(graph, s);
-        for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
-            if freq != 0 then f.writeln("\t", sz, ",", freq);
-        }
-    }
-    f.flush();
-}
+getMetrics(graph, "Post-Collapse");
 t.stop();
 writeln("(Post-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
 t.clear();
@@ -337,44 +309,7 @@ writeln("Number of Inclusions: ", graph.getInclusions());
 searchBlacklist(graph, "Post-Removal");
 
 t.start();
-f.writeln("(Post-Removal) #V = ", graph.numVertices);
-f.writeln("(Post-Removal) #E = ", graph.numEdges);
-f.flush();
-f.writeln("(Post-Removal) Vertex Degree Distribution:");
-{
-    var vDeg = vertexDegreeDistribution(graph);
-    for (deg, freq) in zip(vDeg.domain, vDeg) {
-        if freq != 0 then f.writeln("\t", deg, ",", freq);
-    }
-}
-f.flush();
-f.writeln("(Post-Removal) Edge Cardinality Distribution:");
-{
-    var eDeg = edgeDegreeDistribution(graph);
-    for (deg, freq) in zip(eDeg.domain, eDeg) {
-        if freq != 0 then f.writeln("\t", deg, ",", freq);
-    }
-}
-f.flush();
-for s in 1..3 {
-    f.flush();
-    f.writeln("(Post-Removal) Vertex Connected Component Size Distribution (s = ", s, "):");
-    {
-        var vComponentSizes = vertexComponentSizeDistribution(graph, s);
-        for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
-            if freq != 0 then f.writeln("\t", sz, ",", freq);
-        }
-    }
-    f.flush();
-    f.writeln("(Post-Removal) Edge Connected Component Size Distribution (s = ", s, "):");
-    {
-        var eComponentSizes = edgeComponentSizeDistribution(graph, s);
-        for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
-            if freq != 0 then f.writeln("\t", sz, ",", freq);
-        }
-    }
-    f.flush();
-}
+getMetrics(graph, "Post-Removal");
 t.stop();
 writeln("(Post-Removal) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
 t.clear();
