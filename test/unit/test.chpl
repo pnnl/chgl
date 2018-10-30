@@ -12,6 +12,7 @@ config const dataset = "../../data/DNS-Test-Data.csv";
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
 config const preCollapseMetrics = true;
+config const doPreCollapseComponents = false;
 
 var ValidIPRegexp = compile(ValidIPRegex);
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
@@ -28,7 +29,7 @@ for line in getLines("../../data/dns-most-wanted.txt") {
     badDNSNames += line;
 }
 
-proc getMetrics(graph, prefix) {
+proc getMetrics(graph, prefix, components = true) {
     f.writeln("(", prefix, ") #V = ", graph.numVertices);
     f.writeln("(", prefix, ") #E = ", graph.numEdges);
     f.flush();
@@ -48,7 +49,7 @@ proc getMetrics(graph, prefix) {
         }
     }
     f.flush();
-    for s in 1..3 {
+    if components then for s in 1..3 {
         var components = getEdgeComponents(graph, s);
         var eMax = max reduce [component in components] component.size();
         var vMax = max reduce [component in components] (+ reduce for edge in component do graph.numNeighbors(edge));         
@@ -181,23 +182,12 @@ coforall loc in Locales do on loc {
                 lines.sub(1);
             }
 
-            var attrs = line.split("\t");
-            var qname = attrs[2];
-            var rdata = attrs[4];
-
-            // Empty IP or DNS
-            if qname == "" || rdata == "" then continue;
-            // IP Address as DNS Name
-            var goodQName = qname.matches(ValidIPRegexp);
-            if goodQName.size != 0 then continue;
-            
-            for ip in rdata.split(",") {
-                var goodIP = ip.matches(ValidIPRegexp);
-                if goodIP.size != 0 {
-                    propMap.addVertexProperty(ip);
-                    propMap.addEdgeProperty(qname);
-                }
-            }
+            var attrs = line.split(",");
+            assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
+            var qname = attrs[1];
+            var rdata = attrs[2];
+            propMap.addVertexProperty(rdata);
+            propMap.addEdgeProperty(qname);
         }
     }
 }
@@ -235,21 +225,11 @@ coforall loc in Locales do on loc {
                 lines.sub(1);
             }
 
-            var attrs = line.split("\t");
-            var qname = attrs[2];
-            var rdata = attrs[4];
-            // Empty IP or DNS
-            if qname == "" || rdata == "" then continue;
-            // IP Address as DNS Name
-            var goodQName = qname.matches(ValidIPRegexp);
-            if goodQName.size != 0 then continue;
-
-            for ip in rdata.split(",") {
-                var goodIP = ip.matches(ValidIPRegexp);
-                if goodIP.size != 0 {
-                    graph.addInclusion(propMap.getVertexProperty(ip), propMap.getEdgeProperty(qname));
-                }
-            }
+           var attrs = line.split(",");
+            assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
+            var qname = attrs[1];
+            var rdata = attrs[2];
+            graph.addInclusion(propMap.getVertexProperty(rdata), propMap.getEdgeProperty(qname));
         }
     }
 }
@@ -263,7 +243,7 @@ searchBlacklist(graph, "Pre-Collapse");
 
 if preCollapseMetrics {
     t.start();
-    getMetrics(graph, "Pre-Collapse");
+    getMetrics(graph, "Pre-Collapse", doPreCollapseComponents);
     t.stop();
     writeln("(Pre-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
     t.clear();
