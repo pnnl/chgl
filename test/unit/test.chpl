@@ -80,11 +80,13 @@ proc getMetrics(graph, prefix, components = true) {
 }
 
 proc searchBlacklist(graph, prefix) {
+    var ioLock$ : sync bool;
     // Scan for most wanted...
     writeln("(" + prefix + ") Searching for known offenders...");
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
         if badIPAddresses.member(ip) {
+            ioLock$ = true;
             writeln("(" + prefix + ") Found blacklisted ip address ", ip);
             
             // Print out its local neighbors...
@@ -114,12 +116,14 @@ proc searchBlacklist(graph, prefix) {
                     f.flush();
                 }
             }
+            ioLock$;
         }
     }
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
         if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+            ioLock$ = true;
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
 
             // Print out its local neighbors...
@@ -149,6 +153,7 @@ proc searchBlacklist(graph, prefix) {
                     f.flush();
                 }
             }
+            ioLock$;
         }
     }
     writeln("Finished searching for blacklisted IPs...");
