@@ -54,7 +54,6 @@ proc getMetrics(graph, prefix) {
         var vMax = max reduce [component in components] (+ reduce for edge in component do graph.numNeighbors(edge));         
         var vComponentSizes : [1..vMax] atomic int;
         var eComponentSizes : [1..eMax] atomic int;
-        writeln("vComponentsSizes = ", 1..vMax, ", eComponentsSizes = ", 1..eMax);
         forall component in components {
             eComponentSizes[component.size()].add(1);
             var numVertices : int;
@@ -260,7 +259,7 @@ writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-//searchBlacklist(graph, "Pre-Collapse");
+searchBlacklist(graph, "Pre-Collapse");
 
 if preCollapseMetrics {
     t.start();

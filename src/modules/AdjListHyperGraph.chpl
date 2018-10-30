@@ -313,8 +313,6 @@ module AdjListHyperGraph {
         on other do other.lock.acquire();
       }
 
-      this.sortNeighbors();
-      other.sortNeighbors();
       ref A = this.neighborList;
       ref B = other.neighborList;
       var idxA = A.domain.low;
@@ -365,7 +363,7 @@ module AdjListHyperGraph {
       while idxA <= A.domain.high && idxB <= B.domain.high {
         const a = A[idxA];
         const b = B[idxB];
-        if a == b { 
+        if a.id == b.id { 
           intersection.push_back(a); 
           idxA += 1; 
           idxB += 1; 
@@ -1434,26 +1432,12 @@ module AdjListHyperGraph {
       }
     }
 
-    /*
-
     proc isConnected(v1 : vDescType, v2 : vDescType, s) {
       return getVertex(v1).canWalk(getVertex(v2), s);
     }
 
     proc isConnected(e1 : eDescType, e2 : eDescType, s) {
       return getEdge(e1).canWalk(getEdge(e2), s);
-    }
-    
-    */
-
-    proc isConnected(v1 : vDescType, v2 : vDescType, s) {
-      var intersect = intersection(v1, v2);
-      return intersect.size >= s;
-    }
-
-    proc isConnected(e1 : eDescType, e2 : eDescType, s) {
-      var intersect = intersection(e1, e2);
-      return intersect.size >= s;
     }
 
     proc getInclusions() return + reduce getVertexDegrees();
