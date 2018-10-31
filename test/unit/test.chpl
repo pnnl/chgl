@@ -14,13 +14,22 @@ config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\
 config const datasetDirectory = "../../data/DNS/";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
 config const preCollapseMetrics = true;
-config const doPreCollapseComponents = false;
+config const preCollapseComponents = true;
+config const preCollapseBlacklist = true;
+config const postCollapseMetrics = true;
+config const postCollapseComponents = true;
+config const postCollapseBlacklist = true;
+config const postRemovalMetrics = true;
+config const postRemovalComponents = true;
+config const postRemovalBlacklist = true;
 config const numMaxFiles = max(int(64));
 
 var ValidIPRegexp = compile(ValidIPRegex);
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var f = open("metrics.txt", iomode.cw).writer();
 var t = new Timer();
+var tt = new Timer();
+tt.start();
 var wq = new WorkQueue(string);
 
 var badIPAddresses : domain(string);
@@ -32,7 +41,7 @@ for line in getLines("../../data/dns-most-wanted.txt") {
     badDNSNames += line;
 }
 
-proc getMetrics(graph, prefix, components = true) {
+proc getMetrics(graph, prefix, doComponents) {
     f.writeln("(", prefix, ") #V = ", graph.numVertices);
     f.writeln("(", prefix, ") #E = ", graph.numEdges);
     f.flush();
@@ -52,7 +61,7 @@ proc getMetrics(graph, prefix, components = true) {
         }
     }
     f.flush();
-    if components then for s in 1..3 {
+    if doComponents then for s in 1..3 {
         var components = getEdgeComponents(graph, s);
         var eMax = max reduce [component in components] component.size();
         var vMax = max reduce [component in components] (+ reduce for edge in component do graph.numNeighbors(edge));         
@@ -177,51 +186,54 @@ for fileName in listdir(datasetDirectory, dirs=false) {
 wq.flush();
 
 // Initialize property maps
-var propertyMapsDomain = {0..#here.maxTaskPar} dmapped Replicated();
-var propertyMaps : [propertyMapsDomain] PropertyMap(string, string);
-coforall loc in Locales do on loc {
-    coforall tid in 0..#here.maxTaskPar {
-        var propMap = new PropertyMap(string, string);
-        while true {
-            var (hasFile, fileName) = wq.getWork();
-            if !hasFile {
-                break;
-            }
-            
-            for line in getLines(fileName) {
-              var attrs = line.split("\t");
-              var qname = attrs[2];
-              var rdata = attrs[4];
-
-              // Empty IP or DNS
-              if qname == "" || rdata == "" then continue;
-              // IP Address as DNS Name
-              var goodQName = qname.matches(ValidIPRegexp);
-              if goodQName.size != 0 then continue;
-
-              for ip in rdata.split(",") {
-                var goodIP = ip.matches(ValidIPRegexp);
-                if goodIP.size != 0 {
-                  propMap.addVertexProperty(ip);
-                  propMap.addEdgeProperty(qname);
+var masterPropertyMap = EmptyPropertyMap;
+{
+    var propertyMapsDomain = {0..#here.maxTaskPar} dmapped Replicated();
+    var propertyMaps : [propertyMapsDomain] PropertyMap(string, string);
+    coforall loc in Locales do on loc {
+        coforall tid in 0..#here.maxTaskPar {
+            var propMap = new PropertyMap(string, string);
+            while true {
+                var (hasFile, fileName) = wq.getWork();
+                if !hasFile {
+                    break;
                 }
-              }
+                
+                for line in getLines(fileName) {
+                var attrs = line.split("\t");
+                var qname = attrs[2];
+                var rdata = attrs[4];
+
+                // Empty IP or DNS
+                if qname == "" || rdata == "" then continue;
+                // IP Address as DNS Name
+                var goodQName = qname.matches(ValidIPRegexp);
+                if goodQName.size != 0 then continue;
+
+                for ip in rdata.split(",") {
+                    var goodIP = ip.matches(ValidIPRegexp);
+                    if goodIP.size != 0 {
+                    propMap.addVertexProperty(ip);
+                    propMap.addEdgeProperty(qname);
+                    }
+                }
+                }
+            }
+            propertyMaps[tid] = propMap;
+        }
+        // Do Merge...
+        if propertyMaps.size > 1 {
+            for propMap in propertyMaps[1..] {
+                propertyMaps[0].append(propMap);
             }
         }
-        propertyMaps[tid] = propMap;
     }
-    // Do Merge...
-    if propertyMaps.size > 1 {
-        for propMap in propertyMaps[1..] {
-            propertyMaps[0].append(propMap);
+    // Do Merge
+    masterPropertyMap = propertyMaps[0];
+    if numLocales > 1 {
+        for loc in Locales do on loc {
+            masterPropertyMap.append(propertyMaps[0]);
         }
-    }
-}
-// Do Merge
-var master = propertyMaps[0];
-if numLocales > 1 {
-    for loc in Locales do on loc {
-        master.append(propertyMaps[0]);
     }
 }
 
@@ -231,7 +243,7 @@ t.clear();
 
 t.start();
 writeln("Constructing HyperGraph...");
-var graph = new AdjListHyperGraph(master);
+var graph = new AdjListHyperGraph(masterPropertyMap);
 
 writeln("Adding inclusions to HyperGraph...");
 // Fill work queue with files to load up
@@ -272,7 +284,7 @@ coforall loc in Locales do on loc {
               for ip in rdata.split(",") {
                 var goodIP = ip.matches(ValidIPRegexp);
                 if goodIP.size != 0 {
-                  graph.addInclusion(master.getVertexProperty(ip), master.getEdgeProperty(qname));
+                  graph.addInclusion(masterPropertyMap.getVertexProperty(ip), masterPropertyMap.getEdgeProperty(qname));
                 }
               }
             }
@@ -285,13 +297,18 @@ writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-searchBlacklist(graph, "Pre-Collapse");
-
+if preCollapseBlacklist {
+    t.start();
+    searchBlacklist(graph, "Pre-Collapse");
+    t.stop();
+    writeln("(Pre-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
+    t.clear();
+}
 if preCollapseMetrics {
     t.start();
-    getMetrics(graph, "Pre-Collapse", doPreCollapseComponents);
+    getMetrics(graph, "Pre-Collapse", preCollapseComponents);
     t.stop();
-    writeln("(Pre-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
+    writeln("(Pre-Collapse) Collected Metrics: ", t.elapsed());
     t.clear();
 }
 
@@ -304,8 +321,6 @@ t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-searchBlacklist(graph, "Post-Collapse");
-
 f.writeln("Distribution of Duplicate Vertex Counts:");
 for (deg, freq) in zip(vDupeHistogram.domain, vDupeHistogram) {
     if freq != 0 then f.writeln("\t", deg, ",", freq);
@@ -315,11 +330,20 @@ for (deg, freq) in zip(eDupeHistogram.domain, eDupeHistogram) {
     if freq != 0 then f.writeln("\t", deg, ",", freq);
 }
 
-t.start();
-getMetrics(graph, "Post-Collapse");
-t.stop();
-writeln("(Post-Collapse) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
-t.clear();
+if postCollapseBlacklist {
+    t.start();
+    searchBlacklist(graph, "Post-Collapse");
+    t.stop();
+    writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
+    t.clear();
+}
+if postCollapseMetrics {
+    t.start();
+    getMetrics(graph, "Post-Collapse", postCollapseComponents);
+    t.stop();
+    writeln("(Post-Collapse) Collected Metrics: ", t.elapsed(), " seconds...");
+    t.clear();
+}
 
 writeln("Removing isolated components...");
 t.start();
@@ -331,13 +355,20 @@ t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-searchBlacklist(graph, "Post-Removal");
-
-t.start();
-getMetrics(graph, "Post-Removal");
-t.stop();
-writeln("(Post-Removal) Collected Metrics (VDD, EDD, VCCD, ECCD): ", t.elapsed());
-t.clear();
+if postRemovalBlacklist {
+    t.start();
+    searchBlacklist(graph, "Post-Removal");
+    t.stop();
+    writeln("(Post-Removal) Blacklist Scan: ", t.elapsed(), " seconds...");
+    t.clear();
+}
+if postRemovalMetrics {
+    t.start();
+    getMetrics(graph, "Post-Removal", postRemovalComponents);
+    t.stop();
+    writeln("(Post-Removal) Collected Metrics: ", t.elapsed(), " seconds...");
+    t.clear();
+}
 
 writeln("Printing out collapsed graph without isolated components...");
 var ff = open("collapsed-hypergraph.txt", iomode.cw).writer();
@@ -378,3 +409,5 @@ for s in 1..3 {
 f.close();
 ff.close();
 fff.close();
+
+writeln("Finished in ", tt.elapsed(), " seconds...");
