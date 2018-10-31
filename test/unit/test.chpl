@@ -10,11 +10,14 @@ use Traversal;
 use ReplicatedDist;
 use FileSystem;
 
+config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const datasetDirectory = "../../data/DNS/";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
 config const preCollapseMetrics = true;
 config const doPreCollapseComponents = false;
+config const numMaxFiles = max(int(64));
 
+var ValidIPRegexp = compile(ValidIPRegex);
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var f = open("metrics.txt", iomode.cw).writer();
 var t = new Timer();
@@ -82,9 +85,11 @@ proc getMetrics(graph, prefix, components = true) {
 proc searchBlacklist(graph, prefix) {
     // Scan for most wanted...
     writeln("(" + prefix + ") Searching for known offenders...");
+    var ioLock$ : sync bool;
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
         if badIPAddresses.member(ip) {
+            ioLock$ = true;
             writeln("(" + prefix + ") Found blacklisted ip address ", ip);
             
             // Print out its local neighbors...
@@ -114,14 +119,16 @@ proc searchBlacklist(graph, prefix) {
                     f.flush();
                 }
             }
+          ioLock$;
         }
     }
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
         if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+            ioLock$ = true;
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
-
+            
             // Print out its local neighbors...
             f.writeln("(" + prefix + ") Blacklisted DNS Name: ", dnsName);
             for s in 1..3 {
@@ -149,6 +156,7 @@ proc searchBlacklist(graph, prefix) {
                     f.flush();
                 }
             }
+          ioLock$;
         }
     }
     writeln("Finished searching for blacklisted IPs...");
@@ -158,9 +166,13 @@ writeln("Constructing PropertyMap...");
 t.start();
 // Fill work queue with files to load up
 var currLoc : int; 
+var nFiles : int;
 for fileName in listdir(datasetDirectory, dirs=false) {
+    if !fileName.endsWith(".csv") then continue;
+    if nFiles == numMaxFiles then break;
     wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
     currLoc += 1;
+    nFiles += 1;
 }
 wq.flush();
 
@@ -177,12 +189,23 @@ coforall loc in Locales do on loc {
             }
             
             for line in getLines(fileName) {
-                var attrs = line.split(",");
-                assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
-                var qname = attrs[1];
-                var rdata = attrs[2];
-                propMap.addVertexProperty(rdata);
-                propMap.addEdgeProperty(qname);
+              var attrs = line.split("\t");
+              var qname = attrs[2];
+              var rdata = attrs[4];
+
+              // Empty IP or DNS
+              if qname == "" || rdata == "" then continue;
+              // IP Address as DNS Name
+              var goodQName = qname.matches(ValidIPRegexp);
+              if goodQName.size != 0 then continue;
+
+              for ip in rdata.split(",") {
+                var goodIP = ip.matches(ValidIPRegexp);
+                if goodIP.size != 0 {
+                  propMap.addVertexProperty(ip);
+                  propMap.addEdgeProperty(qname);
+                }
+              }
             }
         }
         propertyMaps[tid] = propMap;
@@ -213,9 +236,17 @@ var graph = new AdjListHyperGraph(master);
 writeln("Adding inclusions to HyperGraph...");
 // Fill work queue with files to load up
 currLoc = 0;
+nFiles = 0;
 for fileName in listdir(datasetDirectory, dirs=false) {
+    if !fileName.endsWith(".csv") {
+      writeln("Skipping ", fileName);
+      continue;
+    }
+    if nFiles == numMaxFiles then break;
+    
     wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
     currLoc += 1;
+    nFiles += 1;
 }
 wq.flush();
 
@@ -228,11 +259,22 @@ coforall loc in Locales do on loc {
             }
             
             for line in getLines(fileName) {
-                var attrs = line.split(",");
-                assert(attrs.size == 2, "Bad input! Not comma separated: ", line);
-                var qname = attrs[1];
-                var rdata = attrs[2];
-                graph.addInclusion(master.getVertexProperty(rdata), master.getEdgeProperty(qname));
+              var attrs = line.split("\t");
+              var qname = attrs[2];
+              var rdata = attrs[4];
+
+              // Empty IP or DNS
+              if qname == "" || rdata == "" then continue;
+              // IP Address as DNS Name
+              var goodQName = qname.matches(ValidIPRegexp);
+              if goodQName.size != 0 then continue;
+
+              for ip in rdata.split(",") {
+                var goodIP = ip.matches(ValidIPRegexp);
+                if goodIP.size != 0 {
+                  graph.addInclusion(master.getVertexProperty(ip), master.getEdgeProperty(qname));
+                }
+              }
             }
         }
     }
