@@ -12,7 +12,7 @@ use FileSystem;
 
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const datasetDirectory = "../../data/DNS/";
-config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)\\.$";
+config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$";
 config const preCollapseMetrics = true;
 config const preCollapseComponents = true;
 config const preCollapseBlacklist = true;
@@ -93,6 +93,7 @@ proc getMetrics(graph, prefix, doComponents) {
 }
 
 proc searchBlacklist(graph, prefix) {
+    var ioLock$ : sync bool;
     // Scan for most wanted...
     writeln("(" + prefix + ") Searching for known offenders...");
     var ioLock$ : sync bool;
