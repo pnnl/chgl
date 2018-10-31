@@ -29,6 +29,7 @@ var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var f = open("metrics.txt", iomode.cw).writer();
 var t = new Timer();
 var tt = new Timer();
+var files : [0..-1] string;
 tt.start();
 var wq = new WorkQueue(string);
 
@@ -179,6 +180,7 @@ var nFiles : int;
 for fileName in listdir(datasetDirectory, dirs=false) {
     if !fileName.endsWith(".csv") then continue;
     if nFiles == numMaxFiles then break;
+    files.push_back(fileName);
     wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
@@ -249,13 +251,7 @@ writeln("Adding inclusions to HyperGraph...");
 // Fill work queue with files to load up
 currLoc = 0;
 nFiles = 0;
-for fileName in listdir(datasetDirectory, dirs=false) {
-    if !fileName.endsWith(".csv") {
-      writeln("Skipping ", fileName);
-      continue;
-    }
-    if nFiles == numMaxFiles then break;
-    
+for fileName in files {    
     wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
