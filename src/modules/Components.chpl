@@ -100,6 +100,6 @@ module Components {
         halt("Somehow exited loop...");
       }
 
-      return components;
+      return [component in components] component.read();
     }
 }

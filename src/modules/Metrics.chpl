@@ -23,11 +23,22 @@ proc vertexComponentSizeDistribution(graph, s = 1) {
 }
 
 proc edgeComponentSizeDistribution(graph, s = 1) {
-    var components = getEdgeComponents(graph, s);
+    var componentMappings = getEdgeComponentMappings(graph, s);
+    var componentsDom : domain(int);
+    var components : [componentsDom] Vector(graph._value.eDescType);
+    for (ix, id) in zip(componentMappings.domain, componentMappings) {
+        componentsDom += id;
+        if components[id] == nil {
+            components[id] = new unmanaged VectorImpl(graph._value.eDescType, {0..-1});
+        }
+        arr[id].append(graph.toEdge(ix));
+    }
+    
     var eComponentSizes = [ec in components] ec.size();
     var largestComponent = max reduce eComponentSizes;
+    delete components;
+
     var componentSizes : [1..largestComponent] int;
     for ecSize in eComponentSizes do componentSizes[ecSize] += 1;
-    delete components;
     return componentSizes;
 }

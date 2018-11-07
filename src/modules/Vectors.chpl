@@ -16,12 +16,12 @@ class Vector {
     return _dummy;
   }
 
-  iter these(param tag : iterKind) where tag == iterKind.standalone {
+  iter these(param tag : iterKind) ref : eltType where tag == iterKind.standalone {
     halt();
   }
 
   proc size() return 0;
-  iter these() : eltType {halt();}
+  iter these() ref : eltType {halt();}
   proc clear() {halt();}
 }
 
