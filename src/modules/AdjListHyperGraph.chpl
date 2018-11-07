@@ -187,34 +187,65 @@ module AdjListHyperGraph {
   }
 
   pragma "default intent is ref"
-  record SpinLockTATAS {
+  record Lock {
     // Profiling for contended access...
     var contentionCnt : atomic int(64);
-    var _lock : atomic bool;
+    var _lock$ : sync bool;
 
     inline proc acquire() {
-      // Fast Path
-      if _lock.testAndSet() == false {
-        return;
-      }
-
-      if Debug.ALHG_PROFILE_CONTENTION {
-        contentionCnt.fetchAdd(1);
-      }
-
-      // Slow Path
-      while true {
-        var val = _lock.read();
-        if val == false && _lock.testAndSet() == false {
-          break;
-        }
-
-        chpl_task_yield();
-      }
+      _lock$ = true;
     }
 
     inline proc release() {
-      _lock.clear();
+      _lock$;
+    }
+  }
+
+  proc acquireLocks(ref a : Lock, ref b : Lock) {
+    if a.locale.id > b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) > __primitive("cast", uint(64), __primitive("_wide_get_addr", b)) {
+      if a.locale != here && b.locale != here && a.locale == b.locale {
+        on a {
+          a.acquire();
+          b.acquire();
+        }
+      } else {
+        a.acquire();
+        b.acquire();
+      }
+    } else {
+      if a.locale != here && b.locale != here && a.locale == b.locale {
+        on b {
+          b.acquire();
+          a.acquire();
+        }
+      } else {
+        b.acquire();
+        a.acquire();
+      }
+    }
+  }
+
+  proc releaseLocks(ref a : Lock, ref b : Lock) {
+    if a.locale.id > b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) > __primitive("cast", uint(64), __primitive("_wide_get_addr", b)) {
+      if a.locale != here && b.locale != here && a.locale == b.locale {
+        on a {
+          a.release();
+          b.release();
+        }
+      } else {
+        a.release();
+        b.release();
+      }
+    } else {
+      if a.locale != here && b.locale != here && a.locale == b.locale {
+        on b {
+          b.release();
+          a.release();
+        }
+      } else {
+        b.release();
+        a.release();
+      }
     }
   }
 
@@ -234,7 +265,7 @@ module AdjListHyperGraph {
     // Due to issue with qthreads, we need to keep this as an atomic and implement as a spinlock
     // TODO: Can parameterize this to use SpinLockTAS (Test & Set), SpinlockTATAS (Test & Test & Set),
     // and SyncLock (mutex)...
-    var lock : SpinLockTATAS;
+    var lock : Lock;
 
     //  Keeps track of whether or not the neighborList is sorted; any insertion must set this to false
     var isSorted : bool;
@@ -271,16 +302,18 @@ module AdjListHyperGraph {
       }
     }
     
-    proc equals(other : this.type) {
-      lock.acquire();
-      other.lock.acquire();
+    proc equals(other : this.type, param acquireLock = true) {
+      if acquireLock {
+        acquireLocks(lock, other.lock);
+      }
 
       sortNeighbors();
       other.sortNeighbors();
       var retval = neighborList.equals(other.neighborList);
-
-      lock.release();
-      other.lock.release();
+      
+      if acquireLock {
+        releaseLocks(lock, other.lock);
+      }
 
       return retval;
     }
@@ -322,10 +355,7 @@ module AdjListHyperGraph {
     proc canWalk(other : this.type, s = 1) {
       if this == other then halt("Attempt to walk on self... May be a bug!");
 
-      serial other.locale != here && this.locale != here do cobegin {
-        on this do lock.acquire();
-        on other do other.lock.acquire();
-      }
+      acquireLocks(lock, other.lock);
 
       ref A = this.neighborList;
       ref B = other.neighborList;
@@ -348,10 +378,7 @@ module AdjListHyperGraph {
         }
       }
 
-      serial other.locale != here && this.locale != here do cobegin {
-        on this do lock.release();
-        on other do other.lock.release();
-      }
+      releaseLocks(lock, other.lock);
       
       return match == s;
     }
@@ -364,10 +391,7 @@ module AdjListHyperGraph {
     proc neighborIntersection(other : this.type) {
       if this == other then return this.neighborList;
       // Acquire mutual exclusion on both
-      serial other.locale != here && this.locale != here do cobegin {
-        on this do lock.acquire();
-        on other do other.lock.acquire();
-      }
+      acquireLocks(lock, other.lock);
 
       var intersection : [0..-1] nodeIdType;
       var A = this.neighborList;
@@ -389,10 +413,7 @@ module AdjListHyperGraph {
         }
       }
 
-      serial other.locale != here && this.locale != here do cobegin {
-        on this do lock.release();
-        on other do other.lock.release();
-      }
+      releaseLocks(lock, other.lock);
 
       return intersection;
     }
