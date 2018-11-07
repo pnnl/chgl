@@ -203,23 +203,23 @@ var masterPropertyMap = EmptyPropertyMap;
                 }
                 
                 for line in getLines(fileName) {
-                var attrs = line.split("\t");
-                var qname = attrs[2];
-                var rdata = attrs[4];
+                    var attrs = line.split("\t");
+                    var qname = attrs[2];
+                    var rdata = attrs[4];
 
-                // Empty IP or DNS
-                if qname == "" || rdata == "" then continue;
-                // IP Address as DNS Name
-                var goodQName = qname.matches(ValidIPRegexp);
-                if goodQName.size != 0 then continue;
+                    // Empty IP or DNS
+                    if qname == "" || rdata == "" then continue;
+                    // IP Address as DNS Name
+                    var goodQName = qname.matches(ValidIPRegexp);
+                    if goodQName.size != 0 then continue;
 
-                for ip in rdata.split(",") {
-                    var goodIP = ip.matches(ValidIPRegexp);
-                    if goodIP.size != 0 {
-                    propMap.addVertexProperty(ip);
-                    propMap.addEdgeProperty(qname);
+                    for ip in rdata.split(",") {
+                        var goodIP = ip.matches(ValidIPRegexp);
+                        if goodIP.size != 0 {
+                        propMap.addVertexProperty(ip);
+                        propMap.addEdgeProperty(qname);
+                        }
                     }
-                }
                 }
             }
             propertyMaps[tid] = propMap;

@@ -271,6 +271,20 @@ module AdjListHyperGraph {
       }
     }
     
+    proc equals(other : this.type) {
+      lock.acquire();
+      other.lock.acquire();
+
+      sortNeighbors();
+      other.sortNeighbors();
+      var retval = neighborList.equals(other.neighborList);
+
+      lock.release();
+      other.lock.release();
+
+      return retval;
+    }
+
     // Removes duplicates... sorts the neighborlist before doing so
     proc removeDuplicateNeighbors() {
       var neighborsRemoved = 0;
@@ -478,6 +492,14 @@ module AdjListHyperGraph {
 
   proc <(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) : bool {
     return a.id < b.id;
+  }
+
+  proc ==(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) : bool {
+    return a.id == b.id;
+  }
+
+  proc >(a : Wrapper(?nodeType, ?idType), b  : Wrapper(nodeType, idType)) : bool {
+    return a.id > b.id;
   }
 
   proc _cast(type t: Wrapper(?nodeType, ?idType), id : integral) {
@@ -805,15 +827,36 @@ module AdjListHyperGraph {
     }
 
     iter getToplexes() {
+      var notToplex : [edgesDomain] bool;
       for e in getEdges() {
-        var isToplex = true;
-        for ee in getEdges() {
-          if ee != e && !isConnected(e, ee, s=1) {
-            isToplex = false;
+        var n = numNeighbors(e);
+        if notToplex[e.id] then continue;
+        for ee in walk(e, n) {
+          if numNeighbors(ee) == n && isConnected(e, ee, n) {
+            notToplex[ee.id] = true;
+          } else {
+            notToplex[e.id] = true;
             break;
           }
         }
-        if isToplex then yield e;
+        if !notToplex[e.id] then yield e;
+      }
+    }
+
+    iter getToplexes(param tag : iterKind) where tag == iterKind.standalone {
+      var notToplex : [edgesDomain] bool;
+      forall e in getEdges() {
+        var n = numNeighbors(e);
+        if notToplex[e.id] then continue;
+        for ee in walk(e, n) {
+          if numNeighbors(ee) == n && isConnected(e, ee, n) {
+            notToplex[ee.id] = true;
+          } else {
+            notToplex[e.id] = true;
+            break;
+          }
+        }
+        if !notToplex[e.id] then yield e;
       }
     }
 

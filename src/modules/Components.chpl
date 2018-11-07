@@ -50,4 +50,56 @@ module Components {
         yield sequence;
       }
     }
+
+    proc getEdgeComponentMappings(graph, s = 1) {
+      var components : [graph.edgesDomain] atomic int;
+      var componentId : atomic int;
+      var numComponents : atomic int;
+      
+      // Set all componnet ids to be the maximum so that they are the lowest priority
+      [component in components] component.write(max(int));
+      forall e in graph.getEdges() with (var taskComponentId : int = -1) {
+        if taskComponentId == -1 {
+          taskComponentId = componentId.fetchAdd(1);
+        }
+
+        var retid = visit(e, taskComponentId);
+        if retid == taskComponentId {
+          taskComponentId = -1;
+          numComponents.add(1);
+        }
+      }
+
+      proc visit(e : graph._value.eDescType, id) : int {
+        var currId = id;
+        while true {
+          var eid = components[e.id].read();
+          //writeln("Read component id: ", eid);
+          // Higher priority, take this edge...
+          if eid > currId && components[e.id].compareExchange(eid, currId) {
+            // TODO: Optimize to not check s-connectivity until we know we haven't looked at that s-neighbor...
+            label checkNeighbor while true {
+              for n in graph.walk(e, s) {
+                //writeln("Walking from ", e, " to ", n, " for id: ", currId);
+                var retid = visit(n, currId);
+                // We're helping another component...
+                if retid != currId {
+                  currId = retid;
+                  //writeln("Current helping ", currId);
+                  continue checkNeighbor;
+                }
+              }
+              break;
+            }
+            return currId;
+          } else if eid <= currId {
+            // Great priority or we already explored this edge...
+            return eid;
+          }
+        }
+        halt("Somehow exited loop...");
+      }
+
+      return components;
+    }
 }
