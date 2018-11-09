@@ -356,6 +356,8 @@ module AdjListHyperGraph {
       if this == other then halt("Attempt to walk on self... May be a bug!");
 
       acquireLocks(lock, other.lock);
+      sortNeighbors();
+      other.sortNeighbors();
 
       ref A = this.neighborList;
       ref B = other.neighborList;
@@ -392,6 +394,8 @@ module AdjListHyperGraph {
       if this == other then return this.neighborList;
       // Acquire mutual exclusion on both
       acquireLocks(lock, other.lock);
+      sortNeighbors();
+      other.sortNeighbors();
 
       var intersection : [0..-1] nodeIdType;
       var A = this.neighborList;
