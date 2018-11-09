@@ -474,7 +474,7 @@ module AdjListHyperGraph {
         	<~> new ioLiteral(") }");
       }
     }
-  } 
+  }
 
   record Vertex {}
   record Edge   {}
@@ -810,7 +810,7 @@ module AdjListHyperGraph {
     iter walk(eDesc : eDescType, s = 1) : eDescType {
       for v in getNeighbors(eDesc) {
         for e in getNeighbors(v) {
-          if eDesc != e && isConnected(eDesc, e, s) {
+          if eDesc != e && (s == 1 || isConnected(eDesc, e, s)) {
             yield e;
           }
         }
@@ -820,7 +820,7 @@ module AdjListHyperGraph {
     iter walk(eDesc : eDescType, s = 1, param tag : iterKind) : eDescType where tag == iterKind.standalone {
       forall v in getNeighbors(eDesc) {
         forall e in getNeighbors(v) {
-          if eDesc != e && isConnected(eDesc, e, s) {
+          if eDesc != e && (s == 1 || isConnected(eDesc, e, s)) {
             yield e;
           }
         }
@@ -830,7 +830,7 @@ module AdjListHyperGraph {
     iter walk(vDesc : vDescType, s = 1) : vDescType {
       for e in getNeighbors(vDesc) {
         for v in getNeighbors(e) {
-          if vDesc != v && isConnected(vDesc, v, s) {
+          if vDesc != v && (s == 1 || isConnected(vDesc, v, s)) {
             yield v;
           }
         }
@@ -840,7 +840,7 @@ module AdjListHyperGraph {
     iter walk(vDesc : vDescType, s = 1, param tag : iterKind) : vDescType where tag == iterKind.standalone {
       forall e in getNeighbors(vDesc) {
         forall v in getNeighbors(e) {
-          if vDesc != v && isConnected(vDesc, v, s) {
+          if vDesc != v && (s == 1 || isConnected(vDesc, v, s)) {
             yield v;
           }
         }

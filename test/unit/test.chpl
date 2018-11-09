@@ -12,6 +12,9 @@ use FileSystem;
 
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const datasetDirectory = "../../data/DNS/";
+config const metricsOutput = "metrics.txt";
+config const componentsOutput = "collapsed-hypergraph-components.txt";
+config const hypergraphOutput = "collapsed-hypergraph.txt";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$";
 config const preCollapseMetrics = true;
 config const preCollapseComponents = true;
@@ -27,7 +30,7 @@ config const numMaxFiles = max(int(64));
 var ValidIPRegexp = compile(ValidIPRegex);
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var masterPropertyMap = EmptyPropertyMap;
-var f = open("metrics.txt", iomode.cw).writer();
+var f = open(metricsOutput, iomode.cw).writer();
 var t = new Timer();
 var tt = new Timer();
 var files : [0..-1] string;
@@ -112,7 +115,8 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
         if badIPAddresses.member(ip) {
             ioLock$ = true;
             writeln("(" + prefix + ") Found blacklisted ip address ", ip);
-            
+            halt("Vertex blacklist scan not implemented...");
+            // TODO! CORRECT THIS, THIS IS WRONG!
             // Print out its local neighbors...
             f.writeln("(" + prefix + ") Blacklisted IP Address: ", ip);
             for s in 1..3 {
@@ -122,7 +126,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                     for n in graph.getNeighbors(neighbor) {
                         str += graph.getProperty(n) + ",";
                     }
-                    f.writeln(str[..str.size - 2]);
+                    f.writeln(str[..str.size - 1]);
                     f.flush();
                 }
                 f.flush();
@@ -139,7 +143,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                         for n in graph.getNeighbors(vv) {
                             str += graph.getProperty(n) + ",";
                         }
-                        f.writeln(str[..str.size - 2]);
+                        f.writeln(str[..str.size - 1]);
                         f.flush();
                     }
                 }
@@ -163,7 +167,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                     for n in graph.getNeighbors(neighbor) {
                         str += graph.getProperty(n) + ",";
                     }
-                    f.writeln(str[..str.size - 2]);
+                    f.writeln(str[..str.size - 1]);
                     f.flush();
                 }
                 f.flush();
@@ -181,7 +185,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                         for n in graph.getNeighbors(ee) {
                             str += graph.getProperty(n) + ",";
                         }
-                        f.writeln(str[..str.size - 2]);
+                        f.writeln(str[..str.size - 1]);
                         f.flush();
                     }
                 }
@@ -225,8 +229,8 @@ wq.flush();
                     var qname = attrs[1];
                     var rdata = attrs[2];
 
-                    propMap.addVertexProperty(rdata);
-                    propMap.addEdgeProperty(qname);
+                    propMap.addVertexProperty(rdata.strip());
+                    propMap.addEdgeProperty(qname.strip());
                 }
             }
             propertyMaps[tid] = propMap;
@@ -279,14 +283,15 @@ coforall loc in Locales do on loc {
               var qname = attrs[1];
               var rdata = attrs[2];
 
-              graph.addInclusion(masterPropertyMap.getVertexProperty(rdata), masterPropertyMap.getEdgeProperty(qname));
+              graph.addInclusion(masterPropertyMap.getVertexProperty(rdata.strip()), masterPropertyMap.getEdgeProperty(qname.strip()));
             }
         }
     }
 }
 
 t.stop();
-writeln("Hypergraph Construction: ", t.elapsed());
+writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
+f.writeln("Hypergraph Constructed in ", t.elapsed(), " seconds...");
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
 
@@ -332,7 +337,8 @@ writeln("Collapsing HyperGraph...");
 t.start();
 var (vDupeHistogram, eDupeHistogram) = graph.collapse();
 t.stop();
-writeln("Collapsed Hypergraph: ", t.elapsed());
+writeln("Collapsed Hypergraph: ", t.elapsed(), " seconds...");
+f.writeln("Collapsed Hypergraph in ", t.elapsed(), " seconds...");
 t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
@@ -378,6 +384,7 @@ t.start();
 var numIsolatedComponents = graph.removeIsolatedComponents();
 t.stop();
 writeln("Removed isolated components: ", t.elapsed());
+f.writeln("Removed isolated in ", t.elapsed(), " seconds...");
 f.writeln("Isolated Components Removed: ", numIsolatedComponents);
 t.clear();
 
@@ -413,7 +420,7 @@ if postRemovalMetrics {
 }
 
 writeln("Printing out collapsed graph without isolated components...");
-var ff = open("collapsed-hypergraph.txt", iomode.cw).writer();
+var ff = open(hypergraphOutput, iomode.cw).writer();
 forall e in graph.getEdges() {
     var str = graph.getProperty(e) + "\t";
     for v in graph.getNeighbors(e) {
@@ -422,34 +429,40 @@ forall e in graph.getEdges() {
     ff.writeln(str[1..#(str.size - 1)]);
 }
 
-writeln("Printing out components of collapsed graph without isolated components...");
-var fff = open("collapsed-hypergraph-components.txt", iomode.cw).writer();
-for s in 1..3 {
-    fff.writeln("Vertex Connected Components (s = ", s, "): ");
-    var numComponents = 1;
-    for vc in getVertexComponents(graph, s) {
-        fff.writeln("\tComponent #", numComponents);
-        numComponents += 1;
-        for v in vc {
-            fff.writeln("\t\t", graph.getProperty(v));
-        }
-    }
-    fff.flush();
-    
-    fff.writeln("Edge Connected Components (s = ", s, "): ");
-    numComponents = 1;
-    for ec in getEdgeComponents(graph, s) {
-        fff.writeln("\tComponent #", numComponents);
-        numComponents += 1;
-        for e in ec {
-            fff.writeln("\t\t", graph.getProperty(e));
-        }
-    }
-    fff.flush();
+if !cachedComponentMappingsInitialized {
+    for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
+    cachedComponentMappingsInitialized = true;
+    writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    t.clear();
 }
 
+writeln("Printing out components of collapsed graph without isolated components...");
+var fff = open(componentsOutput, iomode.cw).writer();
+for s in 1..3 {
+    var dom : domain(int);
+    var arr : [dom] string;
+    fff.writeln("Edge Connected Components (s = ", s, "): ");
+    for (ix, id) in zip(graph.edgesDomain, cachedComponents[s].cachedComponentMappings) {
+        var ee = graph.toEdge(ix);
+        dom += id;
+        ref str = arr[id];
+        str += "\t\t" + graph.getProperty(ee) + "\t";
+        for n in graph.getNeighbors(ee) {
+            str += graph.getProperty(n) + ",";
+        }
+        str = str[..str.size - 1] + "\n";
+    }
+    var numComponents = 1;
+    for str in arr {
+        fff.writeln("\tComponent #", numComponents, ":");
+        fff.write(str);
+        fff.flush();
+        numComponents += 1;
+    }
+}
+
+writeln("Finished in ", tt.elapsed(), " seconds...");
+f.writeln("Finished in ", tt.elapsed(), " seconds...");
 f.close();
 ff.close();
 fff.close();
-
-writeln("Finished in ", tt.elapsed(), " seconds...");
