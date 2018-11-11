@@ -81,7 +81,7 @@ module Butterfly {
   :ytype: array of int(64)
   */
   iter AdjListHyperGraphImpl.getAdjacentVertices(v) {
-    for e in getVertex(v).neighborList do for w in getEdge(e).neighborList do yield w;
+    for e in incidence(toVertex(v)) do for w in incidence(toEdge(e)) do yield w;
   }
   
   /* Yields all vertices that share a neighboring edge with this vertex
@@ -93,7 +93,7 @@ module Butterfly {
   :ytype: array of int(64)
   */
   iter AdjListHyperGraphImpl.getAdjacentVertices(v, param tag) where tag == iterKind.standalone {   
-    forall e in getVertex(v).neighborList do forall w in getEdge(e).neighborList do yield w; 
+    forall e in incidence(toVertex(v)) do forall w in incidence(toEdge(e)) do yield w; 
   }
   
   // Inefficient!
@@ -109,8 +109,8 @@ module Butterfly {
   :rtype: boolean
   */
   proc AdjListHyperGraphImpl.areAdjacentVertices(v, w) {
-    for e in getVertex(v).neighborList {
-      for ee in getVertex(w).neighborList {
+    for e in incidence(toVertex(v)) {
+      for ee in incidence(toVertex(w)) {
         if e == ee then return true;
       }
     }

@@ -9,8 +9,8 @@ var num_inclusions = 0: int;
 var graph = new AdjListHyperGraph(num_vertices, num_edges);
 graph = generateErdosRenyi(graph, prob);
 graph.removeDuplicates();
-for vertex_id in graph.verticesDomain {
-	num_inclusions += graph.getVertex(vertex_id).neighborList.size;
+for vertex_id in graph.getVertices() {
+	num_inclusions += graph.degree(vertex_id);
 }
 var expected_num_inclusions = prob*num_vertices*num_edges;
 var half_width = expected_num_inclusions * 0.5;

@@ -8,8 +8,8 @@ var num_inclusions = 0: int;
 var graph = new AdjListHyperGraph(num_vertices, num_edges);
 var initial: int = 0;
 var count: int = 0;
-for e in 0..count-1{
-	for o in graph.getVertex(e:int(32)).neighborList{
+for e in 0..count-1 {
+	for o in graph.incidence(graph.toVertex(e)) {
 		initial += 1;
 	}
 }
@@ -20,7 +20,7 @@ for e in graph.vertices{
 }
 var edgecount: int = 0;
 for e in 0..count-1{
-	for o in graph.getVertex(e:int(32)).neighborList{
+	for o in graph.incidence(graph.toVertex(e)) {
 		edgecount+=1;
 	}
 }

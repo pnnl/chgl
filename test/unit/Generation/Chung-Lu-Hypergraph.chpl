@@ -19,7 +19,7 @@ forall e in 9..12{
 var count : int = 0;
 var initial: int = 0;
 for e in 0..count-1{
-    for o in graph.getVertex(e).neighborList{
+    for o in graph.incidence(graph.toVertex(e)) {
     	initial += 1;
     }
 }
@@ -28,8 +28,7 @@ graph = generateChungLu(graph, original_vertex_degrees, original_edge_degrees, i
 count = graph.numVertices;
 var edgecount: int = 0;
 forall e in 0..#count with (+ reduce edgecount) {
-    //writeln(graph.vertices(e).neighborList);
-    for o in graph.getVertex(e).neighborList {
+    for o in graph.incidence(graph.toVertex(e)) {
     	edgecount += 1;
     }
 }
