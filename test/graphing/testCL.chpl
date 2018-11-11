@@ -37,7 +37,7 @@ proc main() {
   var writer = output.writer();
 
   for i in clGraph.getVertices(){
-    for j in clGraph.getNeighbors(i) {
+    for j in clGraph.incidence(i) {
       var s:string = "%i,%i".format(i.id,j.id);
       writer.writeln(s);
     }

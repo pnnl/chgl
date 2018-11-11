@@ -15,9 +15,9 @@ proc visualize(graph, fileName = "out.dot") throws {
     if vertexVisited[v.id] then return;
     vertexVisited[v.id] = true;
     str += "\t\tu" + v.id; 
-    if graph.numNeighbors(v) != 0 {
+    if graph.degree(v) != 0 {
       str += " -- {"; 
-      for e in graph.getNeighbors(v) {
+      for e in graph.incidence(v) {
         str += " v" + e.id;
       }
       str += " }\n";
@@ -27,7 +27,7 @@ proc visualize(graph, fileName = "out.dot") throws {
     }
     
     // Visit neighbors
-    for e in graph.getNeighbors(v) {
+    for e in graph.incidence(v) {
       visitEdge(e, str);
     }
   }
@@ -37,9 +37,9 @@ proc visualize(graph, fileName = "out.dot") throws {
     if edgeVisited[e.id] then return;
     edgeVisited[e.id] = true;
     str += "\t\tv" + e.id; 
-    if graph.numNeighbors(e) != 0 {
+    if graph.degree(e) != 0 {
       str += " -- {"; 
-      for v in graph.getNeighbors(e) {
+      for v in graph.incidence(e) {
         str += " u" + v.id;
       }
       str += " }\n";
@@ -48,7 +48,7 @@ proc visualize(graph, fileName = "out.dot") throws {
     }
     
     // Visit neighbors
-    for v in graph.getNeighbors(e) {
+    for v in graph.incidence(e) {
       visitVertex(v, str);
     }
   }

@@ -9,13 +9,13 @@ proc main() {
     var graph = fromAdjacencyList("../../data/condMat/condMat.txt", " ");
     var vertexDegreeDist : [graph.verticesDomain] int;
     for (v, deg) in zip(graph.getVertices(), vertexDegreeDist) {
-        deg = graph.numNeighbors(v);
+        deg = graph.degree(v);
     }
     writeln("Have vDegreeDist, max vDeg is ", max reduce vertexDegreeDist);
     
     var edgeDegreeDist : [graph.edgesDomain] int;
     for (e, deg) in zip(graph.getEdges(), edgeDegreeDist) {
-        deg = graph.numNeighbors(e);
+        deg = graph.degree(e);
     }
     writeln("Have eDegreeDist, max eDeg is ", max reduce edgeDegreeDist);
     

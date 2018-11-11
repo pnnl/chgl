@@ -289,7 +289,7 @@ module AdjListHyperGraph {
         this.incidentDomain = other.incidentDomain;
         this.isSorted = other.isSorted;
         this.size.write(other.size.read());
-        this.incident[0..#size] = other.incident[0..#other.size];
+        this.incident[0..#size.read()] = other.incident[0..#other.size.read()];
 
         other.lock.release();
       }
@@ -297,18 +297,13 @@ module AdjListHyperGraph {
     
     proc equals(other : this.type, param acquireLock = true) {
       if degree != other.degree then return false;
-      if acquireLock {
-        acquireLocks(lock, other.lock);
-      }
+      if acquireLock then acquireLocks(lock, other.lock);
 
       sortIncidence();
       other.sortIncidence();
-      var retval = incidence.equals(other.incidence);
+      var retval = incident[0..#size.read()].equals(other.incident[0..#other.size.read()]);
       
-      if acquireLock {
-        releaseLocks(lock, other.lock);
-      }
-
+      if acquireLock then releaseLocks(lock, other.lock);
       return retval;
     }
 
@@ -322,7 +317,7 @@ module AdjListHyperGraph {
         
         var deg = degree;
         sortIncidence();
-        var newDom = {0..#size};
+        var newDom = {0..#size.read()};
         var newIncident : [newDom] nodeIdType;
         var oldIdx : int;
         var newIdx : int;
@@ -355,11 +350,11 @@ module AdjListHyperGraph {
       if degree < s || other.degree < s then return false;
 
       if acquireLock then acquireLocks(lock, other.lock);
-      sortNeighbors();
-      other.sortNeighbors();
+      sortIncidence();
+      other.sortIncidence();
 
-      ref A = this.incidence;
-      ref B = other.incidence;
+      ref A = this.incident[0..#size.read()];
+      ref B = other.incident[0..#other.size.read()];
       var idxA = A.domain.low;
       var idxB = B.domain.low;
       var match : int;
@@ -393,12 +388,12 @@ module AdjListHyperGraph {
       if this == other then halt("Attempt to obtain intersection on self... May be a bug!");
       // Acquire mutual exclusion on both
       if acquireLock then acquireLocks(lock, other.lock);
-      sortNeighbors();
-      other.sortNeighbors();
+      sortIncidence();
+      other.sortIncidence();
 
       var intersection : [0..-1] nodeIdType;
-      var A = this.incidence;
-      var B = other.incidence;
+      var A = this.incident[0..#size.read()];
+      var B = other.incident[0..#other.size.read()];
       var idxA = A.domain.low;
       var idxB = B.domain.low;
       while idxA <= A.domain.high && idxB <= B.domain.high {
@@ -426,10 +421,11 @@ module AdjListHyperGraph {
       on this {
         if acquireLock then lock.acquire();
         if !isSorted {
-          sort(incident);
+          sort(incident[0..#size.read()]);
           isSorted = true;
         }
         if acquireLock then lock.release();
+      }
     }
 
     proc isIncident(n : nodeIdType, param acquireLock = true) {
@@ -438,7 +434,7 @@ module AdjListHyperGraph {
         if acquireLock then lock.acquire();
 
         // Sort if not already
-        sortNeighbors();
+        sortIncidence();
 
         // Search to determine if it exists...
         retval = search(incident, n, sorted = true)[1];
@@ -498,16 +494,19 @@ module AdjListHyperGraph {
       return incident[idx];
     }
 
-    // Internal use only!
-    proc incidence ref {
-      return incident[0..#size];
+    iter these() ref {
+      for x in incident[0..#size.read()] do yield x;
+    }
+
+    iter these(param tag : iterKind) ref where tag == iterKind.standalone {
+      forall x in incident[0..#size.read()] do yield x;
     }
 
     proc readWriteThis(f) {
       on this {
         lock.acquire();
         f <~> new ioLiteral("{ incident = ")
-        	<~> incident[0..#size]
+        	<~> these()
         	<~> new ioLiteral(") }");
         lock.release();
       }
@@ -872,10 +871,10 @@ module AdjListHyperGraph {
     iter getToplexes() {
       var notToplex : [edgesDomain] bool;
       for e in getEdges() {
-        var n = numNeighbors(e);
+        var n = degree(e);
         if notToplex[e.id] then continue;
         for ee in walk(e, n) {
-          if numNeighbors(ee) == n && isConnected(e, ee, n) {
+          if degree(ee) == n && isConnected(e, ee, n) {
             notToplex[ee.id] = true;
           } else {
             notToplex[e.id] = true;
@@ -889,10 +888,10 @@ module AdjListHyperGraph {
     iter getToplexes(param tag : iterKind) where tag == iterKind.standalone {
       var notToplex : [edgesDomain] bool;
       forall e in getEdges() {
-        var n = numNeighbors(e);
+        var n = degree(e);
         if notToplex[e.id] then continue;
         for ee in walk(e, n) {
-          if numNeighbors(ee) == n && isConnected(e, ee, n) {
+          if degree(ee) == n && isConnected(e, ee, n) {
             notToplex[ee.id] = true;
           } else {
             notToplex[e.id] = true;
@@ -922,24 +921,49 @@ module AdjListHyperGraph {
       }
 
       const __verticesDomain = _verticesDomain;
-      var duplicateVertices : [__verticesDomain] atomic int = -1;
+      var duplicateVertices : [__verticesDomain] atomic int;
+      [dup in duplicateVertices] dup.write(-1);
       var newVerticesDomain = __verticesDomain;
       var vertexMappings : [__verticesDomain] int = -1;
 
       writeln("Collapsing Vertices...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current vertex
+      // We impose an ordering on determining what vertex is a duplicate of what. A vertex v is a
+      // duplicate of a vertex v' if v.id > v'.id. If there is a vertex v'' such that v''.id > v.id
+      // and v''.id < v'.id, that is v.id < v''.id < v'.id, the duplicate marking is still preserved
+      // as we can follow v'.id's duplicate to find v''.id's duplicate to find the distinct vertex v.
       {
         forall v in _verticesDomain {
           var n = _vertices[v].degree;
-          for vv in walk(v, s=1) {
-            if _vertices[v].equals(_vertices[vv]) {
-              
+          for vv in walk(toVertex(v), s=1) {
+            if _vertices[v].equals(_vertices[vv.id]) {
+              if Debug.ALHG_DEBUG {
+                var str = "EQUAL(\n";
+                str += ("\t" + toVertex(v) : string + ": " + ([e in _vertices[v].these()] e : string) : string + "\n");
+                str += ("\t" + vv : string + ": " + ([e in _vertices[vv.id].these()] e : string) : string + "\n");
+                str += ")";
+                writeln(str);
+              }
+              if v > vv.id {
+                duplicateVertices[v].write(vv.id);
+              } else {
+                duplicateVertices[vv.id].write(v);
+              }
             }
+          }
+        }
+
+        var numUnique : int;
+        forall v in _verticesDomain with (+ reduce numUnique) {
+          if duplicateVertices[v].read() != -1 {
+            delete _vertices[v];
+            _vertices[v] = nil;
+          } else {
+            numUnique += 1;
           }
         }
         
         newVerticesDomain = {0..#numUnique};
-
         writeln(
           "Unique Vertices: ", numUnique, 
           ", Duplicate Vertices: ", _verticesDomain.size - numUnique, 
@@ -949,19 +973,35 @@ module AdjListHyperGraph {
         // Verification...
         if Debug.ALHG_DEBUG {
           forall v in _verticesDomain {
-            var vv = if _vertices[v] == nil then duplicateVertices[v].read() else v;
-            assert(vv != -1, "A vertex no longer has a valid mapping... ", v, " -> ", vv);
-            assert(_vertices[vv] != nil, "A vertex mapping ", v, " -> ", vv, " is nil");
+            var vv = v;
+            while _vertices[vv] == nil {
+              vv = duplicateVertices[vv].read();
+              assert(vv != -1, "A vertex is nil without a duplicate mapping...");
+            }
             var containsVV : bool;
-            label outer for e in _vertices[vv].incidence {
-              for vvv in _edges[e.id].incidence {
+            label outer for e in _vertices[vv].these() {
+              for vvv in _edges[e.id] {
                 if vvv.id == vv {
                   containsVV = true;
                   break outer;
                 }
               }
             }
-            assert(containsVV, "Broke dual property for ", v);
+            if !containsVV {
+              writeln("Broken Dual!");
+              var vvv = v;
+              write("Link: ", toVertex(v));
+              while _vertices[vvv] == nil {
+                vvv = duplicateVertices[vvv].read();
+                write(" -> ", toVertex(vvv));
+              }
+              writeln();
+
+              writeln("Neighborhood of ", toVertex(vv));
+              for e in getVertex(vv) {
+                writeln("\t", toEdge(e), ":", [_v in getEdge(e)] _v : string + ",");
+              }
+            }
           }
         }
       }
@@ -1003,15 +1043,14 @@ module AdjListHyperGraph {
       // Pass 3: Redirect references to collapsed vertices to new mappings
       {
         forall e in _edges {
-          for v in e.incidence {
+          for v in e {
             // If the vertex has been collapsed, first obtain the id of the vertex it was collapsed
             // into, and then obtain the mapping for the collapsed vertex. Otherwise just
             // get the mapping for the unique vertex.
-            if duplicateVertices[v.id] != -1 {
-              v.id = vertexMappings[duplicateVertices[v.id]];
-            } else {
-              v.id = vertexMappings[v.id];
+            while duplicateVertices[v.id].read() != -1 {
+              v.id = duplicateVertices[v.id].read();
             }
+            v.id = vertexMappings[v.id];
           }
         }
       }
@@ -1030,8 +1069,8 @@ module AdjListHyperGraph {
       // Obtain duplicate stats...
       var numDupes : [_verticesDomain] atomic int;
       forall vDup in duplicateVertices {
-        if vDup != -1 {
-          numDupes[vertexMappings[vDup]].add(1);
+        if vDup.read() != -1 {
+          numDupes[vertexMappings[vDup.read()]].add(1);
         }
       }
 
@@ -1049,90 +1088,91 @@ module AdjListHyperGraph {
       }
 
       const __edgesDomain = _edgesDomain;
-      var duplicateEdges : [__edgesDomain] int = -1;
+      var duplicateEdges : [__edgesDomain] atomic int;
+      [dup in duplicateEdges] dup.write(-1);
       var newEdgesDomain = __edgesDomain;
       var edgeMappings : [__edgesDomain] int = -1;
 
-      record _R {
-        var d : domain(uint(64));
-        var a : [d] Vector(int);
-        var l$ : sync bool;
-      }
-      var edgeSet : _R;
-
       writeln("Collapsing Edges...");
-      // Pass 1: Collapse Edges via a hashing the vertex incidence to eliminate duplicates.
+      // Pass 1: Locate duplicates by performing an s-walk where s is the size of current edge
+      // We impose an ordering on determining what edge is a duplicate of what. A edge e is a
+      // duplicate of a edge e' if e.id > e'.id. If there is a edge e'' such that e''.id > e.id
+      // and e''.id < e'.id, that is e.id < e''.id < e'.id, the duplicate marking is still preserved
+      // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
-        forall e in _edgesDomain with (ref edgeSet) {
-          // Compute hash
-          var h : uint(64);
-          for v in getEdge(e).incidence {
-            h ^= v.id;
+        forall e in _edgesDomain {
+          var n = _edges[e].degree;
+          for ee in walk(toEdge(e), s=1) {
+            if _edges[e].equals(_edges[ee.id]) {
+              if Debug.ALHG_DEBUG {
+                var str = "EQUAL(\n";
+                str += ("\t" + toEdge(e) : string + ": " + ([v in _edges[e].these()] v : string) : string + "\n");
+                str += ("\t" + ee : string + ": " + ([v in _edges[ee.id].these()] v : string) : string + "\n");
+                str += ")";
+                writeln(str);
+              }
+              if e > ee.id {
+                duplicateEdges[e].write(ee.id);
+              } else {
+                duplicateEdges[ee.id].write(e);
+              }
+            }
           }
-
-          // Append to hash map
-          edgeSet.l$.writeEF(true);
-          edgeSet.d.add(h);
-          if edgeSet.a[h] == nil {
-            edgeSet.a[h] = new unmanaged VectorImpl(int, {0..0});
-          }
-          edgeSet.a[h].append(e);
-          edgeSet.l$.readFE();
         }
 
         var numUnique : int;
-        writeln("Deleting duplicate NodeData for Edges");
-        // Delete all Nodes that are duplicates...
-        forall eDup in edgeSet.a with (+ reduce numUnique) {
-          if eDup.size() > 1 {
-            var eReps : [0..-1] int;
-          
-            // For each duplicate, map them to the vertex they collapsed into
-            label outer for eIdx in 0..#eDup.size() {
-              const e = eDup[eIdx];
-              
-              for (ix, eRep) in zip(eReps.domain, eReps) {
-                if getEdge(eRep).equals(getEdge(e)) {
-                  duplicateEdges[e] = eRep;
-                  _propertyMap.setEdgeProperty(getEdge(e).property, eRep);
-                  delete _edges[e];
-                  _edges[e] = nil;
-                  continue outer;
-                }
-              }
-
-              numUnique += 1;
-              eReps.push_back(e);
-            }
-          } else numUnique += 1;
+        forall e in _edgesDomain with (+ reduce numUnique) {
+          if duplicateEdges[e].read() != -1 {
+            delete _edges[e];
+            _edges[e] = nil;
+          } else {
+            numUnique += 1;
+          }
         }
+        
         newEdgesDomain = {0..#numUnique};
-
         writeln(
           "Unique Edges: ", numUnique, 
           ", Duplicate Edges: ", _edgesDomain.size - numUnique, 
           ", New Edges Domain: ", newEdgesDomain
         );
 
-        // Verification
+        // Verification...
         if Debug.ALHG_DEBUG {
           forall e in _edgesDomain {
-            var ee = if _edges[e] == nil then duplicateEdges[e] else e;
-            assert(ee != -1, "A edge no longer has a valid mapping... ", e, " -> ", ee);
-            assert(_edges[ee] != nil, "A edge mapping ", e, " -> ", ee, " is nil");
+            var ee = e;
+            while _edges[ee] == nil {
+              ee = duplicateEdges[ee].read();
+              assert(ee != -1, "An edge is nil without a duplicate mapping...");
+            }
             var containsEE : bool;
-            label outer for v in _edges[ee].incidence {
-              for eee in _vertices[v.id].incidence {
+            label outer for v in _edges[ee].these() {
+              for eee in _vertices[v.id] {
                 if eee.id == ee {
                   containsEE = true;
                   break outer;
                 }
               }
             }
-            assert(containsEE, "Broke dual property for ", e);
+
+            if !containsEE {
+              writeln("Broken Dual!");
+              var eee = e;
+              write("Link: ", toEdge(e));
+              while _edges[eee] == nil {
+                eee = duplicateEdges[eee].read();
+                write(" -> ", toEdge(eee));
+              }
+              writeln();
+
+              writeln("Neighborhood of ", toEdge(ee));
+              for v in getEdge(ee) {
+                writeln("\t", toVertex(v), ":", [_e in getVertex(v)] _e : string + ",");
+              }
+            }
           }
         }
-      };
+      }
 
       writeln("Moving into temporary array...");
       // Move current array into auxiliary...
@@ -1167,15 +1207,14 @@ module AdjListHyperGraph {
       // Pass 3: Redirect references to collapsed vertices and edges to new mappings
       {
         forall v in _vertices {
-          for e in v.incidence {
+          for e in v {
             // If the edge has been collapsed, first obtain the id of the edge it was collapsed
             // into, and then obtain the mapping for the collapsed edge. Otherwise just
             // get the mapping for the unique edge.
-            if duplicateEdges[e.id] != -1 {
-              e.id = edgeMappings[duplicateEdges[e.id]];
-            } else {
-              e.id = edgeMappings[e.id];
+            while duplicateEdges[e.id].read() != -1 {
+              e.id = duplicateEdges[e.id].read();
             }
+            e.id = edgeMappings[e.id];
           }
         }
       }
@@ -1193,8 +1232,8 @@ module AdjListHyperGraph {
       // Obtain duplicate stats...
       var numDupes : [_edgesDomain] atomic int;
       forall eDup in duplicateEdges {
-        if eDup != -1 {
-          numDupes[edgeMappings[eDup]].add(1);
+        if eDup.read() != -1 {
+          numDupes[edgeMappings[eDup.read()]].add(1);
         }
       }
 
@@ -1209,10 +1248,10 @@ module AdjListHyperGraph {
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
           assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-          assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+          assert(degree(v) > 0, "Vertex has 0 neighbors...");
           forall e in incidence(v) {
             assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-            assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
 
             var isValid : bool;
             for vv in incidence(e) {
@@ -1228,10 +1267,10 @@ module AdjListHyperGraph {
 
         forall e in getEdges() {
           assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-          assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+          assert(degree(e) > 0, "Edge has 0 neighbors...");
           forall v in incidence(e) {
             assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-            assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
 
             var isValid : bool;
             for ee in incidence(v) {
@@ -1251,10 +1290,10 @@ module AdjListHyperGraph {
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
           assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-          assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+          assert(degree(v) > 0, "Vertex has 0 neighbors...");
           forall e in incidence(v) {
             assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-            assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
 
             var isValid : bool;
             for vv in incidence(e) {
@@ -1270,10 +1309,10 @@ module AdjListHyperGraph {
 
         forall e in getEdges() {
           assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-          assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+          assert(degree(e) > 0, "Edge has 0 neighbors...");
           forall v in incidence(e) {
             assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-            assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
 
             var isValid : bool;
             for ee in incidence(v) {
@@ -1306,7 +1345,7 @@ module AdjListHyperGraph {
           var n = getEdge(e).degree;
           assert(n > 0, e, " has no neighbors... n=", n);
           if n == 1 {
-            var v = getEdge(e).incidence[0];
+            var v = getEdge(e)[0];
 
             assert(getVertex(v) != nil, "A neighbor of ", e, " has an invalid reference ", v);
             var nn = getVertex(v).degree;
@@ -1393,7 +1432,7 @@ module AdjListHyperGraph {
         writeln("Redirecting references for Vertices...");
         forall v in _vertices {
           assert(v != nil, "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
-          for e in v.incidence {
+          for e in v {
             e = edgeMappings[e.id] : eDescType;
           }
         }
@@ -1401,7 +1440,7 @@ module AdjListHyperGraph {
         writeln("Redirecting references for Edges...");
         forall e in _edges {
           assert(e != nil, "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
-          for v in e.incidence {
+          for v in e {
             v = vertexMappings[v.id] : vDescType;
           }
         }
@@ -1424,10 +1463,10 @@ module AdjListHyperGraph {
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
           assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-          assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+          assert(degree(v) > 0, "Vertex has 0 neighbors...");
           forall e in incidence(v) {
             assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-            assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
 
             var isValid : bool;
             for vv in incidence(e) {
@@ -1443,10 +1482,10 @@ module AdjListHyperGraph {
 
         forall e in getEdges() {
           assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-          assert(numNeighbors(e) > 0, "Edge has 0 neighbors...");
+          assert(degree(e) > 0, "Edge has 0 neighbors...");
           forall v in incidence(e) {
             assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-            assert(numNeighbors(v) > 0, "Vertex has 0 neighbors...");
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
 
             var isValid : bool;
             for ee in incidence(v) {
@@ -1521,7 +1560,7 @@ module AdjListHyperGraph {
               }
               ref v = localThis.getVertex(srcId);
               if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
-              v.addNodes(localThis.toEdge(destId));
+              v.addIncidence(localThis.toEdge(destId), true);
             }
             when InclusionType.Edge {
               if !localThis.edgesDomain.member(srcId) {
@@ -1529,7 +1568,7 @@ module AdjListHyperGraph {
               }
               ref e = localThis.getEdge(srcId);
               if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
-              e.addNodes(localThis.toVertex(destId));
+              e.addIncidence(localThis.toVertex(destId), true);
             }
           }
         }
@@ -1590,7 +1629,7 @@ module AdjListHyperGraph {
       var eLoc = edgesDomain.dist.idxToLocale(eDesc.id);
       
       if vLoc == here {
-        getVertex(vDesc).addNodes(eDesc);
+        getVertex(vDesc).addIncidence(eDesc, true);
       } else {
         var vBuf = _destBuffer.aggregate((vDesc.id, eDesc.id, InclusionType.Vertex), vLoc);
         if vBuf != nil {
@@ -1599,7 +1638,7 @@ module AdjListHyperGraph {
       }
 
       if eLoc == here {
-        getEdge(eDesc).addNodes(vDesc);
+        getEdge(eDesc).addIncidence(vDesc, true);
       } else {
         var eBuf = _destBuffer.aggregate((eDesc.id, vDesc.id, InclusionType.Edge), eLoc);
         if eBuf != nil {
@@ -1639,8 +1678,8 @@ module AdjListHyperGraph {
         return;
       }
       
-      getVertex(vDesc).addNodes(eDesc);
-      getEdge(eDesc).addNodes(vDesc);
+      getVertex(vDesc).addIncidence(eDesc, true);
+      getEdge(eDesc).addIncidence(vDesc, true);
     }
     
     inline proc addInclusion(v : vIndexType, e : eIndexType) {
@@ -1694,10 +1733,10 @@ module AdjListHyperGraph {
       var vertexNeighborsRemoved = 0;
       var edgeNeighborsRemoved = 0;
       forall v in getVertices() with (+ reduce vertexNeighborsRemoved) {
-        vertexNeighborsRemoved += getVertex(v).removeDuplicateNeighbors();
+        vertexNeighborsRemoved += getVertex(v).makeDistinct();
       }
       forall e in getEdges() with (+ reduce edgeNeighborsRemoved) {
-        edgeNeighborsRemoved += getEdge(e).removeDuplicateNeighbors();
+        edgeNeighborsRemoved += getEdge(e).makeDistinct();
       }
       return (vertexNeighborsRemoved, edgeNeighborsRemoved);
     }
@@ -1806,7 +1845,7 @@ module AdjListHyperGraph {
     inline proc _snapshot(v : vDescType) {
       ref vertex = getVertex(v);
       vertex.lock.acquire();
-      var snapshot = vertex.incidence;
+      var snapshot = vertex.these();
       vertex.lock.release();
 
       return snapshot;
@@ -1815,7 +1854,7 @@ module AdjListHyperGraph {
     inline proc _snapshot(e : eDescType) {
       ref edge = getEdge(e);
       edge.lock.acquire();
-      var snapshot = edge.incidence;
+      var snapshot = edge.these();
       edge.lock.release();
 
       return snapshot;

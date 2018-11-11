@@ -79,14 +79,14 @@ proc getMetrics(graph, prefix, doComponents, cachedComponents) {
         }
 
         var eMax = max reduce [component in components] component.size();
-        var vMax = max reduce [component in components] (+ reduce for edge in component do graph.numNeighbors(edge));         
+        var vMax = max reduce [component in components] (+ reduce for edge in component do graph.degree(edge));         
         var vComponentSizes : [1..vMax] int;
         var eComponentSizes : [1..eMax] int;
         forall component in components with (+ reduce vComponentSizes, + reduce eComponentSizes) {
             eComponentSizes[component.size()] += 1;
             var numVertices : int;
             for e in component {
-                numVertices += graph.numNeighbors(e);
+                numVertices += graph.degree(e);
             }
             vComponentSizes[numVertices] += 1;
         }
@@ -123,7 +123,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                 f.writeln("\tLocal Neighborhood (s=", s, "):");
                 for neighbor in graph.walk(v, s) {
                     var str = "\t\t" + graph.getProperty(neighbor) + "\t";
-                    for n in graph.getNeighbors(neighbor) {
+                    for n in graph.incidence(neighbor) {
                         str += graph.getProperty(n) + ",";
                     }
                     f.writeln(str[..str.size - 1]);
@@ -140,7 +140,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                     if id == compId {
                         var vv = graph.toVertex(ix);
                         var str = "\t\t" + graph.getProperty(vv) + "\t";
-                        for n in graph.getNeighbors(vv) {
+                        for n in graph.incidence(vv) {
                             str += graph.getProperty(n) + ",";
                         }
                         f.writeln(str[..str.size - 1]);
@@ -164,7 +164,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                 f.writeln("\tLocal Neighborhood (s=", s, "):");
                 for neighbor in graph.walk(e, s) {
                     var str = "\t\t" + graph.getProperty(neighbor) + "\t";
-                    for n in graph.getNeighbors(neighbor) {
+                    for n in graph.incidence(neighbor) {
                         str += graph.getProperty(n) + ",";
                     }
                     f.writeln(str[..str.size - 1]);
@@ -182,7 +182,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                     if id == compId {
                         var ee = graph.toEdge(ix);
                         var str = "\t\t" + graph.getProperty(ee) + "\t";
-                        for n in graph.getNeighbors(ee) {
+                        for n in graph.incidence(ee) {
                             str += graph.getProperty(n) + ",";
                         }
                         f.writeln(str[..str.size - 1]);
@@ -294,6 +294,7 @@ writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
 f.writeln("Hypergraph Constructed in ", t.elapsed(), " seconds...");
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
+//writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
 
 // Cached components to avoid its costly recalculation...
 pragma "default intent is ref"
@@ -423,7 +424,7 @@ writeln("Printing out collapsed graph without isolated components...");
 var ff = open(hypergraphOutput, iomode.cw).writer();
 forall e in graph.getEdges() {
     var str = graph.getProperty(e) + "\t";
-    for v in graph.getNeighbors(e) {
+    for v in graph.incidence(e) {
         str += graph.getProperty(v) + ",";
     }
     ff.writeln(str[1..#(str.size - 1)]);
@@ -447,7 +448,7 @@ for s in 1..3 {
         dom += id;
         ref str = arr[id];
         str += "\t\t" + graph.getProperty(ee) + "\t";
-        for n in graph.getNeighbors(ee) {
+        for n in graph.incidence(ee) {
             str += graph.getProperty(n) + ",";
         }
         str = str[..str.size - 1] + "\n";

@@ -42,7 +42,7 @@ writeln(+ reduce graph.getVertexButterflies() / 2);
 
 for v in graph.getVertices() {
   graph.getVertex(v).sortNeighbors();
-  for e in graph.getNeighbors(v) {
+  for e in graph.incidence(v) {
     writeln(v.id, ", ", e.id);
   }
 }

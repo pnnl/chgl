@@ -97,9 +97,9 @@ iter walk(graph, s = 1, k = 2, param tag : iterKind) ref where tag == iterKind.s
   
   // Insert initial states...
   forall e in graph.getEdges() with (in graph, in workQueue, in terminationDetector) {
-    terminationDetector.started(graph.numNeighbors(e));
+    terminationDetector.started(graph.degree(e));
     // Iterate over neighbors
-    forall v in graph.getNeighbors(e) with (in graph, in workQueue, in terminationDetector, in e) {
+    forall v in graph.incidence(e) with (in graph, in workQueue, in terminationDetector, in e) {
       var state = new WalkState(edgeType, vertexType, 1);
       state[0] = e;
       state.setNeighbor(v);
@@ -150,7 +150,7 @@ iter walk(graph, s = 1, k = 2, param tag : iterKind) ref where tag == iterKind.s
           var v = state.getNeighbor();
           state.unsetNeighbor();
           state.checkIntersection();
-          for e in graph.getNeighbors(v) {
+          for e in graph.incidence(v) {
             if state.hasProcessed(e) then continue;
             var newState = state;
             newState.append(e);
@@ -176,8 +176,8 @@ iter walk(graph, s = 1, k = 2, param tag : iterKind) ref where tag == iterKind.s
           
           // Continue searching neighbors...
           state.checkedIntersection();
-          terminationDetector.started(graph.numNeighbors(e2));
-          for v in graph.getNeighbors(e2) {
+          terminationDetector.started(graph.degree(e2));
+          for v in graph.incidence(e2) {
             var newState = state;
             newState.setNeighbor(v);
             workQueue.addWork(newState, graph.getLocale(v));
@@ -187,8 +187,8 @@ iter walk(graph, s = 1, k = 2, param tag : iterKind) ref where tag == iterKind.s
           // If we are not checking intersection or a specific neighbor, we are in charge
           // setting up state for checking all other neighbors
           var e = state.getTop();
-          terminationDetector.started(graph.numNeighbors(e));
-          for v in graph.getNeighbors(e) {
+          terminationDetector.started(graph.degree(e));
+          for v in graph.incidence(e) {
             // TODO: Profile whether this simulates a 'move' constructor...
             var newState = state;
             newState.setNeighbor(v);
