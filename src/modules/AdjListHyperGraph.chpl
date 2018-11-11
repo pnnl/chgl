@@ -513,6 +513,25 @@ module AdjListHyperGraph {
     }
   }
 
+  record ArrayWrapper {
+    var dom = {0..-1};
+    var arr : [dom] int;
+  }
+  proc ==(a: ArrayWrapper, b: ArrayWrapper) {
+    return && reduce (a.arr == b.arr);
+  }
+  proc !=(a: ArrayWrapper, b: ArrayWrapper) {
+    return || reduce (a.arr != b.arr);
+  }
+
+  inline proc chpl__defaultHash(r : ArrayWrapper): uint {
+    var ret : uint;
+    for (ix, a) in zip(r.dom, r.arr) {
+      ret = chpl__defaultHashCombine(chpl__defaultHash(a), ret, 1);
+    }
+    return ret;
+  }
+
   record Vertex {}
   record Edge   {}
   
@@ -1083,6 +1102,7 @@ module AdjListHyperGraph {
       return [n in dupeHistogram] n.read();
     }
 
+
     proc collapseEdges() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1096,6 +1116,8 @@ module AdjListHyperGraph {
       var newEdgesDomain = __edgesDomain;
       var edgeMappings : [__edgesDomain] int = -1;
 
+      
+
       writeln("Collapsing Edges...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current edge
       // We impose an ordering on determining what edge is a duplicate of what. A edge e is a
@@ -1103,34 +1125,27 @@ module AdjListHyperGraph {
       // and e''.id < e'.id, that is e.id < e''.id < e'.id, the duplicate marking is still preserved
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
-        writeln("Marking Edges...");
-        forall e in _edgesDomain {
-          var n = _edges[e].degree;
-          for ee in walk(toEdge(e), s=1) {
-            if _edges[e].equals(_edges[ee.id]) {
-              if Debug.ALHG_DEBUG {
-                var str = "EQUAL(\n";
-                str += ("\t" + toEdge(e) : string + ": " + ([v in _edges[e].these()] v : string) : string + "\n");
-                str += ("\t" + ee : string + ": " + ([v in _edges[ee.id].these()] v : string) : string + "\n");
-                str += ")";
-                writeln(str);
-              }
-              if e > ee.id {
-                duplicateEdges[e].write(ee.id);
-              } else {
-                duplicateEdges[ee.id].write(e);
-              }
-            }
-          }
-        }
-
-        writeln("Deleting Duplicate Edges...");
+        writeln("Marking and Deleting Edges...");
+        var edgeSetDomain : domain(ArrayWrapper);
+        var edgeSet : [edgeSetDomain] int;
+        var l$ : sync bool;
         var numUnique : int;
-        forall e in _edgesDomain with (+ reduce numUnique) {
-          if duplicateEdges[e].read() != -1 {
+        forall e in _edgesDomain with (+ reduce numUnique, ref edgeSetDomain, ref edgeSet) {
+          var tmp = [v in _edges[e].incident[0..#_edges[e].degree]] v.id;
+          var edgeArr = new ArrayWrapper();
+          edgeArr.dom = {0..#_edges[e].degree};
+          edgeArr.arr = tmp;
+          l$ = true;
+          edgeSetDomain.add(edgeArr);
+          var val = edgeSet[edgeArr];
+          if val != 0 {
             delete _edges[e];
             _edges[e] = nil;
+            duplicateEdges[e].write(val - 1);
+            l$;
           } else {
+            edgeSet[edgeArr] = e + 1;
+            l$;
             numUnique += 1;
           }
         }
