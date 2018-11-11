@@ -933,6 +933,7 @@ module AdjListHyperGraph {
       // and v''.id < v'.id, that is v.id < v''.id < v'.id, the duplicate marking is still preserved
       // as we can follow v'.id's duplicate to find v''.id's duplicate to find the distinct vertex v.
       {
+        writeln("Marking Vertices...");
         forall v in _verticesDomain {
           var n = _vertices[v].degree;
           for vv in walk(toVertex(v), s=1) {
@@ -953,6 +954,7 @@ module AdjListHyperGraph {
           }
         }
 
+        writeln("Deleting Duplicate Vertices...");
         var numUnique : int;
         forall v in _verticesDomain with (+ reduce numUnique) {
           if duplicateVertices[v].read() != -1 {
@@ -1100,6 +1102,7 @@ module AdjListHyperGraph {
       // and e''.id < e'.id, that is e.id < e''.id < e'.id, the duplicate marking is still preserved
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
+        writeln("Marking Edges...");
         forall e in _edgesDomain {
           var n = _edges[e].degree;
           for ee in walk(toEdge(e), s=1) {
@@ -1120,6 +1123,7 @@ module AdjListHyperGraph {
           }
         }
 
+        writeln("Deleting Duplicate Edges...");
         var numUnique : int;
         forall e in _edgesDomain with (+ reduce numUnique) {
           if duplicateEdges[e].read() != -1 {

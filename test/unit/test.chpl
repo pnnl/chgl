@@ -294,7 +294,8 @@ writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
 f.writeln("Hypergraph Constructed in ", t.elapsed(), " seconds...");
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
-//writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
+writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
+writeln("Number of Inclusions: ", graph.getInclusions());
 
 // Cached components to avoid its costly recalculation...
 pragma "default intent is ref"
