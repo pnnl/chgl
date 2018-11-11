@@ -463,22 +463,22 @@ module AdjListHyperGraph {
       while newCap < sz {
         newCap = ceil(newCap * 1.5) : int;
       }
-      incidentDomain = {0..#newCap};
+      incidentDomain = {0..newCap};
     }
 
     /*
       This method is not parallel-safe with concurrent reads, but it is
       parallel-safe for concurrent writes.
     */
-    inline proc addIncidence(ns : nodeIdType ...?N, param acquireLock = true) {
+    inline proc addIncidence(ns : nodeIdType, param acquireLock = true) {
       on this {
         if acquireLock then lock.acquire(); // acquire lock
         
-        var ix = size.fetchAdd(N);
-        if ix + N > cap {
-          resize(ix + N);
+        var ix = size.fetchAdd(1);
+        if ix > cap {
+          resize();
         }
-        incident[ix..ix + N] = ns;
+        incident[ix] = ns;
         isSorted = false;
 
         if acquireLock then lock.release(); // release the lock
@@ -1850,7 +1850,7 @@ module AdjListHyperGraph {
     inline proc _snapshot(v : vDescType) {
       ref vertex = getVertex(v);
       vertex.lock.acquire();
-      var snapshot = vertex.these();
+      var snapshot = vertex.incident[0..#vertex.degree];
       vertex.lock.release();
 
       return snapshot;
@@ -1859,7 +1859,7 @@ module AdjListHyperGraph {
     inline proc _snapshot(e : eDescType) {
       ref edge = getEdge(e);
       edge.lock.acquire();
-      var snapshot = edge.these();
+      var snapshot = edge.incident[0..#edge.degree];
       edge.lock.release();
 
       return snapshot;
