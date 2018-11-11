@@ -29,4 +29,4 @@ for s in 1..10 {
 }
 
 writeln(graph.walk(graph.toVertex(5), 3));
-writeln(graph.neighbors(graph.toVertex(5)));
+writeln(graph.incidence(graph.toVertex(5)));

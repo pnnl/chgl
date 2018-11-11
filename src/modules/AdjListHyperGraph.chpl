@@ -828,6 +828,7 @@ module AdjListHyperGraph {
       Debug.badArgs(other, (vDescType, eDescType));
     }
     
+    
     iter walk(eDesc : eDescType, s = 1) : eDescType {
       for v in incidence(eDesc) {
         for e in incidence(v) {

@@ -551,13 +551,13 @@ module Generation {
     graph.stopAggregation();
     graph.removeDuplicates();
     
-    forall (v, vDeg) in graph.forEachVertexDegree() {
+    forall v in graph.getVertices() {
       var oldDeg = vd[v.id];
-      vd[v.id] = max(0, oldDeg - vDeg);
+      vd[v.id] = max(0, oldDeg - graph.degree(v));
     }
-    forall (e, eDeg) in graph.forEachEdgeDegree() {
+    forall e in graph.getEdges() {
       var oldDeg = ed[e.id];
-      ed[e.id] = max(0, oldDeg - eDeg);
+      ed[e.id] = max(0, oldDeg - graph.degree(e));
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
     generateChungLu(graph, vd, ed, nInclusions);
