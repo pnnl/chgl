@@ -739,8 +739,8 @@ module AdjListHyperGraph {
       // Only delete data from master locale
       if this._masterHandle == nil {
         _destBuffer.destroy();
-        delete _vertices;
-        delete _edges;
+        [v in _verticesDomain] delete _vertices[v];
+        [e in _edgesDomain] delete _edges[e];
       }
     }
 
