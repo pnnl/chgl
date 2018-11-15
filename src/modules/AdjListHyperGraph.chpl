@@ -1269,12 +1269,10 @@ module AdjListHyperGraph {
       var newEdgesDomain = __edgesDomain;
       var edgeMappings : [__edgesDomain] int = -1;
 
-      
-
       writeln("Collapsing Subset...");
       {
         writeln("Marking non-toplex edges...");
-        forall e in _edgesDomain do if !toplexEdges[e].read() == -1 {
+        forall e in _edgesDomain do if toplexEdges[e].read() == -1 {
           label look for v in _edges[e] {
             if toplexEdges[e].read() != -1 then break look;
             for ee in _vertices[v.id] do if e != ee.id && toplexEdges[ee.id].read() == -1 {
