@@ -953,34 +953,27 @@ module AdjListHyperGraph {
       // and v''.id < v'.id, that is v.id < v''.id < v'.id, the duplicate marking is still preserved
       // as we can follow v'.id's duplicate to find v''.id's duplicate to find the distinct vertex v.
       {
-        writeln("Marking Vertices...");
-        forall v in _verticesDomain {
-          var n = _vertices[v].degree;
-          for vv in walk(toVertex(v), s=1) {
-            if _vertices[v].equals(_vertices[vv.id]) {
-              if Debug.ALHG_DEBUG {
-                var str = "EQUAL(\n";
-                str += ("\t" + toVertex(v) : string + ": " + ([e in _vertices[v].these()] e : string) : string + "\n");
-                str += ("\t" + vv : string + ": " + ([e in _vertices[vv.id].these()] e : string) : string + "\n");
-                str += ")";
-                writeln(str);
-              }
-              if v > vv.id {
-                duplicateVertices[v].write(vv.id);
-              } else {
-                duplicateVertices[vv.id].write(v);
-              }
-            }
-          }
-        }
-
-        writeln("Deleting Duplicate Vertices...");
+        writeln("Marking and Deleting Vertices...");
+        var vertexSetDomain : domain(ArrayWrapper);
+        var vertexSet : [vertexSetDomain] int;
+        var l$ : sync bool;
         var numUnique : int;
-        forall v in _verticesDomain with (+ reduce numUnique) {
-          if duplicateVertices[v].read() != -1 {
+        forall v in _verticesDomain with (+ reduce numUnique, ref vertexSetDomain, ref vertexSet) {
+          var tmp = [e in _vertices[v].incident[0..#_vertices[v].degree]] e.id;
+          var vertexArr = new ArrayWrapper();
+          vertexArr.dom = {0..#_vertices[v].degree};
+          vertexArr.arr = tmp;
+          l$ = true;
+          vertexSetDomain.add(vertexArr);
+          var val = vertexSet[vertexArr];
+          if val != 0 {
             delete _vertices[v];
             _vertices[v] = nil;
+            duplicateVertices[v].write(val - 1);
+            l$;
           } else {
+            vertexSet[vertexArr] = v + 1;
+            l$;
             numUnique += 1;
           }
         }
@@ -1254,6 +1247,143 @@ module AdjListHyperGraph {
       forall eDup in duplicateEdges {
         if eDup.read() != -1 {
           numDupes[edgeMappings[eDup.read()]].add(1);
+        }
+      }
+
+      var maxDupes = max reduce [n in numDupes] n.read();
+      var dupeHistogram : [1..maxDupes] atomic int;
+      forall nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
+      return [n in dupeHistogram] n.read();
+    }
+
+    proc collapseSubsets() {
+      // Enforce on Locale 0 (presumed master locale...)
+      if here != Locales[0] {
+        // Cannot jump and return as return type is inferred by compiler.
+        halt("Collapse must be performed on master locale #0");
+      }
+
+      const __edgesDomain = _edgesDomain;
+      var toplexEdges : [__edgesDomain] atomic int;
+      [toplex in toplexEdges] toplex.write(-1);
+      var newEdgesDomain = __edgesDomain;
+      var edgeMappings : [__edgesDomain] int = -1;
+
+      
+
+      writeln("Collapsing Subset...");
+      {
+        writeln("Marking non-toplex edges...");
+        forall e in _edgesDomain do if !toplexEdges[e].read() == -1 {
+          label look for v in _edges[e] {
+            if toplexEdges[e].read() != -1 then break look;
+            for ee in _vertices[v.id] do if e != ee.id && toplexEdges[ee.id].read() == -1 {
+              if _edges[e].canWalk(_edges[ee.id], s=_edges[e].degree) {
+                if _edges[e].degree > _edges[ee.id].degree {
+                  toplexEdges[ee.id].write(e);
+                } else if _edges[ee.id].degree > _edges[e].degree {
+                  toplexEdges[e].write(ee.id);
+                  break look;
+                } else if e < ee.id {
+                  // Same size, greater priority
+                  toplexEdges[ee.id].write(e);
+                } else if ee.id > e {
+                  toplexEdges[e].write(ee.id);
+                }
+              }
+            }
+          }
+        }
+
+        writeln("Deleting non-toplex edges...");
+        var numToplex : int;
+        forall e in _edgesDomain with (+ reduce numToplex) {
+          if toplexEdges[e].read() != -1 {
+            delete _edges[e];
+            _edges[e] = nil;
+          } else {
+            numToplex += 1;
+          }
+        }
+        
+        newEdgesDomain = {0..#numToplex};
+        writeln(
+          "Toplex Edges: ", numToplex, 
+          ", Non-Toplex Edges: ", _edgesDomain.size - numToplex, 
+          ", New Edges Domain: ", newEdgesDomain
+        );
+      }
+
+      writeln("Moving into temporary array...");
+      // Move current array into auxiliary...
+      const oldEdgesDom = this._edgesDomain;
+      var oldEdges : [oldEdgesDom] unmanaged NodeData(vDescType, _ePropType) = this._edges;
+      this._edgesDomain = newEdgesDomain;
+
+      writeln("Shifting down NodeData for Edges...");
+      // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
+      // claim indices in the new array via an atomic counter.
+      {
+        var idx : atomic int;
+        forall e in oldEdges.domain {
+          if oldEdges[e] != nil {
+            var ix = idx.fetchAdd(1);
+            
+            if oldEdges[e].locale == _edges[ix].locale {
+              _edges[ix] = oldEdges[e];
+            } else on _edges[ix] {
+              _edges[ix] = new unmanaged NodeData(oldEdges[e]);
+              delete oldEdges[e];
+            }
+            
+            oldEdges[e] = nil;
+            edgeMappings[e] = ix;
+          }
+        }
+        writeln("Shifted down to idx ", idx.read(), " for oldEdges.domain = ", oldEdges.domain);
+      }
+      
+      writeln("Redirecting references to Edges...");
+      // Pass 3: Redirect references to collapsed vertices and edges to new mappings
+      {
+        forall v in _vertices {
+          for e in v {
+            // If the edge has been collapsed, first obtain the id of the edge it was collapsed
+            // into, and then obtain the mapping for the collapsed edge. Otherwise just
+            // get the mapping for the unique edge.
+            while toplexEdges[e.id].read() != -1 {
+              e.id = toplexEdges[e.id].read();
+            }
+            e.id = edgeMappings[e.id];
+          }
+        }
+      }
+
+      writeln("Updating PropertyMap for Edges...");
+      // Pass 4: Update PropertyMap
+      {
+        for (eProp, eIdx) in _propertyMap.edgeProperties() {
+          if eIdx != -1 {
+            var toplexId = eIdx;
+            while toplexEdges[toplexId].read() != -1 {
+              toplexId = toplexEdges[toplexId].read();
+            }
+            _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
+          } 
+        }
+      }
+
+      writeln("Removing duplicates: ", removeDuplicates());
+
+      // Obtain toplex stats...
+      var numDupes : [_edgesDomain] atomic int;
+      forall toplex in toplexEdges {
+        if toplex.read() != -1 {
+          var toplexId = toplex.read();
+          while toplexEdges[toplexId].read() != -1 {
+            toplexId = toplexEdges[toplexId].read();
+          }
+          numDupes[edgeMappings[toplexId]].add(1);
         }
       }
 

@@ -421,7 +421,19 @@ if postRemovalMetrics {
     t.clear();
 }
 
-writeln("Printing out collapsed graph without isolated components...");
+writeln("Removing non-toplexes...");
+t.start();
+var toplexStats = graph.collapseSubsets();
+t.stop();
+writeln("Removed non-toplexes: ", t.elapsed());
+f.writeln("Removed non-toplexes in ", t.elapsed(), " seconds...");
+f.writeln("Distribution of Non-Toplex Edges:");
+for (deg, freq) in zip(toplexStats.domain, toplexStats) {
+    if freq != 0 then f.writeln("\t", deg, ",", freq);
+}
+t.clear();
+
+writeln("Printing out collapsed toplex graph...");
 var ff = open(hypergraphOutput, iomode.cw).writer();
 forall e in graph.getEdges() {
     var str = graph.getProperty(e) + "\t";
@@ -434,11 +446,11 @@ forall e in graph.getEdges() {
 if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
-    writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
     t.clear();
 }
 
-writeln("Printing out components of collapsed graph without isolated components...");
+writeln("Printing out components of collapsed toplex graph...");
 var fff = open(componentsOutput, iomode.cw).writer();
 for s in 1..3 {
     var dom : domain(int);
