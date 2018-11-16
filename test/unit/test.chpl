@@ -434,7 +434,7 @@ for (deg, freq) in zip(toplexStats.domain, toplexStats) {
 t.clear();
 
 t.start();
-if postCollapseComponents && !cachedComponentMappingsInitialized {
+if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
     writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
