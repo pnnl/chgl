@@ -421,6 +421,8 @@ if postRemovalMetrics {
     t.clear();
 }
 
+cachedComponentMappingsInitialized = false;
+
 writeln("Removing non-toplexes...");
 t.start();
 var toplexStats = graph.collapseSubsets();
@@ -431,6 +433,18 @@ f.writeln("Distribution of Non-Toplex Edges:");
 for (deg, freq) in zip(toplexStats.domain, toplexStats) {
     if freq != 0 then f.writeln("\t", deg, ",", freq);
 }
+t.clear();
+
+t.start();
+if !cachedComponentMappingsInitialized {
+    for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
+    cachedComponentMappingsInitialized = true;
+    writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    t.clear();
+}
+searchBlacklist(graph, "Post-Collapse", cachedComponents);
+t.stop();
+writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
 t.clear();
 
 writeln("Printing out collapsed toplex graph...");
