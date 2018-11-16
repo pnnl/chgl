@@ -12,9 +12,10 @@ use FileSystem;
 
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const datasetDirectory = "../../data/DNS/";
-config const metricsOutput = "metrics.txt";
-config const componentsOutput = "collapsed-hypergraph-components.txt";
-config const hypergraphOutput = "collapsed-hypergraph.txt";
+config const outputDirectory = "tmp/";
+config const metricsOutput = outputDirectory + "metrics.txt";
+config const componentsOutput = outputDirectory + "collapsed-hypergraph-components.txt";
+config const hypergraphOutput = outputDirectory + "collapsed-hypergraph.txt";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$";
 config const preCollapseMetrics = true;
 config const preCollapseComponents = true;
@@ -109,11 +110,10 @@ proc getMetrics(graph, prefix, doComponents, cachedComponents) {
 proc searchBlacklist(graph, prefix, cachedComponents) {
     // Scan for most wanted...
     writeln("(" + prefix + ") Searching for known offenders...");
-    var ioLock$ : sync bool;
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
         if badIPAddresses.member(ip) {
-            ioLock$ = true;
+            var f = open(outputDirectory + ip + ".graph", iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted ip address ", ip);
             halt("Vertex blacklist scan not implemented...");
             // TODO! CORRECT THIS, THIS IS WRONG!
@@ -148,14 +148,13 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                     }
                 }
             }
-            ioLock$;
         }
     }
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
         if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
-            ioLock$ = true;
+            var f = open(dnsName, iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
             
             // Print out its local neighbors...
@@ -190,7 +189,6 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                     }
                 }
             }
-            ioLock$;
         }
     }
     writeln("Finished searching for blacklisted IPs...");
@@ -436,13 +434,26 @@ for (deg, freq) in zip(toplexStats.domain, toplexStats) {
 t.clear();
 
 t.start();
+if postCollapseComponents && !cachedComponentMappingsInitialized {
+    for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
+    cachedComponentMappingsInitialized = true;
+    writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    t.clear();
+}
+getMetrics(graph, "Post-Toplex", true, cachedComponents);
+t.stop();
+writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
+t.clear();
+
+
+t.start();
 if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
-    writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
     t.clear();
 }
-searchBlacklist(graph, "Post-Collapse", cachedComponents);
+searchBlacklist(graph, "Post-Toplex", cachedComponents);
 t.stop();
 writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
 t.clear();
