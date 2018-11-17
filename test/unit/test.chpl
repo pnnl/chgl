@@ -113,7 +113,15 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
         if badIPAddresses.member(ip) {
-            var f = open(outputDirectory + ip + ".graph", iomode.cw).writer();
+            if !exists(outputDirectory + prefix) {
+                try { 
+                    mkdir(outputDirectory + prefix);
+                }
+                catch {
+
+                }
+            }
+            var f = open(outputDirectory + prefix + "/" + ip, iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted ip address ", ip);
             halt("Vertex blacklist scan not implemented...");
             // TODO! CORRECT THIS, THIS IS WRONG!
@@ -154,7 +162,15 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
         if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
-            var f = open(dnsName, iomode.cw).writer();
+            if !exists(outputDirectory + prefix) {
+                try {
+                    mkdir(outputDirectory + prefix);
+                }
+                catch {
+                    
+                }
+            }
+            var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
             
             // Print out its local neighbors...
@@ -174,7 +190,6 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
 
             // Print out its component
             for s in 1..3 {
-                f.writeln("\tComponent (s=", s, "):");
                 var compId = cachedComponents[s].cachedComponentMappings[e.id];
                 f.writeln("\tComponent (s=", s, "):");
                 for (ix, id) in zip(graph.edgesDomain, cachedComponents[s].cachedComponentMappings) {
@@ -249,11 +264,6 @@ wq.flush();
     }
 }
 
-t.stop();
-writeln("Reading Property Map: ", t.elapsed());
-t.clear();
-
-t.start();
 writeln("Constructing HyperGraph...");
 var graph = new AdjListHyperGraph(masterPropertyMap);
 
@@ -289,7 +299,7 @@ coforall loc in Locales do on loc {
 
 t.stop();
 writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
-f.writeln("Hypergraph Constructed in ", t.elapsed(), " seconds...");
+f.writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
 writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
@@ -338,7 +348,7 @@ t.start();
 var (vDupeHistogram, eDupeHistogram) = graph.collapse();
 t.stop();
 writeln("Collapsed Hypergraph: ", t.elapsed(), " seconds...");
-f.writeln("Collapsed Hypergraph in ", t.elapsed(), " seconds...");
+f.writeln("Collapsed Hypergraph: ", t.elapsed());
 t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
