@@ -167,7 +167,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                     mkdir(outputDirectory + prefix);
                 }
                 catch {
-                    
+
                 }
             }
             var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
@@ -325,6 +325,7 @@ if preCollapseBlacklist {
     searchBlacklist(graph, "Pre-Collapse", cachedComponents);
     t.stop();
     writeln("(Pre-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
+    f.writeln("Computed Pre-Collapse Blacklist: ", t.elapsed());
     t.clear();
 }
 if preCollapseMetrics {
@@ -333,11 +334,13 @@ if preCollapseMetrics {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
         writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        f.writeln("Generated Pre-Collapse Components: ", t.elapsed());
         t.clear();
     }
     getMetrics(graph, "Pre-Collapse", preCollapseComponents, cachedComponents);
     t.stop();
     writeln("(Pre-Collapse) Collected Metrics: ", t.elapsed());
+    f.writeln("Collected Pre-Collapse Metrics: ", t.elapsed());
     t.clear();
 }
 
@@ -367,12 +370,14 @@ if postCollapseBlacklist {
     if !cachedComponentMappingsInitialized {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
-        writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        f.writeln("Generated Post-Collapse Components: ", t.elapsed());
         t.clear();
     }
     searchBlacklist(graph, "Post-Collapse", cachedComponents);
     t.stop();
     writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
+    f.writeln("Computed Post-Collapse Blacklist: ", t.elapsed());
     t.clear();
 }
 if postCollapseMetrics {
@@ -380,12 +385,14 @@ if postCollapseMetrics {
     if postCollapseComponents && !cachedComponentMappingsInitialized {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
-        writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        f.writeln("Generated Components: ", t.elapsed());
         t.clear();
     }
     getMetrics(graph, "Post-Collapse", postCollapseComponents, cachedComponents);
     t.stop();
     writeln("(Post-Collapse) Collected Metrics: ", t.elapsed(), " seconds...");
+    f.writeln("Collected Post-Collapse Metrics: ", t.elapsed());
     t.clear();
 }
 
@@ -394,7 +401,7 @@ t.start();
 var numIsolatedComponents = graph.removeIsolatedComponents();
 t.stop();
 writeln("Removed isolated components: ", t.elapsed());
-f.writeln("Removed isolated in ", t.elapsed(), " seconds...");
+f.writeln("Removed Isolated Components: ", t.elapsed());
 f.writeln("Isolated Components Removed: ", numIsolatedComponents);
 t.clear();
 
@@ -407,12 +414,14 @@ if postRemovalBlacklist {
     if !cachedComponentMappingsInitialized {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
-        writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        writeln("(Post-Removal) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        f.writeln("Generated Post-Removal Components: ", t.elapsed());
         t.clear();
     }
     searchBlacklist(graph, "Post-Removal", cachedComponents);
     t.stop();
     writeln("(Post-Removal) Blacklist Scan: ", t.elapsed(), " seconds...");
+    f.writeln("Computed Post-Removal Blacklist: ", t.elapsed());
     t.clear();
 }
 if postRemovalMetrics {
@@ -420,12 +429,14 @@ if postRemovalMetrics {
     if postRemovalComponents && !cachedComponentMappingsInitialized {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
-        writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        writeln("(Post-Removal) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        f.writeln("Generated Post-Removal Components: ", t.elapsed());
         t.clear();
     }
     getMetrics(graph, "Post-Removal", postRemovalComponents, cachedComponents);
     t.stop();
     writeln("(Post-Removal) Collected Metrics: ", t.elapsed(), " seconds...");
+    f.writeln("Collected Post-Removal Metrics: ", t.elapsed());
     t.clear();
 }
 
@@ -436,7 +447,7 @@ t.start();
 var toplexStats = graph.collapseSubsets();
 t.stop();
 writeln("Removed non-toplexes: ", t.elapsed());
-f.writeln("Removed non-toplexes in ", t.elapsed(), " seconds...");
+f.writeln("Removed non-toplexes:", t.elapsed());
 f.writeln("Distribution of Non-Toplex Edges:");
 for (deg, freq) in zip(toplexStats.domain, toplexStats) {
     if freq != 0 then f.writeln("\t", deg, ",", freq);
@@ -448,11 +459,13 @@ if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
     writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    f.writeln("Generated Post-Toplex Components: ", t.elapsed());
     t.clear();
 }
 getMetrics(graph, "Post-Toplex", true, cachedComponents);
 t.stop();
 writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
+f.writeln("Collected Post-Toplex Metrics: ", t.elapsed());
 t.clear();
 
 
@@ -461,11 +474,13 @@ if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
     writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    f.writeln("Generated Post-Collapse Components: ", t.elapsed());
     t.clear();
 }
 searchBlacklist(graph, "Post-Toplex", cachedComponents);
 t.stop();
 writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
+f.writeln("Computed Blacklist: ", t.elapsed());
 t.clear();
 
 writeln("Printing out collapsed toplex graph...");
@@ -482,6 +497,7 @@ if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
     writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+    f.writeln("Generated Components: ", t.elapsed());
     t.clear();
 }
 
