@@ -58,7 +58,7 @@ module Components {
       
       // Set all componnet ids to be the maximum so that they are the lowest priority
       [component in components] component.write(max(int));
-      forall e in graph.getEdges() with (var taskComponentId : int = -1) {
+      forall e in graph.getEdges() with (var taskComponentId : int = -1) do if graph.degree(e) >= s {
         if taskComponentId == -1 {
           taskComponentId = componentId.fetchAdd(1);
         }
@@ -100,6 +100,6 @@ module Components {
         halt("Somehow exited loop...");
       }
 
-      return [component in components] component.read();
+      return [component in components] if component.read() == max(int) then -1 else component.read();
     }
 }
