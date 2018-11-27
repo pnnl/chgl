@@ -90,6 +90,7 @@ for s in 1..3 {
     var componentsDom : domain(int);
     var components : [componentsDom] unmanaged Vector(graph._value.eDescType);
     for (ix, id) in zip(componentMappings.domain, componentMappings) {
+        if id == -1 then continue;
         componentsDom += id;
         if components[id] == nil {
             components[id] = new unmanaged VectorImpl(graph._value.eDescType, {0..-1});
