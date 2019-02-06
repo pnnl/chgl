@@ -5,7 +5,7 @@
 
 mkdir docker-tmp
 cd docker-tmp
-wget https://raw.githubusercontent.com/tjstavenger-pnnl/chapel/master/util/dockerfiles/master/Dockerfile
+wget https://raw.githubusercontent.com/chapel-lang/chapel/master/util/dockerfiles/master/Dockerfile
 
 
 # login with user that has permissions to push to https://hub.docker.com/r/pnnl/chapel/
