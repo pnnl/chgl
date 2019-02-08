@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# This script uses a Dockerfile based on the master branch in https://github.com/tjstavenger-pnnl/chapel/blob/master/util/dockerfiles/master/
-# A pull request has been created to merge this back into Chapel. See https://github.com/chapel-lang/chapel/pull/10570
+# This script uses a builds a PNNL-based Docker image based on the current Chapel master branch in GitHub.
 
 mkdir docker-tmp
 cd docker-tmp
