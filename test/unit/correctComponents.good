@@ -1,0 +1,2 @@
+../../src/modules/AdjListHyperGraph.chpl:75: error: unknown pragma: "always RVF"
+../../src/modules/AdjListHyperGraph.chpl:539: error: unknown pragma: "always RVF"
