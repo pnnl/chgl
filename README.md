@@ -35,7 +35,7 @@ systems.
 Environment Requirements
 ------------------------
 
-**Programming Language:** Chapel 1.18 pre-release (master branch as of 9/17/2018)
+**Programming Language:** Chapel master branch as of 02/06/2019
 
 **Operating System & Version:** Tested on Chapel Docker containers (Debian) and internal RHEL 7 system
 
@@ -48,7 +48,7 @@ A compiled version of the Chapel programming language with is test virtual envir
 
 | Name | Version | Download Location | Country of Origin | Special Instructions |
 | ---- | ------- | ----------------- | ----------------- | -------------------- |
-| Chapel | 1.18 pre-release | https://github.com/chapel-lang/chapel | USA | Tested with commit [155a8837560da1645b31784a7df301fca400f048](https://github.com/chapel-lang/chapel/commit/155a8837560da1645b31784a7df301fca400f048) |  
+| Chapel | Master branch | https://github.com/chapel-lang/chapel | USA | Tested with commit [5e71fe2cad46b97e0d7022e0ca97ecc8b0bda8b2](https://github.com/chapel-lang/chapel/commit/5e71fe2cad46b97e0d7022e0ca97ecc8b0bda8b2) |  
 
 Distribution Files
 ------------------
