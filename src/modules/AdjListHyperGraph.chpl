@@ -518,9 +518,11 @@ module AdjListHyperGraph {
     var arr : [dom] int;
   }
   proc ==(a: ArrayWrapper, b: ArrayWrapper) {
+    if a.arr.size != b.arr.size then return false;
     return && reduce (a.arr == b.arr);
   }
   proc !=(a: ArrayWrapper, b: ArrayWrapper) {
+    if a.arr.size != b.arr.size then return true;
     return || reduce (a.arr != b.arr);
   }
 
@@ -1493,7 +1495,7 @@ module AdjListHyperGraph {
           var n = getEdge(e).degree;
           assert(n > 0, e, " has no neighbors... n=", n);
           if n == 1 {
-            var v = getEdge(e)[0];
+            var v = getEdge(e).incident[0];
 
             assert(getVertex(v) != nil, "A neighbor of ", e, " has an invalid reference ", v);
             var nn = getVertex(v).degree;
