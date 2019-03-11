@@ -2,6 +2,22 @@ use CHGL;
 
 // TODO: Need to improve visualize to output something hypergraph-like rather than bipartite...
 
+// Iterate to find pairs of edges we can travel to as well as the distance needed
+iter distanceEdgeBFS(graph, e : graph._value.eDescType, s=1) : (graph._value.eDescType, int) {
+  var explored : domain(int);
+  var queue = new list((int, int));
+  queue.push_back((e.id, 0));
+  while queue.size != 0 {
+    var (currE, currDist) = queue.pop_front();
+    if explored.member(currE) then continue;
+    explored += currE;
+    if e.id != currE then yield (graph.toEdge(currE), currDist + 1);
+    for ee in graph.walk(graph.toEdge(currE), s) {
+      queue.push_back((ee.id, currDist + 1));
+    }
+  }
+}
+
 /*
     Configuration file ('configFile') must be of the following format...
 
@@ -43,4 +59,16 @@ while f.readline(tmp) {
     graph.addInclusion(v, e);
 }
 
+// Outputs out.dot
 visualize(graph);
+
+// Compute s-eccentricity for s=1 only...
+var maxEccentricity : int;
+forall e in graph.getEdges() with (max reduce maxEccentricity) {
+    for (_e, dist) in distanceEdgeBFS(graph, e) do if _e.id != e.id {
+        maxEccentricity = max(maxEccentricity, dist);
+    }
+}
+writeln("s-eccentricity (s=1): ", maxEccentricity);
+
+
