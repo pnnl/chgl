@@ -11,7 +11,7 @@ iter distanceEdgeBFS(graph, e : graph._value.eDescType, s=1) : (graph._value.eDe
     var (currE, currDist) = queue.pop_front();
     if explored.member(currE) then continue;
     explored += currE;
-    if e.id != currE then yield (graph.toEdge(currE), currDist + 1);
+    if e.id != currE then yield (graph.toEdge(currE), currDist);
     for ee in graph.walk(graph.toEdge(currE), s) {
       queue.push_back((ee.id, currDist + 1));
     }
