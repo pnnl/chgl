@@ -87,7 +87,7 @@ module AdjListHyperGraph {
     }
 
     proc init(numVertices : integral, numEdges : integral) {
-      init(numVertices, numEdges, new unmanaged DefaultDist, new unmanaged DefaultDist);
+      init(numVertices, numEdges, new unmanaged DefaultDist(), new unmanaged DefaultDist());
     }
 
     proc init(numVertices : integral, numEdges : integral, mapping) {
@@ -112,8 +112,8 @@ module AdjListHyperGraph {
 
     proc init(
       propMap : PropertyMap(?vPropType, ?ePropType), 
-      vertexMappings = new unmanaged DefaultDist, 
-      edgeMappings = new unmanaged DefaultDist
+      vertexMappings = new unmanaged DefaultDist(), 
+      edgeMappings = new unmanaged DefaultDist()
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
         propMap, vertexMappings, edgeMappings
@@ -147,7 +147,7 @@ module AdjListHyperGraph {
 
   // TODO: Improve space-complexity so we do not read all of file into memory.
   // TODO: Improve time-complexity so that we read in the graph in a distributed way
-  proc fromAdjacencyList(fileName : string, separator = ",", map : ?t = new unmanaged DefaultDist) throws {
+  proc fromAdjacencyList(fileName : string, separator = ",", map : ?t = new unmanaged DefaultDist()) throws {
     var f = open(fileName, iomode.r);
     var r = f.reader();
     var vertices : [0..-1] int;
@@ -673,7 +673,7 @@ module AdjListHyperGraph {
 
     proc init(
       propMap : PropertyMap(?vPropType, ?ePropType), 
-      vertexMappings = new unmanaged DefaultDist, 
+      vertexMappings = new unmanaged DefaultDist(), 
       edgeMappings = vertexMappings
     ) {
       var verticesDomain = {
