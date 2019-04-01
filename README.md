@@ -2,11 +2,10 @@ Table of Contents
 =================
 
 *   [Project Overview](#project-overview)
-    *   [Detailed Summary](#detailed-summary)
 *   [Installation Guide](#installation-guide)
     *   [Environment Requirements](#environment-requirements)
     *   [Dependencies](#dependencies)
-    *   [Distribution Files](#distrubution-files)
+    *   [Distribution Files](#distribution-files)
     *   [Installation Instructions](#installation-instructions)
     *   [Test Cases](#test-cases)
 *   [User Guide](#user-guide)
@@ -58,16 +57,24 @@ CHGL is released through a GitHub repository found at https://github.com/pnnl/ch
 Installation Instructions
 -------------------------
 
-CHGL can be compiled by first installing Chapel 
-(see https://chapel-lang.org/docs/usingchapel/QUICKSTART.html) or using a Chapel 
-Docker image (see https://hub.docker.com/r/chapel/chapel/). Be sure to pull the required
-commit CHGL has been tested with (see Dependencies above). Using a newer version
+### Chapel
+
+Chapel must be installed on the system before compiling and installing CHGL. 
+The version (release or commit) required is documented above in [Dependencies](#dependencies).
+Be sure to pull the required commit CHGL has been tested with (see Dependencies above). Using a newer version
 of Chapel may cause errors.
 
-Note that CHGL uses features found in the Chapel 1.18 pre-release. These features are 
-currently unavailable in Cray's published Docker images at https://hub.docker.com/r/chapel/chapel/. 
-Once a 1.18 release is made, Cray Docker images can be used. PNNL used custom-built 
-Docker imsages compiled from the master branch of the Chapel source (see https://hub.docker.com/r/pnnl/chapel/).
+If a particular branch or commit is required, after cloning, execute one of the following git command:
+```
+git checkout <branch_name or commit_hash>
+```
+
+With the correct Chapel version checked out, continue by folloing the Chapel installation documented
+at https://chapel-lang.org/docs/usingchapel/QUICKSTART.html.
+
+Alternatively if a release is used, a Chapel Docker image found at https://hub.docker.com/r/chapel/chapel/. 
+
+### CHGL
 
 In the future, CHGL will be compiled and packaged into a Mason library. For the 
 time being, CHGL is used directly (see unit tests for examples). The code is 
