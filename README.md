@@ -60,11 +60,11 @@ Installation Instructions
 ### Chapel
 
 Chapel must be installed on the system before compiling and installing CHGL. 
-The version (release or commit) required is documented above in [Dependencies](#dependencies).
-Be sure to pull the required branch, tag, or commit CHGL has been tested with (see Dependencies above). 
-Using a newer version of Chapel may cause errors.
+The version required is documented above in [Dependencies](#dependencies).
+Be sure to checkout the required branch, tag, or commit CHGL has been tested with as 
+using a different version of Chapel may cause errors.
 
-If a particular branch, tag,  or commit is required, after cloning, execute the following git command
+If a particular branch, tag,  or commit is required, execute the following git command
 after cloning the Chapel GitHub repository:
 ```
 git checkout <branch_name, tag_name, or commit_hash>
