@@ -47,7 +47,7 @@ A compiled version of the Chapel programming language with is test virtual envir
 
 | Name | Version | Download Location | Country of Origin | Special Instructions |
 | ---- | ------- | ----------------- | ----------------- | -------------------- |
-| Chapel | Master branch | https://github.com/chapel-lang/chapel | USA | Tested with commit [5e71fe2cad46b97e0d7022e0ca97ecc8b0bda8b2](https://github.com/chapel-lang/chapel/commit/5e71fe2cad46b97e0d7022e0ca97ecc8b0bda8b2) |  
+| Chapel | Release 1.19.0 | https://github.com/chapel-lang/chapel | USA | Tested with release [1.19.0](https://github.com/chapel-lang/chapel/releases/tag/1.19.0) |  
 
 Distribution Files
 ------------------
@@ -61,12 +61,13 @@ Installation Instructions
 
 Chapel must be installed on the system before compiling and installing CHGL. 
 The version (release or commit) required is documented above in [Dependencies](#dependencies).
-Be sure to pull the required commit CHGL has been tested with (see Dependencies above). Using a newer version
-of Chapel may cause errors.
+Be sure to pull the required branch, tag, or commit CHGL has been tested with (see Dependencies above). 
+Using a newer version of Chapel may cause errors.
 
-If a particular branch or commit is required, after cloning, execute one of the following git command:
+If a particular branch, tag,  or commit is required, after cloning, execute the following git command
+after cloning the Chapel GitHub repository:
 ```
-git checkout <branch_name or commit_hash>
+git checkout <branch_name, tag_name, or commit_hash>
 ```
 
 With the correct Chapel version checked out, continue by folloing the Chapel installation documented
