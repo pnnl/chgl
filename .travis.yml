@@ -8,7 +8,7 @@ services:
 jobs:
   include:
     - script: |
-        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git pnnl/chapel:master /bin/bash -c '
+        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git chapel/chapel:1.19.0 /bin/bash -c '
         cd test/unit
         start_test -junit-xml -numlocales 4'
 #    - script: |
