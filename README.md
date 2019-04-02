@@ -34,7 +34,7 @@ systems.
 Environment Requirements
 ------------------------
 
-**Programming Language:** Chapel master branch as of 02/06/2019
+**Programming Language:** Chapel
 
 **Operating System & Version:** Tested on Chapel Docker containers (Debian) and internal RHEL 7 system
 
