@@ -1,0 +1,6 @@
+[brick]
+name = "CHGL"
+version = "0.1.2"
+chplVersion = "1.19.0"
+
+[dependencies]
