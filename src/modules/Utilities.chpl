@@ -3,6 +3,14 @@ use BlockDist;
 
 class Centralized {
   var x;
+  proc init(x) {
+    this.x = x;
+  }
+
+  proc init(type X) {
+    this.x = new X();
+  }
+
   forwarding x;
 }
 

@@ -71,8 +71,8 @@ module Graph {
     var edgeCounter;
 
     proc init(numVertices, numEdges, verticesMapping, edgesMapping) {
-      hg = new AdjListHyperGraphImpl(numVertices, numEdges, verticesMapping, edgesMapping);
-      edgeCounter = new Centralized(atomic int);
+      hg = new unmanaged AdjListHyperGraphImpl(numVertices, numEdges, verticesMapping, edgesMapping);
+      edgeCounter = new unmanaged Centralized(atomic int);
       complete();
       this.pid = _newPrivatizedClass(this:unmanaged); 
     }
@@ -81,7 +81,7 @@ module Graph {
       this.pid = pid;
       // Grab privatized instance from original hypergraph.
       this.hg = chpl_getPrivatizedCopy(other.hg.type, other.hg.pid); 
-      this.edgeCounter = this.hg.edgeCounter;
+      this.edgeCounter = other.edgeCounter;
     }
 
     pragma "no doc"
@@ -98,6 +98,10 @@ module Graph {
     inline proc getPrivatizedInstance() {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
+    
+    proc addEdge(v1 : integral, v2 : integral) {
+      addEdge(hg.toVertex(v1), hg.toVertex(v2));
+    }
 
     proc addEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
        var eIdx = edgeCounter.fetchAdd(1);
@@ -111,7 +115,7 @@ module Graph {
 
     iter getEdges() : (hg.vDescType, hg.vDescType) {
       for e in hg.getEdges() {
-        var sz = hg.getEdge(e).incidentDom.size;
+        var sz = hg.getEdge(e).size.read();
         if sz > 2 {
           halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
         }
@@ -125,7 +129,7 @@ module Graph {
     
     iter getEdges(param tag : iterKind) : (hg.vDescType, hg.vDescType) where tag == iterKind.standalone {
       forall e in hg.getEdges() {
-        var sz = hg.getEdge(e).incidentDom.size;
+        var sz = hg.getEdge(e).size.read();
         if sz > 2 {
           halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
         }
