@@ -1,6 +1,11 @@
 use CyclicDist;
 use BlockDist;
 
+class Centralized {
+  var x;
+  forwarding x;
+}
+
 inline proc getLocale(dom, idx) {
   var loc = dom.dist.idxToLocale(idx);
   var locID = chpl_nodeFromLocaleID(__primitive("_wide_get_locale", loc));
