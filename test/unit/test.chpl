@@ -115,7 +115,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
     writeln("(" + prefix + ") Searching for known offenders...");
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
-        if badIPAddresses.member(ip) {
+        if badIPAddresses.contains(ip) {
             if !exists(outputDirectory + prefix) {
                 try { 
                     mkdir(outputDirectory + prefix);
@@ -164,7 +164,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
-        if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+        if badDNSNames.contains(dnsName) || isBadDNS.size != 0 {
             if !exists(outputDirectory + prefix) {
                 try {
                     mkdir(outputDirectory + prefix);
