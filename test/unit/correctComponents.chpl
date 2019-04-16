@@ -131,7 +131,7 @@ for s in 1..3 {
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
-        if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
+        if badDNSNames.contains(dnsName) || isBadDNS.size != 0 {
             if !exists(outputDirectory) {
                 try {
                     mkdir(outputDirectory);
@@ -151,7 +151,7 @@ for s in 1..3 {
                 for neighbor in graph.walk(e, s) {
                     var str = "\t\t" + graph.getProperty(neighbor) + "\t";
                     for n in graph.incidence(neighbor) {
-                        if !set.member(n.id) {
+                        if !set.contains(n.id) {
                             str += graph.getProperty(n) + ",";
                             set += n.id;
                         }

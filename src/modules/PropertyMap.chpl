@@ -72,7 +72,7 @@ class PropertyMapping {
 
     proc getProperty(property : propertyType) : int {
         lock$ = true;
-        assert(dom.member(property), property, " was not found in: ", dom); 
+        assert(dom.contains(property), property, " was not found in: ", dom); 
         var retval = arr[property];
         lock$;
         return retval;

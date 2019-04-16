@@ -487,7 +487,7 @@ module AdjListHyperGraph {
     
     // Internal use only!
     proc this(idx : integral) ref {
-      if boundsChecking && !incidentDomain.member(idx) {
+      if boundsChecking && !incidentDomain.contains(idx) {
         halt("Out of Bounds: ", idx, " is not in ", 0..#size);
       }
 
@@ -1705,7 +1705,7 @@ module AdjListHyperGraph {
         local do forall (srcId, destId, srcType) in buf {
           select srcType {
             when InclusionType.Vertex {
-              if !localThis.verticesDomain.member(srcId) {
+              if !localThis.verticesDomain.contains(srcId) {
                 halt("Vertex out of bounds on locale #", loc.id, ", domain = ", localThis.verticesDomain);
               }
               ref v = localThis.getVertex(srcId);
@@ -1713,7 +1713,7 @@ module AdjListHyperGraph {
               v.addIncidence(localThis.toEdge(destId), true);
             }
             when InclusionType.Edge {
-              if !localThis.edgesDomain.member(srcId) {
+              if !localThis.edgesDomain.contains(srcId) {
                 halt("Edge out of bounds on locale #", loc.id, ", domain = ", localThis.edgesDomain);
               }
               ref e = localThis.getEdge(srcId);
@@ -1892,7 +1892,7 @@ module AdjListHyperGraph {
     }
 
     inline proc toEdge(id : integral) {
-      if boundsChecking && !edgesDomain.member(id : eIndexType) {
+      if boundsChecking && !edgesDomain.contains(id : eIndexType) {
         halt(id, " is out of range, expected within ", edgesDomain);
       }
       return (id : eIndexType) : eDescType;
@@ -1908,7 +1908,7 @@ module AdjListHyperGraph {
     }
 
     inline proc toVertex(id : integral) {
-      if boundsChecking && !verticesDomain.member(id : vIndexType) {
+      if boundsChecking && !verticesDomain.contains(id : vIndexType) {
         halt(id, " is out of range, expected within ", verticesDomain);
       }
       return (id : vIndexType) : vDescType;

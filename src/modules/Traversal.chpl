@@ -17,7 +17,7 @@ iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType 
   queue.push_back(v.id);
   while queue.size != 0 {
     var currV = queue.pop_front();
-    if explored.member(currV) then continue;
+    if explored.contains(currV) then continue;
     explored += currV;
     if v.id != currV then yield graph.toVertex(currV); 
     for vv in graph.walk(graph.toVertex(currV), s) {
@@ -32,7 +32,7 @@ iter edgeBFS(graph, e : graph._value.eDescType, s=1) : graph._value.eDescType {
   queue.push_back(e.id);
   while queue.size != 0 {
     var currE = queue.pop_front();
-    if explored.member(currE) then continue;
+    if explored.contains(currE) then continue;
     explored += currE;
     if e.id != currE then yield graph.toEdge(currE);
     for ee in graph.walk(graph.toEdge(currE), s) {
