@@ -1,4 +1,5 @@
 use AdjListHyperGraph;
+use Graph;
 use BinReader;
 use Butterfly;
 use Components;
