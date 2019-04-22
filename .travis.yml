@@ -11,9 +11,12 @@ jobs:
         docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git chapel/chapel:1.19.0 /bin/bash -c '
         cd test/unit
         start_test -junit-xml -numlocales 4'
-#    - script: |
-#        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git pnnl/chapel:master /bin/bash -c '
-#        chpldoc src/*/*.chpl'
+    - script: |
+        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git chapel/chapel:1.19.0 /bin/bash -c '
+        pushd $CHPL_HOME
+        . util/setchplenv.sh
+        popd
+        chpldoc src/*/*.chpl'
 
 notifications:
     slack: hypergraphs:D6dV0BOxuu3GjVNcp3jokIXb
