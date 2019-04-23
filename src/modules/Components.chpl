@@ -73,6 +73,10 @@ module Components {
       proc visit(e : graph._value.eDescType, id) : int {
         var currId = id;
         while true {
+          if components[e.id].read() == max(int){
+             return currId;
+          }
+
           var eid = components[e.id].read();
           //writeln("Read component id: ", eid);
           // Higher priority, take this edge...
