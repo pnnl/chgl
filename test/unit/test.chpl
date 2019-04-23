@@ -31,6 +31,16 @@ config const postToplexComponents = true;
 config const postToplexBlacklist = true;
 config const numMaxFiles = max(int(64));
 
+//Need to create outputDirectory prior to opening files
+if !exists(outputDirectory) {
+   try {
+      mkdir(outputDirectory);
+   }
+   catch {
+      writeln("*Unable to create directory ", outputDirectory);
+   }
+}
+
 var ValidIPRegexp = compile(ValidIPRegex);
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var masterPropertyMap = EmptyPropertyMap;
@@ -113,19 +123,20 @@ proc getMetrics(graph, prefix, doComponents, cachedComponents) {
 proc searchBlacklist(graph, prefix, cachedComponents) {
     // Scan for most wanted...
     writeln("(" + prefix + ") Searching for known offenders...");
+    //create directory
+    if !exists(outputDirectory + prefix) {
+    	try{
+	   mkdir(outputDirectory + prefix);
+	}
+        catch{
+           writeln("unable to create directory", outputDirectory + prefix);
+        }
+    }
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
         if badIPAddresses.contains(ip) {
-            if !exists(outputDirectory + prefix) {
-                try { 
-                    mkdir(outputDirectory + prefix);
-                }
-                catch {
-
-                }
-            }
-            var f = open(outputDirectory + prefix + "/" + ip, iomode.cw).writer();
-            writeln("(" + prefix + ") Found blacklisted ip address ", ip);
+	    var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
+            f.writeln("Blacklisted ip address ", ip);
             halt("Vertex blacklist scan not implemented...");
             // TODO! CORRECT THIS, THIS IS WRONG!
             // Print out its local neighbors...
@@ -158,21 +169,13 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                         f.flush();
                     }
                 }
-            }
-        }
-    }
+            } 
+        } 
+    } writeln("Finished searching for blacklisted IPs...");
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
         if badDNSNames.contains(dnsName) || isBadDNS.size != 0 {
-            if !exists(outputDirectory + prefix) {
-                try {
-                    mkdir(outputDirectory + prefix);
-                }
-                catch {
-
-                }
-            }
             var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
             
@@ -209,7 +212,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
             }
         }
     }
-    writeln("Finished searching for blacklisted IPs...");
+    writeln("Finished searching for blacklisted DNSs...");
 }
 
 writeln("Constructing PropertyMap...");

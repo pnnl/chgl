@@ -15,7 +15,7 @@
 module AdjListHyperGraph {
   use IO;
   use CyclicDist;
-  use List;
+  use LinkedLists;
   use Sort;
   use Search;
   use AggregationBuffer;
