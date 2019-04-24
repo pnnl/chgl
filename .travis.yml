@@ -3,7 +3,7 @@ language: minimal
 sudo: required
 
 services:
-  - docker
+  - docker  
 
 jobs:
   include:
@@ -16,7 +16,18 @@ jobs:
         pushd $CHPL_HOME
         . util/setchplenv.sh
         popd
-        chpldoc src/*/*.chpl'
+        chpldoc src/*/*.chpl
+        touch docs/.nojekyll'
+
+deploy:
+    provider: pages
+    local_dir: ${TRAVIS_BUILD_DIR}/docs
+    target_branch: gh-pages
+    skip_cleanup: true
+    github_token: $GITHUB_TOKEN  # Set as a Travis-CI env variable
+    keep_history: true
+    on:
+        branch: master        
 
 notifications:
     slack: hypergraphs:D6dV0BOxuu3GjVNcp3jokIXb
