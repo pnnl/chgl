@@ -5,6 +5,11 @@ sudo: required
 services:
   - docker
 
+env:
+  global:
+    secure: rY/TJn9QQNLN9ZfmpJqJpn28svuyycHiHoGBdYkB+W8Da5MJXLNK64dvuTCJaG0rkA/bRXtK7mzVQSEySAdICABVLtpOPLxriM7QkmzTuhQHlr/Fc0TwRTQZeNzgXH8pOlDRCfI4+HMi/0aqmXtHMH/DeCR74z47tBQLm/ij23Vtp4PiwqtVKduSmhLYBMDjm7/AwtH8LPdGsbPgIp77hz1/NQANkS8oc5GV3bYWv/VmlD8BpLVgvxX1AxvYh40OhPqKzmXk7LSk5ResNyLEH34QDpebxVy2dttITVGqE99Fo09C2dJaoKMuquj5YmvveZSTRwAVg2paIuOacvnXEDsHNVhLdYUHDTKb4Mv4PJLndUBP2RxPmIexpWdaai5t7hksNYnNKZ5sZ+cic8jH7CZsF2JGZf23g7Yg5chO3CuPXvECdgtElgaUAVtWb4PD3dSsWdl92PHUpo18UxWTVrN2YuJPceIGIK7Nl1m6GGhdPYYvfcwKe87i9AVFPzJamGi0EdmkHJfb+txZrcWYTrq6X64xeLiXCbVG+jZyo360QyNVMi6m1NsAZPBf1VVCCElnNxms+ZzilTVk4HU8Q5KIX/sZohAP1s3Y63FDucLjkhrUeFjliE5YgIfIp0niG7N2WuoLdbFiwo3g1uoqwdiCXnzWVdSIXrXRT8rtpOQ=
+  
+
 jobs:
   include:
     - script: |
@@ -19,19 +24,15 @@ jobs:
         chpldoc src/*/*.chpl
         touch docs/.nojekyll'
 
-#deploy:
-#    provider: pages
-#    local_dir: ${TRAVIS_BUILD_DIR}/docs
-#    target_branch: gh-pages
-#    skip_cleanup: true
-#    github_token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
-#    keep_history: true
-#    on:
-#        branch: master        
+deploy:
+    provider: pages
+    local_dir: ${TRAVIS_BUILD_DIR}/docs
+    target_branch: gh-pages
+    skip_cleanup: true
+    github_token: $GITHUB_TOKEN  # Set as a secure variable above
+    keep_history: true
+    on:
+        branch: master        
 
 notifications:
     slack: hypergraphs:D6dV0BOxuu3GjVNcp3jokIXb
-
-#before_install:
-#    - openssl aes-256-cbc -K $encrypted_11f48d32a551_key -iv $encrypted_11f48d32a551_iv -in deploy_key.enc -out deploy_key -d
-#    - GITHUB_TOKEN=$(<deploy_key)
