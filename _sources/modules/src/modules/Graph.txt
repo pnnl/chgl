@@ -1,0 +1,54 @@
+.. default-domain:: chpl
+
+.. module:: Graph
+   :synopsis: Prototype 2-Uniform Hypergraph. Forwards implementation to AdjListHyperGraph and should
+
+Graph
+=====
+**Usage**
+
+.. code-block:: chapel
+
+   use Graph;
+
+
+Prototype 2-Uniform Hypergraph. Forwards implementation to AdjListHyperGraph and should
+support simple 'addEdge(v1,v2)' and 'forall (v1, v2) in graph.getEdges()'; everything else
+should be forwarded to the underlying Hypergraph.
+
+.. record:: Graph
+
+   .. attribute:: var instance
+
+   .. attribute:: var pid: int = -1
+
+   .. method:: proc init(numVertices: integral, numEdges: integral)
+
+   .. method:: proc init(numVertices: integral, numEdges: integral, mapping)
+
+   .. method:: proc init(numVertices: integral, numEdges: integral, verticesMappings, edgesMappings)
+
+   .. method:: proc _value
+
+   .. method:: proc destroy()
+
+.. class:: GraphImpl
+
+   .. attribute:: var pid: int
+
+   .. attribute:: var hg
+
+   .. attribute:: var edgeCounter
+
+   .. method:: proc init(numVertices, numEdges, verticesMapping, edgesMapping)
+
+   .. method:: proc init(other: GraphImpl, pid: int)
+
+   .. method:: proc addEdge(v1: integral, v2: integral)
+
+   .. method:: proc addEdge(v1: hg.vDescType, v2: hg.vDescType)
+
+   .. itermethod:: iter getEdges(): (hg.vDescType, hg.vDescType)
+
+   .. itermethod:: iter getEdges(param tag: iterKind): (hg.vDescType, hg.vDescType)
+

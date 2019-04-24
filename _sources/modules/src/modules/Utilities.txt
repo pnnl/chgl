@@ -1,0 +1,40 @@
+.. default-domain:: chpl
+
+.. module:: Utilities
+
+Utilities
+=========
+**Usage**
+
+.. code-block:: chapel
+
+   use Utilities;
+
+.. class:: Centralized
+
+   .. attribute:: var x
+
+   .. method:: proc init(x)
+
+   .. method:: proc init(type X)
+
+.. function:: proc getLocale(dom, idx)
+
+.. function:: proc getLocale(arr: [], idx)
+
+.. function:: proc createCyclic(dom: domain)
+
+.. function:: proc createCyclic(rng: range)
+
+.. function:: proc createCyclic(sz: integral, startIdx = 1)
+
+.. function:: proc createBlock(dom: domain)
+
+.. function:: proc createBlock(rng: range)
+
+.. function:: proc createBlock(sz: integral, startIdx = 1)
+
+.. iterfunction:: iter getLines(file: string): string
+
+.. iterfunction:: iter getLines(file: string, chunkSize = 1024, param tag: iterKind): string
+

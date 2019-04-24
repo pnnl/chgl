@@ -1,0 +1,52 @@
+.. default-domain:: chpl
+
+.. module:: FIFOChannel
+
+FIFOChannel
+===========
+**Usage**
+
+.. code-block:: chapel
+
+   use FIFOChannel;
+
+.. class:: Channel
+
+   
+   FIFO channel that can communicate across multiple locales. Data is sent in bulk when
+   filled or flushed explicitly.
+   
+
+
+   .. attribute:: type eltType
+
+   .. attribute:: var other: unmanaged Channel(eltType)
+
+   .. attribute:: var outBuf: c_ptr(eltType)
+
+   .. attribute:: var outBufSize: int(64)
+
+   .. attribute:: var outBufClaimed: atomicint
+
+   .. attribute:: var outBufFilled: atomicint
+
+   .. attribute:: var inBuf: c_ptr(eltType)
+
+   .. attribute:: var inBufPending: atomicint
+
+   .. attribute:: var closed: atomicbool
+
+.. method:: proc Channel.init(type eltType, len = 1024)
+
+.. method:: proc Channel.pair(other: unmanaged Channel)
+
+.. method:: proc Channel.send(elt: eltType)
+
+.. method:: proc Channel.flush()
+
+.. method:: proc Channel.recv()
+
+.. method:: proc Channel.close()
+
+.. method:: proc Channel.isClosed()
+

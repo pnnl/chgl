@@ -1,0 +1,24 @@
+.. default-domain:: chpl
+
+.. module:: BinReader
+
+BinReader
+=========
+**Usage**
+
+.. code-block:: chapel
+
+   use BinReader;
+
+.. data:: config param DEBUG_BIN_READER = false
+
+.. function:: proc debug(args ...?nArgs)
+
+.. function:: proc debug(args ...?nArgs)
+
+.. function:: proc readFile(fileName: string) throws
+
+.. function:: proc readFile(f: file) throws
+
+.. function:: proc main()
+

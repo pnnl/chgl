@@ -1,0 +1,548 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>WorkQueue &mdash; chpldoc 0.0.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="chpldoc 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="next" title="testBTER" href="testBTER.html"/>
+        <link rel="prev" title="Visualize" href="Visualize.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> chpldoc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">chpldoc documentation</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../aggregation/AggregationBuffer.html">AggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph.html">AdjListHyperGraph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph/Debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BinReader.html">BinReader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Butterfly.html">Butterfly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FIFOChannel.html">FIFOChannel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Generation.html">Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Graph.html">Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LocalAtomicObject.html">LocalAtomicObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PropertyMap.html">PropertyMap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SMetrics.html">SMetrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Stream.html">Stream</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TerminationDetection.html">TerminationDetection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Traversal.html">Traversal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Vectors.html">Vectors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualize.html">Visualize</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">WorkQueue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testBTER.html">testBTER</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">chpldoc</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+    <li>WorkQueue</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../../_sources/modules/src/modules/WorkQueue.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-WorkQueue"></span><div class="section" id="workqueue">
+<h1>WorkQueue<a class="headerlink" href="#workqueue" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">WorkQueue</span><span class="p">;</span>
+</pre></div>
+</div>
+<dl class="record">
+<dt id="WorkQueue.WorkQueue">
+<em class="property">record </em><code class="descname">WorkQueue</code><a class="headerlink" href="#WorkQueue.WorkQueue" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.WorkQueue.instance">
+<em class="property">var </em><code class="descname">instance</code><a class="headerlink" href="#WorkQueue.WorkQueue.instance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueue.pid">
+<em class="property">var </em><code class="descname">pid</code> = -1<a class="headerlink" href="#WorkQueue.WorkQueue.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueue.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueue.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueue._value">
+<em class="property">proc </em><code class="descname">_value</code><a class="headerlink" href="#WorkQueue.WorkQueue._value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="WorkQueue.WorkQueueNode">
+<em class="property">class </em><code class="descname">WorkQueueNode</code><a class="headerlink" href="#WorkQueue.WorkQueueNode" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.WorkQueueNode.workType">
+<em class="property">type </em><code class="descname">workType</code><a class="headerlink" href="#WorkQueue.WorkQueueNode.workType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueNode.work">
+<em class="property">var </em><code class="descname">work</code>: workType<a class="headerlink" href="#WorkQueue.WorkQueueNode.work" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueNode.next">
+<em class="property">var </em><code class="descname">next</code>: unmanaged WorkQueueNode(workType)<a class="headerlink" href="#WorkQueue.WorkQueueNode.next" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueNode.prev">
+<em class="property">var </em><code class="descname">prev</code>: unmanaged WorkQueueNode(workType)<a class="headerlink" href="#WorkQueue.WorkQueueNode.prev" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueNode.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>work: ?workType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueNode.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="WorkQueue.WorkQueueImpl">
+<em class="property">class </em><code class="descname">WorkQueueImpl</code><a class="headerlink" href="#WorkQueue.WorkQueueImpl" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.WorkQueueImpl.workType">
+<em class="property">type </em><code class="descname">workType</code><a class="headerlink" href="#WorkQueue.WorkQueueImpl.workType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueImpl.pid">
+<em class="property">var </em><code class="descname">pid</code> = -1<a class="headerlink" href="#WorkQueue.WorkQueueImpl.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueImpl.queue">
+<em class="property">var </em><code class="descname">queue</code> = new unmanaged CCQueue(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.queue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueImpl.destBuffer">
+<em class="property">var </em><code class="descname">destBuffer</code> = new Aggregator(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.destBuffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other</em>, <em>pid</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.dsiPrivatize">
+<em class="property">proc </em><code class="descname">dsiPrivatize</code><span class="sig-paren">(</span><em>pid</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.dsiPrivatize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.dsiGetPrivatizeData">
+<em class="property">proc </em><code class="descname">dsiGetPrivatizeData</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.dsiGetPrivatizeData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.getPrivatizedInstance">
+<em class="property">proc </em><code class="descname">getPrivatizedInstance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.getPrivatizedInstance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.addWork">
+<em class="property">proc </em><code class="descname">addWork</code><span class="sig-paren">(</span><em>work: workType</em>, <em>loc: locale</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.addWork" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">addWork</code><span class="sig-paren">(</span><em>work: workType</em>, <em>locid = here.id</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.getWork">
+<em class="property">proc </em><code class="descname">getWork</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.getWork" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.flush">
+<em class="property">proc </em><code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.deinit">
+<em class="property">proc </em><code class="descname">deinit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.deinit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="WorkQueue.CCSynchEnqueueNode">
+<em class="property">class </em><code class="descname">CCSynchEnqueueNode</code><a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.CCSynchEnqueueNode.eltType">
+<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.eltType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchEnqueueNode.head">
+<em class="property">var </em><code class="descname">head</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.head" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchEnqueueNode.tail">
+<em class="property">var </em><code class="descname">tail</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.tail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchEnqueueNode.wait">
+<em class="property">var </em><code class="descname">wait</code>: atomicbool<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.wait" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchEnqueueNode.completed">
+<em class="property">var </em><code class="descname">completed</code>: bool<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.completed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchEnqueueNode.next">
+<em class="property">var </em><code class="descname">next</code>: unmanaged CCSynchEnqueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.next" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCSynchEnqueueNode.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em>, <em>head: unmanaged QueueNode(eltType) =</em>, <em>tail: unmanaged QueueNode(eltType) =</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="WorkQueue.CCSynchDequeueNode">
+<em class="property">class </em><code class="descname">CCSynchDequeueNode</code><a class="headerlink" href="#WorkQueue.CCSynchDequeueNode" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.CCSynchDequeueNode.eltType">
+<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.eltType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchDequeueNode.ret">
+<em class="property">var </em><code class="descname">ret</code>: eltType<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.ret" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchDequeueNode.found">
+<em class="property">var </em><code class="descname">found</code>: bool<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.found" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchDequeueNode.wait">
+<em class="property">var </em><code class="descname">wait</code>: atomicbool<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.wait" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchDequeueNode.completed">
+<em class="property">var </em><code class="descname">completed</code>: bool<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.completed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCSynchDequeueNode.next">
+<em class="property">var </em><code class="descname">next</code>: unmanaged CCSynchDequeueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.next" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCSynchDequeueNode.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="WorkQueue.QueueNode">
+<em class="property">class </em><code class="descname">QueueNode</code><a class="headerlink" href="#WorkQueue.QueueNode" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.QueueNode.eltType">
+<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.QueueNode.eltType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.QueueNode.elt">
+<em class="property">var </em><code class="descname">elt</code>: eltType<a class="headerlink" href="#WorkQueue.QueueNode.elt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.QueueNode.next">
+<em class="property">var </em><code class="descname">next</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.QueueNode.next" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.QueueNode.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.QueueNode.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>elt: ?eltType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="WorkQueue.CCQueue">
+<em class="property">class </em><code class="descname">CCQueue</code><a class="headerlink" href="#WorkQueue.CCQueue" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.CCQueue.eltType">
+<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.CCQueue.eltType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCQueue.maxRequests">
+<em class="property">var </em><code class="descname">maxRequests</code> = 1024<a class="headerlink" href="#WorkQueue.CCQueue.maxRequests" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCQueue.head">
+<em class="property">var </em><code class="descname">head</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCQueue.head" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCQueue.dequeueWaitList">
+<em class="property">var </em><code class="descname">dequeueWaitList</code>: LocalAtomicObject(unmanaged CCSynchDequeueNode(eltType))<a class="headerlink" href="#WorkQueue.CCQueue.dequeueWaitList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCQueue.tail">
+<em class="property">var </em><code class="descname">tail</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCQueue.tail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.CCQueue.enqueueWaitList">
+<em class="property">var </em><code class="descname">enqueueWaitList</code>: LocalAtomicObject(unmanaged CCSynchEnqueueNode(eltType))<a class="headerlink" href="#WorkQueue.CCQueue.enqueueWaitList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCQueue.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCQueue.bulkEnqueue">
+<em class="property">proc </em><code class="descname">bulkEnqueue</code><span class="sig-paren">(</span><em>arr: [?dom] eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.bulkEnqueue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCQueue.enqueue">
+<em class="property">proc </em><code class="descname">enqueue</code><span class="sig-paren">(</span><em>elt: eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.enqueue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCQueue.doEnqueue">
+<em class="property">proc </em><code class="descname">doEnqueue</code><span class="sig-paren">(</span><em>head: unmanaged QueueNode(eltType)</em>, <em>tail = head</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.doEnqueue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCQueue.dequeue">
+<em class="property">proc </em><code class="descname">dequeue</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, eltType)<a class="headerlink" href="#WorkQueue.CCQueue.dequeue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCQueue.doDequeue">
+<em class="property">proc </em><code class="descname">doDequeue</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, eltType)<a class="headerlink" href="#WorkQueue.CCQueue.doDequeue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.CCQueue.deinit">
+<em class="property">proc </em><code class="descname">deinit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.deinit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="WorkQueue.main">
+<em class="property">proc </em><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="testBTER.html" class="btn btn-neutral float-right" title="testBTER" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Visualize.html" class="btn btn-neutral" title="Visualize" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, .
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+  
+ 
+
+
+
+</body>
+</html>

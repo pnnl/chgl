@@ -1,0 +1,100 @@
+.. default-domain:: chpl
+
+.. module:: PropertyMap
+
+PropertyMap
+===========
+**Usage**
+
+.. code-block:: chapel
+
+   use PropertyMap;
+
+.. data:: const EmptyPropertyMap = new PropertyMap(string, string, true)
+
+.. record:: PropertyMap
+
+   .. attribute:: type vertexPropertyType
+
+   .. attribute:: type edgePropertyType
+
+   .. attribute:: var map: unmanaged vertexPropertyTypePropertyMapImpledgePropertyType
+
+   .. method:: proc init(type vertexPropertyType, type edgePropertyType, param isEmpty = false)
+
+   .. method:: proc init(other: ?vertexPropertyTypePropertyMap?edgePropertyType)
+
+   .. method:: proc append(other: this.type )
+
+   .. method:: proc clone(other: ?vertexPropertyTypePropertyMap?edgePropertyType)
+
+   .. method:: proc isInitialized
+
+.. class:: PropertyMapping
+
+   .. attribute:: type propertyType
+
+   .. attribute:: var lock$: sync(bool)
+
+   .. attribute:: var dom: domain(propertyType)
+
+   .. attribute:: var arr: [dom] int
+
+   .. method:: proc init(type propertyType)
+
+   .. method:: proc init(other: PropertyMapping(?propertyType))
+
+   .. method:: proc append(other: this.type )
+
+   .. method:: proc addProperty(property: propertyType)
+
+   .. method:: proc setProperty(property: propertyType, id: int)
+
+   .. method:: proc getProperty(property: propertyType): int
+
+   .. method:: proc numProperties(): int
+
+   .. itermethod:: iter these(): (propertyType, int)
+
+   .. itermethod:: iter these(param tag: iterKind): (propertyType, int)
+
+.. class:: PropertyMapImpl
+
+   .. attribute:: type vertexPropertyType
+
+   .. attribute:: type edgePropertyType
+
+   .. attribute:: var vPropMap: owned PropertyMapping(vertexPropertyType)
+
+   .. attribute:: var ePropMap: owned PropertyMapping(edgePropertyType)
+
+   .. method:: proc init(type vertexPropertyType, type edgePropertyType)
+
+   .. method:: proc init(other: ?vertexPropertyTypePropertyMapImpl?edgePropertyType)
+
+   .. method:: proc append(other: this.type )
+
+   .. method:: proc addVertexProperty(property: vertexPropertyType)
+
+   .. method:: proc addEdgeProperty(property: edgePropertyType)
+
+   .. method:: proc setVertexProperty(property: vertexPropertyType, id: int)
+
+   .. method:: proc setEdgeProperty(property: edgePropertyType, id: int)
+
+   .. method:: proc getVertexProperty(property: vertexPropertyType): int
+
+   .. method:: proc getEdgeProperty(property: edgePropertyType): int
+
+   .. method:: proc numVertexProperties(): int
+
+   .. method:: proc numEdgeProperties(): int
+
+   .. itermethod:: iter vertexProperties(): (vertexPropertyType, int)
+
+   .. itermethod:: iter vertexProperties(param tag: iterKind): (vertexPropertyType, int)
+
+   .. itermethod:: iter edgeProperties(): (edgePropertyType, int)
+
+   .. itermethod:: iter edgeProperties(param tag: iterKind): (edgePropertyType, int)
+

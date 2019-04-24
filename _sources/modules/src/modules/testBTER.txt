@@ -1,0 +1,34 @@
+.. default-domain:: chpl
+
+.. module:: testBTER
+
+testBTER
+========
+**Usage**
+
+.. code-block:: chapel
+
+   use testBTER;
+
+.. data:: config const dataPath = "../../data"
+
+.. data:: var vertexDegrees: [0..16725] int
+
+.. data:: var edgeDegrees: [0..22014] int
+
+.. data:: var vertexMetamorphs: [0..115] real
+
+.. data:: var edgeMetamorphs: [0..17] real
+
+.. data:: var vd_file = AppendExpr.Call08
+
+.. data:: var ed_file = AppendExpr.Call08
+
+.. data:: var vm_file = AppendExpr.Call08
+
+.. data:: var em_file = AppendExpr.Call08
+
+.. data:: var timer: Timer
+
+.. data:: var graph = generateBTER(vertexDegrees, edgeDegrees, vertexMetamorphs, edgeMetamorphs)
+

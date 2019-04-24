@@ -1,0 +1,36 @@
+.. default-domain:: chpl
+
+.. module:: Stream
+
+Stream
+======
+**Usage**
+
+.. code-block:: chapel
+
+   use Stream;
+
+.. class:: Stream
+
+   .. attribute:: type eltType
+
+   .. attribute:: var inchan: Channel(eltType)
+
+   .. attribute:: var outchan: Channel(eltType)
+
+   .. method:: proc init(type eltType, chunkSize = 1024)
+
+   .. method:: proc init(elts: ?eltType ...?n)
+
+   .. method:: proc init(iterable, chunkSize = 1024)
+
+   .. method:: proc consume(fn): void
+
+   .. method:: proc map(fn, type outType = eltType)
+
+   .. method:: proc filter(fn)
+
+   .. method:: proc groupBy(fn, type tagType)
+
+.. function:: proc main()
+

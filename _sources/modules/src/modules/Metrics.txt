@@ -1,0 +1,20 @@
+.. default-domain:: chpl
+
+.. module:: Metrics
+
+Metrics
+=======
+**Usage**
+
+.. code-block:: chapel
+
+   use Metrics;
+
+.. function:: proc vertexDegreeDistribution(graph)
+
+.. function:: proc edgeDegreeDistribution(graph)
+
+.. function:: proc vertexComponentSizeDistribution(graph, s = 1)
+
+.. function:: proc edgeComponentSizeDistribution(graph, s = 1)
+

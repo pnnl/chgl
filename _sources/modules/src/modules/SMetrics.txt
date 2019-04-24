@@ -1,0 +1,67 @@
+.. default-domain:: chpl
+
+.. module:: SMetrics
+
+SMetrics
+========
+**Usage**
+
+.. code-block:: chapel
+
+   use SMetrics;
+
+.. record:: WalkState
+
+   
+   Represents 's-walk' state. We manage the current hyperedge sequence
+   as well as our current neighbor.
+
+
+   .. attribute:: type edgeType
+
+   .. attribute:: type vertexType
+
+   .. attribute:: var sequenceDom = {0..-1}
+
+   .. attribute:: var sequence: [sequenceDom] edgeType
+
+   .. attribute:: var neighbor: vertexType
+
+   .. attribute:: var checkingNeighbor: bool
+
+   .. attribute:: var checkingIntersection: bool
+
+   .. method:: proc init(other)
+
+   .. method:: proc init(type edgeType, type vertexType, size = 0)
+
+   .. method:: proc append(edge: edgeType)
+
+   .. method:: proc setNeighbor(vertex: vertexType)
+
+   .. method:: proc unsetNeighbor()
+
+   .. method:: proc checkIntersection()
+
+   .. method:: proc checkedIntersection()
+
+   .. method:: proc isCheckingNeighbor()
+
+   .. method:: proc getNeighbor()
+
+   .. method:: proc isCheckingIntersection()
+
+   .. method:: proc sequenceLength
+
+   .. method:: proc getTop()
+
+   .. method:: proc hasProcessed(edge: edgeType)
+
+   .. method:: proc this(idx: integral) ref
+
+.. iterfunction:: iter walk(graph, s = 1, k = 2)
+
+.. iterfunction:: iter walk(graph, s = 1, k = 2, param tag: iterKind) ref
+
+.. function:: proc main()
+

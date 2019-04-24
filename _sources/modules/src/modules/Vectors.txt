@@ -1,0 +1,62 @@
+.. default-domain:: chpl
+
+.. module:: Vectors
+
+Vectors
+=======
+**Usage**
+
+.. code-block:: chapel
+
+   use Vectors;
+
+.. data:: config param VectorGrowthRate: real = 1.5
+
+.. class:: Vector
+
+   .. attribute:: type eltType
+
+   .. attribute:: var _dummy: eltType
+
+   .. method:: proc init(type eltType)
+
+   .. method:: proc append(elt: eltType)
+
+   .. method:: proc this(idx: integral) ref
+
+   .. itermethod:: iter these(param tag: iterKind) ref: eltType
+
+   .. method:: proc size()
+
+   .. itermethod:: iter these() ref: eltType
+
+   .. method:: proc clear()
+
+.. class:: VectorImpl : Vector
+
+   .. attribute:: const growthRate
+
+   .. attribute:: var dom
+
+   .. attribute:: var arr: [dom] eltType
+
+   .. attribute:: var sz: int
+
+   .. attribute:: var cap: int
+
+   .. method:: proc init(type eltType, dom, growthRate = VectorGrowthRate)
+
+   .. method:: override proc append(elt: eltType)
+
+   .. method:: override proc this(idx: integral) ref
+
+   .. itermethod:: override iter these() ref
+
+   .. itermethod:: override iter these(param tag: iterKind)
+
+   .. method:: override proc size()
+
+   .. method:: override proc clear()
+
+   .. method:: proc readWriteThis(f)
+

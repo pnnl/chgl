@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>SMetrics &mdash; chpldoc 0.0.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="chpldoc 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="next" title="Stream" href="Stream.html"/>
+        <link rel="prev" title="PropertyMap" href="PropertyMap.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> chpldoc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">chpldoc documentation</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../aggregation/AggregationBuffer.html">AggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph.html">AdjListHyperGraph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph/Debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BinReader.html">BinReader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Butterfly.html">Butterfly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FIFOChannel.html">FIFOChannel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Generation.html">Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Graph.html">Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LocalAtomicObject.html">LocalAtomicObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PropertyMap.html">PropertyMap</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">SMetrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Stream.html">Stream</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TerminationDetection.html">TerminationDetection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Traversal.html">Traversal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Vectors.html">Vectors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualize.html">Visualize</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WorkQueue.html">WorkQueue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testBTER.html">testBTER</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">chpldoc</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+    <li>SMetrics</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../../_sources/modules/src/modules/SMetrics.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-SMetrics"></span><div class="section" id="smetrics">
+<h1>SMetrics<a class="headerlink" href="#smetrics" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">SMetrics</span><span class="p">;</span>
+</pre></div>
+</div>
+<dl class="record">
+<dt id="SMetrics.WalkState">
+<em class="property">record </em><code class="descname">WalkState</code><a class="headerlink" href="#SMetrics.WalkState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents &#8216;s-walk&#8217; state. We manage the current hyperedge sequence
+as well as our current neighbor.</p>
+<dl class="attribute">
+<dt id="SMetrics.WalkState.edgeType">
+<em class="property">type </em><code class="descname">edgeType</code><a class="headerlink" href="#SMetrics.WalkState.edgeType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="SMetrics.WalkState.vertexType">
+<em class="property">type </em><code class="descname">vertexType</code><a class="headerlink" href="#SMetrics.WalkState.vertexType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="SMetrics.WalkState.sequenceDom">
+<em class="property">var </em><code class="descname">sequenceDom</code> = {0..-1}<a class="headerlink" href="#SMetrics.WalkState.sequenceDom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="SMetrics.WalkState.sequence">
+<em class="property">var </em><code class="descname">sequence</code>: [sequenceDom] edgeType<a class="headerlink" href="#SMetrics.WalkState.sequence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="SMetrics.WalkState.neighbor">
+<em class="property">var </em><code class="descname">neighbor</code>: vertexType<a class="headerlink" href="#SMetrics.WalkState.neighbor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="SMetrics.WalkState.checkingNeighbor">
+<em class="property">var </em><code class="descname">checkingNeighbor</code>: bool<a class="headerlink" href="#SMetrics.WalkState.checkingNeighbor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="SMetrics.WalkState.checkingIntersection">
+<em class="property">var </em><code class="descname">checkingIntersection</code>: bool<a class="headerlink" href="#SMetrics.WalkState.checkingIntersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type edgeType</em>, <em>type vertexType</em>, <em>size = 0</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.append">
+<em class="property">proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>edge: edgeType</em><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.append" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.setNeighbor">
+<em class="property">proc </em><code class="descname">setNeighbor</code><span class="sig-paren">(</span><em>vertex: vertexType</em><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.setNeighbor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.unsetNeighbor">
+<em class="property">proc </em><code class="descname">unsetNeighbor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.unsetNeighbor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.checkIntersection">
+<em class="property">proc </em><code class="descname">checkIntersection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.checkIntersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.checkedIntersection">
+<em class="property">proc </em><code class="descname">checkedIntersection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.checkedIntersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.isCheckingNeighbor">
+<em class="property">proc </em><code class="descname">isCheckingNeighbor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.isCheckingNeighbor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.getNeighbor">
+<em class="property">proc </em><code class="descname">getNeighbor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.getNeighbor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.isCheckingIntersection">
+<em class="property">proc </em><code class="descname">isCheckingIntersection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.isCheckingIntersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.sequenceLength">
+<em class="property">proc </em><code class="descname">sequenceLength</code><a class="headerlink" href="#SMetrics.WalkState.sequenceLength" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.getTop">
+<em class="property">proc </em><code class="descname">getTop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.getTop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.hasProcessed">
+<em class="property">proc </em><code class="descname">hasProcessed</code><span class="sig-paren">(</span><em>edge: edgeType</em><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.WalkState.hasProcessed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="SMetrics.WalkState.this">
+<em class="property">proc </em><code class="descname">this</code><span class="sig-paren">(</span><em>idx: integral</em><span class="sig-paren">)</span> ref<a class="headerlink" href="#SMetrics.WalkState.this" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="iterfunction">
+<dt id="SMetrics.walk">
+<em class="property">iter </em><code class="descname">walk</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em>, <em>k = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.walk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="iterfunction">
+<dt>
+<em class="property">iter </em><code class="descname">walk</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em>, <em>k = 2</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span> ref</dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="SMetrics.main">
+<em class="property">proc </em><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#SMetrics.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Stream.html" class="btn btn-neutral float-right" title="Stream" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="PropertyMap.html" class="btn btn-neutral" title="PropertyMap" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, .
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+  
+ 
+
+
+
+</body>
+</html>
