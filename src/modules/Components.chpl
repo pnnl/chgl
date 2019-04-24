@@ -73,11 +73,14 @@ module Components {
       proc visit(e : graph._value.eDescType, id) : int {
         var currId = id;
         while true {
+	  //check to see if there is anything else to read in
           if components[e.id].read() == max(int){
-             return currId;
-          }
-
-          var eid = components[e.id].read();
+	    //we've already explored this edge
+            var eid = currId;
+	  }
+	  else{
+            var eid = components[e.id].read();
+	  }
           //writeln("Read component id: ", eid);
           // Higher priority, take this edge...
           if eid > currId && components[e.id].compareExchange(eid, currId) {
