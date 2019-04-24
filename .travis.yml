@@ -19,19 +19,19 @@ jobs:
         chpldoc src/*/*.chpl
         touch docs/.nojekyll'
 
-deploy:
-    provider: pages
-    local_dir: ${TRAVIS_BUILD_DIR}/docs
-    target_branch: gh-pages
-    skip_cleanup: true
-    github_token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
-    keep_history: true
-    on:
-        branch: master        
+#deploy:
+#    provider: pages
+#    local_dir: ${TRAVIS_BUILD_DIR}/docs
+#    target_branch: gh-pages
+#    skip_cleanup: true
+#    github_token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+#    keep_history: true
+#    on:
+#        branch: master        
 
 notifications:
     slack: hypergraphs:D6dV0BOxuu3GjVNcp3jokIXb
 
-before_install:
-    - openssl aes-256-cbc -K $encrypted_11f48d32a551_key -iv $encrypted_11f48d32a551_iv -in deploy_key.enc -out deploy_key -d
-    - GITHUB_TOKEN=$(<deploy_key)
+#before_install:
+#    - openssl aes-256-cbc -K $encrypted_11f48d32a551_key -iv $encrypted_11f48d32a551_iv -in deploy_key.enc -out deploy_key -d
+#    - GITHUB_TOKEN=$(<deploy_key)
