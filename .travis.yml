@@ -24,7 +24,7 @@ deploy:
     local_dir: ${TRAVIS_BUILD_DIR}/docs
     target_branch: gh-pages
     skip_cleanup: true
-    github_token: $GITHUB_TOKEN  # Set as a secure variable above
+    github_token: $GITHUB_TOKEN  # Set as a Travis-CI env variable
     keep_history: true
     on:
         branch: master        
