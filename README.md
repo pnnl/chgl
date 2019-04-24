@@ -17,7 +17,7 @@ Project Overview
 
 **General Area or Topic of Investigation:** High performance, parallel hypergraph metrics and algorithms
 
-**Travis CI Build Status:** [![Build Status](https://travis-ci.org/pnnl/chgl.svg?branch=master)](https://travis-ci.org/pnnl/chgl)
+**Travis CI Build Status:** [![Build Status](https://travis-ci.com/pnnl/chgl.svg?branch=master)](https://travis-ci.com/pnnl/chgl)
 
 Summary
 ----------------
