@@ -13,7 +13,7 @@ jobs:
         . util/setchplenv.sh
         popd
         pushd test/unit
-        start_test -junit-xml -numlocales 4'
+        start_test -junit-xml -numlocales 4
         popd
         chpldoc src/*/*.chpl
         touch docs/.nojekyll'
