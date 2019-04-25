@@ -15,7 +15,7 @@ jobs:
         pushd test/unit
         start_test -junit-xml -numlocales 4
         popd
-        chpldoc src/*/*.chpl
+        chpldoc src/*.chpl src/*/*.chpl
         touch docs/.nojekyll'
 
 deploy:
