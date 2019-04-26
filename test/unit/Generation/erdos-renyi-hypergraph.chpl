@@ -1,12 +1,13 @@
 use AdjListHyperGraph;
 use CyclicDist;
 use Generation;
+use BlockDist;
 
 var prob = 0.6; real;
-var num_vertices = 1024: int;
-var num_edges = 2048;
+var num_vertices = 16: int;
+var num_edges = 32;
 var num_inclusions = 0: int;
-var graph = new AdjListHyperGraph(num_vertices, num_edges);
+var graph = new AdjListHyperGraph(num_vertices, num_edges, new Block(boundingBox = {0..100} ));
 graph = generateErdosRenyi(graph, prob);
 graph.removeDuplicates();
 for vertex_id in graph.getVertices() {
