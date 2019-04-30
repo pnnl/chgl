@@ -73,7 +73,7 @@ module Components {
       proc visit(e : graph._value.eDescType, id) : int {
         var currId = id;
         while true {
-	  var eid = components[e.id].read();
+          var eid = components[e.id].read();
           //writeln("Read component id: ", eid);
           // Higher priority, take this edge...
           if eid > currId && components[e.id].compareExchange(eid, currId) {
@@ -83,7 +83,7 @@ module Components {
                //writeln("Walking from ", e, " to ", n, " for id: ", currId);
                 var retid = visit(n, currId);
                 // We're helping another component...
-                if retid > currId {
+                if retid != currId {
                   currId = retid;
                   //writeln("Current helping ", currId);
                   continue checkNeighbor;

@@ -12,7 +12,7 @@ use FileSystem;
 
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const datasetDirectory = "../../data/DNS/";
-config const outputDirectory = "mandyOutput3/";
+config const outputDirectory = "tmp/";
 config const metricsOutput = outputDirectory + "metrics.txt";
 config const componentsOutput = outputDirectory + "collapsed-hypergraph-components.txt";
 config const hypergraphOutput = outputDirectory + "collapsed-hypergraph.txt";
@@ -308,7 +308,6 @@ writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
 f.writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
-writeln("mks  inclusions");
 writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
 writeln("Number of Inclusions: ", graph.getInclusions());
 
@@ -320,7 +319,6 @@ record CachedComponents {
 }
 var cachedComponents : [1..3] CachedComponents;
 var cachedComponentMappingsInitialized = false;
-writeln("mks going to preCollapseBlackList");
 if preCollapseBlacklist {
     t.start();
     if !cachedComponentMappingsInitialized {
