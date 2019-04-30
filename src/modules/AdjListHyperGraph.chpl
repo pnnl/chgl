@@ -753,8 +753,6 @@ module AdjListHyperGraph {
       }
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
-    
-      assert(this._privatizedVertices.locale == here && this._privatizedEdges.locale == here, "Privatized instances are not local to the current locale!");
     }
     
     pragma "no doc"
