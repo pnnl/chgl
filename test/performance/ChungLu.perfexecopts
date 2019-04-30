@@ -1,5 +1,5 @@
---dataset=\"Very Small\"
---dataset=\"Small\"
---dataset=\"Medium\"
---dataset=\"Large\"
---dataset=\"Very Large\"
+--dataset=VerySmall
+--dataset=Small
+--dataset=Medium
+--dataset=Large
+--dataset=VeryLarge

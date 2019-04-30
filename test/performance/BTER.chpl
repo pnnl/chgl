@@ -5,7 +5,7 @@ use Generation;
 use Time;
 
 /* Performance Test for BTER algorithm */
-config const dataset = "Very Small";
+config const dataset = "VerySmall";
 config const dataDirectory = "../../data/LiveJournal/";
 config const doCommDiagnostics = false;
 config const doVerboseComm = false;
@@ -19,7 +19,7 @@ var numEdges = 0;
 var numInclusions = 0;
 
 select dataset {
-  when "Very Small" {
+  when "VerySmall" {
     vertexDegreeDistributionFile = "d100K.csv";
     edgeDegreeDistributionFile = "d200K.csv";
     vertexMetamorphosisCoefficientsFile = "m100K.csv";
@@ -55,7 +55,7 @@ select dataset {
     numEdges = 200000000;
     numInclusions = 1301294319;
   }
-  when "Very Large" {
+  when "VeryLarge" {
     vertexDegreeDistributionFile = "d1B.csv";
     edgeDegreeDistributionFile = "d2B.csv";
     vertexMetamorphosisCoefficientsFile = "m1B.csv";

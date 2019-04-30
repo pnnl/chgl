@@ -5,6 +5,7 @@
 
 # test output
 *.comp.out.tmp
+*.exec.out.tmp
 /test/performance/dat/
 /test/performance/Logs/
 /test/unit/Logs/
