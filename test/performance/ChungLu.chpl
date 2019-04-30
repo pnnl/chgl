@@ -85,7 +85,7 @@ if doVerboseComm then startVerboseComm();
 if doVisualDebug then startVdebug("ChungLu-VisualDebug");
 
 if doVisualDebug then tagVdebug("Initialization");
-var graph = new AdjListHyperGraph(numVertices, numEdges, new unmanaged Cyclic(startIdx=0:int(32), targetLocales=Locales));
+var graph = new AdjListHyperGraph(numVertices, numEdges, new unmanaged Cyclic(startIdx=0, targetLocales=Locales));
 if doVisualDebug then tagVdebug("Generation");
 var timer = new Timer();
 timer.start();
