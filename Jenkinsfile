@@ -16,7 +16,6 @@ pipeline {
                     sh 'ssh puma.pnl.gov "bash -l -c $CHGL_WORKSPACE/jenkins-build.sh"'
 
                     // Get results back from puma.pnl.gov
-                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test/unit/Logs $WORKSPACE/test/unit'
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test/performance/Logs $WORKSPACE/test/performance'
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test/performance/dat $WORKSPACE/test/performance'
                 }
