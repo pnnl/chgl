@@ -7,8 +7,8 @@ CHAPEL_HOME=/home/zale916/software/chapel-1.19.0
 WORKSPACE=/lustre/jenkins/chgl-workspace
 
 # Load required modules
-module load gcc/7.1.0
-module load openmpi/2.1.1
+export MODULEPATH=/home/zale916/software/modules:$MODULEPATH
+module load chapel/1.19.0
 
 # Initialize Chapel environment
 cd $CHAPEL_HOME
