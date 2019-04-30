@@ -55,7 +55,7 @@ module Components {
       var components : [graph.edgesDomain] atomic int;
       var componentId : atomic int;
       var numComponents : atomic int;
-      
+
       // Set all componnet ids to be the maximum so that they are the lowest priority
       [component in components] component.write(max(int));
       forall e in graph.getEdges() with (var taskComponentId : int = -1) do if graph.degree(e) >= s {
@@ -69,7 +69,7 @@ module Components {
           numComponents.add(1);
         }
       }
-
+      
       proc visit(e : graph._value.eDescType, id) : int {
         var currId = id;
         while true {
@@ -80,7 +80,7 @@ module Components {
             // TODO: Optimize to not check s-connectivity until we know we haven't looked at that s-neighbor...
             label checkNeighbor while true {
               for n in graph.walk(e, s) {
-                //writeln("Walking from ", e, " to ", n, " for id: ", currId);
+               //writeln("Walking from ", e, " to ", n, " for id: ", currId);
                 var retid = visit(n, currId);
                 // We're helping another component...
                 if retid != currId {

@@ -1,5 +1,5 @@
 use FIFOChannel;
-use List;
+use LinkedLists;
 
 class Stream {
   type eltType;

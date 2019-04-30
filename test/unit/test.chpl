@@ -31,6 +31,16 @@ config const postToplexComponents = true;
 config const postToplexBlacklist = true;
 config const numMaxFiles = max(int(64));
 
+//Need to create outputDirectory prior to opening files
+if !exists(outputDirectory) {
+   try {
+      mkdir(outputDirectory);
+   }
+   catch {
+      writeln("*Unable to create directory ", outputDirectory);
+   }
+}
+
 var ValidIPRegexp = compile(ValidIPRegex);
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
 var masterPropertyMap = EmptyPropertyMap;
@@ -113,19 +123,20 @@ proc getMetrics(graph, prefix, doComponents, cachedComponents) {
 proc searchBlacklist(graph, prefix, cachedComponents) {
     // Scan for most wanted...
     writeln("(" + prefix + ") Searching for known offenders...");
+    //create directory
+    if !exists(outputDirectory + prefix) {
+    	try{
+	   mkdir(outputDirectory + prefix);
+	}
+        catch{
+           writeln("unable to create directory", outputDirectory + prefix);
+        }
+    }
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
-        if badIPAddresses.member(ip) {
-            if !exists(outputDirectory + prefix) {
-                try { 
-                    mkdir(outputDirectory + prefix);
-                }
-                catch {
-
-                }
-            }
-            var f = open(outputDirectory + prefix + "/" + ip, iomode.cw).writer();
-            writeln("(" + prefix + ") Found blacklisted ip address ", ip);
+        if badIPAddresses.contains(ip) {
+	    var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
+            f.writeln("Blacklisted ip address ", ip);
             halt("Vertex blacklist scan not implemented...");
             // TODO! CORRECT THIS, THIS IS WRONG!
             // Print out its local neighbors...
@@ -158,21 +169,13 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
                         f.flush();
                     }
                 }
-            }
-        }
-    }
+            } 
+        } 
+    } writeln("Finished searching for blacklisted IPs...");
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
         var isBadDNS = dnsName.matches(badDNSNamesRegexp);
-        if badDNSNames.member(dnsName) || isBadDNS.size != 0 {
-            if !exists(outputDirectory + prefix) {
-                try {
-                    mkdir(outputDirectory + prefix);
-                }
-                catch {
-
-                }
-            }
+        if badDNSNames.contains(dnsName) || isBadDNS.size != 0 {
             var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
             
@@ -209,7 +212,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
             }
         }
     }
-    writeln("Finished searching for blacklisted IPs...");
+    writeln("Finished searching for blacklisted DNSs...");
 }
 
 writeln("Constructing PropertyMap...");
@@ -316,7 +319,6 @@ record CachedComponents {
 }
 var cachedComponents : [1..3] CachedComponents;
 var cachedComponentMappingsInitialized = false;
-
 if preCollapseBlacklist {
     t.start();
     if !cachedComponentMappingsInitialized {
@@ -457,22 +459,7 @@ for (deg, freq) in zip(toplexStats.domain, toplexStats) {
 }
 t.clear();
 
-if postToplexMetrics {
-    t.start();
-    if !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Post-Toplex Components: ", t.elapsed());
-        t.clear();
-    }
-    getMetrics(graph, "Post-Toplex", postToplexComponents, cachedComponents);
-    t.stop();
-    writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
-    f.writeln("Collected Post-Toplex Metrics: ", t.elapsed());
-    t.clear();
-}
-
+cachedComponentMappingsInitialized = false;
 if postToplexBlacklist {
     t.start();
     if !cachedComponentMappingsInitialized {
@@ -489,6 +476,23 @@ if postToplexBlacklist {
     t.clear();
 }
 
+if postToplexMetrics {
+    t.start();
+    if !cachedComponentMappingsInitialized {
+        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
+        cachedComponentMappingsInitialized = true;
+        writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        f.writeln("Generated Post-Toplex Components: ", t.elapsed());
+        t.clear();
+    }
+    getMetrics(graph, "Post-Toplex", postToplexComponents, cachedComponents);
+    t.stop();
+    writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
+    f.writeln("Collected Post-Toplex Metrics: ", t.elapsed());
+    t.clear();
+}
+
+
 writeln("Printing out collapsed toplex graph...");
 var ff = open(hypergraphOutput, iomode.cw).writer();
 forall e in graph.getEdges() {
@@ -499,6 +503,7 @@ forall e in graph.getEdges() {
     ff.writeln(str[1..#(str.size - 1)]);
 }
 
+cachedComponentMappingsInitialized = false;
 if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
