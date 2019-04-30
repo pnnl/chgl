@@ -12,7 +12,7 @@ use FileSystem;
 
 config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 config const datasetDirectory = "../../data/DNS/";
-config const outputDirectory = "tmp/";
+config const outputDirectory = "mandyOutput3/";
 config const metricsOutput = outputDirectory + "metrics.txt";
 config const componentsOutput = outputDirectory + "collapsed-hypergraph-components.txt";
 config const hypergraphOutput = outputDirectory + "collapsed-hypergraph.txt";
@@ -308,6 +308,7 @@ writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
 f.writeln("Hypergraph Construction: ", t.elapsed());
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
+writeln("mks  inclusions");
 writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
 writeln("Number of Inclusions: ", graph.getInclusions());
 
@@ -319,7 +320,7 @@ record CachedComponents {
 }
 var cachedComponents : [1..3] CachedComponents;
 var cachedComponentMappingsInitialized = false;
-
+writeln("mks going to preCollapseBlackList");
 if preCollapseBlacklist {
     t.start();
     if !cachedComponentMappingsInitialized {
@@ -460,22 +461,7 @@ for (deg, freq) in zip(toplexStats.domain, toplexStats) {
 }
 t.clear();
 
-if postToplexMetrics {
-    t.start();
-    if !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Post-Toplex Components: ", t.elapsed());
-        t.clear();
-    }
-    getMetrics(graph, "Post-Toplex", postToplexComponents, cachedComponents);
-    t.stop();
-    writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
-    f.writeln("Collected Post-Toplex Metrics: ", t.elapsed());
-    t.clear();
-}
-
+cachedComponentMappingsInitialized = false;
 if postToplexBlacklist {
     t.start();
     if !cachedComponentMappingsInitialized {
@@ -492,6 +478,23 @@ if postToplexBlacklist {
     t.clear();
 }
 
+if postToplexMetrics {
+    t.start();
+    if !cachedComponentMappingsInitialized {
+        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
+        cachedComponentMappingsInitialized = true;
+        writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
+        f.writeln("Generated Post-Toplex Components: ", t.elapsed());
+        t.clear();
+    }
+    getMetrics(graph, "Post-Toplex", postToplexComponents, cachedComponents);
+    t.stop();
+    writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
+    f.writeln("Collected Post-Toplex Metrics: ", t.elapsed());
+    t.clear();
+}
+
+
 writeln("Printing out collapsed toplex graph...");
 var ff = open(hypergraphOutput, iomode.cw).writer();
 forall e in graph.getEdges() {
@@ -502,6 +505,7 @@ forall e in graph.getEdges() {
     ff.writeln(str[1..#(str.size - 1)]);
 }
 
+cachedComponentMappingsInitialized = false;
 if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
