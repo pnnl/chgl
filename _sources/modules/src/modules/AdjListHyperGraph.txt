@@ -390,6 +390,14 @@ with Cray copyright and Apache license (see the Chapel repo).
 
    .. itermethod:: iter getEdges(param tag: iterKind)
 
+      
+      Warning: If you call these inside of the `AdjListHyperGraphImpl`,
+      there will not be any privatization, hence you _need_ to call
+      getPrivatizedInstance; one easy way to do this is to do something
+      like 'with (var _this = getPrivatizedInstance())' so that its only
+      obtained once per task per locale.
+      
+
    .. itermethod:: iter getEdges()
 
    .. itermethod:: iter getVertices(param tag: iterKind)
