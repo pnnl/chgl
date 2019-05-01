@@ -1676,6 +1676,14 @@ module AdjListHyperGraph {
 
     proc getInclusions() return + reduce getVertexDegrees();
 
+
+    /*
+        Warning: If you call these inside of the `AdjListHyperGraphImpl`,
+        there will not be any privatization, hence you _need_ to call
+        getPrivatizedInstance; one easy way to do this is to do something
+        like 'with (var _this = getPrivatizedInstance())' so that its only
+        obtained once per task per locale.
+    */
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
       forall e in edgesDomain do yield toEdge(e);
     }
@@ -1880,15 +1888,14 @@ module AdjListHyperGraph {
 
 
     proc removeDuplicates() {
-      var vertexNeighborsRemoved = 0;
-      var edgeNeighborsRemoved = 0;
-      forall v in getVertices() with (+ reduce vertexNeighborsRemoved) {
-        vertexNeighborsRemoved += getVertex(v).makeDistinct();
-      }
-      forall e in getEdges() with (+ reduce edgeNeighborsRemoved) {
-        edgeNeighborsRemoved += getEdge(e).makeDistinct();
-      }
-      return (vertexNeighborsRemoved, edgeNeighborsRemoved);
+        var (vertexNeighborsRemoved, edgeNeighborsRemoved) : 2 * int;
+        forall v in getVertices() with (+ reduce vertexNeighborsRemoved, var _this = getPrivatizedInstance()) {
+            vertexNeighborsRemoved += _this.getVertex(v).makeDistinct();
+        }
+        forall e in getEdges() with (+ reduce edgeNeighborsRemoved, var _this = getPrivatizedInstance()) {
+            edgeNeighborsRemoved += _this.getEdge(e).makeDistinct();
+        }
+        return (vertexNeighborsRemoved, edgeNeighborsRemoved);
     }
 
     inline proc toEdge(id : integral) {
