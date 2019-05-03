@@ -19,6 +19,7 @@ cd $CHAPEL_HOME
 source util/setchplenv.sh
 
 # Execute peformance tests
+export GASNET_BACKTRACE=1
 export CHPL_TEST_PERF_DIR=$WORKSPACE/test/performance/dat
 cd $WORKSPACE/test/performance
 bash -c "start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test/performance/Logs/chapel-perf-tests.xml -numlocales 4"
