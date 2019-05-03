@@ -37,7 +37,6 @@ writeln("Probability:", edgeProbability);
 writeln("Nodes:", numLocales);
 writeln("NumVertices:", numVertices);
 writeln("NumEdges:", numEdges);
-writeln("Memory Used: ", memoryUsed());
 writeln("ProbabilityMultiple:", probability);
 writeln("Naive:", isNaive);
 writeln("Contention:", Debug.contentionCnt);
