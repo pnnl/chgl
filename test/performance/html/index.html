@@ -7,19 +7,20 @@
          remove that code, and use a newer jquery version. -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <meta http-equiv="Content-Security-Policy" content="default-src *; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://ci.pnnl.gov">
     <title>Chapel Performance Graphs</title>
     <link rel="stylesheet" href="perfgraph.css">
     <!--[if IE]>
-        <script src="http://dygraphs.com/excanvas.js"></script>
+        <script src="js/excanvas.js"></script>
         <![endif]-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/html2canvas.min.js"></script>
 
     <!-- Overrides the default Date.parse -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+    <script src="js/moment.min.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.0.0/dygraph.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.0.0/dygraph.min.css" />
+    <script src="js/dygraph.min.js"></script>
+    <link rel="stylesheet" href="css/dygraph.min.css" />
 
     <script src="graphdata.js"></script>
 
@@ -38,7 +39,7 @@
     <div id="graphSelectionPane">
       <a id="homeLink"
          class="grayButton simpleLink"
-         href="http://chapel-lang.org/perf/">Home</a>
+         href="http://chapel.sourceforge.net/perf/">Home</a>
 
       <p id='toggleConf'><em>Toggle configurations</em></p>
       <p><em>Select a test suite</em></p>
@@ -49,16 +50,12 @@
       <div id="buttonMenu">
         <button class="grayButton" onclick="displaySelectedGraphs()">Display</button>
         <button class="grayButton" onclick="clearDates()">Clear Dates</button>
-        <button class="grayButton" onclick="lastTwoWeeks()">Last Two Weeks</button>
 
         <button class="grayButton" onclick="selectAllGraphs()">Select All</button>
         <button class="grayButton" onclick="unselectAllGraphs()">Unselect All</button>
-        <button class="grayButton" onclick="invertSelection()">Invert Selection</button>
       </div>
 
-      <p>Filter: <input type="text" name="filterBox">&nbsp;
-        <button class="grayButton" onclick="clearFilter()" style="padding: 0px 3px 0px 3px">&#x2715;</button>
-      </p>
+      <p>Filter: <input type="text" name="filterBox"></p>
 
       <div id="graphlist">
         <!-- populated with checkboxes by javascript -->
