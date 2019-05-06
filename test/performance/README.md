@@ -10,7 +10,7 @@ The paired `<TestName>.perfkeys` file lists those performance metrics output for
 If you want to manually run an individual performance test, execute `start_test --performance <fileName>.chpl`.
 
 # NOTES
-On a Fedora 27 system, I had to install glibc-static and libstdc++-static before the `--static` flag used by the performance test compilation linked propery. YMMV
+On a Fedora 27 system, I had to install glibc-static and libstdc++-static before the `--static` flag used by the performance test compilation linked properly. YMMV
 
 See these links for more information
 * <https://github.com/chapel-lang/chapel/tree/master/test/studies/parboil/BFS> 
