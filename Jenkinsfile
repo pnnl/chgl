@@ -22,6 +22,7 @@ pipeline {
             }
             post {
                 always { 
+                    archiveArtifacts artifacts: 'test/**/dat/**/*.*'
                     junit 'test/**/Logs/*.xml' 
                     perfReport 'test/**/Logs/*.xml'
                 }
