@@ -1,6 +1,6 @@
-perfkeys: Time:, Inclusions:, Nodes:, NumVertices:, NumEdges:, Dataset:
+perfkeys: Time:, Nodes:, NumVertices:, NumEdges:, Dataset:
 graphkeys: Performance
-files: ChungLu.dat
+files: dat/ChungLu.dat
 graphtitle: Performance of ChungLu
 ylabel: Time (seconds)
 xlabel: Nodes
