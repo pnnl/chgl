@@ -1,0 +1,5 @@
+perfkeys: Time:, Time:, Time:
+files: dat/BTER.dat, dat/ChungLu.dat, dat/ErdosRenyi.dat
+graphkeys: BTER, Chung Lu, Erdos Renyi
+graphtitle: CHGL Runtime Performance
+ylabel: Time (seconds)

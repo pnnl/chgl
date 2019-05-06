@@ -1,7 +1,0 @@
-perfkeys: Time:, Nodes:, NumVertices:, NumEdges:, ProbabilityMultiple:, Naive:
-graphkeys: Performance
-files: ErdosRenyi.dat
-graphtitle: Performance of ErdosRenyi
-ylabel: Time (seconds)
-xlabel: Nodes
-graphname: ErdosRenyi Performance
