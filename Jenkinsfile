@@ -19,6 +19,22 @@ pipeline {
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test/performance/Logs $WORKSPACE/test/performance'
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test/performance/dat $WORKSPACE/test/performance'
                 }
+                sshagent (['40cddb85-453e-48cc-850e-942ca9edab7c']) {
+                    // Push CHGL performance graphs to gh-pages
+                    sh '''
+                        cd $WORKSPACE/test/performance/dat
+                        mkdir tmp
+                        cd tmp
+                        git clone -b gh-pages --single-branch https://github.com/pnnl/chgl.git
+                        cd chgl
+                        cp -r $WORKSPACE/test/performance/dat/html performance
+                        git add .
+                        git commit -m "Performance Test Update"
+                        git push
+                        cd ../..
+                        rm -rf tmp
+                    '''
+                }
             }
             post {
                 always { 
