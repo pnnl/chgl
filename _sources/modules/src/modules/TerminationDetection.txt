@@ -61,6 +61,8 @@ Example of its usage::
 
    .. method:: proc _value
 
+.. function:: proc <=>(ref lhs: TerminationDetector, ref rhs: TerminationDetector)
+
 .. class:: TerminationDetectorImpl
 
    .. attribute:: var tasksStarted: atomicint
