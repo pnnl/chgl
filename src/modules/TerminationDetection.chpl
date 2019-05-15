@@ -58,6 +58,10 @@ module TerminationDetection {
     forwarding _value;
   }
 
+  proc <=>(ref lhs : TerminationDetector, ref rhs : TerminationDetector) {
+    lhs.pid <=> rhs.pid;
+  }
+
   class TerminationDetectorImpl {
     var tasksStarted : atomic int;
     var tasksFinished : atomic int;

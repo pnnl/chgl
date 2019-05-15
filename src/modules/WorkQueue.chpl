@@ -32,9 +32,9 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
 // Swap will only swap the privatization ids, so it only applies to this instance.
 // Will also flush the aggregation buffer
 proc <=>(ref wq1 : WorkQueue, ref wq2 : WorkQueue) {
-  wq1.pid <=> wq2.pid;
   wq1.flush();
   wq2.flush();
+  wq1.pid <=> wq2.pid;
 }
 
 pragma "always RVF"
