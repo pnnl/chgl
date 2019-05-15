@@ -4,7 +4,7 @@ use WorkQueue;
 config const numVertices = 1024;
 config const numEdges = numVertices ** 2;
 
-var graph = new Graph(1024, 1024 * 1024);
+var graph = new Graph(numVertices, numEdges);
 forall v1 in graph.getVertices() {
   forall v2 in graph.getVertices() {
     if v1.id != v2.id then graph.addEdge(v1, v2);
