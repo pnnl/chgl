@@ -6,13 +6,13 @@ config const numVertices = 1024;
 config const numEdges = numVertices ** 2;
 
 var graph = new Graph(numVertices, numEdges, new Cyclic(startIdx=0));
-graph.startAggregation();
 forall v1 in graph.getVertices() {
   forall v2 in graph.getVertices() {
-    if v1.id != v2.id then graph.addEdge(v1, v2);
+    if v1.id != v2.id {
+      graph.addEdge(v1, v2);
+    } 
   }
 }
-graph.stopAggregation();
 
 var current = new WorkQueue(graph.vDescType);
 var next = new WorkQueue(graph.vDescType);
