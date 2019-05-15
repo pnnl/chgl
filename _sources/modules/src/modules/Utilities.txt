@@ -10,6 +10,22 @@ Utilities
 
    use Utilities;
 
+.. data:: var _globalIntRandomStream = makeRandomStream(int)
+
+.. data:: var _globalRealRandomStream = makeRandomStream(real)
+
+.. function:: proc randInt(low, high)
+
+.. function:: proc randInt(high)
+
+.. function:: proc randInt()
+
+.. function:: proc randReal(low, high)
+
+.. function:: proc randReal(high)
+
+.. function:: proc randReal()
+
 .. class:: Centralized
 
    .. attribute:: var x
@@ -37,4 +53,8 @@ Utilities
 .. iterfunction:: iter getLines(file: string): string
 
 .. iterfunction:: iter getLines(file: string, chunkSize = 1024, param tag: iterKind): string
+
+.. function:: proc any(it: _iteratorRecord)
+
+.. function:: proc all(it: _iteratorRecord)
 

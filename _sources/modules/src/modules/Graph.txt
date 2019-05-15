@@ -40,6 +40,8 @@ should be forwarded to the underlying Hypergraph.
 
    .. attribute:: var edgeCounter
 
+   .. attribute:: type vDescType
+
    .. method:: proc init(numVertices, numEdges, verticesMapping, edgesMapping)
 
    .. method:: proc init(other: GraphImpl, pid: int)
@@ -51,4 +53,20 @@ should be forwarded to the underlying Hypergraph.
    .. itermethod:: iter getEdges(): (hg.vDescType, hg.vDescType)
 
    .. itermethod:: iter getEdges(param tag: iterKind): (hg.vDescType, hg.vDescType)
+
+   .. itermethod:: iter neighbors(v: integral)
+
+   .. itermethod:: iter neighbors(v: integral, param tag: iterKind)
+
+   .. itermethod:: iter neighbors(v: hg.vDescType)
+
+   .. itermethod:: iter neighbors(v: hg.vDescType, param tag: iterKind)
+
+   .. method:: proc hasEdge(v1: integral, v2: integral)
+
+   .. method:: proc hasEdge(v1: integral, v2: hg.vDescType)
+
+   .. method:: proc hasEdge(v1: hg.vDescType, v2: integral)
+
+   .. method:: proc hasEdge(v1: hg.vDescType, v2: hg.vDescType)
 

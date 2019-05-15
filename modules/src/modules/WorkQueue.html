@@ -157,12 +157,32 @@
 <div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">WorkQueue</span><span class="p">;</span>
 </pre></div>
 </div>
+<dl class="iterfunction">
+<dt id="WorkQueue.doWorkLoop">
+<em class="property">iter </em><code class="descname">doWorkLoop</code><span class="sig-paren">(</span><em>wq: WorkQueue(?workType)</em>, <em>td: TerminationDetector</em><span class="sig-paren">)</span>: workType<a class="headerlink" href="#WorkQueue.doWorkLoop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="iterfunction">
+<dt>
+<em class="property">iter </em><code class="descname">doWorkLoop</code><span class="sig-paren">(</span><em>wq: WorkQueue(?workType)</em>, <em>td: TerminationDetector</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span>: workType</dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="WorkQueue.&lt;=&gt;">
+<em class="property">proc </em><code class="descname">&lt;=&gt;</code><span class="sig-paren">(</span><em>ref wq1: WorkQueue</em>, <em>ref wq2: WorkQueue</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.<=>" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="record">
 <dt id="WorkQueue.WorkQueue">
 <em class="property">record </em><code class="descname">WorkQueue</code><a class="headerlink" href="#WorkQueue.WorkQueue" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
+<dt id="WorkQueue.WorkQueue.workType">
+<em class="property">type </em><code class="descname">workType</code><a class="headerlink" href="#WorkQueue.WorkQueue.workType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="WorkQueue.WorkQueue.instance">
-<em class="property">var </em><code class="descname">instance</code><a class="headerlink" href="#WorkQueue.WorkQueue.instance" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">instance</code>: WorkQueueImpl(workType)<a class="headerlink" href="#WorkQueue.WorkQueue.instance" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -183,36 +203,6 @@
 </dd></dl>
 
 <dl class="class">
-<dt id="WorkQueue.WorkQueueNode">
-<em class="property">class </em><code class="descname">WorkQueueNode</code><a class="headerlink" href="#WorkQueue.WorkQueueNode" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="WorkQueue.WorkQueueNode.workType">
-<em class="property">type </em><code class="descname">workType</code><a class="headerlink" href="#WorkQueue.WorkQueueNode.workType" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.WorkQueueNode.work">
-<em class="property">var </em><code class="descname">work</code>: workType<a class="headerlink" href="#WorkQueue.WorkQueueNode.work" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.WorkQueueNode.next">
-<em class="property">var </em><code class="descname">next</code>: unmanaged WorkQueueNode(workType)<a class="headerlink" href="#WorkQueue.WorkQueueNode.next" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.WorkQueueNode.prev">
-<em class="property">var </em><code class="descname">prev</code>: unmanaged WorkQueueNode(workType)<a class="headerlink" href="#WorkQueue.WorkQueueNode.prev" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="WorkQueue.WorkQueueNode.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>work: ?workType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueNode.init" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="WorkQueue.WorkQueueImpl">
 <em class="property">class </em><code class="descname">WorkQueueImpl</code><a class="headerlink" href="#WorkQueue.WorkQueueImpl" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
@@ -227,12 +217,17 @@
 
 <dl class="attribute">
 <dt id="WorkQueue.WorkQueueImpl.queue">
-<em class="property">var </em><code class="descname">queue</code> = new unmanaged CCQueue(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.queue" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">queue</code> = new unmanaged Bag(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.queue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="WorkQueue.WorkQueueImpl.destBuffer">
 <em class="property">var </em><code class="descname">destBuffer</code> = new Aggregator(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.destBuffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueImpl.shutdownSignal">
+<em class="property">var </em><code class="descname">shutdownSignal</code>: atomicbool<a class="headerlink" href="#WorkQueue.WorkQueueImpl.shutdownSignal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -243,6 +238,11 @@
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other</em>, <em>pid</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.size">
+<em class="property">proc </em><code class="descname">size</code><a class="headerlink" href="#WorkQueue.WorkQueueImpl.size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -261,6 +261,16 @@
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.shutdown">
+<em class="property">proc </em><code class="descname">shutdown</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.shutdown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.isShutdown">
+<em class="property">proc </em><code class="descname">isShutdown</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.isShutdown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="WorkQueue.WorkQueueImpl.addWork">
 <em class="property">proc </em><code class="descname">addWork</code><span class="sig-paren">(</span><em>work: workType</em>, <em>loc: locale</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.addWork" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -272,7 +282,12 @@
 
 <dl class="method">
 <dt id="WorkQueue.WorkQueueImpl.getWork">
-<em class="property">proc </em><code class="descname">getWork</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.getWork" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">getWork</code><span class="sig-paren">(</span><em>fast = false</em><span class="sig-paren">)</span>: (bool, workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.getWork" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.isEmpty">
+<em class="property">proc </em><code class="descname">isEmpty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.isEmpty" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -280,189 +295,83 @@
 <em class="property">proc </em><code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.flush" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="WorkQueue.WorkQueueImpl.deinit">
-<em class="property">proc </em><code class="descname">deinit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.deinit" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
+<dl class="data">
+<dt id="WorkQueue.workQueueInitialBlockSize">
+<em class="property">config const </em><code class="descname">workQueueInitialBlockSize</code> = 1024<a class="headerlink" href="#WorkQueue.workQueueInitialBlockSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="WorkQueue.workQueueMaxBlockSize">
+<em class="property">config const </em><code class="descname">workQueueMaxBlockSize</code> = 1024*1024<a class="headerlink" href="#WorkQueue.workQueueMaxBlockSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="class">
-<dt id="WorkQueue.CCSynchEnqueueNode">
-<em class="property">class </em><code class="descname">CCSynchEnqueueNode</code><a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag">
+<em class="property">class </em><code class="descname">Bag</code><a class="headerlink" href="#WorkQueue.Bag" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
-<dt id="WorkQueue.CCSynchEnqueueNode.eltType">
-<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.eltType" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.eltType">
+<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.Bag.eltType" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="WorkQueue.CCSynchEnqueueNode.head">
-<em class="property">var </em><code class="descname">head</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.head" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCSynchEnqueueNode.tail">
-<em class="property">var </em><code class="descname">tail</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.tail" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCSynchEnqueueNode.wait">
-<em class="property">var </em><code class="descname">wait</code>: atomicbool<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.wait" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCSynchEnqueueNode.completed">
-<em class="property">var </em><code class="descname">completed</code>: bool<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.completed" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCSynchEnqueueNode.next">
-<em class="property">var </em><code class="descname">next</code>: unmanaged CCSynchEnqueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.next" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="WorkQueue.CCSynchEnqueueNode.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em>, <em>head: unmanaged QueueNode(eltType) =</em>, <em>tail: unmanaged QueueNode(eltType) =</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCSynchEnqueueNode.init" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<dt id="WorkQueue.Bag.startIdxEnq">
+<em class="property">var </em><code class="descname">startIdxEnq</code>: atomicuint<a class="headerlink" href="#WorkQueue.Bag.startIdxEnq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helps evenly distribute and balance placement of elements in a best-effort
+round-robin approach. In the case where we have parallel enqueues or dequeues,
+they are less likely overlap with each other. Furthermore, it increases our
+chance to find our &#8216;ideal&#8217; segment.</p>
 </dd></dl>
 
-<dl class="class">
-<dt id="WorkQueue.CCSynchDequeueNode">
-<em class="property">class </em><code class="descname">CCSynchDequeueNode</code><a class="headerlink" href="#WorkQueue.CCSynchDequeueNode" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="WorkQueue.CCSynchDequeueNode.eltType">
-<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.eltType" title="Permalink to this definition">¶</a></dt>
+<dl class="attribute">
+<dt id="WorkQueue.Bag.startIdxDeq">
+<em class="property">var </em><code class="descname">startIdxDeq</code>: atomicuint<a class="headerlink" href="#WorkQueue.Bag.startIdxDeq" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="WorkQueue.CCSynchDequeueNode.ret">
-<em class="property">var </em><code class="descname">ret</code>: eltType<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.ret" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.maxParallelSegmentSpace">
+<em class="property">var </em><code class="descname">maxParallelSegmentSpace</code> = {0..#here.maxTaskPar}<a class="headerlink" href="#WorkQueue.Bag.maxParallelSegmentSpace" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="WorkQueue.CCSynchDequeueNode.found">
-<em class="property">var </em><code class="descname">found</code>: bool<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.found" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCSynchDequeueNode.wait">
-<em class="property">var </em><code class="descname">wait</code>: atomicbool<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.wait" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCSynchDequeueNode.completed">
-<em class="property">var </em><code class="descname">completed</code>: bool<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.completed" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCSynchDequeueNode.next">
-<em class="property">var </em><code class="descname">next</code>: unmanaged CCSynchDequeueNode(eltType)<a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.next" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.segments">
+<em class="property">var </em><code class="descname">segments</code>: [maxParallelSegmentSpace] BagSegment(eltType)<a class="headerlink" href="#WorkQueue.Bag.segments" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.CCSynchDequeueNode.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCSynchDequeueNode.init" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="WorkQueue.QueueNode">
-<em class="property">class </em><code class="descname">QueueNode</code><a class="headerlink" href="#WorkQueue.QueueNode" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="WorkQueue.QueueNode.eltType">
-<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.QueueNode.eltType" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.QueueNode.elt">
-<em class="property">var </em><code class="descname">elt</code>: eltType<a class="headerlink" href="#WorkQueue.QueueNode.elt" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.QueueNode.next">
-<em class="property">var </em><code class="descname">next</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.QueueNode.next" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.nextStartIdxEnq">
+<em class="property">proc </em><code class="descname">nextStartIdxEnq</code><a class="headerlink" href="#WorkQueue.Bag.nextStartIdxEnq" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.QueueNode.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.QueueNode.init" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.nextStartIdxDeq">
+<em class="property">proc </em><code class="descname">nextStartIdxDeq</code><a class="headerlink" href="#WorkQueue.Bag.nextStartIdxDeq" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>elt: ?eltType</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="WorkQueue.CCQueue">
-<em class="property">class </em><code class="descname">CCQueue</code><a class="headerlink" href="#WorkQueue.CCQueue" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="WorkQueue.CCQueue.eltType">
-<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#WorkQueue.CCQueue.eltType" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCQueue.maxRequests">
-<em class="property">var </em><code class="descname">maxRequests</code> = 1024<a class="headerlink" href="#WorkQueue.CCQueue.maxRequests" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCQueue.head">
-<em class="property">var </em><code class="descname">head</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCQueue.head" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCQueue.dequeueWaitList">
-<em class="property">var </em><code class="descname">dequeueWaitList</code>: LocalAtomicObject(unmanaged CCSynchDequeueNode(eltType))<a class="headerlink" href="#WorkQueue.CCQueue.dequeueWaitList" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCQueue.tail">
-<em class="property">var </em><code class="descname">tail</code>: unmanaged QueueNode(eltType)<a class="headerlink" href="#WorkQueue.CCQueue.tail" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="WorkQueue.CCQueue.enqueueWaitList">
-<em class="property">var </em><code class="descname">enqueueWaitList</code>: LocalAtomicObject(unmanaged CCSynchEnqueueNode(eltType))<a class="headerlink" href="#WorkQueue.CCQueue.enqueueWaitList" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.Bag.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.CCQueue.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.init" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.deinit">
+<em class="property">proc </em><code class="descname">deinit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.Bag.deinit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.CCQueue.bulkEnqueue">
-<em class="property">proc </em><code class="descname">bulkEnqueue</code><span class="sig-paren">(</span><em>arr: [?dom] eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.bulkEnqueue" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.size">
+<em class="property">proc </em><code class="descname">size</code><a class="headerlink" href="#WorkQueue.Bag.size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.CCQueue.enqueue">
-<em class="property">proc </em><code class="descname">enqueue</code><span class="sig-paren">(</span><em>elt: eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.enqueue" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.add">
+<em class="property">proc </em><code class="descname">add</code><span class="sig-paren">(</span><em>elt: eltType</em><span class="sig-paren">)</span>: bool<a class="headerlink" href="#WorkQueue.Bag.add" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.CCQueue.doEnqueue">
-<em class="property">proc </em><code class="descname">doEnqueue</code><span class="sig-paren">(</span><em>head: unmanaged QueueNode(eltType)</em>, <em>tail = head</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.doEnqueue" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="WorkQueue.CCQueue.dequeue">
-<em class="property">proc </em><code class="descname">dequeue</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, eltType)<a class="headerlink" href="#WorkQueue.CCQueue.dequeue" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="WorkQueue.CCQueue.doDequeue">
-<em class="property">proc </em><code class="descname">doDequeue</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, eltType)<a class="headerlink" href="#WorkQueue.CCQueue.doDequeue" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="WorkQueue.CCQueue.deinit">
-<em class="property">proc </em><code class="descname">deinit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.CCQueue.deinit" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.Bag.remove">
+<em class="property">proc </em><code class="descname">remove</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, eltType)<a class="headerlink" href="#WorkQueue.Bag.remove" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

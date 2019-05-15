@@ -10,9 +10,17 @@ WorkQueue
 
    use WorkQueue;
 
+.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector): workType
+
+.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, param tag: iterKind): workType
+
+.. function:: proc <=>(ref wq1: WorkQueue, ref wq2: WorkQueue)
+
 .. record:: WorkQueue
 
-   .. attribute:: var instance
+   .. attribute:: type workType
+
+   .. attribute:: var instance: WorkQueueImpl(workType)
 
    .. attribute:: var pid = -1
 
@@ -20,31 +28,23 @@ WorkQueue
 
    .. method:: proc _value
 
-.. class:: WorkQueueNode
-
-   .. attribute:: type workType
-
-   .. attribute:: var work: workType
-
-   .. attribute:: var next: unmanaged WorkQueueNode(workType)
-
-   .. attribute:: var prev: unmanaged WorkQueueNode(workType)
-
-   .. method:: proc init(work: ?workType)
-
 .. class:: WorkQueueImpl
 
    .. attribute:: type workType
 
    .. attribute:: var pid = -1
 
-   .. attribute:: var queue = new unmanaged CCQueue(workType)
+   .. attribute:: var queue = new unmanaged Bag(workType)
 
    .. attribute:: var destBuffer = new Aggregator(workType)
+
+   .. attribute:: var shutdownSignal: atomicbool
 
    .. method:: proc init(type workType)
 
    .. method:: proc init(other, pid)
+
+   .. method:: proc size
 
    .. method:: proc dsiPrivatize(pid)
 
@@ -52,87 +52,56 @@ WorkQueue
 
    .. method:: proc getPrivatizedInstance()
 
+   .. method:: proc shutdown()
+
+   .. method:: proc isShutdown()
+
    .. method:: proc addWork(work: workType, loc: locale)
 
    .. method:: proc addWork(work: workType, locid = here.id)
 
-   .. method:: proc getWork(): (bool, workType)
+   .. method:: proc getWork(fast = false): (bool, workType)
+
+   .. method:: proc isEmpty()
 
    .. method:: proc flush()
 
+.. data:: config const workQueueInitialBlockSize = 1024
+
+.. data:: config const workQueueMaxBlockSize = 1024*1024
+
+.. class:: Bag
+
+   .. attribute:: type eltType
+
+   .. attribute:: var startIdxEnq: atomicuint
+
+      
+      Helps evenly distribute and balance placement of elements in a best-effort
+      round-robin approach. In the case where we have parallel enqueues or dequeues,
+      they are less likely overlap with each other. Furthermore, it increases our
+      chance to find our 'ideal' segment.
+      
+
+   .. attribute:: var startIdxDeq: atomicuint
+
+   .. attribute:: var maxParallelSegmentSpace = {0..#here.maxTaskPar}
+
+   .. attribute:: var segments: [maxParallelSegmentSpace] BagSegment(eltType)
+
+   .. method:: proc nextStartIdxEnq
+
+   .. method:: proc nextStartIdxDeq
+
+   .. method:: proc init(type eltType)
+
    .. method:: proc deinit()
 
-.. class:: CCSynchEnqueueNode
+   .. method:: proc size
 
-   .. attribute:: type eltType
+   .. method:: proc add(elt: eltType): bool
 
-   .. attribute:: var head: unmanaged QueueNode(eltType)
-
-   .. attribute:: var tail: unmanaged QueueNode(eltType)
-
-   .. attribute:: var wait: atomicbool
-
-   .. attribute:: var completed: bool
-
-   .. attribute:: var next: unmanaged CCSynchEnqueueNode(eltType)
-
-   .. method:: proc init(type eltType, head: unmanaged QueueNode(eltType) = , tail: unmanaged QueueNode(eltType) = )
-
-.. class:: CCSynchDequeueNode
-
-   .. attribute:: type eltType
-
-   .. attribute:: var ret: eltType
-
-   .. attribute:: var found: bool
-
-   .. attribute:: var wait: atomicbool
-
-   .. attribute:: var completed: bool
-
-   .. attribute:: var next: unmanaged CCSynchDequeueNode(eltType)
-
-   .. method:: proc init(type eltType)
-
-.. class:: QueueNode
-
-   .. attribute:: type eltType
-
-   .. attribute:: var elt: eltType
-
-   .. attribute:: var next: unmanaged QueueNode(eltType)
-
-   .. method:: proc init(type eltType)
-
-   .. method:: proc init(elt: ?eltType)
-
-.. class:: CCQueue
-
-   .. attribute:: type eltType
-
-   .. attribute:: var maxRequests = 1024
-
-   .. attribute:: var head: unmanaged QueueNode(eltType)
-
-   .. attribute:: var dequeueWaitList: LocalAtomicObject(unmanaged CCSynchDequeueNode(eltType))
-
-   .. attribute:: var tail: unmanaged QueueNode(eltType)
-
-   .. attribute:: var enqueueWaitList: LocalAtomicObject(unmanaged CCSynchEnqueueNode(eltType))
-
-   .. method:: proc init(type eltType)
-
-   .. method:: proc bulkEnqueue(arr: [?dom] eltType)
-
-   .. method:: proc enqueue(elt: eltType)
-
-   .. method:: proc doEnqueue(head: unmanaged QueueNode(eltType), tail = head)
-
-   .. method:: proc dequeue(): (bool, eltType)
-
-   .. method:: proc doDequeue(): (bool, eltType)
-
-   .. method:: proc deinit()
+   .. method:: proc remove(): (bool, eltType)
 
 .. function:: proc main()
 

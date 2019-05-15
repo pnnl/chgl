@@ -218,6 +218,11 @@ should be forwarded to the underlying Hypergraph.</p>
 <em class="property">var </em><code class="descname">edgeCounter</code><a class="headerlink" href="#Graph.GraphImpl.edgeCounter" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="Graph.GraphImpl.vDescType">
+<em class="property">type </em><code class="descname">vDescType</code><a class="headerlink" href="#Graph.GraphImpl.vDescType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="Graph.GraphImpl.init">
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices</em>, <em>numEdges</em>, <em>verticesMapping</em>, <em>edgesMapping</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.init" title="Permalink to this definition">¶</a></dt>
@@ -246,6 +251,46 @@ should be forwarded to the underlying Hypergraph.</p>
 <dl class="itermethod">
 <dt>
 <em class="property">iter </em><code class="descname">getEdges</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span>: (hg.vDescType, hg.vDescType)</dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt id="Graph.GraphImpl.neighbors">
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.neighbors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: integral</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: hg.vDescType</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.hasEdge">
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: integral</em>, <em>v2: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.hasEdge" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: integral</em>, <em>v2: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: hg.vDescType</em>, <em>v2: integral</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: hg.vDescType</em>, <em>v2: hg.vDescType</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 </dd></dl>

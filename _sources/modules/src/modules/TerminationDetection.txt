@@ -53,11 +53,11 @@ Example of its usage::
    
 
 
-   .. attribute:: var instance
+   .. attribute:: var instance: unmanaged TerminationDetectorImpl
 
    .. attribute:: var pid = -1
 
-   .. method:: proc init()
+   .. method:: proc init(n = 0)
 
    .. method:: proc _value
 
@@ -69,7 +69,7 @@ Example of its usage::
 
    .. attribute:: var pid = -1
 
-   .. method:: proc init()
+   .. method:: proc init(n = 0)
 
    .. method:: proc init(other, pid)
 
@@ -77,7 +77,9 @@ Example of its usage::
 
    .. method:: proc finished(n = 1)
 
-   .. method:: proc wait(minBackoff = 0, maxBackoff = 0, multBackoff = 2)
+   .. method:: proc hasTerminated(): bool
+
+   .. method:: proc awaitTermination(minBackoff = 0, maxBackoff = 1024, multBackoff = 2)
 
    .. method:: proc dsiPrivatize(pid)
 

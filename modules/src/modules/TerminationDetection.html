@@ -194,7 +194,7 @@ the &#8216;tasksStarted&#8217; and &#8216;tasksFinished&#8217; are equivalent, n
 <dd><p>Termination detector.</p>
 <dl class="attribute">
 <dt id="TerminationDetection.TerminationDetector.instance">
-<em class="property">var </em><code class="descname">instance</code><a class="headerlink" href="#TerminationDetection.TerminationDetector.instance" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">instance</code>: unmanaged TerminationDetectorImpl<a class="headerlink" href="#TerminationDetection.TerminationDetector.instance" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -204,7 +204,7 @@ the &#8216;tasksStarted&#8217; and &#8216;tasksFinished&#8217; are equivalent, n
 
 <dl class="method">
 <dt id="TerminationDetection.TerminationDetector.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetector.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>n = 0</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetector.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -234,7 +234,7 @@ the &#8216;tasksStarted&#8217; and &#8216;tasksFinished&#8217; are equivalent, n
 
 <dl class="method">
 <dt id="TerminationDetection.TerminationDetectorImpl.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>n = 0</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -253,8 +253,13 @@ the &#8216;tasksStarted&#8217; and &#8216;tasksFinished&#8217; are equivalent, n
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="TerminationDetection.TerminationDetectorImpl.wait">
-<em class="property">proc </em><code class="descname">wait</code><span class="sig-paren">(</span><em>minBackoff = 0</em>, <em>maxBackoff = 0</em>, <em>multBackoff = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.wait" title="Permalink to this definition">¶</a></dt>
+<dt id="TerminationDetection.TerminationDetectorImpl.hasTerminated">
+<em class="property">proc </em><code class="descname">hasTerminated</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: bool<a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.hasTerminated" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.awaitTermination">
+<em class="property">proc </em><code class="descname">awaitTermination</code><span class="sig-paren">(</span><em>minBackoff = 0</em>, <em>maxBackoff = 1024</em>, <em>multBackoff = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.awaitTermination" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

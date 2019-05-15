@@ -26,7 +26,9 @@ TODO: Experiment with expanding buffer sizes
 
 .. record:: Aggregator
 
-   .. attribute:: var instance
+   .. attribute:: type msgType
+
+   .. attribute:: var instance: unmanaged AggregatorImpl(msgType)
 
    .. attribute:: var pid = -1
 

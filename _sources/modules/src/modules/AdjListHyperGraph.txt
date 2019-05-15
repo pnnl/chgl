@@ -238,6 +238,8 @@ with Cray copyright and Apache license (see the Chapel repo).
 
 .. function:: proc ==(a: ?nodeTypeWrapper?idType, b: nodeTypeWrapperidType): bool
 
+.. function:: proc !=(a: ?nodeTypeWrapper?idType, b: nodeTypeWrapperidType): bool
+
 .. function:: proc >(a: ?nodeTypeWrapper?idType, b: nodeTypeWrapperidType): bool
 
 .. function:: proc _cast(type t: ?nodeTypeWrapper?idType, id: integral)
