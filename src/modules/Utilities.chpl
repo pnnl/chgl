@@ -1,5 +1,33 @@
 use CyclicDist;
 use BlockDist;
+use Random;
+
+var _globalIntRandomStream = makeRandomStream(int);
+var _globalRealRandomStream = makeRandomStream(real);
+
+proc randInt(low, high) {
+  return _globalIntRandomStream.getNext(low, high);
+}
+
+proc randInt(high) {
+  return randInt(0, high);
+}
+
+proc randInt() {
+  return randInt(min(int), max(int));
+}
+
+proc randReal(low, high) {
+  return _globalRealRandomStream.getNext(low, high);
+}
+
+proc randReal(high) {
+  return randReal(0, high);
+}
+
+proc randReal() {
+  return randReal(0, 1);
+}
 
 class Centralized {
   var x;
@@ -78,4 +106,19 @@ iter getLines(file : string, chunkSize = 1024, param tag : iterKind) : string wh
       }
     }
   }
+}
+
+// Iterator Utilities
+
+// Determine if any elements are true...
+// any([false, false, true, false, false]) == true
+// any([false, false, false, false, false]) == false
+proc any(it : _iteratorRecord) {
+  for b in it do if b == true then return true;
+  return false;
+}
+
+proc all(it : _iteratorRecord) {
+  for b in it do if b == false then return false;
+  return true;
 }

@@ -21,20 +21,24 @@ module AggregationBuffer {
 
   pragma "always RVF"
   record Aggregator {
-    var instance;
+    type msgType;
+    var instance : unmanaged AggregatorImpl(msgType);
     var pid = -1;
 
     proc init(type msgType) {
+      this.msgType = msgType;
       this.instance = new unmanaged AggregatorImpl(msgType);
       this.pid = this.instance.pid;
     }
 
     proc init(pid : int, instance) {
+      this.msgType = instance.msgType;
       this.instance = instance;
       this.pid = pid;
     }
 
     proc init(other) {
+      this.msgType = other.msgType;
       this.instance = other.instance;
       this.pid = other.pid;
     }
@@ -42,7 +46,7 @@ module AggregationBuffer {
     proc destroy() {
       if pid == -1 || instance == nil then halt("Attempt to destroy Aggregator not initialized...");
       coforall loc in Locales do on loc {
-        delete chpl_getPrivatizedCopy(instance.type, pid);
+        delete chpl_getPrivatizedCopy(instance.type, pid):unmanaged;
       }
       this.instance = nil;
     }

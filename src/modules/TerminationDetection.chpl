@@ -36,16 +36,17 @@
 
 module TerminationDetection {
   use Time;
+  use Random;
 
   /*
-    Termination detector.
-  */
+     Termination detector.
+     */
   record TerminationDetector {
-    var instance;
+    var instance : unmanaged TerminationDetectorImpl;
     var pid = -1;
-    
-    proc init() {
-      instance = new TerminationDetectorImpl();
+
+    proc init(n = 0) {
+      instance = new unmanaged TerminationDetectorImpl(n);
       pid = instance.pid;
     }
 
@@ -62,15 +63,16 @@ module TerminationDetection {
     var tasksFinished : atomic int;
     var pid = -1;
 
-    proc init() {
+    proc init(n = 0) {
       complete();
+      this.tasksStarted.add(n);
       this.pid = _newPrivatizedClass(this);
     }
 
     proc init(other, pid) {
       this.pid = pid;
     }
-      
+
     inline proc started(n = 1) {
       var ret = tasksStarted.fetchAdd(n);
       assert(ret >= 0 && ret + n >= 0, "tasksStarted overflowed in 'started': (", ret, " -> ", ret + n, ")");
@@ -80,10 +82,42 @@ module TerminationDetection {
       var ret = tasksFinished.fetchAdd(n);
       assert(ret >= 0 && ret + n >= 0, "tasksFinished overflowed in 'finished': (", ret, " -> ", ret + n, ")");
     }
-  
+
+    proc hasTerminated() : bool {
+      var started = 0;
+      var finished = 0;
+      coforall loc in Locales with (+ reduce started, + reduce finished) do on loc {
+        const _this = getPrivatizedInstance();
+        started += _this.tasksStarted.read();
+        finished += _this.tasksFinished.read();
+      }
+
+      // Check if all started tasks have finished
+      if started != finished {
+        // Not finished...
+        return false;
+      }
+      var newStarted = 0;
+      var newFinished = 0;
+      coforall loc in Locales with (+ reduce newStarted, + reduce newFinished) do on loc {
+        const _this = getPrivatizedInstance();
+        newStarted += _this.tasksStarted.read();
+        newFinished += _this.tasksFinished.read();
+      }
+
+      // Check if finished...
+      if newStarted == newFinished && newStarted == started && newFinished == finished {
+        // No change, termination of all tasks detected...
+        return true;
+      } else {
+        // Not finished...
+        return false;
+      }
+    }
+
     // Wait for the termination of all tasks. Minimum and maximum
     // backoff are in milliseconds
-    proc wait(minBackoff = 0, maxBackoff = 0, multBackoff = 2) {
+    proc awaitTermination(minBackoff = 0, maxBackoff = 1024, multBackoff = 2) {
       var state = 0;
       var started = 0;
       var finished = 0;
@@ -103,7 +137,6 @@ module TerminationDetection {
 
             // Check if all started tasks have finished
             if started == finished {
-              writeln("Progressing from state 0 -> 1 with started==finished==", started);
               state = 1;
               backoff = minBackoff;
               continue;
@@ -127,28 +160,25 @@ module TerminationDetection {
                 return;
               } else {
                 // Update started and finished tasks and try again...
-                writeln("newStarted==newFinished==", newStarted, ", but started==finished==", started);
                 started = newStarted;
                 finished = newFinished;
                 continue;
               }
             } else {
               // Not finished...
-              writeln("newStarted(", newStarted, ") != newFinished(", newFinished, ")");
               state = 0; 
             }
           }
         }
-        
+
         if backoff == 0 then chpl_task_yield();
-        else sleep(backoff, TimeUnits.milliseconds);
+        else sleep(randInt(backoff), TimeUnits.milliseconds);
         backoff = min(backoff * multBackoff, maxBackoff);
-        writeln("Backed off...", backoff, "ms...", (started, finished));
       }
     }
 
     proc dsiPrivatize(pid) {
-      return new TerminationDetectorImpl(this, pid);
+      return new unmanaged TerminationDetectorImpl(this, pid);
     }
 
     proc dsiGetPrivatizeData() {
@@ -159,5 +189,4 @@ module TerminationDetection {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
   }
-
 }

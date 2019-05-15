@@ -69,10 +69,12 @@ module Graph {
     // TODO: Can allow this by keeping track of a separate counter of inuseEdges and then
     // if inusedEdges < maxNumEdges, use edgeCounter to round-robin for an available edge.
     var edgeCounter;
+    type vDescType;
 
     proc init(numVertices, numEdges, verticesMapping, edgesMapping) {
       hg = new unmanaged AdjListHyperGraphImpl(numVertices, numEdges, verticesMapping, edgesMapping);
       edgeCounter = new unmanaged Centralized(atomic int);
+      this.vDescType = hg.vDescType;
       complete();
       this.pid = _newPrivatizedClass(this:unmanaged); 
     }
@@ -82,6 +84,7 @@ module Graph {
       // Grab privatized instance from original hypergraph.
       this.hg = chpl_getPrivatizedCopy(other.hg.type, other.hg.pid); 
       this.edgeCounter = other.edgeCounter;
+      this.vDescType = other.vDescType;
     }
 
     pragma "no doc"
@@ -126,12 +129,13 @@ module Graph {
         yield (hg.getEdge(e).incident[0], hg.getEdge(e).incident[1]);
       }
     }
-    
+   
+
     iter getEdges(param tag : iterKind) : (hg.vDescType, hg.vDescType) where tag == iterKind.standalone {
       forall e in hg.getEdges() {
         var sz = hg.getEdge(e).size.read();
         if sz > 2 {
-          halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
+          halt("Edge ", e, " has more than two vertices: ", hg.getEdge(e).incident);
         }
         if sz == 0 {
           continue;
@@ -141,7 +145,39 @@ module Graph {
       }
     }
 
-    forwarding hg;
+    // Return neighbors of a vertex 'v'
+    iter neighbors(v : integral) {
+      for v in neighbors(hg.toVertex(v)) do yield v;
+    }
 
+    iter neighbors(v : integral, param tag : iterKind) where tag == iterKind.standalone {
+      forall vv in neighbors(hg.toVertex(v)) do yield vv;
+    }
+
+    iter neighbors(v : hg.vDescType) {
+      for vv in hg.walk(v) do yield vv;
+    }
+
+    iter neighbors(v : hg.vDescType, param tag : iterKind) where tag == iterKind.standalone {
+      forall vv in hg.walk(v) do yield vv;
+    }
+
+    proc hasEdge(v1 : integral, v2 : integral) {
+      return hasEdge(hg.toVertex(v1), hg.toVertex(v2)); 
+    }
+    
+    proc hasEdge(v1 : integral, v2 : hg.vDescType) {
+      return hasEdge(hg.toVertex(v1), v2);
+    }
+
+    proc hasEdge(v1 : hg.vDescType, v2 : integral) {
+      return hasEdge(v1, hg.toVertex(v2));
+    }
+
+    proc hasEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
+      return any([v in hg.walk(v1)] v.id == v2.id);
+    }
+
+    forwarding hg only toVertex, getVertices, getLocale;
   }
 }

@@ -567,6 +567,8 @@ module AdjListHyperGraph {
         <~> id
         <~> new ioLiteral("\"");
     }
+
+    forwarding id;
   }
 
   proc <(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) : bool {
@@ -575,6 +577,10 @@ module AdjListHyperGraph {
 
   proc ==(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) : bool {
     return a.id == b.id;
+  }
+
+  proc !=(a : Wrapper(?nodeType, ?idType), b : Wrapper(nodeType, idType)) : bool {
+    return a.id != b.id;
   }
 
   proc >(a : Wrapper(?nodeType, ?idType), b  : Wrapper(nodeType, idType)) : bool {
