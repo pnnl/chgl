@@ -2,6 +2,11 @@
 *
 !/**/
 !*.*
+!COMPOPTS
+!DISCLAIMER
+!Dockerfile
+!GRAPHFILES
+!LICENSE
 
 # test output
 *.comp.out.tmp

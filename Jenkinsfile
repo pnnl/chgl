@@ -16,18 +16,18 @@ pipeline {
                     sh 'ssh puma.pnl.gov "bash -l -c $CHGL_WORKSPACE/jenkins-build.sh"'
 
                     // Get results back from puma.pnl.gov
-                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test/performance/Logs $WORKSPACE/test/performance'
-                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test/performance/dat $WORKSPACE/test/performance'
+                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/Logs $WORKSPACE/test_performance'
+                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/dat $WORKSPACE/test_performance'
                 }
                 sshagent (['40cddb85-453e-48cc-850e-942ca9edab7c']) {
                     // Push CHGL performance graphs to gh-pages
                     sh '''
-                        cd $WORKSPACE/test/performance/dat
+                        cd $WORKSPACE/test_performance/dat
                         mkdir tmp
                         cd tmp
                         git clone -b gh-pages --single-branch https://github.com/pnnl/chgl.git
                         cd chgl
-                        cp -r $WORKSPACE/test/performance/dat/html performance
+                        cp -r $WORKSPACE/test_performance/dat/html performance
                         git add .
                         git commit -m "Performance Test Update"
                         git push

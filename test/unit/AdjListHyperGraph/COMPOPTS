@@ -1,1 +1,0 @@
--M=../../../src/modules -M=../../../src --no-dead-code-elimination --devel --no-warnings

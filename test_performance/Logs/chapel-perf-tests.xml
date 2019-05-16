@@ -1,0 +1,33 @@
+<testsuite><testcase classname="/home/h2d/git/chgl/test/performance" name="ErdosRenyi" time="132.966"><error message="Error matching performance keys for /home/h2d/git/chgl/test/performance/ErdosRenyi">[Error matching performance keys for /home/h2d/git/chgl/test/performance/ErdosRenyi]</error><system-out>[test: /home/h2d/git/chgl/test/performance/ErdosRenyi.chpl]
+[Executing compiler /home/h2d/chapel/bin/linux64-x86_64/chpl -o ErdosRenyi --static --fast --cc-warnings -M../../src -M../../src/modules -M../../src/aggregation --dynamic --no-lifetime-checking --no-warnings ErdosRenyi.chpl &lt; /dev/null]
+[Elapsed compilation time for "/home/h2d/git/chgl/test/performance/ErdosRenyi (compopts: 1)" - 52.373 seconds]
+[Success compiling /home/h2d/git/chgl/test/performance/ErdosRenyi]
+[Executing program ./ErdosRenyi --numVertices 65536 --numEdges 131072 --probability 0.01 &lt; /dev/null]
+[Reporting processes with top 5 highest cpu usages]
+USER       PID %CPU COMMAND
+root     15351 76.6 /usr/lib/systemd/systemd-coredump
+root      1828 12.0 /usr/libexec/Xorg -core -noreset :0 -seat seat0 -auth /var/run/lightdm/root/:0 -nolisten tcp vt1 -novtswitch
+h2d      12293  0.1 /usr/share/code/code --unity-launch
+h2d      12621  0.1 /usr/share/code/code --type=renderer --no-sandbox --disable-gpu-compositing --service-pipe-token=081B66B642EBBE92CF99A9488E96B15C --lang=en-US --app-path=/usr/share/code/resources/app --node-integration=true --webview-tag=true --no-sandbox --background-color=#1E1E1E --num-raster-threads=2 --enable-main-frame-before-activation --enable-compositor-image-animations --service-request-channel-token=081B66B642EBBE92CF99A9488E96B15C --renderer-client-id=12 --shared-files=v8_context_snapshot_data:100,v8_natives_data:101
+h2d       2405  0.0 xscreensaver -no-splash
+[Elapsed execution time for "/home/h2d/git/chgl/test/performance/ErdosRenyi (compopts: 1)" - 80.462 seconds]
+[Executing /home/h2d/chapel-1.19.0/util/test/computePerfStats ErdosRenyi /home/h2d/chapel/test/perfdat/localhost ErdosRenyi.perfkeys ErdosRenyi.exec.out.tmp False 05/03/19]
+Using set date 05/03/19
+Looking for Time:...found it: 74.0389
+Looking for Inclusions:...didn't find it
+Looking for Nodes:...found it: 1
+Looking for NumEdges:...found it: 131072
+Looking for NumVertices:...found it: 65536
+Looking for ProbabilityMultiple:...didn't find it
+Looking for Naive:...didn't find it
+output was:
+Time:74.0389
+Probability:0.01
+Nodes:1
+NumVertices:65536
+NumEdges:131072
+timedexec: target program died with signal 11, with coredump
+ErdosRenyi.chpl:40: warning: invalid call to memoryUsed(); rerun with --memTrack
+[Error matching performance keys for /home/h2d/git/chgl/test/performance/ErdosRenyi]
+[Elapsed time to compile and execute all versions of "/home/h2d/git/chgl/test/performance/ErdosRenyi" - 132.966 seconds]
+</system-out></testcase></testsuite>

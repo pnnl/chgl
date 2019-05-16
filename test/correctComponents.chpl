@@ -22,10 +22,10 @@ var badIPAddresses : domain(string);
 var badDNSNames : domain(string);
 
 // Create blacklist
-for line in getLines("../../data/ip-most-wanted.txt") {
+for line in getLines("../data/ip-most-wanted.txt") {
     badIPAddresses += line;
 }
-for line in getLines("../../data/dns-most-wanted.txt") {
+for line in getLines("../data/dns-most-wanted.txt") {
     badDNSNames += line;
 }
 
