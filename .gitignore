@@ -11,9 +11,9 @@
 # test output
 *.comp.out.tmp
 *.exec.out.tmp
-/test/performance/dat/
-/test/performance/Logs/
-/test/unit/Logs/
+/test_performance/dat/
+/test_performance/Logs/
+/test/Logs/
 
 # chpldoc generated content
 /docs/
