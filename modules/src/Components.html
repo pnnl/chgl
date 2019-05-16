@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>BinReader &mdash; chpldoc 0.0.1 documentation</title>
+  <title>Components &mdash; chpldoc 0.0.1 documentation</title>
   
 
   
@@ -24,18 +24,18 @@
 
   
   
-    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   
 
   
 
   
-    <link rel="top" title="chpldoc 0.0.1 documentation" href="../../../index.html"/>
-        <link rel="next" title="Butterfly" href="Butterfly.html"/>
-        <link rel="prev" title="Debug" href="AdjListHyperGraph/Debug.html"/> 
+    <link rel="top" title="chpldoc 0.0.1 documentation" href="../../index.html"/>
+        <link rel="next" title="FIFOChannel" href="FIFOChannel.html"/>
+        <link rel="prev" title="CHGL" href="CHGL.html"/> 
 
   
-  <script src="../../../_static/js/modernizr.min.js"></script>
+  <script src="../../_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -50,7 +50,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> chpldoc
+            <a href="../../index.html" class="icon icon-home"> chpldoc
           
 
           
@@ -67,7 +67,7 @@
 
           
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -82,16 +82,16 @@
             
             
                 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../index.html">chpldoc documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">chpldoc documentation</a></li>
 </ul>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../CHGL.html">CHGL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../aggregation/AggregationBuffer.html">AggregationBuffer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph.html">AdjListHyperGraph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph/Debug.html">Debug</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">BinReader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AggregationBuffer.html">AggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BinReader.html">BinReader</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Butterfly.html">Butterfly</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHGL.html">CHGL</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Components</a></li>
 <li class="toctree-l1"><a class="reference internal" href="FIFOChannel.html">FIFOChannel</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Generation.html">Generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Graph.html">Graph</a></li>
@@ -120,7 +120,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="../../../index.html">chpldoc</a>
+        <a href="../../index.html">chpldoc</a>
       </nav>
 
 
@@ -135,13 +135,13 @@
 
 <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
       
-    <li>BinReader</li>
+    <li>Components</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="../../../_sources/modules/src/modules/BinReader.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/modules/src/Components.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -151,40 +151,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <span class="target" id="module-BinReader"></span><div class="section" id="binreader">
-<h1>BinReader<a class="headerlink" href="#binreader" title="Permalink to this headline">¶</a></h1>
+  <span class="target" id="module-Components"></span><div class="section" id="components">
+<h1>Components<a class="headerlink" href="#components" title="Permalink to this headline">¶</a></h1>
 <p><strong>Usage</strong></p>
-<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">BinReader</span><span class="p">;</span>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">Components</span><span class="p">;</span>
 </pre></div>
 </div>
-<dl class="data">
-<dt id="BinReader.DEBUG_BIN_READER">
-<em class="property">config param </em><code class="descname">DEBUG_BIN_READER</code> = false<a class="headerlink" href="#BinReader.DEBUG_BIN_READER" title="Permalink to this definition">¶</a></dt>
+<dl class="iterfunction">
+<dt id="Components.getVertexComponents">
+<em class="property">iter </em><code class="descname">getVertexComponents</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Components.getVertexComponents" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li></li>
+<li>Iterate over all vertices in graph and count the number of components.</li>
+<li></li>
+<li>&#64;param graph AdjListHyperGraph to count components in</li>
+<li>&#64;return int total number of components</li>
+</ul>
+</dd></dl>
+
+<dl class="iterfunction">
+<dt id="Components.getEdgeComponents">
+<em class="property">iter </em><code class="descname">getEdgeComponents</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Components.getEdgeComponents" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="BinReader.debug">
-<em class="property">proc </em><code class="descname">debug</code><span class="sig-paren">(</span><em>args ...?nArgs</em><span class="sig-paren">)</span><a class="headerlink" href="#BinReader.debug" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt>
-<em class="property">proc </em><code class="descname">debug</code><span class="sig-paren">(</span><em>args ...?nArgs</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="BinReader.readFile">
-<em class="property">proc </em><code class="descname">readFile</code><span class="sig-paren">(</span><em>fileName: string</em><span class="sig-paren">)</span> throws<a class="headerlink" href="#BinReader.readFile" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt>
-<em class="property">proc </em><code class="descname">readFile</code><span class="sig-paren">(</span><em>f: file</em><span class="sig-paren">)</span> throws</dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="BinReader.main">
-<em class="property">proc </em><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#BinReader.main" title="Permalink to this definition">¶</a></dt>
+<dt id="Components.getEdgeComponentMappings">
+<em class="property">proc </em><code class="descname">getEdgeComponentMappings</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Components.getEdgeComponentMappings" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -196,10 +188,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Butterfly.html" class="btn btn-neutral float-right" title="Butterfly" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="FIFOChannel.html" class="btn btn-neutral float-right" title="FIFOChannel" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="AdjListHyperGraph/Debug.html" class="btn btn-neutral" title="Debug" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="CHGL.html" class="btn btn-neutral" title="CHGL" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -229,23 +221,23 @@
 
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
+            URL_ROOT:'../../',
             VERSION:'0.0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
         };
     </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
       <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 
   
   
-    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
   
 
   
