@@ -29,9 +29,7 @@ writeln("Generated graph with |V| = ", numVertices, " and |E| = ", numEdges);
 var numTriangles : int;
 forall v in graph.getVertices() with (+ reduce numTriangles) {
   for u in graph.neighbors(v) {
-    for w in graph.intersection(v,u) {
-      numTriangles += 1;
-    }
+    numTriangles += graph.intersectionSize(v,u);
   }
 }
 writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", # of Triangles = ", numTriangles / 3);

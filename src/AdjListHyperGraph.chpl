@@ -416,6 +416,39 @@ module AdjListHyperGraph {
       return intersection;
     }
 
+    proc intersectionSize(other : this.type, param acquireLock = true) {
+      if this == other then halt("Attempt to walk on self... May be a bug!");
+
+      if acquireLock then acquireLocks(lock, other.lock);
+      sortIncidence();
+      other.sortIncidence();
+
+      ref A = this.incident[0..#size.read()];
+      ref B = other.incident[0..#other.size.read()];
+      var idxA = A.domain.low;
+      var idxB = B.domain.low;
+      var match : int;
+      while idxA <= A.domain.high && idxB <= B.domain.high {
+        const a = A[idxA];
+        const b = B[idxB];
+        if a == b { 
+          match += 1;
+          idxA += 1; 
+          idxB += 1; 
+        }
+        else if a.id > b.id { 
+          idxB += 1;
+        } else { 
+          idxA += 1;
+        }
+      }
+
+      if acquireLock then releaseLocks(lock, other.lock);
+      
+      return match;
+    } 
+
+
     // Sort the incidence list
     proc sortIncidence(param acquireLock = false) {
       on this {
@@ -1987,6 +2020,14 @@ module AdjListHyperGraph {
     pragma "no doc"
     inline proc getLocale(other) {
       Debug.badArgs(other, (vDescType, eDescType));
+    }
+
+    proc intersectionSize(e1 : eDescType, e2 : eDescType) {
+      return getEdge(e1).intersectionSize(getEdge(e2));
+    }
+
+    proc intersectionSize(v1 : vDescType, v2 : vDescType) {
+      return getVertex(v1).intersectionSize(getVertex(v2));
     }
 
     iter intersection(e1 : eDescType, e2 : eDescType) {

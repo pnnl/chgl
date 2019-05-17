@@ -178,6 +178,6 @@ module Graph {
       return any([v in hg.walk(v1)] v.id == v2.id);
     }
 
-    forwarding hg only toVertex, getVertices, getLocale, verticesDomain, startAggregation, stopAggregation, intersection;
+    forwarding hg only toVertex, getVertices, getLocale, verticesDomain, startAggregation, stopAggregation, intersection, intersectionSize;
   }
 }
