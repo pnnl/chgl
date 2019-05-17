@@ -167,6 +167,8 @@ with Cray copyright and Apache license (see the Chapel repo).
 
    .. method:: proc neighborIntersection(other: this.type , param acquireLock = true)
 
+   .. method:: proc intersectionSize(other: this.type , param acquireLock = true)
+
    .. method:: proc sortIncidence(param acquireLock = false)
 
    .. method:: proc isIncident(n: nodeIdType, param acquireLock = true)
@@ -495,6 +497,10 @@ with Cray copyright and Apache license (see the Chapel repo).
       
       Obtain the locale that the given edge is allocated on
       
+
+   .. method:: proc intersectionSize(e1: eDescType, e2: eDescType)
+
+   .. method:: proc intersectionSize(v1: vDescType, v2: vDescType)
 
    .. itermethod:: iter intersection(e1: eDescType, e2: eDescType)
 
