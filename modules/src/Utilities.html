@@ -157,6 +157,36 @@
 <div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">Utilities</span><span class="p">;</span>
 </pre></div>
 </div>
+<dl class="type">
+<dt id="Utilities.chpl_comm_nb_handle_t">
+<em class="property">type </em><code class="descname">chpl_comm_nb_handle_t</code><a class="headerlink" href="#Utilities.chpl_comm_nb_handle_t" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Utilities.chpl_comm_get_nb">
+<em class="property">proc </em><code class="descname">chpl_comm_get_nb</code><span class="sig-paren">(</span><em>addr: c_void_ptr</em>, <em>node: chpl_nodeID_t</em>, <em>raddr: c_void_ptr</em>, <em>size: size_t</em>, <em>typeIndex: int(32)</em>, <em>commID: int(32)</em>, <em>ln: c_int</em>, <em>fn: int(32)</em><span class="sig-paren">)</span>: chpl_comm_nb_handle_t<a class="headerlink" href="#Utilities.chpl_comm_get_nb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Utilities.getAddr">
+<em class="property">proc </em><code class="descname">getAddr</code><span class="sig-paren">(</span><em>ref x: ?t</em><span class="sig-paren">)</span>: c_void_ptr<a class="headerlink" href="#Utilities.getAddr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Utilities.getLocaleID">
+<em class="property">proc </em><code class="descname">getLocaleID</code><span class="sig-paren">(</span><em>ref x: ?t</em><span class="sig-paren">)</span>: chpl_localeID_t<a class="headerlink" href="#Utilities.getLocaleID" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Utilities.getNodeID">
+<em class="property">proc </em><code class="descname">getNodeID</code><span class="sig-paren">(</span><em>ref x: ?t</em><span class="sig-paren">)</span>: chpl_nodeID_t<a class="headerlink" href="#Utilities.getNodeID" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Utilities.get_nb">
+<em class="property">proc </em><code class="descname">get_nb</code><span class="sig-paren">(</span><em>ref r1: ?t1</em><span class="sig-paren">)</span>: Future((t1))<a class="headerlink" href="#Utilities.get_nb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="data">
 <dt id="Utilities._globalIntRandomStream">
 <em class="property">var </em><code class="descname">_globalIntRandomStream</code> = makeRandomStream(int)<a class="headerlink" href="#Utilities._globalIntRandomStream" title="Permalink to this definition">¶</a></dt>

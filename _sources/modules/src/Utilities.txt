@@ -10,6 +10,18 @@ Utilities
 
    use Utilities;
 
+.. type:: type chpl_comm_nb_handle_t
+
+.. function:: proc chpl_comm_get_nb(addr: c_void_ptr, node: chpl_nodeID_t, raddr: c_void_ptr, size: size_t, typeIndex: int(32), commID: int(32), ln: c_int, fn: int(32)): chpl_comm_nb_handle_t
+
+.. function:: proc getAddr(ref x: ?t): c_void_ptr
+
+.. function:: proc getLocaleID(ref x: ?t): chpl_localeID_t
+
+.. function:: proc getNodeID(ref x: ?t): chpl_nodeID_t
+
+.. function:: proc get_nb(ref r1: ?t1): Future((t1))
+
 .. data:: var _globalIntRandomStream = makeRandomStream(int)
 
 .. data:: var _globalRealRandomStream = makeRandomStream(real)

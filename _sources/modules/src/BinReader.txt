@@ -16,9 +16,13 @@ BinReader
 
 .. function:: proc debug(args ...?nArgs)
 
-.. function:: proc readFile(fileName: string) throws
+.. function:: proc binToHypergraph(fileName: string) throws
 
-.. function:: proc readFile(f: file) throws
+.. function:: proc binToGraph(fileName: string) throws
+
+.. function:: proc binToHypergraph(f: file) throws
+
+.. function:: proc binToGraph(f: file)
 
 .. function:: proc main()
 
