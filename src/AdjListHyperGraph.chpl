@@ -431,7 +431,7 @@ module AdjListHyperGraph {
       while idxA <= A.domain.high && idxB <= B.domain.high {
         const a = A[idxA];
         const b = B[idxB];
-        if a == b { 
+        if a.id == b.id { 
           match += 1;
           idxA += 1; 
           idxB += 1; 

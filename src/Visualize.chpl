@@ -1,11 +1,48 @@
 use AdjListHyperGraph;
 use Generation;
 use Sort;
+use Graph;
 
+proc visualize(graph : Graph, fileName = "out.dot") throws {
+  var vertexVisited : [graph.verticesDomain] bool;
+  var f = open(fileName, iomode.cw).writer();
+
+  proc visitVertex(v, ref str) {
+    // Mark this vertex, and then write out neighbors
+    if vertexVisited[v.id] then return;
+    vertexVisited[v.id] = true;
+    str += "\t\tv" + v.id; 
+    if graph.degree(v) != 0 {
+      str += " -- {"; 
+      for v in graph.neighbors(v) {
+        str += " v" + v.id;
+      }
+      str += " }\n";
+    } else {
+      writeln("Found isolated vertex: ", v.id);
+      str += "\n";
+    }
+  }
+ 
+  
+  // Color vertices red, hyperedges blue
+  f.writeln("strict graph {");
+  for v in graph.getVertices() {
+    f.writeln("\tv", v.id, "[label=\"v#", v.id, "\"]");
+  }
+  for v in graph.getVertices() {  
+    var str : string;
+    visitVertex(v, str);
+    f.writeln(str);
+  }
+  
+  f.writeln("}");
+  f.close();
+}
 /*
   Exports graph in GraphViz DOT format
 */
-proc visualize(graph, fileName = "out.dot") throws {
+proc visualize(graph : AdjListHyperGraph, fileName = "out.dot") throws {
   var vertexVisited : [graph.verticesDomain] bool;
   var edgeVisited : [graph.edgesDomain] bool;
   var f = open(fileName, iomode.cw).writer();
