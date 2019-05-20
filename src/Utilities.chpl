@@ -1,7 +1,48 @@
 use CyclicDist;
 use BlockDist;
 use Random;
+use Futures;
 
+extern type chpl_comm_nb_handle_t;
+
+extern proc chpl_comm_get_nb(
+    addr : c_void_ptr, node : chpl_nodeID_t, raddr : c_void_ptr, 
+    size : size_t, typeIndex : int(32), commID : int(32), 
+    ln : c_int, fn : int(32)
+) : chpl_comm_nb_handle_t;
+
+inline proc getAddr(ref x : ?t) : c_void_ptr {
+  return __primitive("_wide_get_addr", x);
+}
+
+inline proc getLocaleID(ref x : ?t) : chpl_localeID_t {
+  return __primitive("_wide_get_locale", x);
+}
+
+inline proc getNodeID(ref x : ?t) : chpl_nodeID_t {
+  return chpl_nodeFromLocaleID(getLocaleID(x));
+}
+
+proc get_nb(ref r1 : ?t1) : Future((t1,)) {
+  record FutureCallback1 {
+    type _t1;
+    var _r1 : _t1; 
+    var h1 : chpl_comm_nb_handle_t;
+
+    proc init(type _t1, ref r1 : _t1) {
+      this._t1 = _t1;
+      // TODO: Find a way to typeIndex
+      //chpl_comm_get_nb(getAddr(r1), getNodeID(r1), getAddr(_r1), sizeof(_t1), 
+    }
+
+    proc this() {
+      // TODO
+    }
+  }
+}
+
+
+// Random Number Generator utilities...
 var _globalIntRandomStream = makeRandomStream(int);
 var _globalRealRandomStream = makeRandomStream(real);
 
@@ -29,6 +70,8 @@ proc randReal() {
   return randReal(0, 1);
 }
 
+// Utilize the fact that a 'class' in Chapel is a heap-allocated object, and all
+// remote accesses will have to go through the host first, hence making it centralized.
 class Centralized {
   var x;
   proc init(x) {

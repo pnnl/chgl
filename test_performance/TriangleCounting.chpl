@@ -13,23 +13,17 @@
 use Graph;
 use CyclicDist;
 use Random;
+use BinReader;
 
-config const numVertices = 1024;
-config const numEdges = numVertices ** 2;
-config const edgeProbability = 0.1;
+config const dataset = "../data/karate.mtx_csr.bin";
 
-var graph = new Graph(numVertices, numEdges, new Cyclic(startIdx=0));
-forall v in graph.getVertices() with (var rng = new RandomStream(real)) {
-  for u in graph.getVertices() {
-    if u != v && rng.getNext() < edgeProbability then graph.addEdge(u,v);
-  }
-}
-writeln("Generated graph with |V| = ", numVertices, " and |E| = ", numEdges);
+var graph = binToGraph(dataset);
+writeln("|V| = ", graph.numVertices, " and |E| = ", graph.numEdges);
 
 var numTriangles : int;
 forall v in graph.getVertices() with (+ reduce numTriangles) {
   for u in graph.neighbors(v) {
-    numTriangles += graph.intersectionSize(v,u);
+    if v.id > u.id then numTriangles += graph.intersectionSize(v,u);
   }
 }
-writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", # of Triangles = ", numTriangles / 3);
+writeln("# of Triangles = ", numTriangles / 3);
