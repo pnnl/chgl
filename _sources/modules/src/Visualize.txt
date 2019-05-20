@@ -10,7 +10,9 @@ Visualize
 
    use Visualize;
 
-.. function:: proc visualize(graph, fileName = "out.dot") throws
+.. function:: proc visualize(graph: Graph, fileName = "out.dot") throws
+
+.. function:: proc visualize(graph: AdjListHyperGraph, fileName = "out.dot") throws
 
    
    Exports graph in GraphViz DOT format
