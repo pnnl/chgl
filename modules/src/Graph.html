@@ -223,6 +223,11 @@ should be forwarded to the underlying Hypergraph.</p>
 <em class="property">type </em><code class="descname">vDescType</code><a class="headerlink" href="#Graph.GraphImpl.vDescType" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="Graph.GraphImpl.insertAggregator">
+<em class="property">var </em><code class="descname">insertAggregator</code>: Aggregator((hg.vDescType, hg.vDescType, int))<a class="headerlink" href="#Graph.GraphImpl.insertAggregator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="Graph.GraphImpl.init">
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices</em>, <em>numEdges</em>, <em>verticesMapping</em>, <em>edgesMapping</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.init" title="Permalink to this definition">¶</a></dt>
@@ -241,6 +246,11 @@ should be forwarded to the underlying Hypergraph.</p>
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">addEdge</code><span class="sig-paren">(</span><em>v1: hg.vDescType</em>, <em>v2: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.flush">
+<em class="property">proc </em><code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.flush" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="itermethod">

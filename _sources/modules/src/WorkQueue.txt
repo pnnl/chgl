@@ -36,13 +36,17 @@ WorkQueue
 
    .. attribute:: var queue = new unmanaged Bag(workType)
 
-   .. attribute:: var destBuffer = new Aggregator(workType)
+   .. attribute:: var destBuffer: Aggregator(workType)
+
+   .. attribute:: var asyncTasks: TerminationDetector
 
    .. attribute:: var shutdownSignal: atomicbool
 
    .. method:: proc init(type workType)
 
    .. method:: proc init(other, pid)
+
+   .. method:: proc globalSize
 
    .. method:: proc size
 

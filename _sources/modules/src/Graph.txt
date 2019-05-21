@@ -42,6 +42,8 @@ should be forwarded to the underlying Hypergraph.
 
    .. attribute:: type vDescType
 
+   .. attribute:: var insertAggregator: Aggregator((hg.vDescType, hg.vDescType, int))
+
    .. method:: proc init(numVertices, numEdges, verticesMapping, edgesMapping)
 
    .. method:: proc init(other: GraphImpl, pid: int)
@@ -49,6 +51,8 @@ should be forwarded to the underlying Hypergraph.
    .. method:: proc addEdge(v1: integral, v2: integral)
 
    .. method:: proc addEdge(v1: hg.vDescType, v2: hg.vDescType)
+
+   .. method:: proc flush()
 
    .. itermethod:: iter getEdges(): (hg.vDescType, hg.vDescType)
 
