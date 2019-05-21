@@ -1723,6 +1723,16 @@ module AdjListHyperGraph {
         like 'with (var _this = getPrivatizedInstance())' so that its only
         obtained once per task per locale.
     */
+    pragma "fn returns iterator"
+    proc getEdges(param tag : iterKind) where tag == iterKind.leader {
+      return _toLeader(edgesDomain);
+    }
+
+    pragma "fn returns iterator"
+    proc getEdges(param tag : iterKind, followThis) where tag == iterKind.follower {
+      return _toFollower(edgesDomain, followThis);
+    }
+    
     iter getEdges(param tag : iterKind) where tag == iterKind.standalone {
       forall e in edgesDomain do yield toEdge(e);
     }
@@ -1733,6 +1743,16 @@ module AdjListHyperGraph {
 
     iter getVertices(param tag : iterKind) where tag == iterKind.standalone {
       forall v in verticesDomain do yield toVertex(v);
+    }
+
+    pragma "fn returns iterator"
+    proc getVertices(param tag : iterKind) where tag == iterKind.leader {
+      return _toLeader(verticesDomain);
+    }
+
+    pragma "fn returns iterator"
+    proc getVertices(param tag : iterKind, followThis) where tag == iterKind.follower {
+      return _toFollower(verticesDomain, followThis);
     }
 
     iter getVertices() {

@@ -8,6 +8,7 @@ module Graph {
   use AdjListHyperGraph;
   use Utilities;
   use AggregationBuffer;
+  use Vectors;
 
   pragma "always RVF"
   record Graph {
@@ -71,12 +72,22 @@ module Graph {
     // if inusedEdges < maxNumEdges, use edgeCounter to round-robin for an available edge.
     var edgeCounter;
     type vDescType;
-  
     // Aggregates '(u, v, eIdx)' where the edge corresponding to eIdx is used for (u,v).
     // Other locales will aggregate (u,v,-1) to locale 0, upon which on locale 0, an
     // edge will be grabbed via atomic fetchAdd for the whole buffer, and then the new
     // index, eIdx, will be aggregated as (u,v,eIdx) to locale that vertex u is located on.
     var insertAggregator : Aggregator((hg.vDescType, hg.vDescType, int));
+    // Cached mappings of vertex-to-vertex neighbor lists. This elides the performance overhead
+    // associated with using the underlying hypergraph's adjacency lists. This will get updated
+    // via a call from the user. If an insertion occurs, this mapping will become invalid across
+    // all locales. Calls to 'invalidateCache' can be made to invalidate it manually, and calls
+    // to 'validateCache' can be used prior to operations that will greatly benefit from the cache.
+    // When the cache is not valid, all queries will use the underlying hypergraph.
+    var cachedNeighborListDom : hg.verticesDomain.type;
+    var cachedNeighborList : [cachedNeighborListDom] unmanaged Vector(hg.vDescType);
+    var privatizedCachedNeighborListInstance = cachedNeighborList._value;
+    var privatizedCachedNeighborListPID = cachedNeighborList._value;
+    var cacheValid : atomic bool;
 
     proc init(numVertices, numEdges, verticesMapping, edgesMapping) {
       hg = new unmanaged AdjListHyperGraphImpl(numVertices, numEdges, verticesMapping, edgesMapping);
@@ -85,7 +96,9 @@ module Graph {
       if CHPL_NETWORK_ATOMICS == "none" {
         insertAggregator = new Aggregator((hg.vDescType, hg.vDescType, int));
       }
+      this.cachedNeighborListDom = hg.verticesDomain;
       complete();
+      forall vec in cachedNeighborList do vec = new unmanaged VectorImpl(hg.vDescType, {0..-1});
       this.pid = _newPrivatizedClass(this:unmanaged); 
     }
 
@@ -96,6 +109,8 @@ module Graph {
       this.edgeCounter = other.edgeCounter;
       this.vDescType = other.vDescType;
       this.insertAggregator = other.insertAggregator;
+      this.privatizedCachedNeighborListInstance = other.privatizedCachedNeighborListInstance;
+      this.privatizedCachedNeighborListPID = other.privatizedCachedNeighborListPID;
     }
 
     pragma "no doc"
@@ -134,11 +149,40 @@ module Graph {
         }
     }
     
+    proc invalidateCache() {
+      if !isCacheValid() then return;
+      coforall loc in Locales do on loc {
+        getPrivatizedInstance().cacheValid.write(false);
+      }
+
+      // TODO: Delete all vectors or clear them?
+    }
+
+    proc validateCache() {
+      if isCacheValid() then return;
+      on Locales[0] {
+        var _this = getPrivatizedInstance();
+        forall (v, vec) in zip(_this.hg.getVertices(), _this.cachedNeighborList) {
+          vec.clear();
+          for neighbor in _this.neighbors(v) do vec.append(_this.hg.toVertex(v));
+          vec.sort();
+        }
+      }
+      coforall loc in Locales do on loc {
+        getPrivatizedInstance().cacheValid.write(true);
+      }
+    }
+
+    proc isCacheValid() {
+      return cacheValid.read();
+    }
+
     proc addEdge(v1 : integral, v2 : integral) {
       addEdge(hg.toVertex(v1), hg.toVertex(v2));
     }
 
     proc addEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
+      if isCacheValid() then invalidateCache();
       if here != Locales[0] && CHPL_NETWORK_ATOMICS == "none" {
         aggregateMaster(v1, v2);
         return;
@@ -178,37 +222,49 @@ module Graph {
     }
 
     iter getEdges() : (hg.vDescType, hg.vDescType) {
-      for e in hg.getEdges() {
-        var sz = hg.getEdge(e).size.read();
-        if sz > 2 {
-          halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
+      if isCacheValid() {
+        for (v, vec) in zip(hg.getVertices(), cachedNeighborList) {
+          for u in vec do yield (v,u);
         }
-        if sz == 0 {
-          continue;
-        }
+      } else {
+        for e in hg.getEdges() {
+          var sz = hg.getEdge(e).size.read();
+          if sz > 2 {
+            halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
+          }
+          if sz == 0 {
+            continue;
+          }
 
-        yield (hg.getEdge(e).incident[0], hg.getEdge(e).incident[1]);
+          yield (hg.getEdge(e).incident[0], hg.getEdge(e).incident[1]);
+        }
       }
     }
    
 
     iter getEdges(param tag : iterKind) : (hg.vDescType, hg.vDescType) where tag == iterKind.standalone {
-      forall e in hg.getEdges() {
-        var sz = hg.getEdge(e).size.read();
-        if sz > 2 {
-          halt("Edge ", e, " has more than two vertices: ", hg.getEdge(e).incident);
+      if isCacheValid() {
+        forall (v, vec) in zip(hg.getVertices(), cachedNeighborList) {
+          for u in vec do yield (v,u);
         }
-        if sz == 0 {
-          continue;
-        }
+      } else {
+        forall e in hg.getEdges() {
+          var sz = hg.getEdge(e).size.read();
+          if sz > 2 {
+            halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
+          }
+          if sz == 0 {
+            continue;
+          }
 
-        yield (hg.getEdge(e).incident[0], hg.getEdge(e).incident[1]);
-      }
+          yield (hg.getEdge(e).incident[0], hg.getEdge(e).incident[1]);
+        }
+      }    
     }
 
     // Return neighbors of a vertex 'v'
     iter neighbors(v : integral) {
-      for v in neighbors(hg.toVertex(v)) do yield v;
+      for vv in neighbors(hg.toVertex(v)) do yield vv;
     }
 
     iter neighbors(v : integral, param tag : iterKind) where tag == iterKind.standalone {
@@ -216,11 +272,19 @@ module Graph {
     }
 
     iter neighbors(v : hg.vDescType) {
-      for vv in hg.walk(v) do yield vv;
+      if isCacheValid() {
+        for vv in cachedNeighborList[v.id] do yield vv;
+      } else {
+        for vv in hg.walk(v) do yield vv;
+      }
     }
 
     iter neighbors(v : hg.vDescType, param tag : iterKind) where tag == iterKind.standalone {
-      forall vv in hg.walk(v) do yield vv;
+      if isCacheValid() {
+        forall vv in cachedNeighborList[v.id] do yield vv;
+      } else {
+        forall vv in hg.walk(v) do yield vv;
+      }
     }
 
     proc hasEdge(v1 : integral, v2 : integral) {
@@ -236,12 +300,43 @@ module Graph {
     }
 
     proc hasEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
-      return any([v in hg.walk(v1)] v.id == v2.id);
+      if isCacheValid() {
+        return any([v in cachedNeighborList[v1.id]] v.id == v2.id);
+      } else {
+        return any([v in hg.walk(v1)] v.id == v2.id); 
+      }
+    }
+
+    proc intersection(_v1, _v2) {
+      var v1 = hg.toVertex(_v1);
+      var v2 = hg.toVertex(_v2);
+      if isCacheValid() {
+        return Utilities.intersection(cachedNeighborList[v1.id].getArray(), cachedNeighborList[v2.id].getArray());
+      } else {
+        hg.getVertex(v1).sortIncidence(true);
+        hg.getVertex(v2).sortIncidence(true);
+        var A = neighbors(v1);
+        var B = neighbors(v2);
+        return Utilities.intersection(A, B);
+      }
+    }
+
+    proc intersectionSize(_v1, _v2) {
+      var v1 = hg.toVertex(_v1);
+      var v2 = hg.toVertex(_v2);
+      if isCacheValid() {
+        return Utilities.intersectionSize(cachedNeighborList[v1.id].getArray(), cachedNeighborList[v2.id].getArray());
+      } else {
+      hg.getVertex(v1).sortIncidence(true);
+      hg.getVertex(v2).sortIncidence(true);
+      var A = neighbors(v1);
+      var B = neighbors(v2);
+      return Utilities.intersectionSize(A, B);
+      }
     }
 
     forwarding hg only toVertex, getVertices, numVertices, 
                getLocale, verticesDomain, startAggregation, 
-               stopAggregation, intersection, intersectionSize,
-               numEdges, degree;
+               stopAggregation, numEdges, degree;
   }
 }

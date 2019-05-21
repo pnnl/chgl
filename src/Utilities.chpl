@@ -3,6 +3,48 @@ use BlockDist;
 use Random;
 use Futures;
 
+proc intersection(A : [] ?t, B : [] t) {
+  var C : [0..-1] t;
+  var idxA = A.domain.low;
+  var idxB = B.domain.low;
+  while idxA <= A.domain.high && idxB <= B.domain.high {
+    const a = A[idxA];
+    const b = B[idxB];
+    if a == b { 
+      C.push_back(a);
+      idxA += 1; 
+      idxB += 1; 
+    }
+    else if a > b { 
+      idxB += 1;
+    } else { 
+      idxA += 1;
+    }
+  }
+  return C;
+}
+
+proc intersectionSize(A : [] ?t, B : [] t) {
+  var idxA = A.domain.low;
+  var idxB = B.domain.low;
+  var match : int;
+  while idxA <= A.domain.high && idxB <= B.domain.high {
+    const a = A[idxA];
+    const b = B[idxB];
+    if a == b { 
+      match += 1;
+      idxA += 1; 
+      idxB += 1; 
+    }
+    else if a > b { 
+      idxB += 1;
+    } else { 
+      idxA += 1;
+    }
+  }
+  return match;
+}
+
 extern type chpl_comm_nb_handle_t;
 
 extern proc chpl_comm_get_nb(

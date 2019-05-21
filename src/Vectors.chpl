@@ -1,5 +1,6 @@
 use CyclicDist;
 use BlockDist;
+use Sort;
 
 config param VectorGrowthRate : real = 1.5;
 
@@ -12,6 +13,7 @@ class Vector {
     this.eltType = eltType;
   }
   proc append(elt : eltType) {halt();}
+  proc sort() {halt();}
   proc this(idx : integral) ref { 
     return _dummy;
   }
@@ -22,6 +24,7 @@ class Vector {
 
   proc size() return 0;
   iter these() ref : eltType {halt();}
+  proc getArray() { var arr : [0..-1] eltType; halt(); return arr; }
   proc clear() {halt();}
 }
 
@@ -53,6 +56,10 @@ class VectorImpl : Vector {
     sz += 1;
   }
 
+  override proc sort() {
+    Sort.sort(arr[dom.low..#sz]);
+  }
+
   override proc this(idx : integral) ref {
     assert(idx < sz && idx >= dom.low, "Index ", idx, " is out of bounds of ", dom.low..#sz);
     return arr[idx];
@@ -70,6 +77,10 @@ class VectorImpl : Vector {
 
   override proc clear() {
     this.sz = dom.low;
+  }
+
+  override proc getArray() {
+    return  arr[dom.low..#sz];
   }
 
   proc readWriteThis(f) {
