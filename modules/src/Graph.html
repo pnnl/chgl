@@ -228,6 +228,31 @@ should be forwarded to the underlying Hypergraph.</p>
 <em class="property">var </em><code class="descname">insertAggregator</code>: Aggregator((hg.vDescType, hg.vDescType, int))<a class="headerlink" href="#Graph.GraphImpl.insertAggregator" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="Graph.GraphImpl.cachedNeighborListDom">
+<em class="property">var </em><code class="descname">cachedNeighborListDom</code>: hg.verticesDomain.type<a class="headerlink" href="#Graph.GraphImpl.cachedNeighborListDom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.cachedNeighborList">
+<em class="property">var </em><code class="descname">cachedNeighborList</code>: [cachedNeighborListDom] unmanaged Vector(hg.vDescType)<a class="headerlink" href="#Graph.GraphImpl.cachedNeighborList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.privatizedCachedNeighborListInstance">
+<em class="property">var </em><code class="descname">privatizedCachedNeighborListInstance</code> = cachedNeighborList._value<a class="headerlink" href="#Graph.GraphImpl.privatizedCachedNeighborListInstance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.privatizedCachedNeighborListPID">
+<em class="property">var </em><code class="descname">privatizedCachedNeighborListPID</code> = cachedNeighborList._pid<a class="headerlink" href="#Graph.GraphImpl.privatizedCachedNeighborListPID" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.cacheValid">
+<em class="property">var </em><code class="descname">cacheValid</code>: atomicbool<a class="headerlink" href="#Graph.GraphImpl.cacheValid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="Graph.GraphImpl.init">
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices</em>, <em>numEdges</em>, <em>verticesMapping</em>, <em>edgesMapping</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.init" title="Permalink to this definition">¶</a></dt>
@@ -236,6 +261,21 @@ should be forwarded to the underlying Hypergraph.</p>
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other: GraphImpl</em>, <em>pid: int</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.invalidateCache">
+<em class="property">proc </em><code class="descname">invalidateCache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.invalidateCache" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.validateCache">
+<em class="property">proc </em><code class="descname">validateCache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.validateCache" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.isCacheValid">
+<em class="property">proc </em><code class="descname">isCacheValid</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.isCacheValid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -301,6 +341,16 @@ should be forwarded to the underlying Hypergraph.</p>
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: hg.vDescType</em>, <em>v2: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.intersection">
+<em class="property">proc </em><code class="descname">intersection</code><span class="sig-paren">(</span><em>_v1</em>, <em>_v2</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.intersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.intersectionSize">
+<em class="property">proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>_v1</em>, <em>_v2</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.intersectionSize" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

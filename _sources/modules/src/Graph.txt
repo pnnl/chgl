@@ -44,9 +44,25 @@ should be forwarded to the underlying Hypergraph.
 
    .. attribute:: var insertAggregator: Aggregator((hg.vDescType, hg.vDescType, int))
 
+   .. attribute:: var cachedNeighborListDom: hg.verticesDomain.type 
+
+   .. attribute:: var cachedNeighborList: [cachedNeighborListDom] unmanaged Vector(hg.vDescType)
+
+   .. attribute:: var privatizedCachedNeighborListInstance = cachedNeighborList._value
+
+   .. attribute:: var privatizedCachedNeighborListPID = cachedNeighborList._pid
+
+   .. attribute:: var cacheValid: atomicbool
+
    .. method:: proc init(numVertices, numEdges, verticesMapping, edgesMapping)
 
    .. method:: proc init(other: GraphImpl, pid: int)
+
+   .. method:: proc invalidateCache()
+
+   .. method:: proc validateCache()
+
+   .. method:: proc isCacheValid()
 
    .. method:: proc addEdge(v1: integral, v2: integral)
 
@@ -73,4 +89,8 @@ should be forwarded to the underlying Hypergraph.
    .. method:: proc hasEdge(v1: hg.vDescType, v2: integral)
 
    .. method:: proc hasEdge(v1: hg.vDescType, v2: hg.vDescType)
+
+   .. method:: proc intersection(_v1, _v2)
+
+   .. method:: proc intersectionSize(_v1, _v2)
 

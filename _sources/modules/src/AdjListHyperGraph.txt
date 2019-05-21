@@ -392,7 +392,7 @@ with Cray copyright and Apache license (see the Chapel repo).
 
    .. method:: proc getInclusions()
 
-   .. itermethod:: iter getEdges(param tag: iterKind)
+   .. method:: proc getEdges(param tag: iterKind)
 
       
       Warning: If you call these inside of the `AdjListHyperGraphImpl`,
@@ -402,9 +402,17 @@ with Cray copyright and Apache license (see the Chapel repo).
       obtained once per task per locale.
       
 
+   .. method:: proc getEdges(param tag: iterKind, followThis)
+
+   .. itermethod:: iter getEdges(param tag: iterKind)
+
    .. itermethod:: iter getEdges()
 
    .. itermethod:: iter getVertices(param tag: iterKind)
+
+   .. method:: proc getVertices(param tag: iterKind)
+
+   .. method:: proc getVertices(param tag: iterKind, followThis)
 
    .. itermethod:: iter getVertices()
 

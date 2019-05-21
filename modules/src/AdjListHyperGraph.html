@@ -910,15 +910,25 @@ optimizations of certain operations.</p>
 <em class="property">proc </em><code class="descname">getInclusions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getInclusions" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="itermethod">
+<dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getEdges">
-<em class="property">iter </em><code class="descname">getEdges</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getEdges" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">getEdges</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getEdges" title="Permalink to this definition">¶</a></dt>
 <dd><p>Warning: If you call these inside of the <cite>AdjListHyperGraphImpl</cite>,
 there will not be any privatization, hence you _need_ to call
 getPrivatizedInstance; one easy way to do this is to do something
 like &#8216;with (var _this = getPrivatizedInstance())&#8217; so that its only
 obtained once per task per locale.</p>
 </dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">getEdges</code><span class="sig-paren">(</span><em>param tag: iterKind</em>, <em>followThis</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">getEdges</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -928,6 +938,16 @@ obtained once per task per locale.</p>
 <dl class="itermethod">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getVertices">
 <em class="property">iter </em><code class="descname">getVertices</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getVertices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">getVertices</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">getVertices</code><span class="sig-paren">(</span><em>param tag: iterKind</em>, <em>followThis</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="itermethod">

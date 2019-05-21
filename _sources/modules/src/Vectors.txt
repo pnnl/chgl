@@ -22,6 +22,8 @@ Vectors
 
    .. method:: proc append(elt: eltType)
 
+   .. method:: proc sort()
+
    .. method:: proc this(idx: integral) ref
 
    .. itermethod:: iter these(param tag: iterKind) ref: eltType
@@ -29,6 +31,8 @@ Vectors
    .. method:: proc size()
 
    .. itermethod:: iter these() ref: eltType
+
+   .. method:: proc getArray()
 
    .. method:: proc clear()
 
@@ -48,6 +52,8 @@ Vectors
 
    .. method:: override proc append(elt: eltType)
 
+   .. method:: override proc sort()
+
    .. method:: override proc this(idx: integral) ref
 
    .. itermethod:: override iter these() ref
@@ -57,6 +63,8 @@ Vectors
    .. method:: override proc size()
 
    .. method:: override proc clear()
+
+   .. method:: override proc getArray()
 
    .. method:: proc readWriteThis(f)
 
