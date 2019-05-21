@@ -18,11 +18,7 @@ use Visualize;
 
 config const dataset = "../data/karate.mtx_csr.bin";
 
-//var graph = binToGraph(dataset);
-var graph = new Graph(3, 3);
-graph.addEdge(0,1);
-graph.addEdge(1,2);
-graph.addEdge(2,0);
+var graph = binToGraph(dataset);
 writeln("|V| = ", graph.numVertices, " and |E| = ", graph.numEdges);
 
 var numTriangles : int;
