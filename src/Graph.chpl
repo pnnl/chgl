@@ -86,7 +86,7 @@ module Graph {
     var cachedNeighborListDom : hg.verticesDomain.type;
     var cachedNeighborList : [cachedNeighborListDom] unmanaged Vector(hg.vDescType);
     var privatizedCachedNeighborListInstance = cachedNeighborList._value;
-    var privatizedCachedNeighborListPID = cachedNeighborList._value;
+    var privatizedCachedNeighborListPID = cachedNeighborList._pid;
     var cacheValid : atomic bool;
 
     proc init(numVertices, numEdges, verticesMapping, edgesMapping) {
@@ -109,8 +109,8 @@ module Graph {
       this.edgeCounter = other.edgeCounter;
       this.vDescType = other.vDescType;
       this.insertAggregator = other.insertAggregator;
-      this.privatizedCachedNeighborListInstance = other.privatizedCachedNeighborListInstance;
-      this.privatizedCachedNeighborListPID = other.privatizedCachedNeighborListPID;
+      this.privatizedCachedNeighborListInstance = other.cachedNeighborList._value;
+      this.privatizedCachedNeighborListPID = other.cachedNeighborList._pid;
     }
 
     pragma "no doc"
@@ -164,7 +164,8 @@ module Graph {
         var _this = getPrivatizedInstance();
         forall (v, vec) in zip(_this.hg.getVertices(), _this.cachedNeighborList) {
           vec.clear();
-          for neighbor in _this.neighbors(v) do vec.append(_this.hg.toVertex(v));
+          var __this = getPrivatizedInstance();
+          for neighbor in __this.neighbors(v) do vec.append(neighbor);
           vec.sort();
         }
       }
@@ -223,7 +224,7 @@ module Graph {
 
     iter getEdges() : (hg.vDescType, hg.vDescType) {
       if isCacheValid() {
-        for (v, vec) in zip(hg.getVertices(), cachedNeighborList) {
+        for (v, vec) in zip(hg.getVertices(), privatizedCachedNeighborListInstance) {
           for u in vec do yield (v,u);
         }
       } else {
@@ -244,7 +245,7 @@ module Graph {
 
     iter getEdges(param tag : iterKind) : (hg.vDescType, hg.vDescType) where tag == iterKind.standalone {
       if isCacheValid() {
-        forall (v, vec) in zip(hg.getVertices(), cachedNeighborList) {
+        forall (v, vec) in zip(hg.getVertices(), privatizedCachedNeighborListInstance) {
           for u in vec do yield (v,u);
         }
       } else {
@@ -273,7 +274,7 @@ module Graph {
 
     iter neighbors(v : hg.vDescType) {
       if isCacheValid() {
-        for vv in cachedNeighborList[v.id] do yield vv;
+        for vv in privatizedCachedNeighborListInstance.dsiAccess(v.id) do yield vv;
       } else {
         for vv in hg.walk(v) do yield vv;
       }
@@ -281,7 +282,7 @@ module Graph {
 
     iter neighbors(v : hg.vDescType, param tag : iterKind) where tag == iterKind.standalone {
       if isCacheValid() {
-        forall vv in cachedNeighborList[v.id] do yield vv;
+        forall vv in privatizedCachedNeighborListInstance.dsiAccess(v.id) do yield vv;
       } else {
         forall vv in hg.walk(v) do yield vv;
       }
@@ -301,7 +302,7 @@ module Graph {
 
     proc hasEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
       if isCacheValid() {
-        return any([v in cachedNeighborList[v1.id]] v.id == v2.id);
+        return any([v in privatizedCachedNeighborListInstance.dsiAccess(v1.id)] v.id == v2.id);
       } else {
         return any([v in hg.walk(v1)] v.id == v2.id); 
       }
@@ -311,7 +312,9 @@ module Graph {
       var v1 = hg.toVertex(_v1);
       var v2 = hg.toVertex(_v2);
       if isCacheValid() {
-        return Utilities.intersection(cachedNeighborList[v1.id].getArray(), cachedNeighborList[v2.id].getArray());
+        return Utilities.intersection(
+            privatizedCachedNeighborListInstance.dsiAccess(v1.id).getArray(), privatizedCachedNeighborListInstance.dsiAccess(v2.id).getArray()
+        );
       } else {
         hg.getVertex(v1).sortIncidence(true);
         hg.getVertex(v2).sortIncidence(true);
@@ -325,7 +328,9 @@ module Graph {
       var v1 = hg.toVertex(_v1);
       var v2 = hg.toVertex(_v2);
       if isCacheValid() {
-        return Utilities.intersectionSize(cachedNeighborList[v1.id].getArray(), cachedNeighborList[v2.id].getArray());
+        return Utilities.intersectionSize(
+            privatizedCachedNeighborListInstance.dsiAccess(v1.id).getArray(), privatizedCachedNeighborListInstance.dsiAccess(v2.id).getArray()
+        );
       } else {
       hg.getVertex(v1).sortIncidence(true);
       hg.getVertex(v2).sortIncidence(true);
