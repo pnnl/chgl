@@ -7,6 +7,7 @@
 module Graph {
   use AdjListHyperGraph;
   use Utilities;
+  use AggregationBuffer;
 
   pragma "always RVF"
   record Graph {
@@ -70,11 +71,20 @@ module Graph {
     // if inusedEdges < maxNumEdges, use edgeCounter to round-robin for an available edge.
     var edgeCounter;
     type vDescType;
+  
+    // Aggregates '(u, v, eIdx)' where the edge corresponding to eIdx is used for (u,v).
+    // Other locales will aggregate (u,v,-1) to locale 0, upon which on locale 0, an
+    // edge will be grabbed via atomic fetchAdd for the whole buffer, and then the new
+    // index, eIdx, will be aggregated as (u,v,eIdx) to locale that vertex u is located on.
+    var insertAggregator : Aggregator((hg.vDescType, hg.vDescType, int));
 
     proc init(numVertices, numEdges, verticesMapping, edgesMapping) {
       hg = new unmanaged AdjListHyperGraphImpl(numVertices, numEdges, verticesMapping, edgesMapping);
       edgeCounter = new unmanaged Centralized(atomic int);
       this.vDescType = hg.vDescType;
+      if CHPL_NETWORK_ATOMICS == "none" {
+        insertAggregator = new Aggregator((hg.vDescType, hg.vDescType, int));
+      }
       complete();
       this.pid = _newPrivatizedClass(this:unmanaged); 
     }
@@ -85,6 +95,7 @@ module Graph {
       this.hg = chpl_getPrivatizedCopy(other.hg.type, other.hg.pid); 
       this.edgeCounter = other.edgeCounter;
       this.vDescType = other.vDescType;
+      this.insertAggregator = other.insertAggregator;
     }
 
     pragma "no doc"
@@ -101,19 +112,69 @@ module Graph {
     inline proc getPrivatizedInstance() {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
+
+    pragma "no doc"
+    inline proc aggregateMaster(v1 : hg.vDescType, v2 : hg.vDescType) {
+        var buf = insertAggregator.aggregate((v1, v2, -1), Locales[0]);
+        if buf != nil {
+          begin with (in buf) on Locales[0] {
+            var arr = buf.getArray();
+            buf.done();
+            var _this = getPrivatizedInstance();
+            var startIdx = _this.edgeCounter.fetchAdd(arr.size);
+            var endIdx = startIdx + arr.size - 1;
+            if endIdx >= _this.hg.edgesDomain.size {
+              halt("Out of Edges! Ability to grow coming soon!");
+            }
+            for ((v1, v2, _), eIdx) in zip(arr, startIdx..#arr.size) {
+              _this.hg.addInclusionBuffered(v1, _this.hg.toEdge(eIdx));
+              _this.hg.addInclusionBuffered(v2, _this.hg.toEdge(eIdx));
+            }
+          }
+        }
+    }
     
     proc addEdge(v1 : integral, v2 : integral) {
       addEdge(hg.toVertex(v1), hg.toVertex(v2));
     }
 
     proc addEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
-       var eIdx = edgeCounter.fetchAdd(1);
-       if eIdx >= hg.edgesDomain.size {
-         halt("Out of Edges! Ability to grow coming soon!");
-       }
-       var e = hg.toEdge(eIdx);
-       hg.addInclusion(v1, e);
-       hg.addInclusion(v2, e);
+      if here != Locales[0] && CHPL_NETWORK_ATOMICS == "none" {
+        aggregateMaster(v1, v2);
+        return;
+      }
+      var eIdx = edgeCounter.fetchAdd(1);
+      if eIdx >= hg.edgesDomain.size {
+        halt("Out of Edges! Ability to grow coming soon!");
+      }
+      var e = hg.toEdge(eIdx);
+      hg.addInclusion(v1, e);
+      hg.addInclusion(v2, e);
+    }
+
+    // Should be called after filling the graph
+    proc flush() {
+      if CHPL_NETWORK_ATOMICS == "none" {
+        forall (buf, loc) in insertAggregator.flushGlobal() {
+          assert(loc == Locales[0]);
+          on Locales[0] {
+            var arr = buf.getArray();
+            buf.done();
+            var _this = getPrivatizedInstance();
+            var startIdx = _this.edgeCounter.fetchAdd(arr.size);
+            var endIdx = startIdx + arr.size - 1;
+            if endIdx >= _this.hg.edgesDomain.size {
+              halt("Out of Edges! Ability to grow coming soon!");
+            }
+            for ((v1, v2, _), eIdx) in zip(arr, startIdx..#arr.size) {
+              _this.hg.addInclusionBuffered(v1, _this.hg.toEdge(eIdx));
+              _this.hg.addInclusionBuffered(v2, _this.hg.toEdge(eIdx));
+            }
+          }
+        }
+
+      }
+      hg.flushBuffers();
     }
 
     iter getEdges() : (hg.vDescType, hg.vDescType) {

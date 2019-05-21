@@ -1,18 +1,12 @@
 use Graph;
 use WorkQueue;
 use CyclicDist;
+use BinReader;
+use Visualize;
 
-config const numVertices = 1024;
-config const numEdges = numVertices ** 2;
-
-var graph = new Graph(numVertices, numEdges, new Cyclic(startIdx=0));
-forall v1 in graph.getVertices() {
-  forall v2 in graph.getVertices() {
-    if v1.id != v2.id {
-      graph.addEdge(v1, v2);
-    } 
-  }
-}
+config const dataset = "../data/karate.mtx_csr.bin";
+var graph = binToGraph(dataset);
+writeln("|V| = ", graph.numVertices, " and |E| = ", graph.numEdges);
 
 var current = new WorkQueue(graph.vDescType);
 var next = new WorkQueue(graph.vDescType);
@@ -20,12 +14,13 @@ var currTD = new TerminationDetector(1);
 var nextTD = new TerminationDetector(0);
 current.addWork(graph.toVertex(0));
 var visited : [graph.verticesDomain] atomic bool;
-
+visited[0].write(true);
 var numPhases = 1;
-while !current.isEmpty() {
+while !current.isEmpty() || !currTD.hasTerminated() {
+  writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
     for neighbor in graph.neighbors(vertex) {
-      if visited[vertex.id].testAndSet() {
+      if visited[neighbor.id].testAndSet() {
         continue;
       }
       nextTD.started(1);
@@ -38,4 +33,5 @@ while !current.isEmpty() {
   writeln("Finished phase #", numPhases);
   numPhases += 1;
 }
+
 

@@ -150,6 +150,7 @@ proc binToGraph(f : file) {
         reader.close();
       }
     }
+    graph.flush();
     return graph;
   }
 }

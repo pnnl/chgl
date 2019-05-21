@@ -5,7 +5,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType 
   while !wq.isShutdown() {
     var (hasWork, workItem) = wq.getWork();
     if !hasWork {
-      if td.hasTerminated() then break;
+      if wq.asyncTasks.hasTerminated() && td.hasTerminated() then break;
       chpl_task_yield();
       continue;
     }
@@ -19,7 +19,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
       while !wq.isShutdown() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
-          if td.hasTerminated() then break;
+          if wq.asyncTasks.hasTerminated() && td.hasTerminated() then break;
           chpl_task_yield();
           continue;
         }
@@ -32,9 +32,12 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
 // Swap will only swap the privatization ids, so it only applies to this instance.
 // Will also flush the aggregation buffer
 proc <=>(ref wq1 : WorkQueue, ref wq2 : WorkQueue) {
-  wq1.flush();
-  wq2.flush();
+  sync {
+    wq1.flush();
+    wq2.flush();
+  }
   wq1.pid <=> wq2.pid;
+  wq1.instance <=> wq2.instance;
 }
 
 pragma "always RVF"
@@ -61,11 +64,14 @@ class WorkQueueImpl {
   type workType;
   var pid = -1;
   var queue = new unmanaged Bag(workType); 
-  var destBuffer = new Aggregator(workType);
+  var destBuffer : Aggregator(workType);
+  var asyncTasks : TerminationDetector;
   var shutdownSignal : atomic bool;
   
   proc init(type workType) {
     this.workType = workType;
+    this.destBuffer = new Aggregator(workType);
+    this.asyncTasks = new TerminationDetector(0);
     this.complete();
     this.pid = _newPrivatizedClass(_to_unmanaged(this));
   }
@@ -73,6 +79,16 @@ class WorkQueueImpl {
   proc init(other, pid) {
     this.workType = other.workType;
     this.pid = pid;
+    this.destBuffer = other.destBuffer;
+    this.asyncTasks = other.asyncTasks;
+  }
+  
+  proc globalSize {
+    var sz = 0;
+    coforall loc in Locales with (+ reduce sz) do on loc {
+      sz += getPrivatizedInstance().size;
+    }
+    return sz;
   }
 
   proc size return queue.size;
@@ -108,11 +124,13 @@ class WorkQueueImpl {
       if buffer != nil {
         // TODO: Profile if we need to fetch 'pid' in local variable
         // to avoid communications...
-        begin on Locales[locid] {
+        asyncTasks.started(1);
+        begin with (in buffer) on Locales[locid] {
           var arr = buffer.getArray();
           var _this = getPrivatizedInstance();
           buffer.done();
-          queue.add(arr);
+          _this.queue.add(arr);
+          _this.asyncTasks.finished(1);
         }
       }
       return;
@@ -211,7 +229,9 @@ class Bag {
   // Serial for loop is faster when we have one task per core already in use.
   proc size {
     var sz = 0;
-    for idx in 0..#here.maxTaskPar do sz += segments[idx].nElems.read() : int;
+    forall idx in 0..#here.maxTaskPar with (+ reduce sz) { 
+      sz += segments[idx].nElems.read() : int;
+    }
     return sz;
   }
 
