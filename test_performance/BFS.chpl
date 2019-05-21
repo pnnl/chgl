@@ -3,9 +3,16 @@ use WorkQueue;
 use CyclicDist;
 use BinReader;
 use Visualize;
+use Time;
 
 config const dataset = "../data/karate.mtx_csr.bin";
+
+var timer = new Timer();
+timer.start();
 var graph = binToGraph(dataset);
+timer.stop();
+writeln("Graph generation for ", dataset, " took ", timer.elapsed(), "s");
+timer.clear();
 writeln("|V| = ", graph.numVertices, " and |E| = ", graph.numEdges);
 
 var current = new WorkQueue(graph.vDescType);
@@ -16,6 +23,8 @@ current.addWork(graph.toVertex(0));
 var visited : [graph.verticesDomain] atomic bool;
 visited[0].write(true);
 var numPhases = 1;
+var lastTime : real;
+timer.start();
 while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
@@ -30,8 +39,11 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   }
   next <=> current;
   nextTD <=> currTD;
-  writeln("Finished phase #", numPhases);
+  var currTime = timer.elapsed();
+  writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
+  lastTime = currTime;
   numPhases += 1;
 }
+writeln("Completed BFS in ", timer.elapsed(), "s");
 
 
