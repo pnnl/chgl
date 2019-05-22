@@ -14,6 +14,7 @@ timer.stop();
 writeln("Graph generation for ", dataset, " took ", timer.elapsed(), "s");
 timer.clear();
 writeln("|V| = ", graph.numVertices, " and |E| = ", graph.numEdges);
+graph.validateCache();
 
 var current = new WorkQueue(graph.vDescType);
 var next = new WorkQueue(graph.vDescType);
@@ -21,20 +22,21 @@ var currTD = new TerminationDetector(1);
 var nextTD = new TerminationDetector(0);
 current.addWork(graph.toVertex(0));
 var visited : [graph.verticesDomain] atomic bool;
-visited[0].write(true);
 var numPhases = 1;
 var lastTime : real;
 timer.start();
 while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
-    for neighbor in graph.neighbors(vertex) {
-      if visited[neighbor.id].testAndSet() {
-        continue;
+    // Set as visited here...
+    var haveVisited : bool;
+    local do haveVisited = visited[vertex.id].testAndSet();
+    if !haveVisited {
+      for neighbor in graph.neighbors(vertex) {
+        nextTD.started(1);
+        next.addWork(neighbor, graph.getLocale(neighbor));
       }
-      nextTD.started(1);
-      next.addWork(neighbor, graph.getLocale(neighbor));
-    }
+    }  
     currTD.finished(1);
   }
   next <=> current;

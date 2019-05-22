@@ -109,8 +109,14 @@ module Graph {
       this.edgeCounter = other.edgeCounter;
       this.vDescType = other.vDescType;
       this.insertAggregator = other.insertAggregator;
-      this.privatizedCachedNeighborListInstance = other.cachedNeighborList._value;
-      this.privatizedCachedNeighborListPID = other.cachedNeighborList._pid;
+      if other.locale == Locales[0] {
+        this.privatizedCachedNeighborListInstance = other.cachedNeighborList._value;
+        this.privatizedCachedNeighborListPID = other.cachedNeighborList._pid;
+      } else {
+        this.privatizedCachedNeighborListInstance = 
+          chpl_getPrivatizedCopy(other.privatizedCachedNeighborListInstance.type, other.privatizedCachedNeighborListPID);
+        this.privatizedCachedNeighborListPID = other.privatizedCachedNeighborListPID;
+      }
     }
 
     pragma "no doc"
