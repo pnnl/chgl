@@ -129,11 +129,11 @@ proc binToGraph(f : file) {
         var endOffset : uint(64);
         reader.read(beginOffset);
         reader.read(endOffset);
-        endOffset -= 1:uint;
+        endOffset -= 1;
         debug("Offsets into adjacency list for idx #", idx, " are ", beginOffset..endOffset);
 
         // Advance to current idx's offset...
-        var skip = ((numVertices - idx:uint) + beginOffset) * 8;
+        var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
         reader.advance(skip:int);
         debug("Adjacency list offset begins at file offset ", reader.offset());
 
@@ -141,7 +141,7 @@ proc binToGraph(f : file) {
         // TODO: Request storage space in advance for graph...
         // Read in adjacency list for edges... Since 'addInclusion' already push_back
         // for the matching vertices and edges, we only need to do this once.
-        for beginOffset..endOffset {
+        for beginOffset : int..endOffset : int {
           var edge : uint(64);
           reader.read(edge);
           graph.addEdge(idx : int, edge : int);
