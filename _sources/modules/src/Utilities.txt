@@ -10,6 +10,16 @@ Utilities
 
    use Utilities;
 
+.. data:: config const profileCommDiagnostics = false
+
+.. data:: config const profileCommDiagnosticsVerbose = false
+
+.. data:: config const profileVisualDebug = false
+
+.. function:: proc beginProfile(vdebugName = "vdebug")
+
+.. function:: proc endProfile()
+
 .. function:: proc intersection(A: [] ?t, B: [] t)
 
 .. function:: proc intersectionSize(A: [] ?t, B: [] t)

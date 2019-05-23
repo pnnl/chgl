@@ -10,6 +10,8 @@ WorkQueue
 
    use WorkQueue;
 
+.. data:: config const workQueueTightSpinCount = 1024
+
 .. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector): workType
 
 .. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, param tag: iterKind): workType
