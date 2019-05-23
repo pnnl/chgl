@@ -18,7 +18,18 @@ timer.stop();
 writeln("Graph generation for ", dataset, " took ", timer.elapsed(), "s");
 timer.clear();
 writeln("|V| = ", graph.numVertices, " and |E| = ", graph.numEdges);
+
+timer.start();
+graph.simplify();
+timer.stop();
+writeln("Simplified graph in ", timer.elapsed(), "s");
+timer.clear();
+
+timer.start();
 graph.validateCache();
+timer.stop();
+writeln("Generated cache in ", timer.elapsed(), "s");
+timer.clear();
 
 var current = new WorkQueue(graph.vDescType);
 var next = new WorkQueue(graph.vDescType);
