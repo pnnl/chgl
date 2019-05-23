@@ -115,7 +115,7 @@ with Cray copyright and Apache license (see the Chapel repo).
 
    .. attribute:: var contentionCnt: atomicint(64)
 
-   .. attribute:: var _lock$: sync(bool)
+   .. attribute:: var _lock: atomicbool
 
    .. method:: proc acquire()
 

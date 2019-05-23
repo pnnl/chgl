@@ -94,3 +94,5 @@ should be forwarded to the underlying Hypergraph.
 
    .. method:: proc intersectionSize(_v1, _v2)
 
+   .. method:: proc simplify()
+
