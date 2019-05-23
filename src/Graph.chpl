@@ -345,6 +345,10 @@ module Graph {
       }
     }
 
+    proc simplify() {
+      on Locales[0] do getPrivatizedInstance().hg.collapse();
+    }
+
     forwarding hg only toVertex, getVertices, numVertices, 
                getLocale, verticesDomain, startAggregation, 
                stopAggregation, numEdges, degree;

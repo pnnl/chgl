@@ -190,14 +190,19 @@ module AdjListHyperGraph {
   record Lock {
     // Profiling for contended access...
     var contentionCnt : atomic int(64);
-    var _lock$ : sync bool;
+    var _lock : atomic bool;
 
     inline proc acquire() {
-      _lock$ = true;
+      if _lock.testAndSet() == false {
+        return;
+      } 
+      while _lock.read() == true || _lock.testAndSet() == true {
+        chpl_task_yield();
+      }
     }
 
     inline proc release() {
-      _lock$;
+      _lock.clear();
     }
   }
 
@@ -991,20 +996,21 @@ module AdjListHyperGraph {
       var newVerticesDomain = __verticesDomain;
       var vertexMappings : [__verticesDomain] int = -1;
 
-      writeln("Collapsing Vertices...");
+      //writeln("Collapsing Vertices...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current vertex
       // We impose an ordering on determining what vertex is a duplicate of what. A vertex v is a
       // duplicate of a vertex v' if v.id > v'.id. If there is a vertex v'' such that v''.id > v.id
       // and v''.id < v'.id, that is v.id < v''.id < v'.id, the duplicate marking is still preserved
       // as we can follow v'.id's duplicate to find v''.id's duplicate to find the distinct vertex v.
       {
-        writeln("Marking and Deleting Vertices...");
+        //writeln("Marking and Deleting Vertices...");
         var vertexSetDomain : domain(ArrayWrapper);
         var vertexSet : [vertexSetDomain] int;
         var l$ : sync bool;
         var numUnique : int;
         forall v in _verticesDomain with (+ reduce numUnique, ref vertexSetDomain, ref vertexSet) {
           var tmp = [e in _vertices[v].incident[0..#_vertices[v].degree]] e.id;
+          sort(tmp);
           var vertexArr = new ArrayWrapper();
           vertexArr.dom = {0..#_vertices[v].degree};
           vertexArr.arr = tmp;
@@ -1023,12 +1029,18 @@ module AdjListHyperGraph {
           }
         }
         
+        // No need to simplify
+        if _verticesDomain.size == numUnique {
+          var ret : [1..0] int;
+          return ret;
+        }
+
         newVerticesDomain = {0..#numUnique};
-        writeln(
-          "Unique Vertices: ", numUnique, 
-          ", Duplicate Vertices: ", _verticesDomain.size - numUnique, 
-          ", New Vertices Domain: ", newVerticesDomain
-        );
+        //writeln(
+        //  "Unique Vertices: ", numUnique, 
+        //  ", Duplicate Vertices: ", _verticesDomain.size - numUnique, 
+        //  ", New Vertices Domain: ", newVerticesDomain
+        //);
 
         // Verification...
         if Debug.ALHG_DEBUG {
@@ -1066,13 +1078,13 @@ module AdjListHyperGraph {
         }
       }
 
-      writeln("Moving into temporary array...");
+      //writeln("Moving into temporary array...");
       // Move current array into auxiliary...
       const oldVerticesDom = this._verticesDomain;
       var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices;
       this._verticesDomain = newVerticesDomain;
 
-      writeln("Shifting down NodeData for Vertices...");
+      //writeln("Shifting down NodeData for Vertices...");
       // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
       {
@@ -1096,10 +1108,10 @@ module AdjListHyperGraph {
             vertexMappings[v] = ix;
           }
         }
-        writeln("Shifted down to idx ", idx.read(), " for oldVertices.domain = ", oldVertices.domain);
+        //writeln("Shifted down to idx ", idx.read(), " for oldVertices.domain = ", oldVertices.domain);
       }
       
-      writeln("Redirecting references to Vertices...");
+      //writeln("Redirecting references to Vertices...");
       // Pass 3: Redirect references to collapsed vertices to new mappings
       {
         forall e in _edges {
@@ -1116,17 +1128,18 @@ module AdjListHyperGraph {
       }
       
       if _propertyMap.isInitialized {
-        writeln("Updating PropertyMap...");
+        //writeln("Updating PropertyMap...");
         // Pass 4: Update PropertyMap
         {
-          writeln("Updating PropertyMap for Vertices...");
+          //writeln("Updating PropertyMap for Vertices...");
           for (vProp, vIdx) in _propertyMap.vertexProperties() {
             if vIdx != -1 then _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
           }
         }
       }
 
-      writeln("Removing duplicates: ", removeDuplicates());
+      //writeln("Removing duplicates: ", removeDuplicates());
+      removeDuplicates();
 
       // Obtain duplicate stats...
       var numDupes : [_verticesDomain] atomic int;
@@ -1172,6 +1185,7 @@ module AdjListHyperGraph {
         var numUnique : int;
         forall e in _edgesDomain with (+ reduce numUnique, ref edgeSetDomain, ref edgeSet) {
           var tmp = [v in _edges[e].incident[0..#_edges[e].degree]] v.id;
+          sort(tmp);
           var edgeArr = new ArrayWrapper();
           edgeArr.dom = {0..#_edges[e].degree};
           edgeArr.arr = tmp;
@@ -1190,12 +1204,17 @@ module AdjListHyperGraph {
           }
         }
         
+        // No duplicates, just return
+        if _edgesDomain.size == numUnique {
+          var ret : [1..0] int;
+          return ret;
+        }
         newEdgesDomain = {0..#numUnique};
-        writeln(
-          "Unique Edges: ", numUnique, 
-          ", Duplicate Edges: ", _edgesDomain.size - numUnique, 
-          ", New Edges Domain: ", newEdgesDomain
-        );
+        //writeln(
+        //  "Unique Edges: ", numUnique, 
+        //  ", Duplicate Edges: ", _edgesDomain.size - numUnique, 
+        //  ", New Edges Domain: ", newEdgesDomain
+        //);
 
         // Verification...
         if Debug.ALHG_DEBUG {
@@ -1234,13 +1253,13 @@ module AdjListHyperGraph {
         }
       }
 
-      writeln("Moving into temporary array...");
+      //writeln("Moving into temporary array...");
       // Move current array into auxiliary...
       const oldEdgesDom = this._edgesDomain;
       var oldEdges : [oldEdgesDom] unmanaged NodeData(vDescType, _ePropType) = this._edges;
       this._edgesDomain = newEdgesDomain;
 
-      writeln("Shifting down NodeData for Edges...");
+      //writeln("Shifting down NodeData for Edges...");
       // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
       {
@@ -1260,10 +1279,10 @@ module AdjListHyperGraph {
             edgeMappings[e] = ix;
           }
         }
-        writeln("Shifted down to idx ", idx.read(), " for oldEdges.domain = ", oldEdges.domain);
+        //writeln("Shifted down to idx ", idx.read(), " for oldEdges.domain = ", oldEdges.domain);
       }
       
-      writeln("Redirecting references to Edges...");
+      //writeln("Redirecting references to Edges...");
       // Pass 3: Redirect references to collapsed vertices and edges to new mappings
       {
         forall v in _vertices {
@@ -1280,7 +1299,7 @@ module AdjListHyperGraph {
       }
       
       if _propertyMap.isInitialized {
-        writeln("Updating PropertyMap for Edges...");
+        //writeln("Updating PropertyMap for Edges...");
         // Pass 4: Update PropertyMap
         {
           for (eProp, eIdx) in _propertyMap.edgeProperties() {
@@ -1288,8 +1307,9 @@ module AdjListHyperGraph {
           }
         }
       }
-
-      writeln("Removing duplicates: ", removeDuplicates());
+      
+      //writeln("Removing duplicates: ", removeDuplicates());
+      removeDuplicates();
 
       // Obtain duplicate stats...
       var numDupes : [_edgesDomain] atomic int;
