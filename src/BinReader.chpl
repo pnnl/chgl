@@ -109,14 +109,11 @@ proc binToGraph(f : file) {
     // Construct graph (distributed)
     var graph = new Graph(numVertices:int, numEdges:int, new unmanaged Cyclic(startIdx = 0));
 
-    // Beginning offset of adjacency list for each vertex and edge...
-    var vertexOffsets : [graph.verticesDomain] uint(64);
-
     // On each node, independently process the file and offsets...
     coforall loc in Locales do on loc {
-      debug("Node #", here.id, " beginning to process localSubdomain ", vertexOffsets.localSubdomain());
+      debug("Node #", here.id, " beginning to process localSubdomain ", graph.verticesDomain.localSubdomain());
       // Obtain offset for indices that are local to each node...
-      forall idx in vertexOffsets.localSubdomain() {
+      forall idx in graph.verticesDomain.localSubdomain() {
         // Open file again and skip to portion of file we want...
         var reader = f.reader();
         reader.advance(16 + idx * 8);

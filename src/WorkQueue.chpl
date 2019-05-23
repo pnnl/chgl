@@ -1,6 +1,8 @@
 use AggregationBuffer;
 use TerminationDetection;
 
+config const workQueueTightSpinCount = 1024;
+
 iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType {
   while !wq.isShutdown() {
     var (hasWork, workItem) = wq.getWork();
@@ -16,9 +18,17 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType 
 iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag : iterKind) : workType where tag == iterKind.standalone {
   coforall loc in Locales do on loc {
     coforall tid in 1..here.maxTaskPar {
-      while !wq.isShutdown() {
+      label loop while !wq.isShutdown() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
+          for 1..workQueueTightSpinCount {
+            chpl_task_yield();
+            if wq.size != 0 {
+              hasWork = true;
+              break;
+            }
+          }
+          if hasWork then continue;
           if wq.asyncTasks.hasTerminated() && td.hasTerminated() then break;
           chpl_task_yield();
           continue;

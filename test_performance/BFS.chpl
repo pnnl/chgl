@@ -4,9 +4,13 @@ use CyclicDist;
 use BinReader;
 use Visualize;
 use Time;
+use VisualDebug;
+use CommDiagnostics;
+use Utilities;
 
 config const dataset = "../data/karate.mtx_csr.bin";
 
+beginProfile("BFS-profile");
 var timer = new Timer();
 timer.start();
 var graph = binToGraph(dataset);
@@ -47,5 +51,4 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   numPhases += 1;
 }
 writeln("Completed BFS in ", timer.elapsed(), "s");
-
-
+endProfile();

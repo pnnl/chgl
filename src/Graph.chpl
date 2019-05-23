@@ -135,24 +135,23 @@ module Graph {
     }
 
     pragma "no doc"
-    inline proc aggregateMaster(v1 : hg.vDescType, v2 : hg.vDescType) {
-        var buf = insertAggregator.aggregate((v1, v2, -1), Locales[0]);
-        if buf != nil {
-          begin with (in buf) on Locales[0] {
-            var arr = buf.getArray();
-            buf.done();
-            var _this = getPrivatizedInstance();
-            var startIdx = _this.edgeCounter.fetchAdd(arr.size);
-            var endIdx = startIdx + arr.size - 1;
-            if endIdx >= _this.hg.edgesDomain.size {
-              halt("Out of Edges! Ability to grow coming soon!");
-            }
-            for ((v1, v2, _), eIdx) in zip(arr, startIdx..#arr.size) {
-              _this.hg.addInclusionBuffered(v1, _this.hg.toEdge(eIdx));
-              _this.hg.addInclusionBuffered(v2, _this.hg.toEdge(eIdx));
-            }
+    inline proc aggregateEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
+      var buf = insertAggregator.aggregate((v1, v2, -1), Locales[0]);
+      if buf != nil {
+        begin with (in buf) {
+          var arr = buf.getArray();
+          buf.done();
+          var startIdx = edgeCounter.fetchAdd(arr.size);
+          var endIdx = startIdx + arr.size - 1;
+          if endIdx >= hg.edgesDomain.size {
+            halt("Out of Edges! Ability to grow coming soon!");
+          }
+          for ((v1, v2, _), eIdx) in zip(arr, startIdx..#arr.size) {
+            hg.addInclusionBuffered(v1, hg.toEdge(eIdx));
+            hg.addInclusionBuffered(v2, hg.toEdge(eIdx));
           }
         }
+      }
     }
     
     proc invalidateCache() {
@@ -191,7 +190,7 @@ module Graph {
     proc addEdge(v1 : hg.vDescType, v2 : hg.vDescType) {
       if isCacheValid() then invalidateCache();
       if here != Locales[0] && CHPL_NETWORK_ATOMICS == "none" {
-        aggregateMaster(v1, v2);
+        aggregateEdge(v1, v2);
         return;
       }
       var eIdx = edgeCounter.fetchAdd(1);

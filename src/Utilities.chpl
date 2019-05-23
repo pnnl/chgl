@@ -2,6 +2,40 @@ use CyclicDist;
 use BlockDist;
 use Random;
 use Futures;
+use CommDiagnostics;
+use VisualDebug;
+use Memory;
+
+config const profileCommDiagnostics = false;
+config const profileCommDiagnosticsVerbose = false;
+config const profileVisualDebug = false;
+
+proc beginProfile(vdebugName = "vdebug") {
+  if profileCommDiagnostics {
+    startCommDiagnostics();
+  }
+  if profileCommDiagnosticsVerbose {
+    startVerboseComm();
+  }
+  if profileVisualDebug {
+    startVdebug(vdebugName);
+  }
+}
+
+proc endProfile() {
+  if profileCommDiagnosticsVerbose {
+    stopVerboseComm();
+  }
+  if profileCommDiagnostics {
+    stopCommDiagnostics();
+    for (loc, diag) in zip(Locales, getCommDiagnostics()) {
+      writeln(loc, ": ", diag);
+    }
+  }
+  if profileVisualDebug {
+    stopVdebug();
+  }
+}
 
 proc intersection(A : [] ?t, B : [] t) {
   var C : [0..-1] t;
