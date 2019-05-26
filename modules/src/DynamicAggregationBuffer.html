@@ -163,6 +163,11 @@ by the user. This avoids the need to have to handle sending partial data when it
 not needed to make progress. This comes with the issue that if no explicit flush is
 called, data never gets sent, but it opens the possibility of the user creating
 their own background progress task.</p>
+<dl class="function">
+<dt id="DynamicAggregationBuffer.UninitializedDynamicAggregator">
+<em class="property">proc </em><code class="descname">UninitializedDynamicAggregator</code><span class="sig-paren">(</span><em>type msgType</em><span class="sig-paren">)</span><a class="headerlink" href="#DynamicAggregationBuffer.UninitializedDynamicAggregator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="record">
 <dt id="DynamicAggregationBuffer.DynamicAggregator">
 <em class="property">record </em><code class="descname">DynamicAggregator</code><a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator" title="Permalink to this definition">¶</a></dt>
@@ -178,7 +183,7 @@ their own background progress task.</p>
 
 <dl class="attribute">
 <dt id="DynamicAggregationBuffer.DynamicAggregator.instance">
-<em class="property">var </em><code class="descname">instance</code> = DynamicAggregatorImpl(msgType)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator.instance" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">instance</code>: unmanaged DynamicAggregatorImpl(msgType)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator.instance" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -188,7 +193,7 @@ their own background progress task.</p>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>pid: int</em>, <em>instance</em><span class="sig-paren">)</span></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em>, <em>instance: unmanaged DynamicAggregatorImpl(msgType)</em>, <em>pid: int</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -202,13 +207,13 @@ their own background progress task.</p>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="DynamicAggregationBuffer.DynamicAggregator._value">
-<em class="property">proc </em><code class="descname">_value</code><a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator._value" title="Permalink to this definition">¶</a></dt>
+<dt id="DynamicAggregationBuffer.DynamicAggregator.isInitialized">
+<em class="property">proc </em><code class="descname">isInitialized</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator.isInitialized" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="DynamicAggregationBuffer.DynamicAggregator.chpl__serialize">
-<em class="property">proc </em><code class="descname">chpl__serialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (int, instance.type )<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator.chpl__serialize" title="Permalink to this definition">¶</a></dt>
+<dt id="DynamicAggregationBuffer.DynamicAggregator._value">
+<em class="property">proc </em><code class="descname">_value</code><a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator._value" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -248,7 +253,7 @@ their own background progress task.</p>
 
 <dl class="method">
 <dt id="DynamicAggregationBuffer.DynamicBuffer.append">
-<em class="property">proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>buf: [] msgType</em><span class="sig-paren">)</span><a class="headerlink" href="#DynamicAggregationBuffer.DynamicBuffer.append" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>buf</em><span class="sig-paren">)</span><a class="headerlink" href="#DynamicAggregationBuffer.DynamicBuffer.append" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -259,6 +264,11 @@ their own background progress task.</p>
 <dl class="method">
 <dt id="DynamicAggregationBuffer.DynamicBuffer.done">
 <em class="property">proc </em><code class="descname">done</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#DynamicAggregationBuffer.DynamicBuffer.done" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="DynamicAggregationBuffer.DynamicBuffer.size">
+<em class="property">proc </em><code class="descname">size</code><a class="headerlink" href="#DynamicAggregationBuffer.DynamicBuffer.size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -278,7 +288,7 @@ their own background progress task.</p>
 
 <dl class="attribute">
 <dt id="DynamicAggregationBuffer.DynamicAggregatorImpl.agg">
-<em class="property">var </em><code class="descname">agg</code>: Aggregator(msgType)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregatorImpl.agg" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">agg</code> = UninitializedAggregator(msgType)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregatorImpl.agg" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">

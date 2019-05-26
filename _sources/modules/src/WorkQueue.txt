@@ -10,7 +10,13 @@ WorkQueue
 
    use WorkQueue;
 
-.. data:: config const workQueueTightSpinCount = 1024
+.. data:: config const workQueueMinTightSpinCount = 8
+
+.. data:: config const workQueueMaxTightSpinCount = 1024
+
+.. data:: param WorkQueueUnlimitedAggregation = -1
+
+.. data:: param WorkQueueNoAggregation = 0
 
 .. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector): workType
 
@@ -18,15 +24,19 @@ WorkQueue
 
 .. function:: proc <=>(ref wq1: WorkQueue, ref wq2: WorkQueue)
 
+.. function:: proc UninitializedWorkQueue(type workType)
+
 .. record:: WorkQueue
 
    .. attribute:: type workType
 
-   .. attribute:: var instance: WorkQueueImpl(workType)
+   .. attribute:: var instance: unmanaged WorkQueueImpl(workType)
 
    .. attribute:: var pid = -1
 
-   .. method:: proc init(type workType)
+   .. method:: proc init(type workType, numAggregatedWork: int = WorkQueueNoAggregation)
+
+   .. method:: proc isInitialized()
 
    .. method:: proc _value
 
@@ -38,13 +48,15 @@ WorkQueue
 
    .. attribute:: var queue = new unmanaged Bag(workType)
 
-   .. attribute:: var destBuffer: Aggregator(workType)
+   .. attribute:: var destBuffer = UninitializedAggregator(workType)
+
+   .. attribute:: var dynamicDestBuffer = UninitializedDynamicAggregator(workType)
 
    .. attribute:: var asyncTasks: TerminationDetector
 
    .. attribute:: var shutdownSignal: atomicbool
 
-   .. method:: proc init(type workType)
+   .. method:: proc init(type workType, numAggregatedWork: int)
 
    .. method:: proc init(other, pid)
 

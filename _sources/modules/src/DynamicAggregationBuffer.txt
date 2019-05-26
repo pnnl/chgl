@@ -18,25 +18,27 @@ not needed to make progress. This comes with the issue that if no explicit flush
 called, data never gets sent, but it opens the possibility of the user creating
 their own background progress task.
 
+.. function:: proc UninitializedDynamicAggregator(type msgType)
+
 .. record:: DynamicAggregator
 
    .. attribute:: type msgType
 
    .. attribute:: var pid = -1
 
-   .. attribute:: var instance = DynamicAggregatorImpl(msgType)
+   .. attribute:: var instance: unmanaged DynamicAggregatorImpl(msgType)
 
    .. method:: proc init(type msgType)
 
-   .. method:: proc init(pid: int, instance)
+   .. method:: proc init(type msgType, instance: unmanaged DynamicAggregatorImpl(msgType), pid: int)
 
    .. method:: proc init(other)
 
    .. method:: proc destroy()
 
-   .. method:: proc _value
+   .. method:: proc isInitialized()
 
-   .. method:: proc chpl__serialize(): (int, instance.type )
+   .. method:: proc _value
 
 .. class:: DynamicBuffer
 
@@ -52,11 +54,13 @@ their own background progress task.
 
    .. method:: proc release()
 
-   .. method:: proc append(buf: [] msgType)
+   .. method:: proc append(buf)
 
    .. method:: proc getArray()
 
    .. method:: proc done()
+
+   .. method:: proc size
 
 .. class:: DynamicAggregatorImpl
 
@@ -64,7 +68,7 @@ their own background progress task.
 
    .. attribute:: var pid: int
 
-   .. attribute:: var agg: Aggregator(msgType)
+   .. attribute:: var agg = UninitializedAggregator(msgType)
 
    .. attribute:: var dynamicDestBuffers: [LocaleSpace] owned DynamicBuffer(msgType)
 

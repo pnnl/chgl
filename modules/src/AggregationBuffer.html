@@ -184,6 +184,11 @@
 <em class="property">proc </em><code class="descname">debug</code><span class="sig-paren">(</span><em>args ...?nArgs</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
+<dl class="function">
+<dt id="AggregationBuffer.UninitializedAggregator">
+<em class="property">proc </em><code class="descname">UninitializedAggregator</code><span class="sig-paren">(</span><em>type msgType</em><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.UninitializedAggregator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="record">
 <dt id="AggregationBuffer.Aggregator">
 <em class="property">record </em><code class="descname">Aggregator</code><a class="headerlink" href="#AggregationBuffer.Aggregator" title="Permalink to this definition">¶</a></dt>
@@ -204,12 +209,12 @@
 
 <dl class="method">
 <dt id="AggregationBuffer.Aggregator.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.Aggregator.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em>, <em>aggregatorBufferSize: int = AggregatorBufferSize</em>, <em>aggregatorMaxBuffers: int = AggregatorMaxBuffers</em><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.Aggregator.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>pid: int</em>, <em>instance</em><span class="sig-paren">)</span></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em>, <em>instance: unmanaged AggregatorImpl(msgType)</em>, <em>pid: int</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -223,21 +228,16 @@
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="AggregationBuffer.Aggregator.isInitialized">
+<em class="property">proc </em><code class="descname">isInitialized</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.Aggregator.isInitialized" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="AggregationBuffer.Aggregator._value">
 <em class="property">proc </em><code class="descname">_value</code><a class="headerlink" href="#AggregationBuffer.Aggregator._value" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="AggregationBuffer.Aggregator.chpl__serialize">
-<em class="property">proc </em><code class="descname">chpl__serialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (int, instance.type )<a class="headerlink" href="#AggregationBuffer.Aggregator.chpl__serialize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
-
-<dl class="method">
-<dt id="AggregationBuffer.Aggregator.chpl__deserialize">
-<em class="property">proc type </em><code class="descclassname">Aggregator.</code><code class="descname">chpl__deserialize</code><span class="sig-paren">(</span><em>chpl__tuple_arg_temp AppendType.02</em><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.Aggregator.chpl__deserialize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="class">
 <dt id="AggregationBuffer.Buffer">
@@ -327,7 +327,7 @@ method is subject to undefined behavior.</p>
 
 <dl class="method">
 <dt id="AggregationBuffer.AggregatorImpl.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.AggregatorImpl.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em>, <em>aggregatorBufferSize: int</em>, <em>aggregatorMaxBuffers: int</em><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.AggregatorImpl.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

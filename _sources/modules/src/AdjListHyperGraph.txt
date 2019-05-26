@@ -292,7 +292,7 @@ with Cray copyright and Apache license (see the Chapel repo).
 
    .. attribute:: var _edges: [_edgesDomain] unmanaged vDescTypeNodeData_ePropType
 
-   .. attribute:: var _destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType))
+   .. attribute:: var _destBuffer = UninitializedAggregator((vIndexType, eIndexType, InclusionType))
 
    .. attribute:: var _propertyMap: _vPropTypePropertyMap_ePropType
 

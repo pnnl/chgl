@@ -42,7 +42,7 @@ should be forwarded to the underlying Hypergraph.
 
    .. attribute:: type vDescType
 
-   .. attribute:: var insertAggregator: Aggregator((hg.vDescType, hg.vDescType, int))
+   .. attribute:: var insertAggregator = UninitializedAggregator((hg.vDescType, hg.vDescType, int))
 
    .. attribute:: var cachedNeighborListDom: hg.verticesDomain.type 
 

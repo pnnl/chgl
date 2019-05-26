@@ -159,8 +159,23 @@
 </pre></div>
 </div>
 <dl class="data">
-<dt id="WorkQueue.workQueueTightSpinCount">
-<em class="property">config const </em><code class="descname">workQueueTightSpinCount</code> = 1024<a class="headerlink" href="#WorkQueue.workQueueTightSpinCount" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.workQueueMinTightSpinCount">
+<em class="property">config const </em><code class="descname">workQueueMinTightSpinCount</code> = 8<a class="headerlink" href="#WorkQueue.workQueueMinTightSpinCount" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="WorkQueue.workQueueMaxTightSpinCount">
+<em class="property">config const </em><code class="descname">workQueueMaxTightSpinCount</code> = 1024<a class="headerlink" href="#WorkQueue.workQueueMaxTightSpinCount" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="WorkQueue.WorkQueueUnlimitedAggregation">
+<em class="property">param </em><code class="descname">WorkQueueUnlimitedAggregation</code> = -1<a class="headerlink" href="#WorkQueue.WorkQueueUnlimitedAggregation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="WorkQueue.WorkQueueNoAggregation">
+<em class="property">param </em><code class="descname">WorkQueueNoAggregation</code> = 0<a class="headerlink" href="#WorkQueue.WorkQueueNoAggregation" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="iterfunction">
@@ -178,6 +193,11 @@
 <em class="property">proc </em><code class="descname">&lt;=&gt;</code><span class="sig-paren">(</span><em>ref wq1: WorkQueue</em>, <em>ref wq2: WorkQueue</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.<=>" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="function">
+<dt id="WorkQueue.UninitializedWorkQueue">
+<em class="property">proc </em><code class="descname">UninitializedWorkQueue</code><span class="sig-paren">(</span><em>type workType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.UninitializedWorkQueue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="record">
 <dt id="WorkQueue.WorkQueue">
 <em class="property">record </em><code class="descname">WorkQueue</code><a class="headerlink" href="#WorkQueue.WorkQueue" title="Permalink to this definition">¶</a></dt>
@@ -188,7 +208,7 @@
 
 <dl class="attribute">
 <dt id="WorkQueue.WorkQueue.instance">
-<em class="property">var </em><code class="descname">instance</code>: WorkQueueImpl(workType)<a class="headerlink" href="#WorkQueue.WorkQueue.instance" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">instance</code>: unmanaged WorkQueueImpl(workType)<a class="headerlink" href="#WorkQueue.WorkQueue.instance" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -198,7 +218,12 @@
 
 <dl class="method">
 <dt id="WorkQueue.WorkQueue.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueue.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em>, <em>numAggregatedWork: int = WorkQueueNoAggregation</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueue.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueue.isInitialized">
+<em class="property">proc </em><code class="descname">isInitialized</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueue.isInitialized" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -228,7 +253,12 @@
 
 <dl class="attribute">
 <dt id="WorkQueue.WorkQueueImpl.destBuffer">
-<em class="property">var </em><code class="descname">destBuffer</code>: Aggregator(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.destBuffer" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">destBuffer</code> = UninitializedAggregator(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.destBuffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.WorkQueueImpl.dynamicDestBuffer">
+<em class="property">var </em><code class="descname">dynamicDestBuffer</code> = UninitializedDynamicAggregator(workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.dynamicDestBuffer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -243,7 +273,7 @@
 
 <dl class="method">
 <dt id="WorkQueue.WorkQueueImpl.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em>, <em>numAggregatedWork: int</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
