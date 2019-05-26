@@ -1175,14 +1175,14 @@ module AdjListHyperGraph {
 
       
 
-      writeln("Collapsing Edges...");
+      //writeln("Collapsing Edges...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current edge
       // We impose an ordering on determining what edge is a duplicate of what. A edge e is a
       // duplicate of a edge e' if e.id > e'.id. If there is a edge e'' such that e''.id > e.id
       // and e''.id < e'.id, that is e.id < e''.id < e'.id, the duplicate marking is still preserved
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
-        writeln("Marking and Deleting Edges...");
+        //writeln("Marking and Deleting Edges...");
         var edgeSetDomain : domain(ArrayWrapper);
         var edgeSet : [edgeSetDomain] int;
         var l$ : sync bool;
