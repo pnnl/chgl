@@ -670,7 +670,7 @@ module AdjListHyperGraph {
 
     var _vertices : [_verticesDomain] unmanaged NodeData(eDescType, _vPropType);
     var _edges : [_edgesDomain] unmanaged NodeData(vDescType, _ePropType);
-    var _destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
+    var _destBuffer = UninitializedAggregator((vIndexType, eIndexType, InclusionType));
     var _propertyMap : PropertyMap(_vPropType, _ePropType);
     var _privatizedVertices = _vertices._value;
     var _privatizedEdges = _edges._value;
@@ -698,6 +698,7 @@ module AdjListHyperGraph {
       this._edgesDomain = edgesDomain;
       this._vPropType = EmptyPropertyMap.vertexPropertyType;
       this._ePropType = EmptyPropertyMap.edgePropertyType;
+      this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
       this._propertyMap = EmptyPropertyMap;
       assert(!this._propertyMap.isInitialized);
 
@@ -731,6 +732,7 @@ module AdjListHyperGraph {
       this._edgesDomain = edgesDomain;
       this._vPropType = vPropType;
       this._ePropType = ePropType;
+      this._destBuffer = new Aggregator(vIndexType, eIndexType, InclusionType);
       const _tmp = propMap;
       this._propertyMap = _tmp;
 
@@ -759,6 +761,7 @@ module AdjListHyperGraph {
       this._edgesDomain = edgesDomain;
       this._vPropType = other._vPropType;
       this._ePropType = other._ePropType;
+      this._destBuffer = other._destBuffer;
       this._propertyMap = new PropertyMap(other._propertyMap);
 
       complete();
@@ -777,6 +780,7 @@ module AdjListHyperGraph {
       this._edgesDomain = edgesDomain;
       this._vPropType = other._vPropType;
       this._ePropType = other._ePropType;
+      this._destBuffer = other._destBuffer;
       this._propertyMap = other._propertyMap;
 
       complete();

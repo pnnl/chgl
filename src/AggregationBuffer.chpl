@@ -19,20 +19,22 @@ module AggregationBuffer {
     // NOP
   }
 
+  proc UninitializedAggregator(type msgType) return new Aggregator(msgType, instance=nil, pid=-1);
+
   pragma "always RVF"
   record Aggregator {
     type msgType;
     var instance : unmanaged AggregatorImpl(msgType);
     var pid = -1;
 
-    proc init(type msgType) {
+    proc init(type msgType, aggregatorBufferSize : int = AggregatorBufferSize, aggregatorMaxBuffers : int = AggregatorMaxBuffers) {
       this.msgType = msgType;
-      this.instance = new unmanaged AggregatorImpl(msgType);
+      this.instance = new unmanaged AggregatorImpl(msgType, aggregatorBufferSize, aggregatorMaxBuffers);
       this.pid = this.instance.pid;
     }
 
-    proc init(pid : int, instance) {
-      this.msgType = instance.msgType;
+    proc init(type msgType, instance : unmanaged AggregatorImpl(msgType), pid : int) {
+      this.msgType = msgType;
       this.instance = instance;
       this.pid = pid;
     }
@@ -51,6 +53,10 @@ module AggregationBuffer {
       this.instance = nil;
     }
 
+    proc isInitialized() {
+      return pid != -1;
+    }
+
     proc _value {
       if pid == -1 {
         halt("Aggregator: Not initialized...");
@@ -59,15 +65,7 @@ module AggregationBuffer {
       return chpl_getPrivatizedCopy(instance.type, pid);
     }
 
-    proc chpl__serialize() : (int, instance.type) {
-      return (pid, nil : instance.type);
-    }
-
     forwarding _value;
-  }
-  
-  proc type Aggregator.chpl__deserialize((pid, instance)) {
-    return new Aggregator(pid, instance);
   }
 
   pragma "no doc"
@@ -83,12 +81,15 @@ module AggregationBuffer {
     // Number of buffers that are currently allocated
     var numAllocatedBuffers : chpl__processorAtomicType(int); 
     // Maximum number of allocated buffers
-    const maxAllocatedBuffers : int;
+    const aggregatorMaxBuffers : int;
+    // Maximum number of messages per buffer
+    const aggregatorBufferSize : int;
 
     // Will allow enough for a single buffer per destination locale.
-    proc init(type msgType, maxBufferSize = AggregatorMaxBuffers) {
+    proc init(type msgType, aggregatorBufferSize : int, aggregatorMaxBuffers : int) {
       this.msgType = msgType;
-      this.maxAllocatedBuffers = if maxBufferSize >= 0 then max(numLocales * 2, maxBufferSize) else -1;
+      this.aggregatorMaxBuffers = if aggregatorBufferSize >= 0 then max(numLocales * 2, aggregatorMaxBuffers) else -1;
+      this.aggregatorBufferSize = aggregatorBufferSize;
     }
 
     proc deinit() {
@@ -100,7 +101,7 @@ module AggregationBuffer {
     }
 
     inline proc canAllocateBuffer() {
-      return maxAllocatedBuffers == -1 || numAllocatedBuffers.peek() < maxAllocatedBuffers;
+      return aggregatorMaxBuffers == -1 || numAllocatedBuffers.peek() < aggregatorMaxBuffers;
     }
 
     proc getBuffer() : unmanaged Buffer(msgType) {
@@ -110,7 +111,7 @@ module AggregationBuffer {
         // Yield while we wait for a free buffer...
         while numFreeBuffers.peek() == 0 && !canAllocateBuffer() {
           debug(here, ": waiting on free buffer..., numAllocatedBuffers(", 
-              numAllocatedBuffers.peek(), ") / maxAllocatedBuffers(", maxAllocatedBuffers, ")");
+              numAllocatedBuffers.peek(), ") / maxAllocatedBuffers(", aggregatorMaxBuffers, ")");
           chpl_task_yield();
         }
 
@@ -119,7 +120,7 @@ module AggregationBuffer {
         // Note: Since we do this inside the lock we can relax all atomics
         if numFreeBuffers.peek() == 0 {
           if canAllocateBuffer() {
-            var tmp = new unmanaged Buffer(msgType);
+            var tmp = new unmanaged Buffer(msgType, aggregatorBufferSize);
             numAllocatedBuffers.add(1, memory_order_relaxed);
             tmp._nextAllocatedBuffer = allocatedBufferList;
             allocatedBufferList = tmp;
@@ -186,9 +187,9 @@ module AggregationBuffer {
     var _bufferPool : unmanaged BufferPool(msgType);
 
     pragma "no doc"
-    proc init(type msgType) {
+    proc init(type msgType, aggregatorBufferSize : int) {
       this.msgType = msgType;
-      this._bufDom = {0..#AggregatorBufferSize};
+      this._bufDom = {0..#aggregatorBufferSize};
     }
 
     proc readWriteThis(f) {
@@ -278,31 +279,38 @@ module AggregationBuffer {
   class AggregatorImpl {
     type msgType;
     pragma "no doc"
+    var aggregatorBufferSize : int;
+    pragma "no doc"
+    var aggregatorMaxBuffers : int;
+    pragma "no doc"
     var destinationBuffers : [LocaleSpace] unmanaged Buffer(msgType);
     pragma "no doc"
     var bufferPools : [LocaleSpace] unmanaged BufferPool(msgType);
     pragma "no doc"
     var pid = -1;
 
-    proc init(type msgType) {
+    proc init(type msgType, aggregatorBufferSize : int, aggregatorMaxBuffers : int) {
       this.msgType = msgType;
-
+      this.aggregatorBufferSize = aggregatorBufferSize;
+      this.aggregatorMaxBuffers = aggregatorMaxBuffers;
       complete();
 
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
       forall (buf, pool) in zip (destinationBuffers, bufferPools) { 
-        pool = new unmanaged BufferPool(msgType);
+        pool = new unmanaged BufferPool(msgType, aggregatorBufferSize, aggregatorMaxBuffers);
         buf = pool.getBuffer();
       }
     }
 
     proc init(other, pid : int) {
       this.msgType = other.msgType;
-
+      this.aggregatorBufferSize = other.aggregatorBufferSize;
+      this.aggregatorMaxBuffers = other.aggregatorMaxBuffers;
+      
       complete();
 
       forall (buf, pool) in zip (destinationBuffers, bufferPools) { 
-        pool = new unmanaged BufferPool(msgType);
+        pool = new unmanaged BufferPool(msgType, aggregatorBufferSize, aggregatorMaxBuffers);
         buf = pool.getBuffer();
       }
     }

@@ -31,8 +31,8 @@ timer.stop();
 writeln("Generated cache in ", timer.elapsed(), "s");
 timer.clear();
 
-var current = new WorkQueue(graph.vDescType);
-var next = new WorkQueue(graph.vDescType);
+var current = new WorkQueue(graph.vDescType, WorkQueueUnlimitedAggregation);
+var next = new WorkQueue(graph.vDescType, WorkQueueUnlimitedAggregation);
 var currTD = new TerminationDetector(1);
 var nextTD = new TerminationDetector(0);
 current.addWork(graph.toVertex(0));

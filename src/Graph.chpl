@@ -76,7 +76,7 @@ module Graph {
     // Other locales will aggregate (u,v,-1) to locale 0, upon which on locale 0, an
     // edge will be grabbed via atomic fetchAdd for the whole buffer, and then the new
     // index, eIdx, will be aggregated as (u,v,eIdx) to locale that vertex u is located on.
-    var insertAggregator : Aggregator((hg.vDescType, hg.vDescType, int));
+    var insertAggregator = UninitializedAggregator((hg.vDescType, hg.vDescType, int));
     // Cached mappings of vertex-to-vertex neighbor lists. This elides the performance overhead
     // associated with using the underlying hypergraph's adjacency lists. This will get updated
     // via a call from the user. If an insertion occurs, this mapping will become invalid across

@@ -1,7 +1,12 @@
 use AggregationBuffer;
+use DynamicAggregationBuffer;
 use TerminationDetection;
 
-config const workQueueTightSpinCount = 1024;
+config const workQueueMinTightSpinCount = 8;
+config const workQueueMaxTightSpinCount = 1024;
+
+param WorkQueueUnlimitedAggregation = -1;
+param WorkQueueNoAggregation = 0;
 
 iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType {
   while !wq.isShutdown() {
@@ -18,6 +23,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType 
 iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag : iterKind) : workType where tag == iterKind.standalone {
   coforall loc in Locales do on loc {
     coforall tid in 1..here.maxTaskPar {
+      var workQueueTightSpinCount = workQueueMinTightSpinCount;
       label loop while !wq.isShutdown() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
@@ -28,10 +34,14 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
               break;
             }
           }
-          if hasWork then continue;
-          if wq.asyncTasks.hasTerminated() && td.hasTerminated() then break;
-          chpl_task_yield();
-          continue;
+          if hasWork {
+            workQueueTightSpinCount = workQueueMinTightSpinCount;
+            continue;
+          } else {
+            if wq.asyncTasks.hasTerminated() && td.hasTerminated() then break;
+            workQueueTightSpinCount = min(workQueueMaxTightSpinCount, workQueueTightSpinCount * 2);
+            continue;
+          } 
         }
         yield workItem;
       }
@@ -50,16 +60,33 @@ proc <=>(ref wq1 : WorkQueue, ref wq2 : WorkQueue) {
   wq1.instance <=> wq2.instance;
 }
 
+// Represents an uninitialized work queue. 
+proc UninitializedWorkQueue(type workType) return new WorkQueue(workType, instance=nil, pid = -1);
+
 pragma "always RVF"
 record WorkQueue {
   type workType;
-  var instance : WorkQueueImpl(workType);
+  var instance : unmanaged WorkQueueImpl(workType);
   var pid = -1;
   
-  proc init(type workType) {
+  proc init(type workType, numAggregatedWork : int = WorkQueueNoAggregation) {
     this.workType = workType;
-    this.instance = new unmanaged WorkQueueImpl(workType);
+    this.instance = new unmanaged WorkQueueImpl(workType, numAggregatedWork);
     this.pid = this.instance.pid;
+  }
+
+  pragma "no doc"
+  /*
+    "Uninitialized" initializer
+  */
+  proc init(type workType, instance : unmanaged WorkQueueImpl(workType), pid : int) {
+    this.workType = workType;
+    this.instance = instance;
+    this.pid = pid;
+  }
+
+  proc isInitialized() {
+    return pid != -1;
   }
 
   proc _value {
@@ -74,13 +101,18 @@ class WorkQueueImpl {
   type workType;
   var pid = -1;
   var queue = new unmanaged Bag(workType); 
-  var destBuffer : Aggregator(workType);
+  var destBuffer = UninitializedAggregator(workType);
+  var dynamicDestBuffer = UninitializedDynamicAggregator(workType);
   var asyncTasks : TerminationDetector;
   var shutdownSignal : atomic bool;
   
-  proc init(type workType) {
+  proc init(type workType, numAggregatedWork : int) {
     this.workType = workType;
-    this.destBuffer = new Aggregator(workType);
+    if numAggregatedWork == -1 {
+      this.dynamicDestBuffer = new DynamicAggregator(workType);
+    } else if numAggregatedWork > 0 {
+      this.destBuffer = new Aggregator(workType, numAggregatedWork);
+    }
     this.asyncTasks = new TerminationDetector(0);
     this.complete();
     this.pid = _newPrivatizedClass(_to_unmanaged(this));
@@ -90,6 +122,7 @@ class WorkQueueImpl {
     this.workType = other.workType;
     this.pid = pid;
     this.destBuffer = other.destBuffer;
+    this.dynamicDestBuffer = other.dynamicDestBuffer;
     this.asyncTasks = other.asyncTasks;
   }
   
@@ -130,20 +163,30 @@ class WorkQueueImpl {
   proc addWork(work : workType, locid = here.id) {
     if isShutdown() then halt("Attempted to 'addWork' on shutdown WorkQueue!");
     if locid != here.id {
-      var buffer = destBuffer.aggregate(work, locid);
-      if buffer != nil {
-        // TODO: Profile if we need to fetch 'pid' in local variable
-        // to avoid communications...
-        asyncTasks.started(1);
-        begin with (in buffer) on Locales[locid] {
-          var arr = buffer.getArray();
-          var _this = getPrivatizedInstance();
-          buffer.done();
-          _this.queue.add(arr);
-          _this.asyncTasks.finished(1);
+      if destBuffer.isInitialized() {
+        var buffer = destBuffer.aggregate(work, locid);
+        if buffer != nil {
+          // TODO: Profile if we need to fetch 'pid' in local variable
+          // to avoid communications...
+          asyncTasks.started(1);
+          begin with (in buffer) on Locales[locid] {
+            var arr = buffer.getArray();
+            var _this = getPrivatizedInstance();
+            buffer.done();
+            _this.queue.add(arr);
+            _this.asyncTasks.finished(1);
+          }
         }
+        return;
+      } else if dynamicDestBuffer.isInitialized() {
+        dynamicDestBuffer.aggregate(work, locid);
+        return;
+      } else {
+        on Locales[locid] {
+          getPrivatizedInstance().queue.add(work);
+        }
+        return;
       }
-      return;
     }
 
     queue.add(work);
@@ -156,11 +199,20 @@ class WorkQueueImpl {
   proc isEmpty() return this.size == 0;
 
   proc flush() {
-    forall (buf, loc) in destBuffer.flushGlobal() do on loc {
-      var _this = getPrivatizedInstance();
-      var arr = buf.getArray();
-      buf.done();
-      _this.queue.add(arr);
+    if destBuffer.isInitialized() {
+      forall (buf, loc) in destBuffer.flushGlobal() do on loc {
+        var _this = getPrivatizedInstance();
+        var arr = buf.getArray();
+        _this.queue.add(arr);
+        buf.done();
+      }
+    } else if dynamicDestBuffer.isInitialized() {
+      forall (buf, loc) in dynamicDestBuffer.flush() do on loc {
+        var _this = getPrivatizedInstance();
+        var arr = buf.getArray();
+        _this.queue.add(arr);
+        buf.done();
+      }
     }
   }
 }

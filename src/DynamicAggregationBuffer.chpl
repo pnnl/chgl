@@ -7,29 +7,32 @@
 */
 module DynamicAggregationBuffer {
   use AggregationBuffer;
+
+  proc UninitializedDynamicAggregator(type msgType) return new DynamicAggregator(msgType, instance=nil, pid=-1);
   
   pragma "always RVF"
   record DynamicAggregator {
     type msgType;
     var pid = -1;
-    var instance = DynamicAggregatorImpl(msgType);
+    var instance : unmanaged DynamicAggregatorImpl(msgType);
 
     proc init(type msgType) {
       this.msgType = msgType;
+      var instance = new unmanaged DynamicAggregatorImpl(msgType);
       this.pid = instance.pid;
-      var instance = new DynamicAggregatorImpl(msgType);
+      this.instance = instance;
     }
 
-    proc init(pid : int, instance) {
-      this.msgType = instance.msgType;
-      this.instance = instance;
+    proc init(type msgType, instance : unmanaged DynamicAggregatorImpl(msgType), pid : int) {
+      this.msgType = msgType;
       this.pid = pid;
+      this.instance = instance;
     }
 
     proc init(other) {
       this.msgType = other.msgType;
-      this.instance = other.instance;
       this.pid = other.pid;
+      this.instance = other.instance;
     }
 
     proc destroy() {
@@ -39,17 +42,17 @@ module DynamicAggregationBuffer {
       }
       this.instance = nil;
     }
-
+    
+    proc isInitialized() {
+      return pid != -1;
+    }
+    
     proc _value {
       if pid == -1 {
         halt("Aggregator: Not initialized...");
       }
 
       return chpl_getPrivatizedCopy(instance.type, pid);
-    }
-
-    proc chpl__serialize() : (int, instance.type) {
-      return (pid, nil : instance.type);
     }
 
     forwarding _value;
@@ -62,7 +65,7 @@ module DynamicAggregationBuffer {
     var lock : atomic bool;
 
     inline proc acquire() {
-      if lock.testAndSet() {
+      if !lock.testAndSet() {
         return;
       }
       while lock.read() == true || lock.testAndSet() == true {
@@ -71,10 +74,10 @@ module DynamicAggregationBuffer {
     }
 
     inline proc release() {
-      lock.release();
+      lock.clear();
     }
 
-    proc append(buf : [] msgType) {
+    proc append(buf) {
       acquire();
       arr.push_back(buf);
       release();
@@ -87,12 +90,14 @@ module DynamicAggregationBuffer {
     proc done() {
       this.dom = {0..-1};
     }
+
+    proc size return arr.size;
   }
 
   class DynamicAggregatorImpl {
     type msgType;
     var pid : int;
-    var agg : Aggregator(msgType);
+    var agg = UninitializedAggregator(msgType);
     var dynamicDestBuffers : [LocaleSpace] owned DynamicBuffer(msgType);
 
     proc init(type msgType) {
@@ -118,7 +123,7 @@ module DynamicAggregationBuffer {
     }
     
     proc dsiPrivatize(pid) {
-      return new unmanaged AggregatorImpl(this, pid);
+      return new unmanaged DynamicAggregatorImpl(this, pid);
     }
 
     proc dsiGetPrivatizeData() {
@@ -147,7 +152,7 @@ module DynamicAggregationBuffer {
     
     iter flush(param tag : iterKind) : (DynamicBuffer(msgType), locale) where tag == iterKind.standalone {
       // Flush aggregator first...
-      forall (buf, loc) in agg.flushGlobal {
+      forall (buf, loc) in agg.flushGlobal() {
         getPrivatizedInstance().dynamicDestBuffers[loc.id].append(buf.getArray());
         buf.done();
       }
@@ -155,8 +160,7 @@ module DynamicAggregationBuffer {
       coforall loc in Locales do on loc {
         var _this = getPrivatizedInstance();
         forall (buf, loc) in zip (_this.dynamicDestBuffers, _this.dynamicDestBuffers.domain) {
-          yield (buf, Locales[loc]);
-          buf.done();
+          if buf.size != 0 then yield (buf, Locales[loc]);
         }
       }
     }
