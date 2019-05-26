@@ -1008,6 +1008,15 @@ module AdjListHyperGraph {
       // as we can follow v'.id's duplicate to find v''.id's duplicate to find the distinct vertex v.
       {
         //writeln("Marking and Deleting Vertices...");
+        // TODO: Optimize!
+        // Step 1: Optimize for Locality first! Spawn one task per core per locale, and
+        // on each task, have them create equivalence classes for the matching vertices
+        // and edges.
+        // Step 2: Take pairs of tasks and handle merging their equivalent classes into a single
+        // into a single equivalence class. This should be performed across each locale and in
+        // parallel across multiple cores if possible. 
+        // Step 3: Take pairs of locales and handle merging their equivalent classes into a single
+        // equivalence class. Then count the number of unique vertices.
         var vertexSetDomain : domain(ArrayWrapper);
         var vertexSet : [vertexSetDomain] int;
         var l$ : sync bool;
@@ -1092,6 +1101,9 @@ module AdjListHyperGraph {
       // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
       {
+        // Optimize! Claim atomic indices in bulk by processing the locale's local subdomain
+        // and claiming them all at once. Also try to match the distribution of the original
+        // array; hence, try to first claim indices that are local in _both_ new and old arrays.
         var idx : atomic int;
         forall v in oldVertices.domain {
           if oldVertices[v] != nil {
