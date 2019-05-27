@@ -189,7 +189,7 @@
 
 <dl class="attribute">
 <dt id="EquivalenceClasses.Equivalence.candidates">
-<em class="property">var </em><code class="descname">candidates</code>: [candidatesDom] unmanaged Vector(keyType)<a class="headerlink" href="#EquivalenceClasses.Equivalence.candidates" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">candidates</code>: [candidatesDom] domain(keyType)<a class="headerlink" href="#EquivalenceClasses.Equivalence.candidates" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -223,6 +223,11 @@
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="EquivalenceClasses.Equivalence.reduction">
+<em class="property">proc </em><code class="descname">reduction</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#EquivalenceClasses.Equivalence.reduction" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="EquivalenceClasses.Equivalence.readWriteThis">
 <em class="property">proc </em><code class="descname">readWriteThis</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#EquivalenceClasses.Equivalence.readWriteThis" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -244,7 +249,17 @@
 
 <dl class="attribute">
 <dt id="EquivalenceClasses.ReduceEQClass.value">
-<em class="property">var </em><code class="descname">value</code>: keyTypeEquivalencecmpType<a class="headerlink" href="#EquivalenceClasses.ReduceEQClass.value" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">value</code>: unmanaged keyTypeEquivalencecmpType<a class="headerlink" href="#EquivalenceClasses.ReduceEQClass.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="EquivalenceClasses.ReduceEQClass.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>eq: unmanaged ?keyTypeEquivalence?cmpType</em><span class="sig-paren">)</span><a class="headerlink" href="#EquivalenceClasses.ReduceEQClass.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type keyType</em>, <em>type cmpType</em>, <em>keyToCmp</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="method">

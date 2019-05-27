@@ -22,7 +22,7 @@ EquivalenceClasses
 
    .. attribute:: var candidatesDom: domain(keyType)
 
-   .. attribute:: var candidates: [candidatesDom] unmanaged Vector(keyType)
+   .. attribute:: var candidates: [candidatesDom] domain(keyType)
 
    .. attribute:: var keyToCmp: keyTypefunccmpType
 
@@ -36,6 +36,8 @@ EquivalenceClasses
 
    .. method:: proc add(other: this.type )
 
+   .. method:: proc reduction()
+
    .. method:: proc readWriteThis(f)
 
 .. class:: ReduceEQClass : ReduceScanOp
@@ -44,7 +46,11 @@ EquivalenceClasses
 
    .. attribute:: type cmpType
 
-   .. attribute:: var value: keyTypeEquivalencecmpType
+   .. attribute:: var value: unmanaged keyTypeEquivalencecmpType
+
+   .. method:: proc init(eq: unmanaged ?keyTypeEquivalence?cmpType)
+
+   .. method:: proc init(type keyType, type cmpType, keyToCmp)
 
    .. method:: proc identity
 
