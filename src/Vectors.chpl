@@ -13,6 +13,8 @@ class Vector {
     this.eltType = eltType;
   }
   proc append(elt : eltType) {halt();}
+  proc append(elts : [] eltType) { halt(); }
+  proc append(ir : _iteratorRecord) { halt(); }
   proc sort() {halt();}
   proc this(idx : integral) ref { 
     return _dummy;
@@ -55,6 +57,28 @@ class VectorImpl : Vector {
     this.arr[sz] = elt;
     sz += 1;
   }
+  
+  override proc append(elts : [] eltType) {
+    if sz + elts.size >= cap {
+      cap = sz + elts.size;
+      this.dom = {0..#cap};
+    }
+
+    this.arr[sz..#elts.size] = elts;
+    sz += elts.size;
+  }
+  
+  override proc append(ir : _iteratorRecord) {
+    if iteratorToArrayElementType(ir.type) != eltType {
+      compilerError(
+          "Attempt to append an iterable expression of type '", 
+          iteratorToArrayElementType(ir.type) : string, "' when need type '", 
+          eltType : string, "'"
+      );
+    }
+
+    for elt in ir do append(elt);
+  }
 
   override proc sort() {
     Sort.sort(arr[dom.low..#sz]);
@@ -84,7 +108,7 @@ class VectorImpl : Vector {
   }
 
   proc readWriteThis(f) {
-    f <~> arr;
+    f <~> "{" <~> getArray() <~> "}";
   }
 }
 
