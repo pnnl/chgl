@@ -7,7 +7,7 @@ module EquivalenceClasses {
     var eqclassesDom : domain(cmpType);
     var eqclasses : [eqclassesDom] keyType;
     var candidatesDom : domain(keyType);
-    var candidates : [candidatesDom] unmanaged Vector(keyType);
+    var candidates : [candidatesDom] domain(keyType);
     var keyToCmp : func(keyType, cmpType);
 
     proc init(type keyType) {
@@ -32,31 +32,31 @@ module EquivalenceClasses {
       var x = keyToCmp(key);
       if eqclassesDom.contains(x) {
         var y = eqclasses[x];
-        candidates[y].append(key);
+        candidates[y] += key;
       } else {
         this.eqclassesDom += x;
         eqclasses[x] = key;
         this.candidatesDom += key;
-        candidates[key] = new unmanaged VectorImpl(keyType, {0..-1});
       }
     }
 
     proc add(other : this.type) {
-      for key in other.eqclassesDom {
+      for (key, value) in zip(other.eqclassesDom, other.eqclasses) {
         if this.eqclassesDom.contains(key) {
           var newKey = this.eqclasses[key];
-          this.candidates[newKey].append(key);
-          this.candidates[newKey].append(other.candidates[key].getArray());
+          this.candidates[newKey] += value;
+          this.candidates[newKey] += other.candidates[value];
         } else {
           this.eqclassesDom += key;
-          this.eqclasses[key] = key;
-          this.candidatesDom += key;
-          var arr = other.candidates[key].getArray();
-          var dom = arr.domain;
-          this.candidates[key] = new unmanaged VectorImpl(keyType, dom);
-          this.candidates[key].append(arr);
+          this.eqclasses[key] = value;
+          this.candidatesDom += value;
+          this.candidates[value] += other.candidates[value];
         }
       }
+    }
+
+    proc reduction() {
+      return new unmanaged ReduceEQClass(this:unmanaged);
     }
 
     proc readWriteThis(f) {
@@ -70,9 +70,21 @@ module EquivalenceClasses {
   class ReduceEQClass : ReduceScanOp {
     type keyType;
     type cmpType;
-    var value : Equivalence(keyType, cmpType);
+    var value : unmanaged Equivalence(keyType, cmpType);
 
-    proc identity return new Equivalence(keyType, cmpType);
+    proc init(eq : unmanaged Equivalence(?keyType, ?cmpType)) {
+      this.keyType = keyType;
+      this.cmpType = cmpType;
+      this.value = eq;
+    }
+
+    proc init(type keyType, type cmpType, keyToCmp) {
+      this.keyType = keyType;
+      this.cmpType = cmpType;
+      this.value = new unmanaged Equivalence(keyType, cmpType, keyToCmp);
+    }
+
+    proc identity return new unmanaged Equivalence(keyType, cmpType, value.keyToCmp);
     proc accumulate(x) {
       value.add(x);
     }
@@ -83,12 +95,17 @@ module EquivalenceClasses {
       value.add(x.value);
     }
     proc generate() return value;
-    proc clone() return new unmanaged ReduceEqClass(keyType, cmpType);
+    proc clone() return new unmanaged ReduceEQClass(keyType, cmpType, value.keyToCmp);
   }
 
   proc main() {
     var eqclass = new Equivalence(int, lambda(x : int) { return x % 2 == 0; });
     for i in 1..10 do eqclass.add(i);
+    var redux = eqclass.reduction();
+    forall i in 11..100 with (redux reduce eqclass) {
+      eqclass.add(i);
+    }
+
     writeln(eqclass);
   }
 }
