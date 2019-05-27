@@ -22,6 +22,10 @@ Vectors
 
    .. method:: proc append(elt: eltType)
 
+   .. method:: proc append(elts: [] eltType)
+
+   .. method:: proc append(ir: _iteratorRecord)
+
    .. method:: proc sort()
 
    .. method:: proc this(idx: integral) ref
@@ -51,6 +55,10 @@ Vectors
    .. method:: proc init(type eltType, dom, growthRate = VectorGrowthRate)
 
    .. method:: override proc append(elt: eltType)
+
+   .. method:: override proc append(elts: [] eltType)
+
+   .. method:: override proc append(ir: _iteratorRecord)
 
    .. method:: override proc sort()
 

@@ -92,6 +92,7 @@
 <li class="toctree-l1"><a class="reference internal" href="modules/src/CHGL.html">CHGL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/src/Components.html">Components</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/src/DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/src/EquivalenceClasses.html">EquivalenceClasses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/src/FIFOChannel.html">FIFOChannel</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/src/Generation.html">Generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/src/Graph.html">Graph</a></li>
@@ -164,6 +165,7 @@
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
@@ -343,6 +345,14 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.accumulate">accumulate() (EquivalenceClasses.ReduceEQClass method)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.accumulateOntoState">accumulateOntoState() (EquivalenceClasses.ReduceEQClass method)</a>
+  </dt>
+
+      
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.Lock.acquire">acquire() (AdjListHyperGraph.Lock method)</a>
   </dt>
 
@@ -357,9 +367,15 @@
   </dt>
 
       
-  <dt><a href="modules/src/WorkQueue.html#WorkQueue.Bag.add">add() (WorkQueue.Bag method)</a>
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.add">add() (EquivalenceClasses.Equivalence method)</a>, <a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.add">[1]</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="modules/src/WorkQueue.html#WorkQueue.Bag.add">(WorkQueue.Bag method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="modules/src/Graph.html#Graph.GraphImpl.addEdge">addEdge() (Graph.GraphImpl method)</a>, <a href="modules/src/Graph.html#Graph.GraphImpl.addEdge">[1]</a>
   </dt>
@@ -422,6 +438,8 @@
   <dt><a href="modules/src/DynamicAggregationBuffer.html#DynamicAggregationBuffer.DynamicAggregatorImpl.agg">agg (DynamicAggregationBuffer.DynamicAggregatorImpl attribute)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/AggregationBuffer.html#AggregationBuffer.AggregatorImpl.aggregate">aggregate() (AggregationBuffer.AggregatorImpl method)</a>, <a href="modules/src/AggregationBuffer.html#AggregationBuffer.AggregatorImpl.aggregate">[1]</a>
   </dt>
@@ -432,8 +450,6 @@
   </dt>
 
       </dl></dd>
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/AggregationBuffer.html#module-AggregationBuffer">AggregationBuffer (module)</a>
   </dt>
@@ -496,11 +512,11 @@
   </dt>
 
         
-  <dt><a href="modules/src/Vectors.html#Vectors.Vector.append">(Vectors.Vector method)</a>
+  <dt><a href="modules/src/Vectors.html#Vectors.Vector.append">(Vectors.Vector method)</a>, <a href="modules/src/Vectors.html#Vectors.Vector.append">[1]</a>, <a href="modules/src/Vectors.html#Vectors.Vector.append">[2]</a>
   </dt>
 
         
-  <dt><a href="modules/src/Vectors.html#Vectors.VectorImpl.append">(Vectors.VectorImpl method)</a>
+  <dt><a href="modules/src/Vectors.html#Vectors.VectorImpl.append">(Vectors.VectorImpl method)</a>, <a href="modules/src/Vectors.html#Vectors.VectorImpl.append">[1]</a>, <a href="modules/src/Vectors.html#Vectors.VectorImpl.append">[2]</a>
   </dt>
 
       </dl></dd>
@@ -609,6 +625,14 @@
   </dt>
 
       
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.candidates">candidates (EquivalenceClasses.Equivalence attribute)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.candidatesDom">candidatesDom (EquivalenceClasses.Equivalence attribute)</a>
+  </dt>
+
+      
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.NodeData.canWalk">canWalk() (AdjListHyperGraph.NodeData method)</a>
   </dt>
 
@@ -688,6 +712,10 @@
   </dt>
 
         
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.clone">(EquivalenceClasses.ReduceEQClass method)</a>
+  </dt>
+
+        
   <dt><a href="modules/src/PropertyMap.html#PropertyMap.PropertyMap.clone">(PropertyMap.PropertyMap method)</a>
   </dt>
 
@@ -700,6 +728,16 @@
   <dt><a href="modules/src/FIFOChannel.html#FIFOChannel.Channel.closed">closed (FIFOChannel.Channel attribute)</a>
   </dt>
 
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.cmpType">cmpType (EquivalenceClasses.Equivalence attribute)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.cmpType">(EquivalenceClasses.ReduceEQClass attribute)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.AdjListHyperGraphImpl.collapse">collapse() (AdjListHyperGraph.AdjListHyperGraphImpl method)</a>
   </dt>
@@ -718,6 +756,10 @@
 
       
   <dt><a href="modules/src/Butterfly.html#Butterfly.combinations">combinations() (in module Butterfly)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.combine">combine() (EquivalenceClasses.ReduceEQClass method)</a>
   </dt>
 
       
@@ -1002,8 +1044,6 @@
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.AdjListHyperGraphImpl.edgesDist">edgesDist() (AdjListHyperGraph.AdjListHyperGraphImpl method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.AdjListHyperGraphImpl.edgesDomain">edgesDomain() (AdjListHyperGraph.AdjListHyperGraphImpl method)</a>
   </dt>
@@ -1012,6 +1052,8 @@
   <dt><a href="modules/src/Butterfly.html#Butterfly.AdjListHyperGraphImpl.edgesWithDegree">edgesWithDegree() (Butterfly.AdjListHyperGraphImpl iterator)</a>, <a href="modules/src/Butterfly.html#Butterfly.AdjListHyperGraphImpl.edgesWithDegree">[1]</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/SMetrics.html#SMetrics.WalkState.edgeType">edgeType (SMetrics.WalkState attribute)</a>
   </dt>
@@ -1059,7 +1101,23 @@
   </dt>
 
       
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.eqclasses">eqclasses (EquivalenceClasses.Equivalence attribute)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.eqclassesDom">eqclassesDom (EquivalenceClasses.Equivalence attribute)</a>
+  </dt>
+
+      
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.NodeData.equals">equals() (AdjListHyperGraph.NodeData method)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence">Equivalence (class in EquivalenceClasses)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#module-EquivalenceClasses">EquivalenceClasses (module)</a>
   </dt>
 
       
@@ -1130,6 +1188,10 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.generate">generate() (EquivalenceClasses.ReduceEQClass method)</a>
+  </dt>
+
       
   <dt><a href="modules/src/Generation.html#Generation.generateBTER">generateBTER() (in module Generation)</a>
   </dt>
@@ -1262,12 +1324,12 @@
   <dt><a href="modules/src/Butterfly.html#Butterfly.AdjListHyperGraphImpl.getInclusionNumButterflies">getInclusionNumButterflies() (Butterfly.AdjListHyperGraphImpl method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/Butterfly.html#Butterfly.AdjListHyperGraphImpl.getInclusionNumCaterpillars">getInclusionNumCaterpillars() (Butterfly.AdjListHyperGraphImpl method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.AdjListHyperGraphImpl.getInclusions">getInclusions() (AdjListHyperGraph.AdjListHyperGraphImpl method)</a>
   </dt>
@@ -1461,6 +1523,10 @@
   </dt>
 
       
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.identity">identity() (EquivalenceClasses.ReduceEQClass method)</a>
+  </dt>
+
+      
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.Wrapper.idType">idType (AdjListHyperGraph.Wrapper attribute)</a>
   </dt>
 
@@ -1519,6 +1585,10 @@
 
         
   <dt><a href="modules/src/DynamicAggregationBuffer.html#DynamicAggregationBuffer.DynamicAggregatorImpl.init">(DynamicAggregationBuffer.DynamicAggregatorImpl method)</a>, <a href="modules/src/DynamicAggregationBuffer.html#DynamicAggregationBuffer.DynamicAggregatorImpl.init">[1]</a>
+  </dt>
+
+        
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.init">(EquivalenceClasses.Equivalence method)</a>, <a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.init">[1]</a>, <a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.init">[2]</a>
   </dt>
 
         
@@ -1715,6 +1785,28 @@
   </dl></td>
 </tr></table>
 
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.keyToCmp">keyToCmp (EquivalenceClasses.Equivalence attribute)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.keyType">keyType (EquivalenceClasses.Equivalence attribute)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.keyType">(EquivalenceClasses.ReduceEQClass attribute)</a>
+  </dt>
+
+      </dl></dd>
+  </dl></td>
+</tr></table>
+
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
@@ -1767,6 +1859,10 @@
   </dt>
 
       <dd><dl>
+        
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.main">(in module EquivalenceClasses)</a>
+  </dt>
+
         
   <dt><a href="modules/src/LocalAtomicObject.html#LocalAtomicObject.main">(in module LocalAtomicObject)</a>
   </dt>
@@ -2100,12 +2196,20 @@
   </dt>
 
         
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.Equivalence.readWriteThis">(EquivalenceClasses.Equivalence method)</a>
+  </dt>
+
+        
   <dt><a href="modules/src/Vectors.html#Vectors.VectorImpl.readWriteThis">(Vectors.VectorImpl method)</a>
   </dt>
 
       </dl></dd>
       
   <dt><a href="modules/src/FIFOChannel.html#FIFOChannel.Channel.recv">recv() (FIFOChannel.Channel method)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass">ReduceEQClass (class in EquivalenceClasses)</a>
   </dt>
 
       
@@ -2122,12 +2226,12 @@
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.releaseLocks">releaseLocks() (in module AdjListHyperGraph)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/WorkQueue.html#WorkQueue.Bag.remove">remove() (WorkQueue.Bag method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/AdjListHyperGraph.html#AdjListHyperGraph.AdjListHyperGraphImpl.removeDuplicates">removeDuplicates() (AdjListHyperGraph.AdjListHyperGraphImpl method)</a>
   </dt>
@@ -2438,6 +2542,10 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="modules/src/Graph.html#Graph.GraphImpl.validateCache">validateCache() (Graph.GraphImpl method)</a>
+  </dt>
+
+      
+  <dt><a href="modules/src/EquivalenceClasses.html#EquivalenceClasses.ReduceEQClass.value">value (EquivalenceClasses.ReduceEQClass attribute)</a>
   </dt>
 
       

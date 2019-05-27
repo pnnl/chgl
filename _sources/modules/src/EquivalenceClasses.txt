@@ -1,0 +1,62 @@
+.. default-domain:: chpl
+
+.. module:: EquivalenceClasses
+
+EquivalenceClasses
+==================
+**Usage**
+
+.. code-block:: chapel
+
+   use EquivalenceClasses;
+
+.. class:: Equivalence
+
+   .. attribute:: type keyType
+
+   .. attribute:: type cmpType
+
+   .. attribute:: var eqclassesDom: domain(cmpType)
+
+   .. attribute:: var eqclasses: [eqclassesDom] keyType
+
+   .. attribute:: var candidatesDom: domain(keyType)
+
+   .. attribute:: var candidates: [candidatesDom] unmanaged Vector(keyType)
+
+   .. attribute:: var keyToCmp: keyTypefunccmpType
+
+   .. method:: proc init(type keyType)
+
+   .. method:: proc init(type keyType, type cmpType, keyToCmp: keyTypefunccmpType)
+
+   .. method:: proc init(type keyType, keyToCmp)
+
+   .. method:: proc add(key: keyType)
+
+   .. method:: proc add(other: this.type )
+
+   .. method:: proc readWriteThis(f)
+
+.. class:: ReduceEQClass : ReduceScanOp
+
+   .. attribute:: type keyType
+
+   .. attribute:: type cmpType
+
+   .. attribute:: var value: keyTypeEquivalencecmpType
+
+   .. method:: proc identity
+
+   .. method:: proc accumulate(x)
+
+   .. method:: proc accumulateOntoState(ref state, x)
+
+   .. method:: proc combine(x)
+
+   .. method:: proc generate()
+
+   .. method:: proc clone()
+
+.. function:: proc main()
+
