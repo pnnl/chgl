@@ -96,7 +96,7 @@ WorkQueue
 
    .. attribute:: type eltType
 
-   .. attribute:: var startIdxEnq: atomicuint
+   .. attribute:: var startIdxEnq: chpl__processorAtomicType(uint)
 
       
       Helps evenly distribute and balance placement of elements in a best-effort
@@ -105,7 +105,7 @@ WorkQueue
       chance to find our 'ideal' segment.
       
 
-   .. attribute:: var startIdxDeq: atomicuint
+   .. attribute:: var startIdxDeq: chpl__processorAtomicType(uint)
 
    .. attribute:: var maxParallelSegmentSpace = {0..#here.maxTaskPar}
 

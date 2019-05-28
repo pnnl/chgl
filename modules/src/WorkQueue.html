@@ -374,7 +374,7 @@
 
 <dl class="attribute">
 <dt id="WorkQueue.Bag.startIdxEnq">
-<em class="property">var </em><code class="descname">startIdxEnq</code>: atomicuint<a class="headerlink" href="#WorkQueue.Bag.startIdxEnq" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">startIdxEnq</code>: chpl__processorAtomicType(uint)<a class="headerlink" href="#WorkQueue.Bag.startIdxEnq" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helps evenly distribute and balance placement of elements in a best-effort
 round-robin approach. In the case where we have parallel enqueues or dequeues,
 they are less likely overlap with each other. Furthermore, it increases our
@@ -383,7 +383,7 @@ chance to find our &#8216;ideal&#8217; segment.</p>
 
 <dl class="attribute">
 <dt id="WorkQueue.Bag.startIdxDeq">
-<em class="property">var </em><code class="descname">startIdxDeq</code>: atomicuint<a class="headerlink" href="#WorkQueue.Bag.startIdxDeq" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">startIdxDeq</code>: chpl__processorAtomicType(uint)<a class="headerlink" href="#WorkQueue.Bag.startIdxDeq" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
