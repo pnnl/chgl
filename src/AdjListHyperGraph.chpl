@@ -556,6 +556,7 @@ module AdjListHyperGraph {
     type eltType;
     var dom = {0..-1};
     var arr : [dom] eltType;
+    var hash : uint;
 
     proc init(type eltType) {
       this.eltType = eltType;
@@ -565,24 +566,27 @@ module AdjListHyperGraph {
       this.eltType = eltType;
       this.dom = dom;
       this.arr = arr;
+      this.complete();
+      for (ix, a) in zip(1.., arr) {
+        this.hash = chpl__defaultHashCombine(chpl__defaultHash(a), this.hash, ix);
+      }
     }
   }
 
   proc ==(a: ArrayWrapper, b: ArrayWrapper) {
     if a.arr.size != b.arr.size then return false;
-    return && reduce (a.arr == b.arr);
+    for (_a, _b) in zip(a.arr,b.arr) do if _a != _b then return false;
+    return true;
   }
+
   proc !=(a: ArrayWrapper, b: ArrayWrapper) {
     if a.arr.size != b.arr.size then return true;
-    return || reduce (a.arr != b.arr);
+    for (_a, _b) in zip(a.arr,b.arr) do if _a != _b then return true;
+    return false;
   }
 
   inline proc chpl__defaultHash(r : ArrayWrapper): uint {
-    var ret : uint;
-    for (ix, a) in zip(1.., r.arr) {
-      ret = chpl__defaultHashCombine(chpl__defaultHash(a), ret, ix);
-    }
-    return ret;
+    return r.hash;
   }
 
   record Vertex {}
@@ -655,34 +659,6 @@ module AdjListHyperGraph {
   }
   proc id ( wrapper ) {
     return wrapper.id;
-  }
-
-  record EdgeEQ {
-    var graph;
-
-    proc init(graph) {
-      this.graph = graph;
-    }
-
-    proc this(e : graph.eDescType) {
-        var tmp = graph._edges[e.id].incident[0..#graph._edges[e.id].degree];
-        sort(tmp);
-        return new ArrayWrapper(tmp);
-    }
-  }
-
-  record VertexEQ {
-    var graph;
-
-    proc init(graph) {
-      this.graph = graph;
-    }
-
-    proc this(v : graph.vDescType) {
-        var tmp = graph._vertices[v.id].incident[0..#graph._vertices[v.id].degree];
-        sort(tmp);
-        return new ArrayWrapper(tmp);
-    }
   }
 
   enum InclusionType { Vertex, Edge }
@@ -1062,23 +1038,24 @@ module AdjListHyperGraph {
         // parallel across multiple cores if possible. 
         // Step 3: Take pairs of locales and handle merging their equivalent classes into a single
         // equivalence class. Then count the number of unique vertices.
-        var eqclass = new unmanaged Equivalence(vDescType, ArrayWrapper(eDescType));
+        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
         
         var redux = eqclass.reduction();
         forall v in _verticesDomain with (redux reduce eqclass) {
           var _this = getPrivatizedInstance();
-          var tmp = _this.getVertex(v).incident[0..#_this.getVertex(v).degree];
+          var _v = _this.toVertex(v);
+          var tmp = [e in _this.incidence(_v)] e.id;
           sort(tmp);
-          eqclass.add(_this.toVertex(v), new ArrayWrapper(tmp));
+          eqclass.add(v, new ArrayWrapper(tmp));
         }
         
         var numUnique : int;
         forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
           numUnique += 1;
           for follower in eqclass.getCandidates(leader) {
-            delete _vertices[follower.id];
-            _vertices[follower.id] = nil;
-            duplicateVertices[follower.id].write(leader.id);
+            delete _vertices[follower];
+            _vertices[follower] = nil;
+            duplicateVertices[follower].write(leader);
           }
         }
         delete eqclass;
@@ -1236,22 +1213,23 @@ module AdjListHyperGraph {
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
         //writeln("Marking and Deleting Edges...");
-        var eqclass = new unmanaged Equivalence(eDescType, ArrayWrapper(vDescType));
+        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
         var redux = eqclass.reduction();
         forall e in _edgesDomain with (redux reduce eqclass) {
           var _this = getPrivatizedInstance();
-          var tmp = _this.getEdge(e).incident[0..#_this.getEdge(e).degree];
+          var _e = _this.toEdge(e);
+          var tmp = [v in _this.incidence(_e)] v.id;
           sort(tmp);
-          eqclass.add(_this.toEdge(e), new ArrayWrapper(tmp));
+          eqclass.add(e, new ArrayWrapper(tmp));
         }
         
         var numUnique : int;
         forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
           numUnique += 1;
           for follower in eqclass.getCandidates(leader) {
-            delete _edges[follower.id];
-            _edges[follower.id] = nil;
-            duplicateEdges[follower.id].write(leader.id);
+            delete _edges[follower];
+            _edges[follower] = nil;
+            duplicateEdges[follower].write(leader);
           }
         }
         delete eqclass;
