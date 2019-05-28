@@ -31,12 +31,10 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
       var time = new Timer();
       time.start();
       while true {
-        sleep(t=1, unit=TimeUnits.milliseconds);
         if wq.asyncTasks.hasTerminated() && td.hasTerminated() { 
           keepAlive.write(false);
           break;
         }
-        chpl_task_yield();
         
         var currSize = wq.size;
         var delta = currSize - lastSize;
@@ -45,18 +43,30 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
         if velocity < workQueueMinVelocityForFlush {
           wq.flushLocal();
         }
+        sleep(t=1, unit=TimeUnits.milliseconds);
       }
     }
 
     coforall tid in 1..here.maxTaskPar {
+      var timer = new Timer();
+      var timerRunning = false;
       label loop while keepAlive.read() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
+          if !timerRunning {
+            timer.start();
+            timerRunning = true;
+          }
           chpl_task_yield();
           continue;
         }
+        if timerRunning {
+          timerRunning = false;
+          timer.stop();
+        }
         yield workItem;
       }
+      writeln("Task#", here.id, "-", tid, " spent ", timer.elapsed(TimeUnits.milliseconds), "ms waiting!");
     }
   }
 }
@@ -185,7 +195,7 @@ class WorkQueueImpl {
             var arr = buffer.getArray();
             var _this = getPrivatizedInstance();
             buffer.done();
-            _this.queue.add(arr);
+            local do _this.queue.add(arr);
             _this.asyncTasks.finished(1);
           }
         }
@@ -195,17 +205,19 @@ class WorkQueueImpl {
         return;
       } else {
         on Locales[locid] {
-          getPrivatizedInstance().queue.add(work);
+          local do getPrivatizedInstance().queue.add(work);
         }
         return;
       }
     }
 
-    queue.add(work);
+    local do queue.add(work);
   }
     
   proc getWork() : (bool, workType) {
-    return queue.remove();
+    var retval : (bool, workType);
+    local do retval = queue.remove();
+    return retval;
   }
 
   proc isEmpty() return this.size == 0;
@@ -215,14 +227,14 @@ class WorkQueueImpl {
       for (buf, loc) in destBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();        
         var arr = buf.getArray();
-        _this.queue.add(arr);
+        local do _this.queue.add(arr);
         buf.done();
       }
     } else if dynamicDestBuffer.isInitialized() {
       for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        _this.queue.add(arr);
+        local do _this.queue.add(arr);
         buf.done();
       }
     }
@@ -233,14 +245,14 @@ class WorkQueueImpl {
       forall (buf, loc) in destBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        _this.queue.add(arr);
+        local do _this.queue.add(arr);
         buf.done();
       }
     } else if dynamicDestBuffer.isInitialized() {
       forall (buf, loc) in dynamicDestBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        _this.queue.add(arr);
+        local do _this.queue.add(arr);
         buf.done();
       }
     }
@@ -288,8 +300,8 @@ class Bag {
      they are less likely overlap with each other. Furthermore, it increases our
      chance to find our 'ideal' segment.
   */
-  var startIdxEnq : atomic uint;
-  var startIdxDeq : atomic uint;
+  var startIdxEnq : chpl__processorAtomicType(uint);
+  var startIdxDeq : chpl__processorAtomicType(uint);
 
   var maxParallelSegmentSpace = {0..#here.maxTaskPar};
   var segments : [maxParallelSegmentSpace] BagSegment(eltType);
@@ -551,12 +563,12 @@ record BagSegment {
   type eltType;
 
   // Used as a test-and-test-and-set spinlock.
-  var status : atomic uint;
+  var status : chpl__processorAtomicType(uint);
 
   var headBlock : unmanaged BagSegmentBlock(eltType);
   var tailBlock : unmanaged BagSegmentBlock(eltType);
 
-  var nElems : atomic uint;
+  var nElems : chpl__processorAtomicType(uint);
 
   inline proc isEmpty {
     return nElems.read() == 0;
