@@ -396,7 +396,33 @@ module AggregationBuffer {
     }
 
     iter flushLocal(targetLocales = Locales) : (unmanaged Buffer(msgType), locale) {
-      halt("Serial 'flushLocal' not implemented...");
+      for loc in targetLocales {
+        // Flush destination buffer for each locale
+        var buf = destinationBuffers[loc.id];
+        var stolen = buf._stolen.testAndSet() == false;
+        
+        // If we stole the buffer handle flushing it...
+        // Note that if the buffer is being processed or
+        // in the recycle list,we are unable to steal it.
+        // Hence we only steal valid buffers.
+        if stolen {
+          // Simultaneously prevent new tasks from claiming indices
+          // and obtain number of previously claimed indices.
+          var claimed = buf._claimed.exchange(buf.cap);
+          // Non-empty buffer
+          if claimed > 0 {
+            destinationBuffers[loc.id] = bufferPools[loc.id].getBuffer();
+            // Wait for previous tasks that have claimed their
+            // indices to finish.
+            buf._filled.waitFor(claimed);
+            yield (buf, loc);
+          } else {
+            // Clear the 'stolen' status;  the buffer does not get
+            // swapped out so it is safe to do this.
+            buf.reset();
+          }
+        }
+      }
     }
 
     iter flushLocal(targetLocales = Locales, param tag : iterKind) : (unmanaged Buffer(msgType), locale) where tag == iterKind.standalone {

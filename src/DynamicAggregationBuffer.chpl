@@ -146,11 +146,33 @@ module DynamicAggregationBuffer {
       }
     }
 
-    iter flush() : (DynamicBuffer(msgType), locale) {
+    iter flushLocal() : (DynamicBuffer(msgType), locale) {
+     for (buf, loc) in agg.flushLocal() {
+        dynamicDestBuffers[loc.id].append(buf.getArray());
+        buf.done();
+      }
+      // Give dynamic buffers to users
+      for (buf, loc) in zip(dynamicDestBuffers, dynamicDestBuffers.domain) {
+        if buf.size != 0 then yield (buf, Locales[loc]);
+      }
+    }
+
+    iter flushLocal(param tag : iterKind) where tag == iterKind.standalone {
+     forall (buf, loc) in agg.flushLocal() {
+        dynamicDestBuffers[loc.id].append(buf.getArray());
+        buf.done();
+      }
+      // Give dynamic buffers to users
+      forall (buf, loc) in zip(dynamicDestBuffers, dynamicDestBuffers.domain) {
+        if buf.size != 0 then yield (buf, Locales[loc]);
+      }
+    }
+
+    iter flushGlobal() : (DynamicBuffer(msgType), locale) {
       halt("Serial 'flush' not implemented, use 'forall'...");
     }
-    
-    iter flush(param tag : iterKind) : (DynamicBuffer(msgType), locale) where tag == iterKind.standalone {
+     
+    iter flushGlobal(param tag : iterKind) : (DynamicBuffer(msgType), locale) where tag == iterKind.standalone {
       // Flush aggregator first...
       forall (buf, loc) in agg.flushGlobal() {
         getPrivatizedInstance().dynamicDestBuffers[loc.id].append(buf.getArray());

@@ -1,9 +1,11 @@
 use AggregationBuffer;
 use DynamicAggregationBuffer;
 use TerminationDetection;
+use Time;
 
 config const workQueueMinTightSpinCount = 8;
 config const workQueueMaxTightSpinCount = 1024;
+config const workQueueMinVelocityForFlush = 0.1;
 
 param WorkQueueUnlimitedAggregation = -1;
 param WorkQueueNoAggregation = 0;
@@ -22,26 +24,36 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType 
 
 iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag : iterKind) : workType where tag == iterKind.standalone {
   coforall loc in Locales do on loc {
+    var keepAlive : atomic bool;
+    keepAlive.write(true);
+    begin {
+      var lastSize = 0;
+      var time = new Timer();
+      time.start();
+      while true {
+        sleep(t=1, unit=TimeUnits.milliseconds);
+        if wq.asyncTasks.hasTerminated() && td.hasTerminated() { 
+          keepAlive.write(false);
+          break;
+        }
+        chpl_task_yield();
+        
+        var currSize = wq.size;
+        var delta = currSize - lastSize;
+        var velocity = delta / time.elapsed(TimeUnits.milliseconds);
+        time.clear();
+        if velocity < workQueueMinVelocityForFlush {
+          wq.flushLocal();
+        }
+      }
+    }
+
     coforall tid in 1..here.maxTaskPar {
-      var workQueueTightSpinCount = workQueueMinTightSpinCount;
-      label loop while !wq.isShutdown() {
+      label loop while keepAlive.read() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
-          for 1..workQueueTightSpinCount {
-            chpl_task_yield();
-            if wq.size != 0 {
-              hasWork = true;
-              break;
-            }
-          }
-          if hasWork {
-            workQueueTightSpinCount = workQueueMinTightSpinCount;
-            continue;
-          } else {
-            if wq.asyncTasks.hasTerminated() && td.hasTerminated() then break;
-            workQueueTightSpinCount = min(workQueueMaxTightSpinCount, workQueueTightSpinCount * 2);
-            continue;
-          } 
+          chpl_task_yield();
+          continue;
         }
         yield workItem;
       }
@@ -192,11 +204,29 @@ class WorkQueueImpl {
     queue.add(work);
   }
     
-  proc getWork(fast = false) : (bool, workType) {
+  proc getWork() : (bool, workType) {
     return queue.remove();
   }
 
   proc isEmpty() return this.size == 0;
+
+  proc flushLocal() {
+    if destBuffer.isInitialized() {
+      for (buf, loc) in destBuffer.flushLocal() do on loc {
+        var _this = getPrivatizedInstance();        
+        var arr = buf.getArray();
+        _this.queue.add(arr);
+        buf.done();
+      }
+    } else if dynamicDestBuffer.isInitialized() {
+      for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
+        var _this = getPrivatizedInstance();
+        var arr = buf.getArray();
+        _this.queue.add(arr);
+        buf.done();
+      }
+    }
+  }
 
   proc flush() {
     if destBuffer.isInitialized() {
@@ -207,7 +237,7 @@ class WorkQueueImpl {
         buf.done();
       }
     } else if dynamicDestBuffer.isInitialized() {
-      forall (buf, loc) in dynamicDestBuffer.flush() do on loc {
+      forall (buf, loc) in dynamicDestBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
         _this.queue.add(arr);

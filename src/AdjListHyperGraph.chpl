@@ -1066,9 +1066,10 @@ module AdjListHyperGraph {
         
         var redux = eqclass.reduction();
         forall v in _verticesDomain with (redux reduce eqclass) {
-          var tmp = _vertices[v].incident[0..#_vertices[v].degree];
+          var _this = getPrivatizedInstance();
+          var tmp = _this.getVertex(v).incident[0..#_this.getVertex(v).degree];
           sort(tmp);
-          eqclass.add(toVertex(v), new ArrayWrapper(tmp));
+          eqclass.add(_this.toVertex(v), new ArrayWrapper(tmp));
         }
         
         var numUnique : int;
@@ -1238,9 +1239,10 @@ module AdjListHyperGraph {
         var eqclass = new unmanaged Equivalence(eDescType, ArrayWrapper(vDescType));
         var redux = eqclass.reduction();
         forall e in _edgesDomain with (redux reduce eqclass) {
-          var tmp = _edges[e].incident[0..#_edges[e].degree];
+          var _this = getPrivatizedInstance();
+          var tmp = _this.getEdge(e).incident[0..#_this.getEdge(e).degree];
           sort(tmp);
-          eqclass.add(toEdge(e), new ArrayWrapper(tmp));
+          eqclass.add(_this.toEdge(e), new ArrayWrapper(tmp));
         }
         
         var numUnique : int;
