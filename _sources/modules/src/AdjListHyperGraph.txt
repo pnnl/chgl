@@ -204,6 +204,8 @@ with Cray copyright and Apache license (see the Chapel repo).
 
    .. attribute:: var arr: [dom] eltType
 
+   .. attribute:: var hash: uint
+
    .. method:: proc init(type eltType)
 
    .. method:: proc init(arr: [?dom] ?eltType)
@@ -259,22 +261,6 @@ with Cray copyright and Apache license (see the Chapel repo).
 .. function:: proc _cast(type t: ?nodeTypeWrapper?idType, id)
 
 .. function:: proc id(wrapper)
-
-.. record:: EdgeEQ
-
-   .. attribute:: var graph
-
-   .. method:: proc init(graph)
-
-   .. method:: proc this(e: graph.eDescType)
-
-.. record:: VertexEQ
-
-   .. attribute:: var graph
-
-   .. method:: proc init(graph)
-
-   .. method:: proc this(v: graph.vDescType)
 
 .. enum:: enum InclusionType { Vertex, Edge }
 
