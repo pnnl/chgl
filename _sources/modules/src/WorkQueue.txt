@@ -14,6 +14,8 @@ WorkQueue
 
 .. data:: config const workQueueMaxTightSpinCount = 1024
 
+.. data:: config const workQueueMinVelocityForFlush = 0.1
+
 .. data:: param WorkQueueUnlimitedAggregation = -1
 
 .. data:: param WorkQueueNoAggregation = 0
@@ -78,9 +80,11 @@ WorkQueue
 
    .. method:: proc addWork(work: workType, locid = here.id)
 
-   .. method:: proc getWork(fast = false): (bool, workType)
+   .. method:: proc getWork(): (bool, workType)
 
    .. method:: proc isEmpty()
+
+   .. method:: proc flushLocal()
 
    .. method:: proc flush()
 

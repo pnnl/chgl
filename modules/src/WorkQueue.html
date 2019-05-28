@@ -170,6 +170,11 @@
 <dd></dd></dl>
 
 <dl class="data">
+<dt id="WorkQueue.workQueueMinVelocityForFlush">
+<em class="property">config const </em><code class="descname">workQueueMinVelocityForFlush</code> = 0.1<a class="headerlink" href="#WorkQueue.workQueueMinVelocityForFlush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
 <dt id="WorkQueue.WorkQueueUnlimitedAggregation">
 <em class="property">param </em><code class="descname">WorkQueueUnlimitedAggregation</code> = -1<a class="headerlink" href="#WorkQueue.WorkQueueUnlimitedAggregation" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -329,12 +334,17 @@
 
 <dl class="method">
 <dt id="WorkQueue.WorkQueueImpl.getWork">
-<em class="property">proc </em><code class="descname">getWork</code><span class="sig-paren">(</span><em>fast = false</em><span class="sig-paren">)</span>: (bool, workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.getWork" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">getWork</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (bool, workType)<a class="headerlink" href="#WorkQueue.WorkQueueImpl.getWork" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="WorkQueue.WorkQueueImpl.isEmpty">
 <em class="property">proc </em><code class="descname">isEmpty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.isEmpty" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.WorkQueueImpl.flushLocal">
+<em class="property">proc </em><code class="descname">flushLocal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.flushLocal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

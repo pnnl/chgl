@@ -86,7 +86,11 @@ their own background progress task.
 
    .. method:: proc aggregate(msg: msgType, locid: int): void
 
-   .. itermethod:: iter flush(): (DynamicBuffer(msgType), locale)
+   .. itermethod:: iter flushLocal(): (DynamicBuffer(msgType), locale)
 
-   .. itermethod:: iter flush(param tag: iterKind): (DynamicBuffer(msgType), locale)
+   .. itermethod:: iter flushLocal(param tag: iterKind)
+
+   .. itermethod:: iter flushGlobal(): (DynamicBuffer(msgType), locale)
+
+   .. itermethod:: iter flushGlobal(param tag: iterKind): (DynamicBuffer(msgType), locale)
 
