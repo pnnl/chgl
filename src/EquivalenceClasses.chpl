@@ -8,28 +8,42 @@ module EquivalenceClasses {
     var eqclasses : [eqclassesDom] keyType;
     var candidatesDom : domain(keyType);
     var candidates : [candidatesDom] domain(keyType);
-    var keyToCmp : func(keyType, cmpType);
 
     proc init(type keyType) {
       this.keyType = keyType;
       this.cmpType = keyType;
-      this.keyToCmp = lambda(x : keyType) : keyType { return x; };
     }
 
-    proc init(type keyType, type cmpType, keyToCmp : func(keyType, cmpType)) {
+    proc init(type keyType, type cmpType) {
       this.keyType = keyType;
       this.cmpType = cmpType;
-      this.keyToCmp = keyToCmp;
     }
 
-    proc init(type keyType, keyToCmp) {
-      this.keyType = keyType;
-      this.cmpType = keyToCmp.retType;
-      this.keyToCmp = keyToCmp;
+    iter getEquivalenceClasses() : keyType {
+      for key in eqclasses do yield key;
+    }
+
+    iter getEquivalenceClasses(param tag : iterKind) : keyType where tag == iterKind.standalone {
+      forall key in eqclasses do yield key;
+    }
+
+    iter getCandidates(key : keyType) : keyType {
+      for candidate in candidates[key] {
+        yield candidate;
+      }
+    }
+
+    iter getCandidates(key : keyType, param tag : iterKind) : keyType where tag == iterKind.standalone {
+      forall candidate in candidates[key] {
+        yield candidate;
+      }
     }
 
     proc add(key : keyType) {
-      var x = keyToCmp(key);
+      add(key, key);
+    }
+
+    proc add(key : keyType, x : cmpType) {
       if eqclassesDom.contains(x) {
         var y = eqclasses[x];
         candidates[y] += key;
@@ -78,13 +92,13 @@ module EquivalenceClasses {
       this.value = eq;
     }
 
-    proc init(type keyType, type cmpType, keyToCmp) {
+    proc init(type keyType, type cmpType) {
       this.keyType = keyType;
       this.cmpType = cmpType;
-      this.value = new unmanaged Equivalence(keyType, cmpType, keyToCmp);
+      this.value = new unmanaged Equivalence(keyType, cmpType);
     }
 
-    proc identity return new unmanaged Equivalence(keyType, cmpType, value.keyToCmp);
+    proc identity return new unmanaged Equivalence(keyType, cmpType);
     proc accumulate(x) {
       value.add(x);
     }
@@ -95,7 +109,7 @@ module EquivalenceClasses {
       value.add(x.value);
     }
     proc generate() return value;
-    proc clone() return new unmanaged ReduceEQClass(keyType, cmpType, value.keyToCmp);
+    proc clone() return new unmanaged ReduceEQClass(keyType, cmpType);
   }
 
   proc main() {

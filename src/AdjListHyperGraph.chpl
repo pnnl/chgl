@@ -21,6 +21,7 @@ module AdjListHyperGraph {
   use AggregationBuffer;
   use Vectors;
   use PropertyMap;
+  use EquivalenceClasses;
   
   /*
     Disable aggregation. This will cause all calls to `addInclusionBuffered` to go to `addInclusion` and
@@ -552,9 +553,21 @@ module AdjListHyperGraph {
   }
 
   record ArrayWrapper {
+    type eltType;
     var dom = {0..-1};
-    var arr : [dom] int;
+    var arr : [dom] eltType;
+
+    proc init(type eltType) {
+      this.eltType = eltType;
+    }
+
+    proc init(arr : [?dom] ?eltType) {
+      this.eltType = eltType;
+      this.dom = dom;
+      this.arr = arr;
+    }
   }
+
   proc ==(a: ArrayWrapper, b: ArrayWrapper) {
     if a.arr.size != b.arr.size then return false;
     return && reduce (a.arr == b.arr);
@@ -566,15 +579,19 @@ module AdjListHyperGraph {
 
   inline proc chpl__defaultHash(r : ArrayWrapper): uint {
     var ret : uint;
-    for (ix, a) in zip(r.dom, r.arr) {
-      ret = chpl__defaultHashCombine(chpl__defaultHash(a), ret, 1);
+    for (ix, a) in zip(1.., r.arr) {
+      ret = chpl__defaultHashCombine(chpl__defaultHash(a), ret, ix);
     }
     return ret;
   }
 
   record Vertex {}
   record Edge   {}
-  
+ 
+  proc chpl__defaultHash(r : Wrapper) {
+    return chpl__defaultHash(r.id);
+  }
+
   pragma "always RVF"
   record Wrapper {
     type nodeType;
@@ -638,6 +655,34 @@ module AdjListHyperGraph {
   }
   proc id ( wrapper ) {
     return wrapper.id;
+  }
+
+  record EdgeEQ {
+    var graph;
+
+    proc init(graph) {
+      this.graph = graph;
+    }
+
+    proc this(e : graph.eDescType) {
+        var tmp = graph._edges[e.id].incident[0..#graph._edges[e.id].degree];
+        sort(tmp);
+        return new ArrayWrapper(tmp);
+    }
+  }
+
+  record VertexEQ {
+    var graph;
+
+    proc init(graph) {
+      this.graph = graph;
+    }
+
+    proc this(v : graph.vDescType) {
+        var tmp = graph._vertices[v.id].incident[0..#graph._vertices[v.id].degree];
+        sort(tmp);
+        return new ArrayWrapper(tmp);
+    }
   }
 
   enum InclusionType { Vertex, Edge }
@@ -1017,30 +1062,25 @@ module AdjListHyperGraph {
         // parallel across multiple cores if possible. 
         // Step 3: Take pairs of locales and handle merging their equivalent classes into a single
         // equivalence class. Then count the number of unique vertices.
-        var vertexSetDomain : domain(ArrayWrapper);
-        var vertexSet : [vertexSetDomain] int;
-        var l$ : sync bool;
-        var numUnique : int;
-        forall v in _verticesDomain with (+ reduce numUnique, ref vertexSetDomain, ref vertexSet) {
-          var tmp = [e in _vertices[v].incident[0..#_vertices[v].degree]] e.id;
+        var eqclass = new unmanaged Equivalence(vDescType, ArrayWrapper(eDescType));
+        
+        var redux = eqclass.reduction();
+        forall v in _verticesDomain with (redux reduce eqclass) {
+          var tmp = _vertices[v].incident[0..#_vertices[v].degree];
           sort(tmp);
-          var vertexArr = new ArrayWrapper();
-          vertexArr.dom = {0..#_vertices[v].degree};
-          vertexArr.arr = tmp;
-          l$ = true;
-          vertexSetDomain.add(vertexArr);
-          var val = vertexSet[vertexArr];
-          if val != 0 {
-            delete _vertices[v];
-            _vertices[v] = nil;
-            duplicateVertices[v].write(val - 1);
-            l$;
-          } else {
-            vertexSet[vertexArr] = v + 1;
-            l$;
-            numUnique += 1;
+          eqclass.add(toVertex(v), new ArrayWrapper(tmp));
+        }
+        
+        var numUnique : int;
+        forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
+          numUnique += 1;
+          for follower in eqclass.getCandidates(leader) {
+            delete _vertices[follower.id];
+            _vertices[follower.id] = nil;
+            duplicateVertices[follower.id].write(leader.id);
           }
         }
+        delete eqclass;
         
         // No need to simplify
         if _verticesDomain.size == numUnique {
@@ -1195,30 +1235,24 @@ module AdjListHyperGraph {
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
         //writeln("Marking and Deleting Edges...");
-        var edgeSetDomain : domain(ArrayWrapper);
-        var edgeSet : [edgeSetDomain] int;
-        var l$ : sync bool;
-        var numUnique : int;
-        forall e in _edgesDomain with (+ reduce numUnique, ref edgeSetDomain, ref edgeSet) {
-          var tmp = [v in _edges[e].incident[0..#_edges[e].degree]] v.id;
+        var eqclass = new unmanaged Equivalence(eDescType, ArrayWrapper(vDescType));
+        var redux = eqclass.reduction();
+        forall e in _edgesDomain with (redux reduce eqclass) {
+          var tmp = _edges[e].incident[0..#_edges[e].degree];
           sort(tmp);
-          var edgeArr = new ArrayWrapper();
-          edgeArr.dom = {0..#_edges[e].degree};
-          edgeArr.arr = tmp;
-          l$ = true;
-          edgeSetDomain.add(edgeArr);
-          var val = edgeSet[edgeArr];
-          if val != 0 {
-            delete _edges[e];
-            _edges[e] = nil;
-            duplicateEdges[e].write(val - 1);
-            l$;
-          } else {
-            edgeSet[edgeArr] = e + 1;
-            l$;
-            numUnique += 1;
+          eqclass.add(toEdge(e), new ArrayWrapper(tmp));
+        }
+        
+        var numUnique : int;
+        forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
+          numUnique += 1;
+          for follower in eqclass.getCandidates(leader) {
+            delete _edges[follower.id];
+            _edges[follower.id] = nil;
+            duplicateEdges[follower.id].write(leader.id);
           }
         }
+        delete eqclass;
         
         // No duplicates, just return
         if _edgesDomain.size == numUnique {
