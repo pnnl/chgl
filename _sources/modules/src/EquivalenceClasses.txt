@@ -24,15 +24,21 @@ EquivalenceClasses
 
    .. attribute:: var candidates: [candidatesDom] domain(keyType)
 
-   .. attribute:: var keyToCmp: keyTypefunccmpType
-
    .. method:: proc init(type keyType)
 
-   .. method:: proc init(type keyType, type cmpType, keyToCmp: keyTypefunccmpType)
+   .. method:: proc init(type keyType, type cmpType)
 
-   .. method:: proc init(type keyType, keyToCmp)
+   .. itermethod:: iter getEquivalenceClasses(): keyType
+
+   .. itermethod:: iter getEquivalenceClasses(param tag: iterKind): keyType
+
+   .. itermethod:: iter getCandidates(key: keyType): keyType
+
+   .. itermethod:: iter getCandidates(key: keyType, param tag: iterKind): keyType
 
    .. method:: proc add(key: keyType)
+
+   .. method:: proc add(key: keyType, x: cmpType)
 
    .. method:: proc add(other: this.type )
 
@@ -50,7 +56,7 @@ EquivalenceClasses
 
    .. method:: proc init(eq: unmanaged ?keyTypeEquivalence?cmpType)
 
-   .. method:: proc init(type keyType, type cmpType, keyToCmp)
+   .. method:: proc init(type keyType, type cmpType)
 
    .. method:: proc identity
 

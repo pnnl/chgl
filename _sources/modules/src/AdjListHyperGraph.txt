@@ -198,9 +198,15 @@ with Cray copyright and Apache license (see the Chapel repo).
 
 .. record:: ArrayWrapper
 
+   .. attribute:: type eltType
+
    .. attribute:: var dom = {0..-1}
 
-   .. attribute:: var arr: [dom] int
+   .. attribute:: var arr: [dom] eltType
+
+   .. method:: proc init(type eltType)
+
+   .. method:: proc init(arr: [?dom] ?eltType)
 
 .. function:: proc ==(a: ArrayWrapper, b: ArrayWrapper)
 
@@ -211,6 +217,8 @@ with Cray copyright and Apache license (see the Chapel repo).
 .. record:: Vertex
 
 .. record:: Edge
+
+.. function:: proc chpl__defaultHash(r: Wrapper)
 
 .. record:: Wrapper
 
@@ -251,6 +259,22 @@ with Cray copyright and Apache license (see the Chapel repo).
 .. function:: proc _cast(type t: ?nodeTypeWrapper?idType, id)
 
 .. function:: proc id(wrapper)
+
+.. record:: EdgeEQ
+
+   .. attribute:: var graph
+
+   .. method:: proc init(graph)
+
+   .. method:: proc this(e: graph.eDescType)
+
+.. record:: VertexEQ
+
+   .. attribute:: var graph
+
+   .. method:: proc init(graph)
+
+   .. method:: proc this(v: graph.vDescType)
 
 .. enum:: enum InclusionType { Vertex, Edge }
 
