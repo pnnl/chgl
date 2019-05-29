@@ -227,14 +227,14 @@ class WorkQueueImpl {
       for (buf, loc) in destBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();        
         var arr = buf.getArray();
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
         buf.done();
       }
     } else if dynamicDestBuffer.isInitialized() {
       for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
         buf.done();
       }
     }
@@ -245,14 +245,14 @@ class WorkQueueImpl {
       forall (buf, loc) in destBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
         buf.done();
       }
     } else if dynamicDestBuffer.isInitialized() {
       forall (buf, loc) in dynamicDestBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
         buf.done();
       }
     }
