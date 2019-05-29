@@ -37,6 +37,7 @@ var currTD = new TerminationDetector(1);
 var nextTD = new TerminationDetector(0);
 current.addWork(graph.toVertex(0));
 var visited : [graph.verticesDomain] atomic bool;
+if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
 var numPhases = 1;
 var lastTime : real;
 timer.start();
@@ -44,14 +45,15 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
     // Set as visited here...
-    var haveVisited : bool;
-    local do haveVisited = visited[vertex.id].testAndSet();
-    if !haveVisited {
+    if CHPL_NETWORK_ATOMICS != "none" || visited[vertex.id].testAndSet() == false {
       for neighbor in graph.neighbors(vertex) {
+        if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor.id].testAndSet() == true {
+          continue;
+        }
         nextTD.started(1);
         next.addWork(neighbor, graph.getLocale(neighbor));
       }
-    }  
+    } 
     currTD.finished(1);
   }
   next <=> current;

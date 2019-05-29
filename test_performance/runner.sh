@@ -30,7 +30,7 @@ graphArr=(${graphs})
 
 for FILE in ${graphArr}; do
     for NODES in 1 2 4 8 16; do
-        for THREADS in 1 2 4 8 16 32 44; do # {1..44}; do
+        for THREADS in 44; do # {1..44}; do
             echo "$( basename -- ${BINARY} )##*.-$( basename -- ${FILE})##*.-${NODES}-${THREADS}"
             qsub - << EOF
                 #!/bin/bash -l
