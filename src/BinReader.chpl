@@ -14,25 +14,10 @@ proc debug(args...?nArgs) where DEBUG_BIN_READER {
 // NOP
 proc debug(args...?nArgs) where !DEBUG_BIN_READER {}
 
-// Reads a binary file, derived from the fileName, into a graph.
-proc binToHypergraph(fileName : string) throws {
-  var f = open(fileName, iomode.r, style = new iostyle(binary=1));
-  var graph = binToHypergraph(f);
-  f.close();
-  return graph;
-}
-
-// Reads a binary file, derived from the fileName, into a graph.
-proc binToGraph(fileName : string) throws {
-  var f = open(fileName, iomode.r, style = new iostyle(binary=1));
-  var graph = binToGraph(f);
-  f.close();
-  return graph;
-}
-
 // Reads a binary file into a graph
-proc binToHypergraph(f : file) throws {
+proc binToHypergraph(dataset : string) throws {
   try! {
+    var f = open(dataset, iomode.r, style = new iostyle(binary=1));
     var reader = f.reader();
 
     // Read in |V| and |E|
@@ -43,6 +28,7 @@ proc binToHypergraph(f : file) throws {
     debug("|V| = " + numVertices);
     debug("|E| = " + numEdges);
     reader.close();
+    f.close();
 
     // Construct graph (distributed)
     var graph = new AdjListHyperGraph(numVertices:int, numEdges:int, new Cyclic(startIdx=0));
@@ -53,6 +39,7 @@ proc binToHypergraph(f : file) throws {
 
     // On each node, independently process the file and offsets...
     coforall loc in Locales do on loc {
+      var f = open(dataset, iomode.r, style = new iostyle(binary=1));      
       debug("Node #", here.id, " beginning to process localSubdomain ", vertexOffsets.localSubdomain());
       // Obtain offset for indices that are local to each node...
       forall idx in vertexOffsets.localSubdomain() {
@@ -93,8 +80,9 @@ proc binToHypergraph(f : file) throws {
   }
 }
 
-proc binToGraph(f : file) {
+proc binToGraph(dataset : string) {
   try! {
+    var f = open(dataset, iomode.r, style = new iostyle(binary=1));
     var reader = f.reader();
 
     // Read in |V| and |E|
@@ -105,12 +93,14 @@ proc binToGraph(f : file) {
     debug("|V| = " + numVertices);
     debug("|E| = " + numEdges);
     reader.close();
+    f.close();
 
     // Construct graph (distributed)
     var graph = new Graph(numVertices:int, numEdges:int, new unmanaged Cyclic(startIdx = 0));
 
     // On each node, independently process the file and offsets...
     coforall loc in Locales do on loc {
+      var f = open(dataset, iomode.r, style = new iostyle(binary=1));
       debug("Node #", here.id, " beginning to process localSubdomain ", graph.verticesDomain.localSubdomain());
       // Obtain offset for indices that are local to each node...
       forall idx in graph.verticesDomain.localSubdomain() {

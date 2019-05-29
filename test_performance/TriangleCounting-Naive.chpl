@@ -5,7 +5,7 @@ use Utilities;
 use Time;
 
 config const dataset = "../data/karate.mtx_csr.bin";
-
+beginProfile("TriangleCounting-Naive-Profile");
 try! {
   var f = open(dataset, iomode.r, style = new iostyle(binary=1));   
   var reader = f.reader();
@@ -20,12 +20,14 @@ try! {
   debug("|V| = " + numVertices);
   debug("|E| = " + numEdges);
   reader.close();
+  f.close();
   
   var D = {0..#numVertices} dmapped Block(boundingBox={0..#numVertices});
   var A : [D] owned Vector(int);
   
   // On each node, independently process the file and offsets...
   coforall loc in Locales do on loc {
+    var f = open(dataset, iomode.r, style = new iostyle(binary=1));
     debug("Node #", here.id, " beginning to process localSubdomain ", D.localSubdomain());
     // Obtain offset for indices that are local to each node...
     forall idx in D.localSubdomain() {
@@ -78,3 +80,4 @@ try! {
   writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", numTriangles = ", numTriangles / 3, ", in ", timer.elapsed(), "s");
   f.close();
 }
+endProfile();
