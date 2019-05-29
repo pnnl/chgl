@@ -64,19 +64,33 @@ class VectorImpl : Vector {
   override proc intersection(other : Vector(eltType)) : Vector(eltType) {
     var _other = other : this.type;
     ref arr1 = this.arr[this.dom.low..#this.sz];
-    ref arr2 = _other.arr[_other.dom.low..#_other.sz];
-    var newArr = Utilities.intersection(arr1, arr2);
-    const newDom = newArr.domain;
-    var ret = new VectorImpl(eltType, newDom);
-    ret.arr = newArr;
-    return ret;
+    if other.locale != here {
+      var arr2 = _other.arr[_other.dom.low..#_other.sz];
+      var newArr = Utilities.intersection(arr1, arr2);
+      const newDom = newArr.domain;
+      var ret = new VectorImpl(eltType, newDom);
+      ret.arr = newArr;
+      return ret;
+    } else {
+      ref arr2 = _other.arr[_other.dom.low..#_other.sz];
+      var newArr = Utilities.intersection(arr1, arr2);
+      const newDom = newArr.domain;
+      var ret = new VectorImpl(eltType, newDom);
+      ret.arr = newArr;
+      return ret;
+    }
   }
   
   override proc intersectionSize(other : Vector(eltType)) : int {
     var _other = other : this.type;
     ref arr1 = this.arr[this.dom.low..#this.sz];
-    ref arr2 = _other.arr[_other.dom.low..#_other.sz];
-    return Utilities.intersectionSize(arr1, arr2);
+    if other.locale != here {
+      var arr2 = _other.arr[_other.dom.low..#_other.sz];
+      return Utilities.intersectionSize(arr1, arr2);
+    } else {
+      ref arr2 = _other.arr[_other.dom.low..#_other.sz];
+      return Utilities.intersectionSize(arr1, arr2);
+    }  
   }
 
   override proc append(elts : [] eltType) {
