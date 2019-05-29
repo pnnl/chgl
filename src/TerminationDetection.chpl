@@ -41,6 +41,7 @@ module TerminationDetection {
   /*
      Termination detector.
      */
+  pragma "always RVF"
   record TerminationDetector {
     var instance : unmanaged TerminationDetectorImpl;
     var pid = -1;
@@ -61,7 +62,7 @@ module TerminationDetection {
   proc <=>(ref lhs : TerminationDetector, ref rhs : TerminationDetector) {
     lhs.pid <=> rhs.pid;
   }
-
+  
   class TerminationDetectorImpl {
     var tasksStarted : atomic int;
     var tasksFinished : atomic int;
