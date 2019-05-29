@@ -37,6 +37,7 @@ proc endProfile() {
   }
 }
 
+
 proc intersection(A : [] ?t, B : [] t) {
   var C : [0..-1] t;
   var idxA = A.domain.low;

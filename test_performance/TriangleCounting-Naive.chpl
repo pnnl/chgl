@@ -2,13 +2,16 @@ use WorkQueue;
 use BlockDist;
 use Vectors;
 use Utilities;
+use Time;
 
 config const dataset = "../data/karate.mtx_csr.bin";
 
 try! {
   var f = open(dataset, iomode.r, style = new iostyle(binary=1));   
   var reader = f.reader();
-  
+  var timer = new Timer();
+  timer.start();
+
   // Read in |V| and |E|
   var numVertices : uint(64);
   var numEdges : uint(64);
@@ -54,22 +57,24 @@ try! {
       for beginOffset : int..endOffset : int {
         var edge : uint(64);
         reader.read(edge);
-        if idx > edge then A[idx].append(edge : int);
+        A[idx].append(edge : int);
         debug("Added inclusion for vertex #", idx, " and edge #", edge);
       }
       A[idx].sort();
       reader.close();
     }
   }
-  
+  timer.stop();
+  writeln("Initialized Graph in ", timer.elapsed(), "s");
+  timer.clear();
+  timer.start();
   var numTriangles : int;
   forall v in A.domain with (+ reduce numTriangles) {
-    var arr1 = A[v].getArray();
-    for u in arr1 do if v > u {
-      var arr2 = A[u].getArray();
-      numTriangles += intersectionSize(arr1, arr2);
+    for u in A[v] do if v > u {
+      numTriangles += A[v].intersectionSize(A[u]);
     }
   }
-  writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", numTriangles = ", numTriangles);
+  timer.stop();
+  writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", numTriangles = ", numTriangles / 3, ", in ", timer.elapsed(), "s");
   f.close();
 }

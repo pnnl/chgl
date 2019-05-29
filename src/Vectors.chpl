@@ -1,6 +1,7 @@
 use CyclicDist;
 use BlockDist;
 use Sort;
+use Utilities;
 
 config param VectorGrowthRate : real = 1.5;
 
@@ -28,6 +29,8 @@ class Vector {
   iter these() ref : eltType {halt();}
   proc getArray() { var arr : [0..-1] eltType; halt(); return arr; }
   proc clear() {halt();}
+  proc intersection(other : Vector(eltType)) : Vector(eltType) { halt(); }
+  proc intersectionSize(other : Vector(eltType)) : int { halt(); }
 }
 
 class VectorImpl : Vector {
@@ -58,6 +61,24 @@ class VectorImpl : Vector {
     sz += 1;
   }
   
+  override proc intersection(other : Vector(eltType)) : Vector(eltType) {
+    var _other = other : this.type;
+    ref arr1 = this.arr[this.dom.low..#this.sz];
+    ref arr2 = _other.arr[_other.dom.low..#_other.sz];
+    var newArr = Utilities.intersection(arr1, arr2);
+    const newDom = newArr.domain;
+    var ret = new VectorImpl(eltType, newDom);
+    ret.arr = newArr;
+    return ret;
+  }
+  
+  override proc intersectionSize(other : Vector(eltType)) : int {
+    var _other = other : this.type;
+    ref arr1 = this.arr[this.dom.low..#this.sz];
+    ref arr2 = _other.arr[_other.dom.low..#_other.sz];
+    return Utilities.intersectionSize(arr1, arr2);
+  }
+
   override proc append(elts : [] eltType) {
     if sz + elts.size >= cap {
       cap = sz + elts.size;
