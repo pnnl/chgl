@@ -5,6 +5,8 @@ use Utilities;
 use Time;
 
 config const dataset = "../data/karate.mtx_csr.bin";
+config const numEdgesPresent = true;
+
 beginProfile("TriangleCounting-Naive-Profile");
 try! {
   var f = open(dataset, iomode.r, style = new iostyle(binary=1));   
@@ -16,9 +18,11 @@ try! {
   var numVertices : uint(64);
   var numEdges : uint(64);
   reader.read(numVertices);
-  reader.read(numEdges);
   debug("|V| = " + numVertices);
-  debug("|E| = " + numEdges);
+  if numEdgesPresent {
+    reader.read(numEdges);
+    debug("|E| = " + numEdges);
+  }
   reader.close();
   f.close();
   
@@ -33,7 +37,8 @@ try! {
     forall idx in D.localSubdomain() {
       // Open file again and skip to portion of file we want...
       var reader = f.reader();
-      reader.advance(16 + idx * 8);
+      const headerOffset = if numEdgesPresent then 16 else 8;
+      reader.advance(headerOffset + idx * 8);
       debug("Starting at file offset ", reader.offset(), " for offset table of idx #", idx);
 
       // Read our beginning and ending offset... since the ending is the next
