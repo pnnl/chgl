@@ -40,6 +40,10 @@ Vectors
 
    .. method:: proc clear()
 
+   .. method:: proc intersection(other: Vector(eltType)): Vector(eltType)
+
+   .. method:: proc intersectionSize(other: Vector(eltType)): int
+
 .. class:: VectorImpl : Vector
 
    .. attribute:: const growthRate
@@ -55,6 +59,10 @@ Vectors
    .. method:: proc init(type eltType, dom, growthRate = VectorGrowthRate)
 
    .. method:: override proc append(elt: eltType)
+
+   .. method:: override proc intersection(other: Vector(eltType)): Vector(eltType)
+
+   .. method:: override proc intersectionSize(other: Vector(eltType)): int
 
    .. method:: override proc append(elts: [] eltType)
 
