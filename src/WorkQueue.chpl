@@ -3,6 +3,8 @@ use DynamicAggregationBuffer;
 use TerminationDetection;
 use Time;
 
+// TODO: Add a bulk insertion method so aggregation can be much faster!
+
 config const workQueueMinTightSpinCount = 8;
 config const workQueueMaxTightSpinCount = 1024;
 config const workQueueMinVelocityForFlush = 0.1;
