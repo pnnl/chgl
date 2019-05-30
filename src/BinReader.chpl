@@ -3,6 +3,10 @@ use Sort;
 use AdjListHyperGraph;
 use Graph;
 
+// TODO: Read in the _entire_ adjacency list as a byte stream and then perform a direct memcpy into 
+// to pre-allocated buffer! Significantly faster, and it is what UPC++ did and was multiple orders
+// of magnitude faster!
+
 // Parameter to determine whether or not verbose debugging information is provided.
 config param DEBUG_BIN_READER = false;
 
