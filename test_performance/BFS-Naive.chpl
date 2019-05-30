@@ -92,23 +92,21 @@ try! {
   keepAlive.write(true);
   coforall loc in Locales do on loc {
     coforall tid in 0..#here.maxTaskPar {
-      var _current = current;
-      var _next = next;
       var numPhases = 0;
       while true {
-        var (hasVertex, vertex) = _current.getWork();
+        var (hasVertex, vertex) = current.getWork();
         if !hasVertex {
           allLocalesBarrier.barrier();
           if here.id == 0 && tid == 0 {
-            _next.flush();
+            next.flush();
             var elemsLeft = _next.globalSize;
             writeln("Level #", numPhases, " has ", elemsLeft, " elements...");
             if elemsLeft == 0 then keepAlive.write(false);
           }
           allLocalesBarrier.barrier();
           if keepAlive.read() == false then break;
-          _next.pid <=> _current.pid;
-          _next.instance <=> _current.instance;
+          next.pid <=> current.pid;
+          next.instance <=> current.instance;
           numPhases += 1;
           continue;
         }
@@ -119,7 +117,7 @@ try! {
             if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
               continue;
             }
-            _next.addWork(neighbor, A[neighbor].locale);
+            next.addWork(neighbor, A[neighbor].locale);
           }
         } 
       }
