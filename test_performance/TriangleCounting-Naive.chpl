@@ -27,7 +27,7 @@ try! {
   f.close();
   
   var D = {0..#numVertices} dmapped Block(boundingBox={0..#numVertices});
-  var A : [D] owned Vector(int);
+  var A : [D] unmanaged Vector(int);
   
   // On each node, independently process the file and offsets...
   coforall loc in Locales do on loc {
@@ -57,17 +57,12 @@ try! {
       debug("Adjacency list offset begins at file offset ", reader.offset());
 
 
-      // TODO: Request storage space in advance for graph...
-      // Read in adjacency list for edges... Since 'addInclusion' already push_back
-      // for the matching vertices and edges, we only need to do this once.
-      A[idx] = new owned VectorImpl(int, {0..#(endOffset - beginOffset + 1)});
-      for beginOffset : int..endOffset : int {
-        var edge : uint(64);
-        reader.read(edge);
-        A[idx].append(edge : int);
-        debug("Added inclusion for vertex #", idx, " and edge #", edge);
-      }
-      A[idx].sort();
+      // Pre-allocate buffer for vector and read directly into it
+      var vec = new unmanaged VectorImpl(int, {0..#(endOffset - beginOffset + 1)});
+      reader.readBytes(c_ptrTo(vec.arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+      vec.sz = (endOffset - beginOffset + 1) : int;
+      vec.sort();
+      A[idx] = vec;
       reader.close();
     }
   }
