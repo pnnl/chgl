@@ -54,10 +54,9 @@ module AdjListHyperGraph {
 
   /*
     This will forward all calls to the original instance rather than the privatized instance.
+    This will result in severe communication overhead.
   */
   config const AdjListHyperGraphDisablePrivatization = false;
-
-  config param AdjListHyperGraphIndexBits = 64;
 
   /*
     Record-wrapper for the AdjListHyperGraphImpl. The record-wrapper follows from the optimization
@@ -95,13 +94,21 @@ module AdjListHyperGraph {
     record-wrapper to prevent it from being used by-reference, thereby negating the whole point of privatization.
     Hint: A reference to a remote object is treated as a wide pointer.
   */
+
+  /*
+    AdjListHyperGraph privatization wrapper; all access to this will forward to the privatized instance,
+   :class:`AdjListHyperGraphImpl`.
+  */
   pragma "always RVF"
   record AdjListHyperGraph {
+    pragma "no doc"
     // Instance of our AdjListHyperGraphImpl from node that created the record
     var instance;
+    pragma "no doc"
     // Privatization Id
     var pid = -1;
 
+    pragma "no doc"
     proc _value {
       if pid == -1 {
         halt("AdjListHyperGraph is uninitialized...");
@@ -152,11 +159,13 @@ module AdjListHyperGraph {
 
     // TODO: Copy initializer produces an internal compiler error (compilation error after codegen),
     // COde that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
+    pragma "no doc"
     proc clone(other : this.type) {
       instance = new unmanaged AdjListHyperGraphImpl(other._value);
       pid = instance.pid;
     }
     
+    // Destroy this instance.
     proc destroy() {
       if pid == -1 then halt("Attempt to destroy 'AdjListHyperGraph' which is not initialized...");
       coforall loc in Locales do on loc {
@@ -169,8 +178,7 @@ module AdjListHyperGraph {
     forwarding _value;
   }
 
-  // TODO: Improve space-complexity so we do not read all of file into memory.
-  // TODO: Improve time-complexity so that we read in the graph in a distributed way
+  // Naive adjacency list reader for hypergraph. Please use `BinReader` for more optimized reading into hypergraph.
   proc fromAdjacencyList(fileName : string, separator = ",", map : ?t = new unmanaged DefaultDist()) throws {
     var f = open(fileName, iomode.r);
     var r = f.reader();
@@ -209,7 +217,8 @@ module AdjListHyperGraph {
 
     return graph;
   }
-
+  
+  pragma "no doc"
   pragma "default intent is ref"
   record Lock {
     // Profiling for contended access...
@@ -230,6 +239,8 @@ module AdjListHyperGraph {
     }
   }
 
+  pragma "no doc"
+  // Acquires in a global lock order to ensure we do not deadlock
   proc acquireLocks(ref a : Lock, ref b : Lock) {
     if a.locale.id > b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) > __primitive("cast", uint(64), __primitive("_wide_get_addr", b)) {
       if a.locale != here && b.locale != here && a.locale == b.locale {
@@ -253,7 +264,9 @@ module AdjListHyperGraph {
       }
     }
   }
-
+  
+  pragma "no doc"
+  // Releases in global locking order so that we do not deadlock
   proc releaseLocks(ref a : Lock, ref b : Lock) {
     if a.locale.id > b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) > __primitive("cast", uint(64), __primitive("_wide_get_addr", b)) {
       if a.locale != here && b.locale != here && a.locale == b.locale {
@@ -286,6 +299,7 @@ module AdjListHyperGraph {
 
     TODO: Add this node's id so that it can be used for locking order.
   */
+  pragma "no doc"
   class NodeData {
     type nodeIdType;
     type propertyType;
@@ -597,25 +611,32 @@ module AdjListHyperGraph {
     }
   }
 
+  pragma "no doc"
   proc ==(a: ArrayWrapper, b: ArrayWrapper) {
     if a.arr.size != b.arr.size then return false;
     for (_a, _b) in zip(a.arr,b.arr) do if _a != _b then return false;
     return true;
   }
 
+  pragma "no doc"
   proc !=(a: ArrayWrapper, b: ArrayWrapper) {
     if a.arr.size != b.arr.size then return true;
     for (_a, _b) in zip(a.arr,b.arr) do if _a != _b then return true;
     return false;
   }
 
+  pragma "no doc"
   inline proc chpl__defaultHash(r : ArrayWrapper): uint {
     return r.hash;
   }
 
+  pragma "no doc"
   record Vertex {}
+  pragma "no doc"
   record Edge   {}
  
+  pragma "no doc"
+  // Enables usage of vDescType and eDescType for associative arrays
   proc chpl__defaultHash(r : Wrapper) {
     return chpl__defaultHash(r.id);
   }
@@ -635,10 +656,12 @@ module AdjListHyperGraph {
       cases where type is instantiated, we will know `nodeType` and
       `idType`, and we can just refer to them in our make method.
     */
+    pragma "no doc"
     proc type make(id) {
       return new Wrapper(nodeType, idType, id);
     }
-
+    
+    // 'Null' value.
     proc type null() {
       return new Wrapper(nodeType, idType, -1);
     }
@@ -670,21 +693,27 @@ module AdjListHyperGraph {
     return a.id > b.id;
   }
 
+  // Enable casts from wrappers to integers
   proc _cast(type t: Wrapper(?nodeType, ?idType), id : integral) {
     return t.make(id : idType);
   }
 
+  // Enable cast to itself
   proc _cast(type t: Wrapper(?nodeType, ?idType), id : Wrapper(nodeType, idType)) {
     return id;
   }
-
+  
+  pragma "no doc"
   inline proc _cast(type t: Wrapper(?nodeType, ?idType), id) {
     compilerError("Bad cast from type ", id.type : string, " to ", t : string, "...");
   }
-  proc id ( wrapper ) {
+  
+  // Obtain the identifier from a wrapper.
+  inline proc id ( wrapper ) {
     return wrapper.id;
   }
 
+  pragma "no doc"  
   enum InclusionType { Vertex, Edge }
 
   /*
@@ -700,12 +729,17 @@ module AdjListHyperGraph {
      optimizations of certain operations.
   */
   class AdjListHyperGraphImpl {
+    pragma "no doc"
     var _verticesDomain; // domain of vertices
+    pragma "no doc"
     var _edgesDomain; // domain of edges
+    pragma "no doc"
     type _vPropType; // Vertex property
+    pragma "no doc"
     type _ePropType; // Edge property
   
     // Privatization id
+    pragma "no doc"
     var pid = -1;
 
     type vIndexType = index(_verticesDomain);
@@ -713,31 +747,41 @@ module AdjListHyperGraph {
     type vDescType = Wrapper(Vertex, vIndexType);
     type eDescType = Wrapper(Edge, eIndexType);
 
+    pragma "no doc"
     var _vertices : [_verticesDomain] unmanaged NodeData(eDescType, _vPropType);
+    pragma "no doc"
     var _edges : [_edgesDomain] unmanaged NodeData(vDescType, _ePropType);
+    pragma "no doc"
     var _destBuffer = UninitializedAggregator((vIndexType, eIndexType, InclusionType));
+    pragma "no doc"
     var _propertyMap : PropertyMap(_vPropType, _ePropType);
+    pragma "no doc"
     var _privatizedVertices = _vertices._value;
+    pragma "no doc"
     var _privatizedEdges = _edges._value;
+    pragma "no doc"
     var _privatizedVerticesPID = _vertices.pid;
+    pragma "no doc"
     var _privatizedEdgesPID = _edges.pid;
+    pragma "no doc"
     var _masterHandle : unmanaged object;
+    pragma "no doc"
     var _useAggregation : bool;
 
     // Initialize a graph with initial domains
     proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings) {
-      if numVertices > max(int(AdjListHyperGraphIndexBits)) || numVertices < 0 { 
-        halt("numVertices must be between 0..", max(int(AdjListHyperGraphIndexBits)), " but got ", numVertices);
+      if numVertices > max(int(64)) || numVertices < 0 { 
+        halt("numVertices must be between 0..", max(int(64)), " but got ", numVertices);
       }
-      if numEdges > max(int(AdjListHyperGraphIndexBits)) || numEdges < 0 { 
-        halt("numEdges must be between 0..", max(int(AdjListHyperGraphIndexBits)), " but got ", numEdges);
+      if numEdges > max(int(64)) || numEdges < 0 { 
+        halt("numEdges must be between 0..", max(int(64)), " but got ", numEdges);
       }
 
       var verticesDomain = {
-        0:int(AdjListHyperGraphIndexBits)..#numVertices:int(AdjListHyperGraphIndexBits)
+        0:int(64)..#numVertices:int(64)
       } dmapped new dmap(vertexMappings);
       var edgesDomain = {
-        0:int(AdjListHyperGraphIndexBits)..#numEdges:int(AdjListHyperGraphIndexBits)
+        0:int(64)..#numEdges:int(64)
       } dmapped new dmap(edgeMappings);
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
@@ -768,10 +812,10 @@ module AdjListHyperGraph {
       edgeMappings = vertexMappings
     ) {
       var verticesDomain = {
-        0:int(AdjListHyperGraphIndexBits)..#propMap.numVertexProperties():int(AdjListHyperGraphIndexBits)
+        0:int(64)..#propMap.numVertexProperties():int(64)
       } dmapped new dmap(vertexMappings);
       var edgesDomain = {
-        0:int(AdjListHyperGraphIndexBits)..#propMap.numEdgeProperties():int(AdjListHyperGraphIndexBits)
+        0:int(64)..#propMap.numEdgeProperties():int(64)
       } dmapped new dmap(edgeMappings);
       this._verticesDomain = verticesDomain;
       this._edgesDomain = edgesDomain;
@@ -799,6 +843,7 @@ module AdjListHyperGraph {
   
     // Note: Do not create a copy initializer as it is called whenever you create a copy
     // of the object. This is undesirable.
+    pragma "no doc"
     proc clone(other : AdjListHyperGraphImpl) {
       const verticesDomain = other._verticesDomain;
       const edgesDomain = other._edgesDomain;
@@ -816,6 +861,7 @@ module AdjListHyperGraph {
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
     }
 
+    pragma "no doc"
     proc init(other : AdjListHyperGraphImpl, pid : int(64)) {
       var verticesDomain = other._verticesDomain;
       var edgesDomain = other._edgesDomain;
@@ -940,6 +986,7 @@ module AdjListHyperGraph {
     
     inline proc degree(vDesc : vDescType) return getVertex(vDesc).degree;
     inline proc degree(eDesc : eDescType) return getEdge(eDesc).degree;
+    pragma "no doc"
     inline proc degree(other) {
       Debug.badArgs(other, (vDescType, eDescType));
     }
@@ -1029,10 +1076,15 @@ module AdjListHyperGraph {
       return getEdge(eDesc).property;
     }
 
+    pragma "no doc"
     inline proc getProperty(other) {
       Debug.badArgs(other, (vDescType, eDescType));
     }
-
+    
+    // Simplify vertices in graph by collapsing duplicate vertices into equivalence
+    // classes. This updates the property map, if there is one, to update all references
+    // to vertices to point to the new candidate. This is an inplace operation. Must
+    // be called from Locale #0. Returns a histogram of duplicates.
     proc collapseVertices() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1213,7 +1265,10 @@ module AdjListHyperGraph {
       return [n in dupeHistogram] n.read();
     }
 
-
+    // Simplify vertices in graph by collapsing duplicate vertices into equivalence
+    // classes. This updates the property map, if there is one, to update all references
+    // to vertices to point to the new candidate. This is an inplace operation. Must be
+    // called from Locale #0. Returns a histogram of duplicates
     proc collapseEdges() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1378,7 +1433,8 @@ module AdjListHyperGraph {
       forall nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
       return [n in dupeHistogram] n.read();
     }
-
+    
+    // Collapses hyperedges into the toplex they are apart of, if one exists. 
     proc collapseSubsets() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1515,7 +1571,9 @@ module AdjListHyperGraph {
       forall nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
       return [n in dupeHistogram] n.read();
     }
-
+    
+    // Equivalent to a call to `collapseVertices` and `collapseEdges`; returns the histogram
+    // of vertices and edges (vDuplicateHistogram, eDuplicateHistogram)
     proc collapse() {
       var vDupeHistogram = collapseVertices();
       if Debug.ALHG_DEBUG {
@@ -1603,6 +1661,9 @@ module AdjListHyperGraph {
       return (vDupeHistogram, eDupeHistogram);
     }
 
+    // Removes components in the hypergraph where a hyperedge cannot 'walk' to
+    // another hyperedge; that is a hyperedge that is isolated from all other
+    // hyperedges.
     proc removeIsolatedComponents() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1845,6 +1906,7 @@ module AdjListHyperGraph {
       for v in verticesDomain do yield toVertex(v);
     }
 
+    pragma "no doc"
     // Note: this gets called on by a single task...
     // TODO: Need to send back a status saying buffer can be reused
     // but is currently being processed remotely (maybe have a counter
@@ -1898,7 +1960,8 @@ module AdjListHyperGraph {
     proc resizeVertices(size) {
       vertices.setIndices({0..(size-1)});
     }
-
+  
+    // Causes all calls to `addInclusion` to be aggregated
     proc startAggregation() {
       // Must copy on stack to utilize remote-value forwarding
       const _pid = pid;
@@ -1908,6 +1971,7 @@ module AdjListHyperGraph {
       }
     }
 
+    // Ceases the implicit aggregation of all 'addInclusion' calls
     proc stopAggregation() {
       // Must copy on stack to utilize remote-value forwarding
       const _pid = pid;
@@ -1966,6 +2030,7 @@ module AdjListHyperGraph {
       addInclusionBuffered(vDesc, eDesc);
     }
     
+    pragma "no doc"
     inline proc addInclusionBuffered(v, e) {
       Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
     }
@@ -2001,6 +2066,7 @@ module AdjListHyperGraph {
       addInclusion(vDesc, eDesc);
     }
     
+    pragma "no doc"
     inline proc addInclusion(v, e) {
       Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
     }
@@ -2027,6 +2093,7 @@ module AdjListHyperGraph {
       return getVertex(vDesc).hasNeighbor(eDesc);     
     }
 
+    pragma "no doc"
     proc hasInclusion(v, e) {
       Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
     }
@@ -2055,6 +2122,7 @@ module AdjListHyperGraph {
     }
 
     // Bad argument...
+    pragma "no doc"
     inline proc toEdge(other) param {
       Debug.badArgs(other, (eIndexType, eDescType));
     }
@@ -2071,6 +2139,7 @@ module AdjListHyperGraph {
     }
 
     // Bad argument...
+    pragma "no doc"
     inline proc toVertex(other) {
       Debug.badArgs(other, (vIndexType, vDescType));
     }
@@ -2152,6 +2221,7 @@ module AdjListHyperGraph {
       forall n in getVertex(v1).neighborIntersection(getVertex(v2)) do yield n;
     }
     
+    pragma "no doc"
     inline proc _snapshot(v : vDescType) {
       ref vertex = getVertex(v);
       vertex.lock.acquire();
@@ -2161,6 +2231,7 @@ module AdjListHyperGraph {
       return snapshot;
     }
 
+    pragma "no doc"
     inline proc _snapshot(e : eDescType) {
       ref edge = getEdge(e);
       edge.lock.acquire();
@@ -2186,10 +2257,12 @@ module AdjListHyperGraph {
       forall e in _snapshot(v) do yield e;
     }
 
+    pragma "no doc"
     iter incidence(arg) {
       Debug.badArgs(arg, (vDescType, eDescType));
     }
 
+    pragma "no doc"
     iter incidence(arg, param tag : iterKind) where tag == iterKind.standalone {
       Debug.badArgs(arg, (vDescType, eDescType));
     }
@@ -2224,8 +2297,9 @@ module AdjListHyperGraph {
       var ret = incidence(e);
       return ret;
     }
-  } // class Graph
+  } // class AdjListHyperGraph
   
+  // Call 'addInclusion'
   inline proc +=(graph : AdjListHyperGraph, other) {
     graph._value += other;
   }
@@ -2238,10 +2312,12 @@ module AdjListHyperGraph {
     graph.addInclusion(v,e);
   }
 
+  pragma "no doc"
   inline proc +=(graph : unmanaged AdjListHyperGraphImpl, other) {
     Debug.badArgs(other, (graph.vDescType, graph.eDescType));
   }
 
+  pragma "no doc"
   module Debug {
     // Provides a nice error message for when user provides invalid type.
     proc badArgs(bad, type good, param errorDepth = 2) param {

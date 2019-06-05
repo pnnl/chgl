@@ -353,7 +353,7 @@ module Graph {
        if isCacheValid() {
         return privatizedCachedNeighborListInstance.dsiAccess(v.id).size;
       } else {
-        return + reduce [_ in hg.walk(v)] 1;
+        return + reduce [_unused_ in hg.walk(v)] 1;
       }
     }
 
