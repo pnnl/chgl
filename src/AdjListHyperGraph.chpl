@@ -1,17 +1,40 @@
-/* This is the first data structure for hypergraphs in chgl.  This data
-   structure is an adjacency list, where vertices and edges are in the "outer"
-   distribution, and their adjacencies are in the "inner" distribution.
-   Currently, the assumption is that the inner distribution of adjacencies is
-   shared-memory, but it should be possible to easily change it to distributed.
-   If we choose to distributed adjacency lists (neighbors), we may choose a
-   threshold in the size of the adjacency list that causes the list of neighbors
-   to be distributed since we do not want to distribute small neighbor lists.
+/*  
+  A global-view, distributed, and parallel dual hypergraph.
+  _________________________________________________________
 
-   This version of the data structure started out in the SSCA2 benchmark and has
-   been modified for the label propagation benchmark (both of these benchmarks
-   are in the Chapel repository).  Borrowed from the chapel repository. Comes
-   with Cray copyright and Apache license (see the Chapel repo).
- */
+  The hypergraph maintains two distributed arrays, one for vertices and one for hyperedges. Both
+  arrays contain objects that serve and act as adjacency, or incidence lists. For vertices, they
+  contain the hyperedges they are contained in, and for hyperedges, they contain the vertices that
+  are contained within itself. The graph is 'global-view' in that it allows the user to access the
+  graph without regard for locality, while also being optimized locality. For example, all accesses
+  to the hypergraph, whether it be in explicit `on` statements or 'coforall'/`forall` distributed
+  and parallel loops, all accesses to the graph are forwarded to a local instance.
+
+  .. note::
+
+    Documentation is currently a Work In Progress!
+
+  Usage
+  _____
+
+  
+  There are a few ways to create a :record:`AdjListHyperGraph`
+
+  .. code-block:: chapel
+  
+    // Creates a shared-memory hypergraph
+    var graph = new AdjListHyperGraph(numVertices, numEdges);
+    // Creates a distributed-memory hypergraph
+    var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0));
+    var graph = new AdjListHyperGraph(numVertices, numEdges, 
+      new Block(boundingBox={0..#numVertices}, new Block(boundingBox={0..#numEdges})
+    );
+    // Creates a shared-memory hypergraph from Property Map
+    var graph = new AdjListHyperGraph(propertyMap);
+    // Creates a distributed hypergraph from Property Map
+    var graph = new AdjListHyperGraph(propertyMap, new Cyclic(startIdx=0));
+ 
+*/
 module AdjListHyperGraph {
   use IO;
   use CyclicDist;
@@ -551,7 +574,8 @@ module AdjListHyperGraph {
       }
     }
   }
-
+  
+  pragma "no doc"
   record ArrayWrapper {
     type eltType;
     var dom = {0..-1};

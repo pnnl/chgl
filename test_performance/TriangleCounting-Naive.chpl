@@ -7,6 +7,12 @@ use Time;
 config const dataset = "../data/karate.mtx_csr.bin";
 config const numEdgesPresent = true;
 
+record Array {
+  type eltType;
+  var dom = {0..-1};
+  var arr : [dom] eltType;
+}
+
 beginProfile("TriangleCounting-Naive-Profile");
 try! {
   var f = open(dataset, iomode.r, style = new iostyle(binary=1));   
