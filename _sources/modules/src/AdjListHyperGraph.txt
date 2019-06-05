@@ -1,0 +1,348 @@
+.. default-domain:: chpl
+
+.. module:: AdjListHyperGraph
+   :synopsis: A global-view, distributed, and parallel dual hypergraph.
+
+AdjListHyperGraph
+=================
+**Usage**
+
+.. code-block:: chapel
+
+   use AdjListHyperGraph;
+
+
+A global-view, distributed, and parallel dual hypergraph.
+_________________________________________________________
+
+The hypergraph maintains two distributed arrays, one for vertices and one for hyperedges. Both
+arrays contain objects that serve and act as adjacency, or incidence lists. For vertices, they
+contain the hyperedges they are contained in, and for hyperedges, they contain the vertices that
+are contained within itself. The graph is 'global-view' in that it allows the user to access the
+graph without regard for locality, while also being optimized locality. For example, all accesses
+to the hypergraph, whether it be in explicit `on` statements or 'coforall'/`forall` distributed
+and parallel loops, all accesses to the graph are forwarded to a local instance.
+
+.. note::
+
+  Documentation is currently a Work In Progress!
+
+Usage
+_____
+
+
+There are a few ways to create a :record:`AdjListHyperGraph`
+
+.. code-block:: chapel
+
+  // Creates a shared-memory hypergraph
+  var graph = new AdjListHyperGraph(numVertices, numEdges);
+  // Creates a distributed-memory hypergraph
+  var graph = new AdjListHyperGraph(numVertices, numEdges, new Cyclic(startIdx=0));
+  var graph = new AdjListHyperGraph(numVertices, numEdges, 
+    new Block(boundingBox={0..#numVertices}, new Block(boundingBox={0..#numEdges})
+  );
+  // Creates a shared-memory hypergraph from Property Map
+  var graph = new AdjListHyperGraph(propertyMap);
+  // Creates a distributed hypergraph from Property Map
+  var graph = new AdjListHyperGraph(propertyMap, new Cyclic(startIdx=0));
+
+
+.. data:: config const AdjListHyperGraphDisableAggregation = false
+
+   
+   Disable aggregation. This will cause all calls to `addInclusionBuffered` to go to `addInclusion` and
+   all calls to `flush` to do a NOP.
+   
+
+.. data:: config const AdjListHyperGraphDisablePrivatization = false
+
+   
+   This will forward all calls to the original instance rather than the privatized instance.
+   This will result in severe communication overhead.
+   
+
+.. record:: AdjListHyperGraph
+
+   
+   AdjListHyperGraph privatization wrapper; all access to this will forward to the privatized instance,
+   :class:`AdjListHyperGraphImpl`.
+   
+
+
+   .. method:: proc init(numVertices: integral, numEdges: integral)
+
+   .. method:: proc init(numVertices: integral, numEdges: integral, mapping)
+
+   .. method:: proc init(numVertices: integral, numEdges: integral, verticesMappings, edgesMappings)
+
+   .. method:: proc init(propMap: ?vPropTypePropertyMap?ePropType, vertexMappings = new unmanaged DefaultDist(), edgeMappings = new unmanaged DefaultDist())
+
+   .. method:: proc init(other: AdjListHyperGraph)
+
+   .. method:: proc destroy()
+
+.. function:: proc fromAdjacencyList(fileName: string, separator = ",", map: ?t = new unmanaged DefaultDist()) throws
+
+.. record:: Wrapper
+
+   .. attribute:: type nodeType
+
+   .. attribute:: type idType
+
+   .. attribute:: var id: idType
+
+   .. method:: proc type null()
+
+   .. method:: proc readWriteThis(f)
+
+.. function:: proc <(a: ?nodeTypeWrapper?idType, b: nodeTypeWrapperidType): bool
+
+.. function:: proc ==(a: ?nodeTypeWrapper?idType, b: nodeTypeWrapperidType): bool
+
+.. function:: proc !=(a: ?nodeTypeWrapper?idType, b: nodeTypeWrapperidType): bool
+
+.. function:: proc >(a: ?nodeTypeWrapper?idType, b: nodeTypeWrapperidType): bool
+
+.. function:: proc _cast(type t: ?nodeTypeWrapper?idType, id: integral)
+
+.. function:: proc _cast(type t: ?nodeTypeWrapper?idType, id: nodeTypeWrapperidType)
+
+.. function:: proc id(wrapper)
+
+.. class:: AdjListHyperGraphImpl
+
+   
+   Adjacency list hypergraph.
+   
+   The storage is an array of NodeDatas.  The edges array stores edges, and
+   the vertices array stores vertices.  The storage is similar to a
+   bidirectional bipartite graph.  Every edge has a set of vertices it
+   contains, and every vertex has a set of edges it participates in.  In terms
+   of matrix storage, we store CSR and CSC and the same time.  Storing
+   strictly CSC or CSR would allow cutting the storage in half, but for now
+   the assumption is that having the storage go both ways should allow
+   optimizations of certain operations.
+   
+
+
+   .. attribute:: type vIndexType = index(_verticesDomain)
+
+   .. attribute:: type eIndexType = index(_edgesDomain)
+
+   .. attribute:: type vDescType = VertexWrappervIndexType
+
+   .. attribute:: type eDescType = EdgeWrappereIndexType
+
+   .. method:: proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings)
+
+   .. method:: proc init(propMap: ?vPropTypePropertyMap?ePropType, vertexMappings = new unmanaged DefaultDist(), edgeMappings = vertexMappings)
+
+   .. method:: proc verticesDomain
+
+   .. method:: proc localVerticesDomain
+
+   .. method:: proc edgesDomain
+
+   .. method:: proc localEdgesDomain
+
+   .. method:: proc vertices
+
+   .. method:: proc edges
+
+   .. method:: proc getVertex(idx: integral) ref
+
+   .. method:: proc getVertex(desc: vDescType) ref
+
+   .. method:: proc getVertex(other)
+
+   .. method:: proc getEdge(idx: integral) ref
+
+   .. method:: proc getEdge(desc: eDescType) ref
+
+   .. method:: proc getEdge(other)
+
+   .. method:: proc verticesDist
+
+   .. method:: proc edgesDist
+
+   .. method:: proc useAggregation
+
+   .. method:: proc numEdges
+
+   .. method:: proc numVertices
+
+   .. method:: proc degree(vDesc: vDescType)
+
+   .. method:: proc degree(eDesc: eDescType)
+
+   .. itermethod:: iter walk(eDesc: eDescType, s = 1): eDescType
+
+   .. itermethod:: iter walk(eDesc: eDescType, s = 1, param tag: iterKind): eDescType
+
+   .. itermethod:: iter walk(vDesc: vDescType, s = 1): vDescType
+
+   .. itermethod:: iter walk(vDesc: vDescType, s = 1, param tag: iterKind): vDescType
+
+   .. itermethod:: iter getToplexes()
+
+   .. itermethod:: iter getToplexes(param tag: iterKind)
+
+   .. method:: proc getProperty(vDesc: vDescType): this._propertyMap.vertexPropertyType
+
+   .. method:: proc getProperty(eDesc: eDescType): this._propertyMap.edgePropertyType
+
+   .. method:: proc collapseVertices()
+
+   .. method:: proc collapseEdges()
+
+   .. method:: proc collapseSubsets()
+
+   .. method:: proc collapse()
+
+   .. method:: proc removeIsolatedComponents()
+
+   .. itermethod:: iter getToplexes(param tag: iterKind): eDescType
+
+   .. method:: proc isConnected(v1: vDescType, v2: vDescType, s)
+
+   .. method:: proc isConnected(e1: eDescType, e2: eDescType, s)
+
+   .. method:: proc getInclusions()
+
+   .. method:: proc getEdges(param tag: iterKind)
+
+      
+      Warning: If you call these inside of the `AdjListHyperGraphImpl`,
+      there will not be any privatization, hence you _need_ to call
+      getPrivatizedInstance; one easy way to do this is to do something
+      like 'with (var _this = getPrivatizedInstance())' so that its only
+      obtained once per task per locale.
+      
+
+   .. method:: proc getEdges(param tag: iterKind, followThis)
+
+   .. itermethod:: iter getEdges(param tag: iterKind)
+
+   .. itermethod:: iter getEdges()
+
+   .. itermethod:: iter getVertices(param tag: iterKind)
+
+   .. method:: proc getVertices(param tag: iterKind)
+
+   .. method:: proc getVertices(param tag: iterKind, followThis)
+
+   .. itermethod:: iter getVertices()
+
+   .. method:: proc flushBuffers()
+
+   .. method:: proc resizeEdges(size)
+
+   .. method:: proc resizeVertices(size)
+
+   .. method:: proc startAggregation()
+
+   .. method:: proc stopAggregation()
+
+   .. method:: proc addInclusionBuffered(vDesc: vDescType, eDesc: eDescType)
+
+      
+      Explicitly aggregate the vertex and element.
+      
+
+   .. method:: proc addInclusionBuffered(v: vIndexType, e: eIndexType)
+
+   .. method:: proc addInclusionBuffered(vDesc: vDescType, e: eIndexType)
+
+   .. method:: proc addInclusionBuffered(v: vIndexType, eDesc: eDescType)
+
+   .. method:: proc addInclusion(vDesc: vDescType, eDesc: eDescType)
+
+      
+      Adds 'e' as a neighbor of 'v' and 'v' as a neighbor of 'e'.
+      If aggregation is enabled via 'startAggregation', this will 
+      forward to the aggregated version, 'addInclusionBuffered'.
+      
+
+   .. method:: proc addInclusion(v: vIndexType, e: eIndexType)
+
+   .. method:: proc addInclusion(vDesc: vDescType, e: eIndexType)
+
+   .. method:: proc addInclusion(v: vIndexType, eDesc: eDescType)
+
+   .. method:: proc hasInclusion(v: vIndexType, e: eIndexType)
+
+   .. method:: proc hasInclusion(vDesc: vDescType, e: eIndexType)
+
+   .. method:: proc hasInclusion(v: vIndexType, eDesc: eDescType)
+
+   .. method:: proc hasInclusion(vDesc: vDescType, eDesc: eDescType)
+
+   .. method:: proc removeDuplicates()
+
+   .. method:: proc toEdge(id: integral)
+
+   .. method:: proc toEdge(desc: eDescType)
+
+   .. method:: proc toVertex(id: integral)
+
+   .. method:: proc toVertex(desc: vDescType)
+
+   .. method:: proc getVertexDegrees()
+
+      
+      Returns vertex degree sequence as array.
+      
+
+   .. method:: proc getEdgeDegrees()
+
+      
+      Returns hyperedge cardinality sequence as array.
+      
+
+   .. method:: proc getLocale(v: vDescType): locale
+
+      
+      Obtain the locale that the given vertex is allocated on
+      
+
+   .. method:: proc getLocale(e: eDescType): locale
+
+      
+      Obtain the locale that the given edge is allocated on
+      
+
+   .. method:: proc intersectionSize(e1: eDescType, e2: eDescType)
+
+   .. method:: proc intersectionSize(v1: vDescType, v2: vDescType)
+
+   .. itermethod:: iter intersection(e1: eDescType, e2: eDescType)
+
+   .. itermethod:: iter intersection(e1: eDescType, e2: eDescType, param tag: iterKind)
+
+   .. itermethod:: iter intersection(v1: vDescType, v2: vDescType)
+
+   .. itermethod:: iter intersection(v1: vDescType, v2: vDescType, param tag: iterKind)
+
+   .. itermethod:: iter incidence(e: eDescType)
+
+   .. itermethod:: iter incidence(e: eDescType, param tag: iterKind) ref
+
+   .. itermethod:: iter incidence(v: vDescType) ref
+
+   .. itermethod:: iter incidence(v: vDescType, param tag: iterKind) ref
+
+   .. itermethod:: iter these(): (vDescType, eDescType)
+
+   .. itermethod:: iter these(param tag: iterKind): (vDescType, eDescType)
+
+   .. method:: proc this(v: vDescType)
+
+   .. method:: proc this(e: eDescType)
+
+.. function:: proc +=(graph: AdjListHyperGraph, other)
+
+.. function:: proc +=(graph: unmanaged AdjListHyperGraphImpl, chpl__tuple_arg_temp: (graph.vDescType, graph.eDescType))
+
+.. function:: proc +=(graph: unmanaged AdjListHyperGraphImpl, chpl__tuple_arg_temp: (graph.eDescType, graph.vDescType))
+

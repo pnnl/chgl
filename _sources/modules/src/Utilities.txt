@@ -1,0 +1,86 @@
+.. default-domain:: chpl
+
+.. module:: Utilities
+
+Utilities
+=========
+**Usage**
+
+.. code-block:: chapel
+
+   use Utilities;
+
+.. data:: config const profileCommDiagnostics = false
+
+.. data:: config const profileCommDiagnosticsVerbose = false
+
+.. data:: config const profileVisualDebug = false
+
+.. function:: proc beginProfile(vdebugName = "vdebug")
+
+.. function:: proc endProfile()
+
+.. function:: proc intersection(A: [] ?t, B: [] t)
+
+.. function:: proc intersectionSize(A: [] ?t, B: [] t)
+
+.. type:: type chpl_comm_nb_handle_t
+
+.. function:: proc chpl_comm_get_nb(addr: c_void_ptr, node: chpl_nodeID_t, raddr: c_void_ptr, size: size_t, typeIndex: int(32), commID: int(32), ln: c_int, fn: int(32)): chpl_comm_nb_handle_t
+
+.. function:: proc getAddr(ref x: ?t): c_void_ptr
+
+.. function:: proc getLocaleID(ref x: ?t): chpl_localeID_t
+
+.. function:: proc getNodeID(ref x: ?t): chpl_nodeID_t
+
+.. function:: proc get_nb(ref r1: ?t1): Future((t1))
+
+.. data:: var _globalIntRandomStream = makeRandomStream(int)
+
+.. data:: var _globalRealRandomStream = makeRandomStream(real)
+
+.. function:: proc randInt(low, high)
+
+.. function:: proc randInt(high)
+
+.. function:: proc randInt()
+
+.. function:: proc randReal(low, high)
+
+.. function:: proc randReal(high)
+
+.. function:: proc randReal()
+
+.. class:: Centralized
+
+   .. attribute:: var x
+
+   .. method:: proc init(x)
+
+   .. method:: proc init(type X)
+
+.. function:: proc getLocale(dom, idx)
+
+.. function:: proc getLocale(arr: [], idx)
+
+.. function:: proc createCyclic(dom: domain)
+
+.. function:: proc createCyclic(rng: range)
+
+.. function:: proc createCyclic(sz: integral, startIdx = 1)
+
+.. function:: proc createBlock(dom: domain)
+
+.. function:: proc createBlock(rng: range)
+
+.. function:: proc createBlock(sz: integral, startIdx = 1)
+
+.. iterfunction:: iter getLines(file: string): string
+
+.. iterfunction:: iter getLines(file: string, chunkSize = 1024, param tag: iterKind): string
+
+.. function:: proc any(it: _iteratorRecord)
+
+.. function:: proc all(it: _iteratorRecord)
+

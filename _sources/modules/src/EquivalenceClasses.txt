@@ -1,0 +1,74 @@
+.. default-domain:: chpl
+
+.. module:: EquivalenceClasses
+
+EquivalenceClasses
+==================
+**Usage**
+
+.. code-block:: chapel
+
+   use EquivalenceClasses;
+
+.. class:: Equivalence
+
+   .. attribute:: type keyType
+
+   .. attribute:: type cmpType
+
+   .. attribute:: var eqclassesDom: domain(cmpType)
+
+   .. attribute:: var eqclasses: [eqclassesDom] keyType
+
+   .. attribute:: var candidatesDom: domain(keyType)
+
+   .. attribute:: var candidates: [candidatesDom] domain(keyType)
+
+   .. method:: proc init(type keyType)
+
+   .. method:: proc init(type keyType, type cmpType)
+
+   .. itermethod:: iter getEquivalenceClasses(): keyType
+
+   .. itermethod:: iter getEquivalenceClasses(param tag: iterKind): keyType
+
+   .. itermethod:: iter getCandidates(key: keyType): keyType
+
+   .. itermethod:: iter getCandidates(key: keyType, param tag: iterKind): keyType
+
+   .. method:: proc add(key: keyType)
+
+   .. method:: proc add(key: keyType, x: cmpType)
+
+   .. method:: proc add(other: this.type )
+
+   .. method:: proc reduction()
+
+   .. method:: proc readWriteThis(f)
+
+.. class:: ReduceEQClass : ReduceScanOp
+
+   .. attribute:: type keyType
+
+   .. attribute:: type cmpType
+
+   .. attribute:: var value: unmanaged keyTypeEquivalencecmpType
+
+   .. method:: proc init(eq: unmanaged ?keyTypeEquivalence?cmpType)
+
+   .. method:: proc init(type keyType, type cmpType)
+
+   .. method:: proc identity
+
+   .. method:: proc accumulate(x)
+
+   .. method:: proc accumulateOntoState(ref state, x)
+
+   .. method:: proc combine(x)
+
+   .. method:: proc generate()
+
+   .. method:: proc clone()
+
+.. function:: proc main()
+

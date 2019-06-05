@@ -1,0 +1,86 @@
+.. default-domain:: chpl
+
+.. module:: Vectors
+
+Vectors
+=======
+**Usage**
+
+.. code-block:: chapel
+
+   use Vectors;
+
+.. data:: config param VectorGrowthRate: real = 1.5
+
+.. class:: Vector
+
+   .. attribute:: type eltType
+
+   .. attribute:: var _dummy: eltType
+
+   .. method:: proc init(type eltType)
+
+   .. method:: proc append(elt: eltType)
+
+   .. method:: proc append(elts: [] eltType)
+
+   .. method:: proc append(ir: _iteratorRecord)
+
+   .. method:: proc sort()
+
+   .. method:: proc this(idx: integral) ref
+
+   .. itermethod:: iter these(param tag: iterKind) ref: eltType
+
+   .. method:: proc size()
+
+   .. itermethod:: iter these() ref: eltType
+
+   .. method:: proc getArray()
+
+   .. method:: proc clear()
+
+   .. method:: proc intersection(other: Vector(eltType)): Vector(eltType)
+
+   .. method:: proc intersectionSize(other: Vector(eltType)): int
+
+.. class:: VectorImpl : Vector
+
+   .. attribute:: const growthRate
+
+   .. attribute:: var dom
+
+   .. attribute:: var arr: [dom] eltType
+
+   .. attribute:: var sz: int
+
+   .. attribute:: var cap: int
+
+   .. method:: proc init(type eltType, dom, growthRate = VectorGrowthRate)
+
+   .. method:: override proc append(elt: eltType)
+
+   .. method:: override proc intersection(other: Vector(eltType)): Vector(eltType)
+
+   .. method:: override proc intersectionSize(other: Vector(eltType)): int
+
+   .. method:: override proc append(elts: [] eltType)
+
+   .. method:: override proc append(ir: _iteratorRecord)
+
+   .. method:: override proc sort()
+
+   .. method:: override proc this(idx: integral) ref
+
+   .. itermethod:: override iter these() ref
+
+   .. itermethod:: override iter these(param tag: iterKind)
+
+   .. method:: override proc size()
+
+   .. method:: override proc clear()
+
+   .. method:: override proc getArray()
+
+   .. method:: proc readWriteThis(f)
+

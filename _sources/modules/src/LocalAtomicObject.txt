@@ -1,0 +1,42 @@
+.. default-domain:: chpl
+
+.. module:: LocalAtomicObject
+
+LocalAtomicObject
+=================
+**Usage**
+
+.. code-block:: chapel
+
+   use LocalAtomicObject;
+
+.. record:: LocalAtomicObject
+
+   .. attribute:: type objType
+
+   .. attribute:: type atomicType = uint(64)
+
+   .. attribute:: var _atomicVar: atomicatomicType
+
+   .. method:: proc read()
+
+   .. method:: proc compareExchange(expectedObj: objType, newObj: objType)
+
+   .. method:: proc write(newObj: objType)
+
+   .. method:: proc exchange(newObj: objType)
+
+   .. method:: proc write(newObj)
+
+   .. method:: proc compareExchange(expectedObj, newObj)
+
+   .. method:: proc exchange(newObj)
+
+.. class:: Foo
+
+   .. attribute:: var x = 10
+
+   .. method:: proc print()
+
+.. function:: proc main()
+
