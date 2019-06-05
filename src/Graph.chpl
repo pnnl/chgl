@@ -230,7 +230,7 @@ module Graph {
     iter getEdges() : (hg.vDescType, hg.vDescType) {
       if isCacheValid() {
         for (v, vec) in zip(hg.getVertices(), privatizedCachedNeighborListInstance) {
-          for u in vec do yield (v,u);
+          for u in vec do yield (hg.toVertex(v),u);
         }
       } else {
         for e in hg.getEdges() {
@@ -251,7 +251,7 @@ module Graph {
     iter getEdges(param tag : iterKind) : (hg.vDescType, hg.vDescType) where tag == iterKind.standalone {
       if isCacheValid() {
         forall (v, vec) in zip(hg.getVertices(), privatizedCachedNeighborListInstance) {
-          for u in vec do yield (v,u);
+          for u in vec do yield (hg.toVertex(v),u);
         }
       } else {
         forall e in hg.getEdges() {
@@ -349,8 +349,20 @@ module Graph {
       on Locales[0] do getPrivatizedInstance().hg.collapse();
     }
 
+    proc degree(v : hg.vDescType) {
+       if isCacheValid() {
+        return privatizedCachedNeighborListInstance.dsiAccess(v.id).size;
+      } else {
+        return + reduce [_ in hg.walk(v)] 1;
+      }
+    }
+
+    proc degree(v : integral) : int {
+      return degree(hg.toVertex(v));
+    }
+
     forwarding hg only toVertex, getVertices, numVertices, 
                getLocale, verticesDomain, startAggregation, 
-               stopAggregation, numEdges, degree;
+               stopAggregation, numEdges;
   }
 }

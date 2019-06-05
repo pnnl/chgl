@@ -777,7 +777,7 @@ module AdjListHyperGraph {
       this._edgesDomain = edgesDomain;
       this._vPropType = vPropType;
       this._ePropType = ePropType;
-      this._destBuffer = new Aggregator(vIndexType, eIndexType, InclusionType);
+      this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
       const _tmp = propMap;
       this._propertyMap = _tmp;
 

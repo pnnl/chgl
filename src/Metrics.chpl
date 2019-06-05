@@ -1,12 +1,12 @@
 proc vertexDegreeDistribution(graph) {
-    var maxDeg = max reduce [v in graph.getVertices()] graph.degree(v);
+    var maxDeg = max reduce [v in graph.getVertices()] graph.degree(graph.toVertex(v));
     var degreeDist : [1..maxDeg] int;
     for v in graph.getVertices() do degreeDist[graph.degree(v)] += 1;
     return degreeDist;
 }
 
 proc edgeDegreeDistribution(graph) {
-    var maxDeg = max reduce [v in graph.getEdges()] graph.degree(v);
+    var maxDeg = max reduce [e in graph.getEdges()] graph.degree(graph.toEdge(e));
     var degreeDist : [1..maxDeg] int;
     for v in graph.getEdges() do degreeDist[graph.degree(v)] += 1;
     return degreeDist;
