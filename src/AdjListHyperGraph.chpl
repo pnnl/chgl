@@ -97,7 +97,7 @@ module AdjListHyperGraph {
 
   /*
     AdjListHyperGraph privatization wrapper; all access to this will forward to the privatized instance,
-   :class:`AdjListHyperGraphImpl`.
+    :class:`AdjListHyperGraphImpl`.
   */
   pragma "always RVF"
   record AdjListHyperGraph {
