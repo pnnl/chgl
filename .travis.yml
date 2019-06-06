@@ -12,11 +12,10 @@ jobs:
         pushd $CHPL_HOME
         . util/setchplenv.sh
         popd
-        pushd test
-        start_test -junit-xml -numlocales 4
-        popd
         chpldoc src/*.chpl
-        touch docs/.nojekyll'
+        touch docs/.nojekyll
+        cd test
+        start_test -junit-xml -numlocales 4'
 
         # TODO - how to get performance folder from current gh-pages to not get overwritten. Do we need to clone branch & copy it in?
 
