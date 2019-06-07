@@ -1,3 +1,4 @@
+use RangeChunk;
 use WorkQueue;
 use BlockDist;
 use Vectors;
@@ -31,44 +32,44 @@ try! {
   var D = {0..#numVertices} dmapped Block(boundingBox={0..#numVertices});
   var A : [D] unmanaged Vector(int);
   
-  // On each node, independently process the file and offsets...
+// On each node, independently process the file and offsets...
   coforall loc in Locales do on loc {
     var f = open(dataset, iomode.r, style = new iostyle(binary=1));    
-    writeln("Node #", here.id, " beginning to process localSubdomain ", D.localSubdomain());
     // Obtain offset for indices that are local to each node...
-    forall idx in D.localSubdomain() {
-      // Open file again and skip to portion of file we want...
-      var reader = f.reader();
-      const headerOffset = if numEdgesPresent then 16 else 8;
-      reader.advance(headerOffset + idx * 8);
-      writeln("Starting at file offset ", reader.offset(), " for offset table of idx #", idx);
+    var dom = D.localSubdomain();
+    coforall chunk in chunks(dom.low..dom.high by dom.stride, here.maxTaskPar) {
+      var reader = f.reader(locking=false);
+      for idx in chunk {
+        reader.mark();
+        // Open file again and skip to portion of file we want...
+        const headerOffset = if numEdgesPresent then 16 else 8;
+        reader.advance(headerOffset + idx * 8);
 
-      // Read our beginning and ending offset... since the ending is the next
-      // offset minus one, we can just read it from the file and avoid
-      // unnecessary communication with other nodes.
-      var beginOffset : uint(64);
-      var endOffset : uint(64);
-      reader.read(beginOffset);
-      reader.read(endOffset);
-      endOffset -= 1;
-      writeln("Offsets into adjacency list for idx #", idx, " are ", beginOffset..endOffset);
+        // Read our beginning and ending offset... since the ending is the next
+        // offset minus one, we can just read it from the file and avoid
+        // unnecessary communication with other nodes.
+        var beginOffset : uint(64);
+        var endOffset : uint(64);
+        reader.read(beginOffset);
+        reader.read(endOffset);
+        endOffset -= 1;
 
-      // Advance to current idx's offset...
-      var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
-      reader.advance(skip:int);
-      writeln("Adjacency list offset begins at file offset ", reader.offset());
+        // Advance to current idx's offset...
+        var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
+        reader.advance(skip:int);
 
-      
-      // Pre-allocate buffer for vector and read directly into it
-      var vec = new unmanaged VectorImpl(int, {0..#(endOffset - beginOffset + 1)});
-      reader.readBytes(c_ptrTo(vec.arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
-      vec.sz = (endOffset - beginOffset + 1) : int;
-      vec.sort();
-      A[idx] = vec;
-      reader.close();
+
+        // Pre-allocate buffer for vector and read directly into it
+        var vec = new unmanaged VectorImpl(int, {0..#(endOffset - beginOffset + 1)});
+        reader.readBytes(c_ptrTo(vec.arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+        vec.sz = (endOffset - beginOffset + 1) : int;
+        vec.sort();
+        A[idx] = vec;
+        reader.revert();
+      }
     }
   }
-  
+    
   time.stop();
   writeln("Initialization in ", time.elapsed(), "s");
   time.clear();

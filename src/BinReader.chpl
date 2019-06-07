@@ -2,6 +2,7 @@ use IO;
 use Sort;
 use AdjListHyperGraph;
 use Graph;
+use RangeChunk;
 
 // TODO: Read in the _entire_ adjacency list as a byte stream and then perform a direct memcpy into 
 // to pre-allocated buffer! Significantly faster, and it is what UPC++ did and was multiple orders
@@ -37,47 +38,38 @@ proc binToHypergraph(dataset : string) throws {
     // Construct graph (distributed)
     var graph = new AdjListHyperGraph(numVertices:int, numEdges:int, new Cyclic(startIdx=0));
 
-    // Beginning offset of adjacency list for each vertex and edge...
-    var vertexOffsets : [graph.verticesDomain] uint(64);
-    var edgeOffsets : [graph.edgesDomain] uint(64);
-
     // On each node, independently process the file and offsets...
     coforall loc in Locales do on loc {
-      var f = open(dataset, iomode.r, style = new iostyle(binary=1));      
-      debug("Node #", here.id, " beginning to process localSubdomain ", vertexOffsets.localSubdomain());
+      var f = open(dataset, iomode.r, style = new iostyle(binary=1));    
       // Obtain offset for indices that are local to each node...
-      forall idx in vertexOffsets.localSubdomain() {
-        // Open file again and skip to portion of file we want...
-        var reader = f.reader();
-        reader.advance(16 + idx * 8);
-        debug("Starting at file offset ", reader.offset(), " for offset table of idx #", idx);
+      var dom = graph.verticesDomain.localSubdomain();
+      coforall chunk in chunks(dom.low..dom.high by dom.stride, here.maxTaskPar) {
+        var reader = f.reader(locking=false);
+        for idx in chunk {
+          reader.mark();
+          // Open file again and skip to portion of file we want...
+          const headerOffset = 16;
+          reader.advance(headerOffset + idx * 8);
 
-        // Read our beginning and ending offset... since the ending is the next
-        // offset minus one, we can just read it from the file and avoid
-        // unnecessary communication with other nodes.
-        var beginOffset : uint(64);
-        var endOffset : uint(64);
-        reader.read(beginOffset);
-        reader.read(endOffset);
-        endOffset -= 1:uint;
-        debug("Offsets into adjacency list for idx #", idx, " are ", beginOffset..endOffset);
+          // Read our beginning and ending offset... since the ending is the next
+          // offset minus one, we can just read it from the file and avoid
+          // unnecessary communication with other nodes.
+          var beginOffset : uint(64);
+          var endOffset : uint(64);
+          reader.read(beginOffset);
+          reader.read(endOffset);
+          endOffset -= 1;
 
-        // Advance to current idx's offset...
-        var skip = (((numVertices + numEdges) - (idx + 1):uint) + beginOffset) * 8;
-        reader.advance(skip:int);
-        debug("Adjacency list offset begins at file offset ", reader.offset());
+          // Advance to current idx's offset...
+          var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
+          reader.advance(skip:int);
 
-
-        // TODO: Request storage space in advance for graph...
-        // Read in adjacency list for edges... Since 'addInclusion' already push_back
-        // for the matching vertices and edges, we only need to do this once.
-        for beginOffset..endOffset {
-          var edge : uint(64);
-          reader.read(edge);
-          graph.addInclusion(idx : int, (edge - numVertices) : int);
-          debug("Added inclusion for vertex #", idx, " and edge #", (edge - numVertices));
+          // Pre-allocate buffer for vector and read directly into it
+          var edges : [0..#(endOffset - beginOffset + 1)] int;
+          reader.readBytes(c_ptrTo(edges[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+          graph.addInclusion(idx, edges);
+          reader.revert();
         }
-        reader.close();
       }
     }
     return graph;
@@ -104,43 +96,38 @@ proc binToGraph(dataset : string) {
 
     // On each node, independently process the file and offsets...
     coforall loc in Locales do on loc {
-      var f = open(dataset, iomode.r, style = new iostyle(binary=1));
-      debug("Node #", here.id, " beginning to process localSubdomain ", graph.verticesDomain.localSubdomain());
+      var f = open(dataset, iomode.r, style = new iostyle(binary=1));    
       // Obtain offset for indices that are local to each node...
-      forall idx in graph.verticesDomain.localSubdomain() {
-        // Open file again and skip to portion of file we want...
-        var reader = f.reader();
-        reader.advance(16 + idx * 8);
-        debug("Starting at file offset ", reader.offset(), " for offset table of idx #", idx);
+      var dom = graph.verticesDomain.localSubdomain();
+      coforall chunk in chunks(dom.low..dom.high by dom.stride, here.maxTaskPar) {
+        var reader = f.reader(locking=false);
+        for idx in chunk {
+          reader.mark();
+          // Open file again and skip to portion of file we want...
+          const headerOffset = 16;
+          reader.advance(headerOffset + idx * 8);
 
-        // Read our beginning and ending offset... since the ending is the next
-        // offset minus one, we can just read it from the file and avoid
-        // unnecessary communication with other nodes.
-        var beginOffset : uint(64);
-        var endOffset : uint(64);
-        reader.read(beginOffset);
-        reader.read(endOffset);
-        endOffset -= 1;
-        debug("Offsets into adjacency list for idx #", idx, " are ", beginOffset..endOffset);
+          // Read our beginning and ending offset... since the ending is the next
+          // offset minus one, we can just read it from the file and avoid
+          // unnecessary communication with other nodes.
+          var beginOffset : uint(64);
+          var endOffset : uint(64);
+          reader.read(beginOffset);
+          reader.read(endOffset);
+          endOffset -= 1;
 
-        // Advance to current idx's offset...
-        var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
-        reader.advance(skip:int);
-        debug("Adjacency list offset begins at file offset ", reader.offset());
+          // Advance to current idx's offset...
+          var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
+          reader.advance(skip:int);
 
-
-        // TODO: Request storage space in advance for graph...
-        // Read in adjacency list for edges... Since 'addInclusion' already push_back
-        // for the matching vertices and edges, we only need to do this once.
-        for beginOffset : int..endOffset : int {
-          var edge : uint(64);
-          reader.read(edge);
-          graph.addEdge(idx : int, edge : int);
-          debug("Added inclusion for vertex #", idx, " and edge #", edge);
+          // Pre-allocate buffer for vector and read directly into it
+          var vertices : [0..#(endOffset - beginOffset + 1)] uint(64);
+          reader.readBytes(c_ptrTo(vertices[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+          for v in vertices do graph.addEdge(idx, v : int);
+          reader.revert();
         }
-        reader.close();
       }
-    }
+    }    
     graph.flush();
     return graph;
   }
