@@ -606,7 +606,8 @@ module AdjListHyperGraph {
       this.arr = arr;
       this.complete();
       for (ix, a) in zip(1.., arr) {
-        this.hash = chpl__defaultHashCombine(chpl__defaultHash(a), this.hash, ix);
+        // chpl__defaultHashCombine passed '17 + fieldnum' so we can only go up to 64 - 17 = 47
+        this.hash = chpl__defaultHashCombine(chpl__defaultHash(a), this.hash, ix % 47);
       }
     }
   }
