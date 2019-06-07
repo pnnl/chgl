@@ -117,14 +117,32 @@ module AdjListHyperGraph {
       return if AdjListHyperGraphDisablePrivatization then instance else chpl_getPrivatizedCopy(instance.type, pid);
     }
 
+    /*
+      Create a new hypergraph with the desired number of vertices and edges. 
+      Uses the 'DefaultDist', which is normally the shared-memory 'DefaultRectangularDist'.
+    */
     proc init(numVertices : integral, numEdges : integral) {
-      init(numVertices, numEdges, new unmanaged DefaultDist(), new unmanaged DefaultDist());
+      var dist = new unmanaged DefaultDist();
+      init(numVertices, numEdges, dist, dist);
     }
 
+    /*
+      Create a new hypergraph with the desired number of vertices and edges, with
+      a mapping the desired distribution of both.
+    */
     proc init(numVertices : integral, numEdges : integral, mapping) {
       init(numVertices, numEdges, mapping, mapping);
     }
 
+    /*
+      Create a new hypergraph with the desired number of vertices and edges, and with
+      their respective desired distributions.
+
+      :arg numVertices: Number of vertices.
+      :arg numEdges: Number of edges.
+      :arg verticesMapping: Distribution of vertices.
+      :arg edgesMapping: Distribution of edges.
+    */
     proc init(
       // Number of vertices
       numVertices : integral,
@@ -141,31 +159,64 @@ module AdjListHyperGraph {
       pid = instance.pid;
     }
 
-    proc init(
-      propMap : PropertyMap(?vPropType, ?ePropType), 
-      vertexMappings = new unmanaged DefaultDist(), 
-      edgeMappings = new unmanaged DefaultDist()
-    ) {
+    /*
+      Create a new hypergraph from a property map with the respective desired distributions.
+      The number of vertices and edges are determined from the number of properties
+      for vertices and hyperedges respectively.
+      
+      :arg propMap: PropertyMap for vertices and edges.
+      :arg vertexMappings: Distribution for vertices.
+      :arg edgeMappings: Distribution for edges.
+    */
+    proc init(propMap : PropertyMap(?vPropType, ?ePropType), vertexMappings, edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         propMap, vertexMappings, edgeMappings
       );
       pid = instance.pid;
     }
+   
+    /*
+      Create a new hypergraph from a property map with the desired distributions.
+    */
+    proc init(propMap : PropertyMap(?vPropType, ?ePropType), mapping) {
+      init(propMap, mapping, mapping);
+    }
     
+    /*
+      Create a new hypergraph from a property map with the 'DefaultDist()'.
+    */
+    proc init(propMap : PropertyMap(?vPropType, ?ePropType)){
+      var dist = new unmanaged DefaultDist();
+      init(propMap, dist, dist);
+    }
+
+
+    /*
+      Performs a shallow copy of 'other' so that both 'this' and 'other' both
+      refer to the same privatized instance.
+      :arg other: Other :record:`AdjListHyperGraph` privatization wrapper.
+    */
     proc init(other : AdjListHyperGraph) {
       instance = other.instance;
       pid = other.pid;
     }
 
     // TODO: Copy initializer produces an internal compiler error (compilation error after codegen),
-    // COde that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
+    // Code that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
     pragma "no doc"
     proc clone(other : this.type) {
       instance = new unmanaged AdjListHyperGraphImpl(other._value);
       pid = instance.pid;
     }
     
-    // Destroy this instance.
+    /*
+      Destroys the privatized instance;
+      
+      .. warning::
+
+        If multiple privatized wrappers refer to the same privatized instance, this will delete
+        the privatized instance for all of them, and hence this operation is not thread-safe.
+    */
     proc destroy() {
       if pid == -1 then halt("Attempt to destroy 'AdjListHyperGraph' which is not initialized...");
       coforall loc in Locales do on loc {
@@ -174,11 +225,19 @@ module AdjListHyperGraph {
       pid = -1;
       instance = nil;
     }
-
+    
+    // Forwards to privatized instance
     forwarding _value;
   }
+  
+  /*
+    
+    ..note::
 
-  // Naive adjacency list reader for hypergraph. Please use `BinReader` for more optimized reading into hypergraph.
+      This reader is purely naive and sequential, and hence should _not_ be used to read in large files.
+      It is advised that instead that you use `BinReader`.
+
+  */
   proc fromAdjacencyList(fileName : string, separator = ",", map : ?t = new unmanaged DefaultDist()) throws {
     var f = open(fileName, iomode.r);
     var r = f.reader();
