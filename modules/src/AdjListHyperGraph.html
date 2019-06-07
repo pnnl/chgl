@@ -213,39 +213,101 @@ This will result in severe communication overhead.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraph.init">
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraph.init" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Create a new hypergraph with the desired number of vertices and edges.
+Uses the &#8216;DefaultDist&#8217;, which is normally the shared-memory &#8216;DefaultRectangularDist&#8217;.</p>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Create a new hypergraph with the desired number of vertices and edges, with
+a mapping the desired distribution of both.</p>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>verticesMappings</em>, <em>edgesMappings</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Create a new hypergraph with the desired number of vertices and edges, and with
+their respective desired distributions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>numVertices</strong> &#8211; Number of vertices.</li>
+<li><strong>numEdges</strong> &#8211; Number of edges.</li>
+<li><strong>verticesMapping</strong> &#8211; Distribution of vertices.</li>
+<li><strong>edgesMapping</strong> &#8211; Distribution of edges.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em>, <em>vertexMappings = new unmanaged DefaultDist()</em>, <em>edgeMappings = new unmanaged DefaultDist()</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em>, <em>vertexMappings</em>, <em>edgeMappings</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a new hypergraph from a property map with the respective desired distributions.
+The number of vertices and edges are determined from the number of properties
+for vertices and hyperedges respectively.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>propMap</strong> &#8211; PropertyMap for vertices and edges.</li>
+<li><strong>vertexMappings</strong> &#8211; Distribution for vertices.</li>
+<li><strong>edgeMappings</strong> &#8211; Distribution for edges.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a new hypergraph from a property map with the desired distributions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a new hypergraph from a property map with the &#8216;DefaultDist()&#8217;.</p>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other: AdjListHyperGraph</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Performs a shallow copy of &#8216;other&#8217; so that both &#8216;this&#8217; and &#8216;other&#8217; both
+refer to the same privatized instance.
+:arg other: Other <a class="reference internal" href="#module-AdjListHyperGraph" title="AdjListHyperGraph: A global-view, distributed, and parallel dual hypergraph."><code class="xref chpl chpl-record docutils literal"><span class="pre">AdjListHyperGraph</span></code></a> privatization wrapper.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraph.destroy">
 <em class="property">proc </em><code class="descname">destroy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraph.destroy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Destroys the privatized instance;</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">If multiple privatized wrappers refer to the same privatized instance, this will delete
+the privatized instance for all of them, and hence this operation is not thread-safe.</p>
+</div>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="function">
 <dt id="AdjListHyperGraph.fromAdjacencyList">
 <em class="property">proc </em><code class="descname">fromAdjacencyList</code><span class="sig-paren">(</span><em>fileName: string</em>, <em>separator = &quot;</em>, <em>&quot;</em>, <em>map: ?t = new unmanaged DefaultDist()</em><span class="sig-paren">)</span> throws<a class="headerlink" href="#AdjListHyperGraph.fromAdjacencyList" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>..note:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>This reader is purely naive and sequential, and hence should _not_ be used to read in large files.
+It is advised that instead that you use `BinReader`.
+</pre></div>
+</div>
+</dd></dl>
 
 <dl class="record">
 <dt id="AdjListHyperGraph.Wrapper">
