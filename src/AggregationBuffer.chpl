@@ -270,8 +270,13 @@ module AggregationBuffer {
     }
 
     inline proc getPtr() return c_ptrTo(_buf);
-    inline proc getDomain() return {0.._filled.peek()};
-    inline proc getArray() return _buf[0..#_filled.peek()];
+    inline proc getDomain() return {0..#_filled.peek()};
+    inline proc getArray() {
+      var sz = _filled.read();
+      // Copy locally (ensures domain is not made remote)
+      var ret : [0..#sz] msgType = _buf[0..#sz];
+      return ret;
+    }
     inline proc size return _filled.peek();
     inline proc cap return _bufDom.size;
   }

@@ -177,6 +177,30 @@ proc _intersectionSizeAtLeast(A : [] ?t, B : [] t, s : integral) {
   return match >= s;
 }
 
+proc _arrayEquality(A : [] ?t, B : [] t) {
+  return A.equals(B);
+}
+
+proc arrayEquality(A : [] ?t, B : [] t) {
+  if A.locale == here && B.locale == here {
+    return _arrayEquality(A, B);
+  } else if A.locale == here && B.locale != here {
+    const _BD = B.domain; // Make by-value copy so domain is not remote.
+    var _B : [_BD] t = B;
+    return _arrayEquality(A, _B);
+  } else if A.locale != here && B.locale == here {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    var _A : [_AD] t = A;
+    return _arrayEquality(_A, B);
+  } else {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    const _BD = B.domain;
+    var _A : [_AD] t = A;
+    var _B : [_BD] t = B;
+    return _arrayEquality(_A, _B);
+  }
+}
+
 extern type chpl_comm_nb_handle_t;
 
 extern proc chpl_comm_get_nb(

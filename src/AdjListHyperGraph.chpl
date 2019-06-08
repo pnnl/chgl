@@ -286,21 +286,20 @@ module AdjListHyperGraph {
   pragma "no doc"
   pragma "default intent is ref"
   record Lock {
-    // Profiling for contended access...
-    var contentionCnt : atomic int(64);
-    var _lock : atomic bool;
+    var _lock : chpl__processorAtomicType(bool);
 
     inline proc acquire() {
-      if _lock.testAndSet() == false {
-        return;
-      } 
-      while _lock.read() == true || _lock.testAndSet() == true {
-        chpl_task_yield();
+      local {
+        if _lock.testAndSet() == true { 
+          while _lock.read() == true || _lock.testAndSet() == true {
+            chpl_task_yield();
+          }
+        }
       }
     }
 
     inline proc release() {
-      _lock.clear();
+      local do _lock.clear();
     }
   }
 
@@ -370,7 +369,7 @@ module AdjListHyperGraph {
     type propertyType;
     var property : propertyType;
     var incidentDomain = {0..1};
-    var incident: [incidentDomain] nodeIdType;
+    var incident: [incidentDomain] int;
     var lock : Lock;
     var isSorted : bool;
     var size : atomic int;
@@ -407,8 +406,10 @@ module AdjListHyperGraph {
     proc preallocate(sz : integral, param acquireLock = true) {
       if acquireLock then lock.acquire();
       
-      if incidentDomain.size < sz {
-        this.incidentDomain = {0..#sz};
+      local {
+        if incidentDomain.size < sz {
+          this.incidentDomain = {0..#sz};
+        }
       }
 
       if acquireLock then lock.release();
@@ -417,11 +418,18 @@ module AdjListHyperGraph {
     // Check if both incidence lists are equal
     proc equals(other : this.type, param acquireLock = true) {
       if degree != other.degree then return false;
-      if acquireLock then acquireLocks(lock, other.lock);
+      // Acquire locks and update degree to be okay.
+      if acquireLock {
+        acquireLocks(lock, other.lock);
+        if degree != other.degree {
+          releaseLocks(lock, other.lock);
+          return false;
+        }
+      }
 
       sortIncidence();
       other.sortIncidence();
-      var retval = incident[0..#size.read()].equals(other.incident[0..#other.size.read()]);
+      var retval = Utilities.arrayEquality(incident[0..#size.read()], other.incident[0..#other.size.read()]);
       
       if acquireLock then releaseLocks(lock, other.lock);
       return retval;
@@ -438,7 +446,7 @@ module AdjListHyperGraph {
         var deg = degree;
         sortIncidence();
         var newDom = {0..#size.read()};
-        var newIncident : [newDom] nodeIdType;
+        var newIncident : [newDom] int;
         var oldIdx : int;
         var newIdx : int;
         newIncident[newIdx] = incident[oldIdx];
@@ -516,7 +524,7 @@ module AdjListHyperGraph {
 
     // Sort the incidence list
     proc sortIncidence(param acquireLock = false) {
-      on this {
+      on this do local {
         if acquireLock then lock.acquire();
         if !isSorted {
           sort(incident[0..#size.read()]);
@@ -528,14 +536,17 @@ module AdjListHyperGraph {
 
     proc isIncident(n : nodeIdType, param acquireLock = true) {
       var retval : bool;
+      const nid = n.id;
       on this {
         if acquireLock then lock.acquire();
 
         // Sort if not already
         sortIncidence();
-
+        
         // Search to determine if it exists...
-        retval = search(incident, n, sorted = true)[1];
+        var _retval : bool;
+        const _nid = nid;
+        local do _retval = search(incident, _nid, sorted = true)[1];
 
         if acquireLock then lock.release();
       }
@@ -557,11 +568,17 @@ module AdjListHyperGraph {
 
     // Resizes the incident list to at least 'sz'
     inline proc resize(sz = cap + 1) {
-      var newCap = ceil(cap * 1.5) : int;
-      while newCap < sz {
-        newCap = ceil(newCap * 1.5) : int;
+      on this {
+        const _sz = sz;
+        local {
+          var newCap = ceil(cap * 1.5) : int;
+          while newCap < _sz {
+            newCap = ceil(newCap * 1.5) : int;
+          }
+          incidentDomain = {0..newCap};
+
+        }
       }
-      incidentDomain = {0..newCap};
     }
 
     /*
@@ -569,21 +586,24 @@ module AdjListHyperGraph {
       parallel-safe for concurrent writes.
     */
     inline proc addIncidence(ns : nodeIdType, param acquireLock = true) {
+      const nid = ns.id;
       on this {
-        if acquireLock then lock.acquire(); // acquire lock
-        
-        var ix = size.fetchAdd(1);
-        if ix > cap {
-          resize();
-        }
-        incident[ix] = ns;
-        isSorted = false;
+        const _nid = nid;
+        local {
+          if acquireLock then lock.acquire(); // acquire lock
 
-        if acquireLock then lock.release(); // release the lock
+          var ix = size.fetchAdd(1);
+          if ix > cap {
+            resize();
+          }
+          incident[ix] = _nid;
+          isSorted = false;
+
+          if acquireLock then lock.release(); // release the lock
+        }
       }
     }
     
-    // Internal use only!
     proc this(idx : integral) ref {
       if boundsChecking && !incidentDomain.contains(idx) {
         halt("Out of Bounds: ", idx, " is not in ", 0..#size);
@@ -1252,10 +1272,10 @@ module AdjListHyperGraph {
             // If the vertex has been collapsed, first obtain the id of the vertex it was collapsed
             // into, and then obtain the mapping for the collapsed vertex. Otherwise just
             // get the mapping for the unique vertex.
-            while duplicateVertices[v.id].read() != -1 {
-              v.id = duplicateVertices[v.id].read();
+            while duplicateVertices[v].read() != -1 {
+              v = duplicateVertices[v].read();
             }
-            v.id = vertexMappings[v.id];
+            v = vertexMappings[v];
           }
         }
       }
@@ -1422,10 +1442,10 @@ module AdjListHyperGraph {
             // If the edge has been collapsed, first obtain the id of the edge it was collapsed
             // into, and then obtain the mapping for the collapsed edge. Otherwise just
             // get the mapping for the unique edge.
-            while duplicateEdges[e.id].read() != -1 {
-              e.id = duplicateEdges[e.id].read();
+            while duplicateEdges[e].read() != -1 {
+              e = duplicateEdges[e].read();
             }
-            e.id = edgeMappings[e.id];
+            e = edgeMappings[e];
           }
         }
       }
@@ -2167,7 +2187,6 @@ module AdjListHyperGraph {
       Debug.badArgs(other, (vIndexType, vDescType));
     }
     
-    // TODO: Should we add a way to obtain subset of vertex degree and hyperedge cardinality sequences? 
     /*
       Returns vertex degree sequence as array.
     */
@@ -2263,21 +2282,31 @@ module AdjListHyperGraph {
 
       return snapshot;
     }
+    
+    /*
+      Obtains the vertices incident in this hyperedge.
 
+      :arg e: Hyperedge descriptor.
+    */
     iter incidence(e : eDescType) {
-      for v in _snapshot(e) do yield v;
+      for v in _snapshot(e) do yield toVertex(v);
     }
 
     iter incidence(e : eDescType, param tag : iterKind) ref where tag == iterKind.standalone {
-      forall v in _snapshot(e) do yield v;
+      forall v in _snapshot(e) do yield toVertex(v);
     }
+    
+    /*
+      Obtains the hyperedges this vertex is incident in.
 
+      :arg v: Vertex descriptor.
+    */
     iter incidence(v : vDescType) ref {
-      for e in _snapshot(v) do yield e;
+      for e in _snapshot(v) do yield toEdge(e);
     }
 
     iter incidence(v : vDescType, param tag : iterKind) ref where tag == iterKind.standalone {
-      forall e in _snapshot(v) do yield e;
+      forall e in _snapshot(v) do yield toEdge(e);
     }
 
     pragma "no doc"
@@ -2290,8 +2319,10 @@ module AdjListHyperGraph {
       Debug.badArgs(arg, (vDescType, eDescType));
     }
 
-    // Iterates over all vertex-edge pairs in graph...
-    // N.B: Not safe to mutate while iterating...
+
+    /*
+      Iterate through pairs vertices along with the edges they are incident in.
+    */
     iter these() : (vDescType, eDescType) {
       for v in getVertices() {
         for e in incidence(v) {
@@ -2300,25 +2331,30 @@ module AdjListHyperGraph {
       }
     }
 
-    // N.B: Not safe to mutate while iterating...
     iter these(param tag : iterKind) : (vDescType, eDescType) where tag == iterKind.standalone {
       forall v in getVertices() {
-        forall e in incidence(v) {
+        for e in incidence(v) {
           yield (v, e);
         }
       }
     }
   
-    // Return adjacency list snapshot of vertex
+    /*
+       Return the incidence list associated with a vertex.
+      
+       :arg v: Vertex descriptor.
+    */
     proc this(v : vDescType) {
-      var ret = incidence(v);
-      return ret;
+      return _snapshot(v);
     }
     
-    // Return adjacency list snapshot of edge
+    /*
+       Return the incidence list associated with a hyperedge.
+      
+       :arg e: Hyperedge descriptor.
+    */
     proc this(e : eDescType) {
-      var ret = incidence(e);
-      return ret;
+      return _snapshot(e);
     }
   } // class AdjListHyperGraph
   
