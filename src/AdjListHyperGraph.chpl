@@ -231,8 +231,14 @@ module AdjListHyperGraph {
   }
   
   /*
-    
-    ..note::
+    Creates a hypergraph from the passed file name with the delimitor indicated by 'separator'. The hypergraph
+    is given the provided distribution.
+
+    :arg fileName: Name of file.
+    :arg separator: Delimitor used in file.
+    :arg map: Distribution.
+
+    ..note ::
 
       This reader is purely naive and sequential, and hence should _not_ be used to read in large files.
       It is advised that instead that you use `BinReader`.
@@ -353,10 +359,10 @@ module AdjListHyperGraph {
   /*
     NodeData: stores the neighbor list of a node.
 
-    This record should really be private, and its functionality should be
-    exposed by public functions.
-
-    TODO: Add this node's id so that it can be used for locking order.
+    Both vertices and hyperedges are represented by 'NodeData', and so are distinguished by
+    the 'nodeIdType'. When a property map is used, we directly store the property inside of
+    the NodeData for the vertex or hyperedge used for better locality. The NodeData uses a
+    simple push-back vector, so duplicates must be removed first.
   */
   pragma "no doc"
   class NodeData {
@@ -397,6 +403,18 @@ module AdjListHyperGraph {
       }
     }
     
+    // Preallocates the incidence list to a certain size/capacity
+    proc preallocate(sz : integral, param acquireLock = true) {
+      if acquireLock then lock.acquire();
+      
+      if incidentDomain.size < sz {
+        this.incidentDomain = {0..#sz};
+      }
+
+      if acquireLock then lock.release();
+    }
+    
+    // Check if both incidence lists are equal
     proc equals(other : this.type, param acquireLock = true) {
       if degree != other.degree then return false;
       if acquireLock then acquireLocks(lock, other.lock);
@@ -454,31 +472,12 @@ module AdjListHyperGraph {
       if acquireLock then acquireLocks(lock, other.lock);
       sortIncidence();
       other.sortIncidence();
-
-      ref A = this.incident[0..#size.read()];
-      ref B = other.incident[0..#other.size.read()];
-      var idxA = A.domain.low;
-      var idxB = B.domain.low;
-      var match : int;
-      while idxA <= A.domain.high && idxB <= B.domain.high {
-        const a = A[idxA];
-        const b = B[idxB];
-        if a == b { 
-          match += 1;
-          if match == s then break;
-          idxA += 1; 
-          idxB += 1; 
-        }
-        else if a.id > b.id { 
-          idxB += 1;
-        } else { 
-          idxA += 1;
-        }
-      }
-
+      
+      var ret = Utilities.intersectionSizeAtLeast(this.incident, other.incident, s);
+      
       if acquireLock then releaseLocks(lock, other.lock);
       
-      return match == s;
+      return ret;
     }
 
     // Obtains the intersection of the neighbors of 'this' and 'other'.
@@ -493,29 +492,11 @@ module AdjListHyperGraph {
       sortIncidence();
       other.sortIncidence();
 
-      var intersection : [0..-1] nodeIdType;
-      var A = this.incident[0..#size.read()];
-      var B = other.incident[0..#other.size.read()];
-      var idxA = A.domain.low;
-      var idxB = B.domain.low;
-      while idxA <= A.domain.high && idxB <= B.domain.high {
-        const a = A[idxA];
-        const b = B[idxB];
-        if a.id == b.id { 
-          intersection.push_back(a); 
-          idxA += 1; 
-          idxB += 1; 
-        }
-        else if a.id > b.id { 
-          idxB += 1;
-        } else { 
-          idxA += 1;
-        }
-      }
+      var ret = Utilities.intersection(this.incident, other.incident);
 
       if acquireLock then releaseLocks(lock, other.lock);
 
-      return intersection;
+      return ret;
     }
 
     proc intersectionSize(other : this.type, param acquireLock = true) {
@@ -525,25 +506,7 @@ module AdjListHyperGraph {
       sortIncidence();
       other.sortIncidence();
 
-      ref A = this.incident[0..#size.read()];
-      ref B = other.incident[0..#other.size.read()];
-      var idxA = A.domain.low;
-      var idxB = B.domain.low;
-      var match : int;
-      while idxA <= A.domain.high && idxB <= B.domain.high {
-        const a = A[idxA];
-        const b = B[idxB];
-        if a.id == b.id { 
-          match += 1;
-          idxA += 1; 
-          idxB += 1; 
-        }
-        else if a.id > b.id { 
-          idxB += 1;
-        } else { 
-          idxA += 1;
-        }
-      }
+      var match = Utilities.intersectionSize(this.incident, other.incident);
 
       if acquireLock then releaseLocks(lock, other.lock);
       

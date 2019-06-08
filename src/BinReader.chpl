@@ -67,11 +67,12 @@ proc binToHypergraph(dataset : string) throws {
           // Pre-allocate buffer for vector and read directly into it
           var edges : [0..#(endOffset - beginOffset + 1)] int;
           reader.readBytes(c_ptrTo(edges[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
-          graph.addInclusion(idx, edges);
+          graph.addInclusionBuffered(idx, edges);
           reader.revert();
         }
       }
     }
+    graph.flushBuffers();
     return graph;
   }
 }

@@ -38,46 +38,143 @@ proc endProfile() {
 }
 
 
+// Optimize for locality... migrate data 
+// locally if they are not already.
 proc intersection(A : [] ?t, B : [] t) {
-  var C : [0..-1] t;
-  var idxA = A.domain.low;
-  var idxB = B.domain.low;
-  while idxA <= A.domain.high && idxB <= B.domain.high {
-    const a = A[idxA];
-    const b = B[idxB];
-    if a == b { 
-      C.push_back(a);
-      idxA += 1; 
-      idxB += 1; 
+  if A.locale == here && B.locale == here {
+    return _intersection(A, B);
+  } else if A.locale == here && B.locale != here {
+    const _BD = B.domain; // Make by-value copy so domain is not remote.
+    var _B : [_BD] t = B;
+    return _intersection(A, _B);
+  } else if A.locale != here && B.locale == here {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    var _A : [_AD] t = A;
+    return _intersection(_A, B);
+  } else {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    const _BD = B.domain;
+    var _A : [_AD] t = A;
+    var _B : [_BD] t = B;
+    return _intersection(_A, _B);
+  }
+}
+
+proc _intersection(A : [] ?t, B : [] t) {
+  var CD = {0..#min(A.size, B.size)};
+  var C : [CD] t;
+  local {
+    var idxA = A.domain.low;
+    var idxB = B.domain.low;
+    var idxC = 0;
+    while idxA <= A.domain.high && idxB <= B.domain.high {
+      const a = A[idxA];
+      const b = B[idxB];
+      if a == b { 
+        C[idxC] = a;
+        idxC += 1;
+        idxA += 1; 
+        idxB += 1; 
+      }
+      else if a > b { 
+        idxB += 1;
+      } else { 
+        idxA += 1;
+      }
     }
-    else if a > b { 
-      idxB += 1;
-    } else { 
-      idxA += 1;
-    }
+    CD = {0..#idxC};
   }
   return C;
 }
 
 proc intersectionSize(A : [] ?t, B : [] t) {
-  var idxA = A.domain.low;
-  var idxB = B.domain.low;
+  if A.locale == here && B.locale == here {
+    return _intersectionSize(A, B);
+  } else if A.locale == here && B.locale != here {
+    const _BD = B.domain; // Make by-value copy so domain is not remote.
+    var _B : [_BD] t = B;
+    return _intersectionSize(A, _B);
+  } else if A.locale != here && B.locale == here {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    var _A : [_AD] t = A;
+    return _intersectionSize(_A, B);
+  } else {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    const _BD = B.domain;
+    var _A : [_AD] t = A;
+    var _B : [_BD] t = B;
+    return _intersectionSize(_A, _B);
+  }
+}
+
+proc _intersectionSize(A : [] ?t, B : [] t) {
   var match : int;
-  while idxA <= A.domain.high && idxB <= B.domain.high {
-    const a = A[idxA];
-    const b = B[idxB];
-    if a == b { 
-      match += 1;
-      idxA += 1; 
-      idxB += 1; 
-    }
-    else if a > b { 
-      idxB += 1;
-    } else { 
-      idxA += 1;
+  local {
+    var idxA = A.domain.low;
+    var idxB = B.domain.low;
+    while idxA <= A.domain.high && idxB <= B.domain.high {
+      const a = A[idxA];
+      const b = B[idxB];
+      if a == b { 
+        match += 1;
+        idxA += 1; 
+        idxB += 1; 
+      }
+      else if a > b { 
+        idxB += 1;
+      } else { 
+        idxA += 1;
+      }
     }
   }
   return match;
+}
+
+proc intersectionSizeAtLeast(A : [] ?t, B : [] t, s : integral) {
+  if A.locale == here && B.locale == here {
+    return _intersectionSizeAtLeast(A, B, s);
+  } else if A.locale == here && B.locale != here {
+    const _BD = B.domain; // Make by-value copy so domain is not remote.
+    var _B : [_BD] t = B;
+    return _intersectionSizeAtLeast(A, _B, s);
+  } else if A.locale != here && B.locale == here {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    var _A : [_AD] t = A;
+    return _intersectionSizeAtLeast(_A, B, s);
+  } else {
+    const _AD = A.domain; // Make by-value copy so domain is not remote.
+    const _BD = B.domain;
+    var _A : [_AD] t = A;
+    var _B : [_BD] t = B;
+    return _intersectionSizeAtLeast(_A, _B, s);
+  }
+}
+
+
+// Checks to see if they have at least 's' in common
+proc _intersectionSizeAtLeast(A : [] ?t, B : [] t, s : integral) {
+  if s == 0 then return true;
+  var match : int;
+  local {
+    var idxA = A.domain.low;
+    var idxB = B.domain.low;
+    while idxA <= A.domain.high && idxB <= B.domain.high {
+      const a = A[idxA];
+      const b = B[idxB];
+      if a == b { 
+        match += 1;
+        if match >= s then break;
+        idxA += 1; 
+        idxB += 1; 
+      }
+      else if a > b { 
+        idxB += 1;
+      } else { 
+        idxA += 1;
+      }
+    }
+  }
+  return match >= s;
 }
 
 extern type chpl_comm_nb_handle_t;
