@@ -351,7 +351,7 @@ module Graph {
 
     proc degree(v : hg.vDescType) {
        if isCacheValid() {
-        return privatizedCachedNeighborListInstance.dsiAccess(v.id).size;
+        return privatizedCachedNeighborListInstance.dsiAccess(v.id).size();
       } else {
         return + reduce [_unused_ in hg.walk(v)] 1;
       }
