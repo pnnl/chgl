@@ -827,7 +827,16 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="itermethod">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.incidence">
 <em class="property">iter </em><code class="descname">incidence</code><span class="sig-paren">(</span><em>e: eDescType</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.incidence" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtains the vertices incident in this hyperedge.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>e</strong> &#8211; Hyperedge descriptor.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -837,7 +846,16 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="itermethod">
 <dt>
 <em class="property">iter </em><code class="descname">incidence</code><span class="sig-paren">(</span><em>v: vDescType</em><span class="sig-paren">)</span> ref</dt>
-<dd></dd></dl>
+<dd><p>Obtains the hyperedges this vertex is incident in.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>v</strong> &#8211; Vertex descriptor.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -847,7 +865,8 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="itermethod">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.these">
 <em class="property">iter </em><code class="descname">these</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (vDescType, eDescType)<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.these" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Iterate through pairs vertices along with the edges they are incident in.</p>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -857,12 +876,30 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.this">
 <em class="property">proc </em><code class="descname">this</code><span class="sig-paren">(</span><em>v: vDescType</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.this" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Return the incidence list associated with a vertex.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>v</strong> &#8211; Vertex descriptor.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">this</code><span class="sig-paren">(</span><em>e: eDescType</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Return the incidence list associated with a hyperedge.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>e</strong> &#8211; Hyperedge descriptor.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 

@@ -398,19 +398,47 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
    .. itermethod:: iter incidence(e: eDescType)
 
+      
+      Obtains the vertices incident in this hyperedge.
+      
+      :arg e: Hyperedge descriptor.
+      
+
    .. itermethod:: iter incidence(e: eDescType, param tag: iterKind) ref
 
    .. itermethod:: iter incidence(v: vDescType) ref
+
+      
+      Obtains the hyperedges this vertex is incident in.
+      
+      :arg v: Vertex descriptor.
+      
 
    .. itermethod:: iter incidence(v: vDescType, param tag: iterKind) ref
 
    .. itermethod:: iter these(): (vDescType, eDescType)
 
+      
+      Iterate through pairs vertices along with the edges they are incident in.
+      
+
    .. itermethod:: iter these(param tag: iterKind): (vDescType, eDescType)
 
    .. method:: proc this(v: vDescType)
 
+      
+      Return the incidence list associated with a vertex.
+      
+      :arg v: Vertex descriptor.
+      
+
    .. method:: proc this(e: eDescType)
+
+      
+      Return the incidence list associated with a hyperedge.
+      
+      :arg e: Hyperedge descriptor.
+      
 
 .. function:: proc +=(graph: AdjListHyperGraph, other)
 

@@ -32,6 +32,10 @@ Utilities
 
 .. function:: proc _intersectionSizeAtLeast(A: [] ?t, B: [] t, s: integral)
 
+.. function:: proc _arrayEquality(A: [] ?t, B: [] t)
+
+.. function:: proc arrayEquality(A: [] ?t, B: [] t)
+
 .. type:: type chpl_comm_nb_handle_t
 
 .. function:: proc chpl_comm_get_nb(addr: c_void_ptr, node: chpl_nodeID_t, raddr: c_void_ptr, size: size_t, typeIndex: int(32), commID: int(32), ln: c_int, fn: int(32)): chpl_comm_nb_handle_t
