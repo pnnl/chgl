@@ -22,7 +22,15 @@ Utilities
 
 .. function:: proc intersection(A: [] ?t, B: [] t)
 
+.. function:: proc _intersection(A: [] ?t, B: [] t)
+
 .. function:: proc intersectionSize(A: [] ?t, B: [] t)
+
+.. function:: proc _intersectionSize(A: [] ?t, B: [] t)
+
+.. function:: proc intersectionSizeAtLeast(A: [] ?t, B: [] t, s: integral)
+
+.. function:: proc _intersectionSizeAtLeast(A: [] ?t, B: [] t, s: integral)
 
 .. type:: type chpl_comm_nb_handle_t
 

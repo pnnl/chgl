@@ -142,8 +142,14 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 .. function:: proc fromAdjacencyList(fileName: string, separator = ",", map: ?t = new unmanaged DefaultDist()) throws
 
    
+   Creates a hypergraph from the passed file name with the delimitor indicated by 'separator'. The hypergraph
+   is given the provided distribution.
    
-   ..note::
+   :arg fileName: Name of file.
+   :arg separator: Delimitor used in file.
+   :arg map: Distribution.
+   
+   ..note ::
    
      This reader is purely naive and sequential, and hence should _not_ be used to read in large files.
      It is advised that instead that you use `BinReader`.

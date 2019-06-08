@@ -302,7 +302,22 @@ the privatized instance for all of them, and hence this operation is not thread-
 <dl class="function">
 <dt id="AdjListHyperGraph.fromAdjacencyList">
 <em class="property">proc </em><code class="descname">fromAdjacencyList</code><span class="sig-paren">(</span><em>fileName: string</em>, <em>separator = &quot;</em>, <em>&quot;</em>, <em>map: ?t = new unmanaged DefaultDist()</em><span class="sig-paren">)</span> throws<a class="headerlink" href="#AdjListHyperGraph.fromAdjacencyList" title="Permalink to this definition">¶</a></dt>
-<dd><p>..note:</p>
+<dd><p>Creates a hypergraph from the passed file name with the delimitor indicated by &#8216;separator&#8217;. The hypergraph
+is given the provided distribution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fileName</strong> &#8211; Name of file.</li>
+<li><strong>separator</strong> &#8211; Delimitor used in file.</li>
+<li><strong>map</strong> &#8211; Distribution.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>..note</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span>This reader is purely naive and sequential, and hence should _not_ be used to read in large files.
 It is advised that instead that you use `BinReader`.
 </pre></div>
