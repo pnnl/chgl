@@ -236,13 +236,13 @@ module Graph {
         for e in hg.getEdges() {
           var sz = hg.getEdge(e).size.read();
           if sz > 2 {
-            halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
+            halt("Edge ", e, " has more than two vertices: ", hg.getEdge(e).incident);
           }
           if sz == 0 {
             continue;
           }
 
-          yield (hg.getEdge(e).incident[0], hg.getEdge(e).incident[1]);
+          yield (hg.toVertex(hg.getEdge(e).incident[0]), hg.toVertex(hg.getEdge(e).incident[1]));
         }
       }
     }
@@ -263,7 +263,7 @@ module Graph {
             continue;
           }
 
-          yield (hg.getEdge(e).incident[0], hg.getEdge(e).incident[1]);
+          yield (hg.toVertex(hg.getEdge(e).incident[0]), hg.toVertex(hg.getEdge(e).incident[1]));
         }
       }    
     }
