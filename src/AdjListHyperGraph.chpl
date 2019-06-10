@@ -2057,7 +2057,7 @@ module AdjListHyperGraph {
                 halt("Vertex out of bounds on locale #", loc.id, ", domain = ", localThis.verticesDomain);
               }
               ref v = localThis.getVertex(srcId);
-              if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.localVerticesDomain, ", with ", (srcId, destId, srcType));
+              if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.verticesDomain.localSubdomain(), ", with ", (srcId, destId, srcType));
               v.addIncidence(localThis.toEdge(destId), true);
             }
             when InclusionType.Edge {
@@ -2065,7 +2065,7 @@ module AdjListHyperGraph {
                 halt("Edge out of bounds on locale #", loc.id, ", domain = ", localThis.edgesDomain);
               }
               ref e = localThis.getEdge(srcId);
-              if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.localEdgesDomain, ", with ", (srcId, destId, srcType));
+              if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.edgesDomain.localSubdomain(), ", with ", (srcId, destId, srcType));
               e.addIncidence(localThis.toVertex(destId), true);
             }
           }
