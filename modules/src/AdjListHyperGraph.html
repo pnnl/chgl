@@ -422,114 +422,55 @@ optimizations of certain operations.</p>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices = 0</em>, <em>numEdges = 0</em>, <em>vertexMappings</em>, <em>edgeMappings</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.init" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em>, <em>vertexMappings = new unmanaged DefaultDist()</em>, <em>edgeMappings = vertexMappings</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.verticesDomain">
 <em class="property">proc </em><code class="descname">verticesDomain</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.verticesDomain" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.localVerticesDomain">
-<em class="property">proc </em><code class="descname">localVerticesDomain</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.localVerticesDomain" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the domain of vertices; each index of the domain is a vertex id.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.edgesDomain">
 <em class="property">proc </em><code class="descname">edgesDomain</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.edgesDomain" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.localEdgesDomain">
-<em class="property">proc </em><code class="descname">localEdgesDomain</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.localEdgesDomain" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.vertices">
-<em class="property">proc </em><code class="descname">vertices</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.vertices" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.edges">
-<em class="property">proc </em><code class="descname">edges</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.edges" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getVertex">
-<em class="property">proc </em><code class="descname">getVertex</code><span class="sig-paren">(</span><em>idx: integral</em><span class="sig-paren">)</span> ref<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getVertex" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">proc </em><code class="descname">getVertex</code><span class="sig-paren">(</span><em>desc: vDescType</em><span class="sig-paren">)</span> ref</dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">proc </em><code class="descname">getVertex</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getEdge">
-<em class="property">proc </em><code class="descname">getEdge</code><span class="sig-paren">(</span><em>idx: integral</em><span class="sig-paren">)</span> ref<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getEdge" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">proc </em><code class="descname">getEdge</code><span class="sig-paren">(</span><em>desc: eDescType</em><span class="sig-paren">)</span> ref</dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">proc </em><code class="descname">getEdge</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.verticesDist">
-<em class="property">proc </em><code class="descname">verticesDist</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.verticesDist" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.edgesDist">
-<em class="property">proc </em><code class="descname">edgesDist</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.edgesDist" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.useAggregation">
-<em class="property">proc </em><code class="descname">useAggregation</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.useAggregation" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the domain of hyperedges; each index of the domain is a hyperedge id.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.numEdges">
 <em class="property">proc </em><code class="descname">numEdges</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.numEdges" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the number of edges in the graph.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.numVertices">
 <em class="property">proc </em><code class="descname">numVertices</code><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.numVertices" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the number of vertices in the graph.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.degree">
 <em class="property">proc </em><code class="descname">degree</code><span class="sig-paren">(</span><em>vDesc: vDescType</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.degree" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain degree of the vertex.</p>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">degree</code><span class="sig-paren">(</span><em>eDesc: eDescType</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Obtain degree of the hyperedge.</p>
+</dd></dl>
 
 <dl class="itermethod">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.walk">
 <em class="property">iter </em><code class="descname">walk</code><span class="sig-paren">(</span><em>eDesc: eDescType</em>, <em>s = 1</em><span class="sig-paren">)</span>: eDescType<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.walk" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Iterator that yields all edges we can s-walk to. We can s-walk from an edge e to
+another edge e&#8217; if the size of the intersection of both e and e&#8217; is at least s.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>eDesc</strong> &#8211; The edge to s-walk from.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -539,7 +480,17 @@ optimizations of certain operations.</p>
 <dl class="itermethod">
 <dt>
 <em class="property">iter </em><code class="descname">walk</code><span class="sig-paren">(</span><em>vDesc: vDescType</em>, <em>s = 1</em><span class="sig-paren">)</span>: vDescType</dt>
-<dd></dd></dl>
+<dd><p>Iterator that yields all vertices we can s-walk to. We can s-walk from an vertex v to
+another vertex v&#8217; if the size of the intersection of both v and v&#8217; is at least s.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>vDesc</strong> &#8211; The vertex to s-walk from.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -549,7 +500,10 @@ optimizations of certain operations.</p>
 <dl class="itermethod">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getToplexes">
 <em class="property">iter </em><code class="descname">getToplexes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getToplexes" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Yield toplex hyperedges in the graph. A hyperedge e is a toplex if there exists no other
+hyperedge e&#8217; such that e&#8217; is a superset of e; that is, e is a hyperedge that is not a subset
+of any other edge.</p>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -559,37 +513,73 @@ optimizations of certain operations.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getProperty">
 <em class="property">proc </em><code class="descname">getProperty</code><span class="sig-paren">(</span><em>vDesc: vDescType</em><span class="sig-paren">)</span>: this._propertyMap.vertexPropertyType<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getProperty" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the property associated with a vertex.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>vDesc</strong> &#8211; Vertex to obtain the property of.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">getProperty</code><span class="sig-paren">(</span><em>eDesc: eDescType</em><span class="sig-paren">)</span>: this._propertyMap.edgePropertyType</dt>
-<dd></dd></dl>
+<dd><p>Obtain the property associated with a edge.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>eDesc</strong> &#8211; Edge to obtain the property of.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.collapseVertices">
 <em class="property">proc </em><code class="descname">collapseVertices</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.collapseVertices" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Simplify vertices in graph by collapsing duplicate vertices into equivalence
+classes. This updates the property map, if there is one, to update all references
+to vertices to point to the new candidate. This is an inplace operation. Must
+be called from Locale #0. Returns a histogram of duplicates.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.collapseEdges">
 <em class="property">proc </em><code class="descname">collapseEdges</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.collapseEdges" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Simplify edges in graph by collapsing duplicate edges into equivalence
+classes. This updates the property map, if there is one, to update all references
+to vertices to point to the new candidate. This is an inplace operation. Must be
+called from Locale #0. Returns a histogram of duplicates</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.collapseSubsets">
 <em class="property">proc </em><code class="descname">collapseSubsets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.collapseSubsets" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Collapses hyperedges into the equivalence class of the toplex they are apart of.
+This updates the property map, if there is one, to update all references
+to vertices to point to the new candidate. This is an inplace operation. Must be
+called from Locale #0. Returns a histogram representing the number of edges collapsed
+into toplexes.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.collapse">
 <em class="property">proc </em><code class="descname">collapse</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.collapse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Equivalent to a call to <cite>collapseVertices</cite> and <cite>collapseEdges</cite>; returns the histogram
+of vertices and edges (vDuplicateHistogram, eDuplicateHistogram)</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.removeIsolatedComponents">
-<em class="property">proc </em><code class="descname">removeIsolatedComponents</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.removeIsolatedComponents" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<em class="property">proc </em><code class="descname">removeIsolatedComponents</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: int<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.removeIsolatedComponents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes components in the hypergraph where a hyperedge cannot &#8216;walk&#8217; to
+another hyperedge; that is a hyperedge that is isolated from all other
+hyperedges. Returns the number of isolated components.</p>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -599,26 +589,49 @@ optimizations of certain operations.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.isConnected">
 <em class="property">proc </em><code class="descname">isConnected</code><span class="sig-paren">(</span><em>v1: vDescType</em>, <em>v2: vDescType</em>, <em>s</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.isConnected" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if we can s-walk from a source vertex to sink vertex.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>v1</strong> &#8211; Source vertex.</li>
+<li><strong>v2</strong> &#8211; Sink vertex.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">isConnected</code><span class="sig-paren">(</span><em>e1: eDescType</em>, <em>e2: eDescType</em>, <em>s</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Check if we can s-walk from a source edge to sink edge.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>e1</strong> &#8211; Source edge.</li>
+<li><strong>e2</strong> &#8211; Sink edge.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getInclusions">
-<em class="property">proc </em><code class="descname">getInclusions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getInclusions" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<em class="property">proc </em><code class="descname">getInclusions</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: int<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getInclusions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtains the sum of all degrees of all vertices.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getEdges">
 <em class="property">proc </em><code class="descname">getEdges</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getEdges" title="Permalink to this definition">¶</a></dt>
-<dd><p>Warning: If you call these inside of the <cite>AdjListHyperGraphImpl</cite>,
-there will not be any privatization, hence you _need_ to call
-getPrivatizedInstance; one easy way to do this is to do something
-like &#8216;with (var _this = getPrivatizedInstance())&#8217; so that its only
-obtained once per task per locale.</p>
+<dd><p>Yields all edges in the graph.</p>
 </dd></dl>
 
 <dl class="method">
@@ -639,7 +652,8 @@ obtained once per task per locale.</p>
 <dl class="itermethod">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getVertices">
 <em class="property">iter </em><code class="descname">getVertices</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getVertices" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Yields all vertices in the graph.</p>
+</dd></dl>
 
 <dl class="method">
 <dt>
@@ -659,32 +673,38 @@ obtained once per task per locale.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.flushBuffers">
 <em class="property">proc </em><code class="descname">flushBuffers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.flushBuffers" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.resizeEdges">
-<em class="property">proc </em><code class="descname">resizeEdges</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.resizeEdges" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="AdjListHyperGraph.AdjListHyperGraphImpl.resizeVertices">
-<em class="property">proc </em><code class="descname">resizeVertices</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.resizeVertices" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Flush all aggregation buffers.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.startAggregation">
 <em class="property">proc </em><code class="descname">startAggregation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.startAggregation" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Activate automatic aggregation where all calls to <cite>addInclusion</cite> will be aggregated.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.stopAggregation">
 <em class="property">proc </em><code class="descname">stopAggregation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.stopAggregation" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Ceases the implicit aggregation of all &#8216;addInclusion&#8217; calls. Explicit calls to
+&#8216;addInclusionBuffered&#8217; will still be aggregated.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.addInclusionBuffered">
 <em class="property">proc </em><code class="descname">addInclusionBuffered</code><span class="sig-paren">(</span><em>vDesc: vDescType</em>, <em>eDesc: eDescType</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.addInclusionBuffered" title="Permalink to this definition">¶</a></dt>
 <dd><p>Explicitly aggregate the vertex and element.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>vDesc</strong> &#8211; Vertex.</li>
+<li><strong>eDesc</strong> &#8211; Edge.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -708,6 +728,18 @@ obtained once per task per locale.</p>
 <dd><p>Adds &#8216;e&#8217; as a neighbor of &#8216;v&#8217; and &#8216;v&#8217; as a neighbor of &#8216;e&#8217;.
 If aggregation is enabled via &#8216;startAggregation&#8217;, this will
 forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>vDesc</strong> &#8211; Vertex.</li>
+<li><strong>eDesc</strong> &#8211; Edge.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -728,7 +760,20 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.hasInclusion">
 <em class="property">proc </em><code class="descname">hasInclusion</code><span class="sig-paren">(</span><em>v: vIndexType</em>, <em>e: eIndexType</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.hasInclusion" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if the vertex &#8216;v&#8217; is incident in edge &#8216;e&#8217;.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>v</strong> &#8211; Vertex.</li>
+<li><strong>e</strong> &#8211; Edge.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
@@ -748,12 +793,23 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.removeDuplicates">
 <em class="property">proc </em><code class="descname">removeDuplicates</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.removeDuplicates" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Remove duplicates from incidence list both vertices and edges. Useful to invoke after graph generation.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.toEdge">
 <em class="property">proc </em><code class="descname">toEdge</code><span class="sig-paren">(</span><em>id: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.toEdge" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtains the edge descriptor for the integral edge id. If &#8216;boundsChecking&#8217; is
+enabled, we verify that the id is a valid index (I.E compiling without &#8211;fast).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>id</strong> &#8211; Integer identifier for an edge.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
@@ -763,7 +819,17 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.toVertex">
 <em class="property">proc </em><code class="descname">toVertex</code><span class="sig-paren">(</span><em>id: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.toVertex" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtains the vertex descriptor for the integral vertex id. If &#8216;boundsChecking&#8217; is
+enabled, we verify that the id is a valid index (I.E compiling without &#8211;fast).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>id</strong> &#8211; Integer identifier for a vertex.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
@@ -786,28 +852,83 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getLocale">
 <em class="property">proc </em><code class="descname">getLocale</code><span class="sig-paren">(</span><em>v: vDescType</em><span class="sig-paren">)</span>: locale<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getLocale" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the locale that the given vertex is allocated on</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>v</strong> &#8211; Vertex.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">getLocale</code><span class="sig-paren">(</span><em>e: eDescType</em><span class="sig-paren">)</span>: locale</dt>
 <dd><p>Obtain the locale that the given edge is allocated on</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>e</strong> &#8211; Edge.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.intersectionSize">
 <em class="property">proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>e1: eDescType</em>, <em>e2: eDescType</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.intersectionSize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the size of the intersection of both hyperedges.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>e1</strong> &#8211; Hyperedge.</li>
+<li><strong>e2</strong> &#8211; Hyperedge.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>v1: vDescType</em>, <em>v2: vDescType</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Obtain the size of the intersection of both vertices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>v1</strong> &#8211; Vertex.</li>
+<li><strong>v2</strong> &#8211; Vertex.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="itermethod">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.intersection">
 <em class="property">iter </em><code class="descname">intersection</code><span class="sig-paren">(</span><em>e1: eDescType</em>, <em>e2: eDescType</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.intersection" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Yield edges that are in the intersection of both vertices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>e1</strong> &#8211; Hyperedge.</li>
+<li><strong>e2</strong> &#8211; Hyperedge.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="itermethod">
 <dt>
@@ -906,7 +1027,8 @@ forward to the aggregated version, &#8216;addInclusionBuffered&#8217;.</p>
 <dl class="function">
 <dt id="AdjListHyperGraph.+=">
 <em class="property">proc </em><code class="descname">+=</code><span class="sig-paren">(</span><em>graph: AdjListHyperGraph</em>, <em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.+=" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Invokes &#8216;addInclusion&#8217;</p>
+</dd></dl>
 
 <dl class="function">
 <dt>

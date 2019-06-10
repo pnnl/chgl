@@ -206,90 +206,163 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
    .. attribute:: type eDescType = EdgeWrappereIndexType
 
-   .. method:: proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings)
-
-   .. method:: proc init(propMap: ?vPropTypePropertyMap?ePropType, vertexMappings = new unmanaged DefaultDist(), edgeMappings = vertexMappings)
-
    .. method:: proc verticesDomain
 
-   .. method:: proc localVerticesDomain
+      
+      Obtain the domain of vertices; each index of the domain is a vertex id.
+      
 
    .. method:: proc edgesDomain
 
-   .. method:: proc localEdgesDomain
-
-   .. method:: proc vertices
-
-   .. method:: proc edges
-
-   .. method:: proc getVertex(idx: integral) ref
-
-   .. method:: proc getVertex(desc: vDescType) ref
-
-   .. method:: proc getVertex(other)
-
-   .. method:: proc getEdge(idx: integral) ref
-
-   .. method:: proc getEdge(desc: eDescType) ref
-
-   .. method:: proc getEdge(other)
-
-   .. method:: proc verticesDist
-
-   .. method:: proc edgesDist
-
-   .. method:: proc useAggregation
+      
+      Obtain the domain of hyperedges; each index of the domain is a hyperedge id.
+      
 
    .. method:: proc numEdges
 
+      
+      Obtain the number of edges in the graph.
+      
+
    .. method:: proc numVertices
+
+      
+      Obtain the number of vertices in the graph.
+      
 
    .. method:: proc degree(vDesc: vDescType)
 
+      
+      Obtain degree of the vertex.
+      
+
    .. method:: proc degree(eDesc: eDescType)
 
+      
+      Obtain degree of the hyperedge.
+      
+
    .. itermethod:: iter walk(eDesc: eDescType, s = 1): eDescType
+
+      
+      Iterator that yields all edges we can s-walk to. We can s-walk from an edge e to
+      another edge e' if the size of the intersection of both e and e' is at least s.
+      
+      :arg eDesc: The edge to s-walk from.
+      
 
    .. itermethod:: iter walk(eDesc: eDescType, s = 1, param tag: iterKind): eDescType
 
    .. itermethod:: iter walk(vDesc: vDescType, s = 1): vDescType
 
+      
+      Iterator that yields all vertices we can s-walk to. We can s-walk from an vertex v to
+      another vertex v' if the size of the intersection of both v and v' is at least s.
+      
+      :arg vDesc: The vertex to s-walk from.
+      
+
    .. itermethod:: iter walk(vDesc: vDescType, s = 1, param tag: iterKind): vDescType
 
    .. itermethod:: iter getToplexes()
+
+      
+      Yield toplex hyperedges in the graph. A hyperedge e is a toplex if there exists no other
+      hyperedge e' such that e' is a superset of e; that is, e is a hyperedge that is not a subset
+      of any other edge.
+      
 
    .. itermethod:: iter getToplexes(param tag: iterKind)
 
    .. method:: proc getProperty(vDesc: vDescType): this._propertyMap.vertexPropertyType
 
+      
+      Obtain the property associated with a vertex.
+      
+      :arg vDesc: Vertex to obtain the property of.
+      
+
    .. method:: proc getProperty(eDesc: eDescType): this._propertyMap.edgePropertyType
+
+      
+      Obtain the property associated with a edge.
+      
+      :arg eDesc: Edge to obtain the property of.
+      
 
    .. method:: proc collapseVertices()
 
+      
+      Simplify vertices in graph by collapsing duplicate vertices into equivalence
+      classes. This updates the property map, if there is one, to update all references
+      to vertices to point to the new candidate. This is an inplace operation. Must
+      be called from Locale #0. Returns a histogram of duplicates.
+      
+
    .. method:: proc collapseEdges()
+
+      
+      Simplify edges in graph by collapsing duplicate edges into equivalence
+      classes. This updates the property map, if there is one, to update all references
+      to vertices to point to the new candidate. This is an inplace operation. Must be
+      called from Locale #0. Returns a histogram of duplicates
+      
 
    .. method:: proc collapseSubsets()
 
+      
+      Collapses hyperedges into the equivalence class of the toplex they are apart of.
+      This updates the property map, if there is one, to update all references
+      to vertices to point to the new candidate. This is an inplace operation. Must be
+      called from Locale #0. Returns a histogram representing the number of edges collapsed
+      into toplexes.
+      
+
    .. method:: proc collapse()
 
-   .. method:: proc removeIsolatedComponents()
+      
+      Equivalent to a call to `collapseVertices` and `collapseEdges`; returns the histogram
+      of vertices and edges (vDuplicateHistogram, eDuplicateHistogram)
+      
+
+   .. method:: proc removeIsolatedComponents(): int
+
+      
+      Removes components in the hypergraph where a hyperedge cannot 'walk' to
+      another hyperedge; that is a hyperedge that is isolated from all other
+      hyperedges. Returns the number of isolated components.
+      
 
    .. itermethod:: iter getToplexes(param tag: iterKind): eDescType
 
    .. method:: proc isConnected(v1: vDescType, v2: vDescType, s)
 
+      
+      Check if we can s-walk from a source vertex to sink vertex.
+      
+      :arg v1: Source vertex.
+      :arg v2: Sink vertex.
+      
+
    .. method:: proc isConnected(e1: eDescType, e2: eDescType, s)
 
-   .. method:: proc getInclusions()
+      
+      Check if we can s-walk from a source edge to sink edge.
+      
+      :arg e1: Source edge.
+      :arg e2: Sink edge.
+      
+
+   .. method:: proc getInclusions(): int
+
+      
+      Obtains the sum of all degrees of all vertices.
+      
 
    .. method:: proc getEdges(param tag: iterKind)
 
       
-      Warning: If you call these inside of the `AdjListHyperGraphImpl`,
-      there will not be any privatization, hence you _need_ to call
-      getPrivatizedInstance; one easy way to do this is to do something
-      like 'with (var _this = getPrivatizedInstance())' so that its only
-      obtained once per task per locale.
+      Yields all edges in the graph.
       
 
    .. method:: proc getEdges(param tag: iterKind, followThis)
@@ -300,6 +373,10 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
    .. itermethod:: iter getVertices(param tag: iterKind)
 
+      
+      Yields all vertices in the graph.
+      
+
    .. method:: proc getVertices(param tag: iterKind)
 
    .. method:: proc getVertices(param tag: iterKind, followThis)
@@ -308,18 +385,30 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
    .. method:: proc flushBuffers()
 
-   .. method:: proc resizeEdges(size)
-
-   .. method:: proc resizeVertices(size)
+      
+      Flush all aggregation buffers.
+      
 
    .. method:: proc startAggregation()
 
+      
+      Activate automatic aggregation where all calls to `addInclusion` will be aggregated.
+      
+
    .. method:: proc stopAggregation()
+
+      
+      Ceases the implicit aggregation of all 'addInclusion' calls. Explicit calls to
+      'addInclusionBuffered' will still be aggregated.
+      
 
    .. method:: proc addInclusionBuffered(vDesc: vDescType, eDesc: eDescType)
 
       
       Explicitly aggregate the vertex and element.
+      
+      :arg vDesc: Vertex.
+      :arg eDesc: Edge.
       
 
    .. method:: proc addInclusionBuffered(v: vIndexType, e: eIndexType)
@@ -335,6 +424,9 @@ There are a few ways to create a :record:`AdjListHyperGraph`
       If aggregation is enabled via 'startAggregation', this will 
       forward to the aggregated version, 'addInclusionBuffered'.
       
+      :arg vDesc: Vertex.
+      :arg eDesc: Edge.
+      
 
    .. method:: proc addInclusion(v: vIndexType, e: eIndexType)
 
@@ -344,6 +436,13 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
    .. method:: proc hasInclusion(v: vIndexType, e: eIndexType)
 
+      
+      Check if the vertex 'v' is incident in edge 'e'.
+      
+      :arg v: Vertex.
+      :arg e: Edge.
+      
+
    .. method:: proc hasInclusion(vDesc: vDescType, e: eIndexType)
 
    .. method:: proc hasInclusion(v: vIndexType, eDesc: eDescType)
@@ -352,11 +451,29 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
    .. method:: proc removeDuplicates()
 
+      
+      Remove duplicates from incidence list both vertices and edges. Useful to invoke after graph generation.
+      
+
    .. method:: proc toEdge(id: integral)
+
+      
+      Obtains the edge descriptor for the integral edge id. If 'boundsChecking' is
+      enabled, we verify that the id is a valid index (I.E compiling without --fast).
+      
+      :arg id: Integer identifier for an edge.
+      
 
    .. method:: proc toEdge(desc: eDescType)
 
    .. method:: proc toVertex(id: integral)
+
+      
+      Obtains the vertex descriptor for the integral vertex id. If 'boundsChecking' is
+      enabled, we verify that the id is a valid index (I.E compiling without --fast).
+      
+      :arg id: Integer identifier for a vertex.
+      
 
    .. method:: proc toVertex(desc: vDescType)
 
@@ -377,18 +494,43 @@ There are a few ways to create a :record:`AdjListHyperGraph`
       
       Obtain the locale that the given vertex is allocated on
       
+      :arg v: Vertex.
+      
 
    .. method:: proc getLocale(e: eDescType): locale
 
       
       Obtain the locale that the given edge is allocated on
       
+      :arg e: Edge.
+      
 
    .. method:: proc intersectionSize(e1: eDescType, e2: eDescType)
 
+      
+      Obtain the size of the intersection of both hyperedges.
+      
+      :arg e1: Hyperedge.
+      :arg e2: Hyperedge.
+      
+
    .. method:: proc intersectionSize(v1: vDescType, v2: vDescType)
 
+      
+      Obtain the size of the intersection of both vertices.
+      
+      :arg v1: Vertex.
+      :arg v2: Vertex.
+      
+
    .. itermethod:: iter intersection(e1: eDescType, e2: eDescType)
+
+      
+      Yield edges that are in the intersection of both vertices.
+      
+      :arg e1: Hyperedge.
+      :arg e2: Hyperedge.
+      
 
    .. itermethod:: iter intersection(e1: eDescType, e2: eDescType, param tag: iterKind)
 
@@ -441,6 +583,10 @@ There are a few ways to create a :record:`AdjListHyperGraph`
       
 
 .. function:: proc +=(graph: AdjListHyperGraph, other)
+
+   
+   Invokes 'addInclusion'
+   
 
 .. function:: proc +=(graph: unmanaged AdjListHyperGraphImpl, chpl__tuple_arg_temp: (graph.vDescType, graph.eDescType))
 
