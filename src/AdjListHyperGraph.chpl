@@ -784,10 +784,14 @@ module AdjListHyperGraph {
     // Privatization id
     pragma "no doc"
     var pid = -1;
-
+    
+    // Index type for vertices; matches the type of indices for the vertex domain (currently int(64))
     type vIndexType = index(_verticesDomain);
+    // Index type for hyperedges; matches the type of indices for the hyperedges domain (currently int(64))
     type eIndexType = index(_edgesDomain);
+    // Type of the wrapper for a vertex.
     type vDescType = Wrapper(Vertex, vIndexType);
+    // Type of the wrapper for a edge.
     type eDescType = Wrapper(Edge, eIndexType);
 
     pragma "no doc"
@@ -811,7 +815,7 @@ module AdjListHyperGraph {
     pragma "no doc"
     var _useAggregation : bool;
 
-    // Initialize a graph with initial domains
+    pragma "no doc"
     proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings) {
       if numVertices > max(int(64)) || numVertices < 0 { 
         halt("numVertices must be between 0..", max(int(64)), " but got ", numVertices);
@@ -849,6 +853,7 @@ module AdjListHyperGraph {
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
     }
 
+    pragma "no doc"
     proc init(
       propMap : PropertyMap(?vPropType, ?ePropType), 
       vertexMappings = new unmanaged DefaultDist(), 
@@ -963,78 +968,105 @@ module AdjListHyperGraph {
     inline proc getPrivatizedInstance() {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
-
+    
+    /*
+      Obtain the domain of vertices; each index of the domain is a vertex id.
+    */
     inline proc verticesDomain {
       return _getDomain(_to_unmanaged(_privatizedVertices.dom));
     }
-
-    inline proc localVerticesDomain {
-      return verticesDomain.localSubdomain();
-    }
-
+    
+    /*
+      Obtain the domain of hyperedges; each index of the domain is a hyperedge id.
+    */
     inline proc edgesDomain {
       return _getDomain(_to_unmanaged(_privatizedEdges.dom));
     }
-
-    inline proc localEdgesDomain {
-      return edgesDomain.localSubdomain();
-    }
-
+    
+    pragma "no doc"    
     inline proc vertices {
       return _privatizedVertices;
     }
 
+    pragma "no doc"    
     inline proc edges {
       return _privatizedEdges;
     }
 
+    pragma "no doc"
     inline proc getVertex(idx : integral) ref {
       return getVertex(toVertex(idx));
     }
 
+    pragma "no doc"
     inline proc getVertex(desc : vDescType) ref {
       return vertices.dsiAccess(desc.id);
     }
 
+    pragma "no doc"
     inline proc getVertex(other) {
       Debug.badArgs(other, (vIndexType, vDescType));  
     }
 
+    pragma "no doc"
     inline proc getEdge(idx : integral) ref {
       return getEdge(toEdge(idx));
     }
 
+    pragma "no doc"
     inline proc getEdge(desc : eDescType) ref {
       return edges.dsiAccess(desc.id);
     }
     
+    pragma "no doc"
     inline proc getEdge(other) {
       Debug.badArgs(other, (eIndexType, eDescType));  
     }
 
+    pragma "no doc"
     inline proc verticesDist {
       return _to_unmanaged(verticesDomain.dist);
     }
 
+    pragma "no doc"
     inline proc edgesDist {
       return _to_unmanaged(edgesDomain.dist);
     }
 
+    pragma "no doc"
     inline proc useAggregation {
       return _useAggregation;
     }
-
+    
+    /*
+      Obtain the number of edges in the graph.
+    */
     inline proc numEdges return edgesDomain.size;
+    
+    /*
+      Obtain the number of vertices in the graph.
+    */
     inline proc numVertices return verticesDomain.size;
     
+    /*
+      Obtain degree of the vertex.
+    */
     inline proc degree(vDesc : vDescType) return getVertex(vDesc).degree;
+    /*
+      Obtain degree of the hyperedge.
+    */
     inline proc degree(eDesc : eDescType) return getEdge(eDesc).degree;
     pragma "no doc"
     inline proc degree(other) {
       Debug.badArgs(other, (vDescType, eDescType));
     }
     
-    
+    /*
+      Iterator that yields all edges we can s-walk to. We can s-walk from an edge e to
+      another edge e' if the size of the intersection of both e and e' is at least s.
+
+      :arg eDesc: The edge to s-walk from.
+    */
     iter walk(eDesc : eDescType, s = 1) : eDescType {
       for v in incidence(eDesc) {
         for e in incidence(v) {
@@ -1044,7 +1076,8 @@ module AdjListHyperGraph {
         }
       }
     }
-
+    
+    
     iter walk(eDesc : eDescType, s = 1, param tag : iterKind) : eDescType where tag == iterKind.standalone {
       forall v in incidence(eDesc) {
         forall e in incidence(v) {
@@ -1054,7 +1087,13 @@ module AdjListHyperGraph {
         }
       }
     }
+    
+    /*
+      Iterator that yields all vertices we can s-walk to. We can s-walk from an vertex v to
+      another vertex v' if the size of the intersection of both v and v' is at least s.
 
+      :arg vDesc: The vertex to s-walk from.
+    */
     iter walk(vDesc : vDescType, s = 1) : vDescType {
       for e in incidence(vDesc) {
         for v in incidence(e) {
@@ -1075,6 +1114,11 @@ module AdjListHyperGraph {
       }
     }
 
+    /*
+      Yield toplex hyperedges in the graph. A hyperedge e is a toplex if there exists no other
+      hyperedge e' such that e' is a superset of e; that is, e is a hyperedge that is not a subset
+      of any other edge.
+    */
     iter getToplexes() {
       var notToplex : [edgesDomain] bool;
       for e in getEdges() {
@@ -1109,11 +1153,21 @@ module AdjListHyperGraph {
       }
     }
 
+    /*
+      Obtain the property associated with a vertex.
+
+      :arg vDesc: Vertex to obtain the property of.
+    */
     proc getProperty(vDesc : vDescType) : this._propertyMap.vertexPropertyType {
       if !_propertyMap.isInitialized then halt("No property map is created for this hypergraph!");
       return getVertex(vDesc).property;
     }
 
+    /*
+      Obtain the property associated with a edge.
+
+      :arg eDesc: Edge to obtain the property of.
+    */
     proc getProperty(eDesc : eDescType) : this._propertyMap.edgePropertyType {
       if !_propertyMap.isInitialized then halt("No property map is created for this hypergraph");
       return getEdge(eDesc).property;
@@ -1124,10 +1178,12 @@ module AdjListHyperGraph {
       Debug.badArgs(other, (vDescType, eDescType));
     }
     
-    // Simplify vertices in graph by collapsing duplicate vertices into equivalence
-    // classes. This updates the property map, if there is one, to update all references
-    // to vertices to point to the new candidate. This is an inplace operation. Must
-    // be called from Locale #0. Returns a histogram of duplicates.
+    /* 
+      Simplify vertices in graph by collapsing duplicate vertices into equivalence
+      classes. This updates the property map, if there is one, to update all references
+      to vertices to point to the new candidate. This is an inplace operation. Must
+      be called from Locale #0. Returns a histogram of duplicates.
+    */
     proc collapseVertices() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1308,10 +1364,12 @@ module AdjListHyperGraph {
       return [n in dupeHistogram] n.read();
     }
 
-    // Simplify vertices in graph by collapsing duplicate vertices into equivalence
-    // classes. This updates the property map, if there is one, to update all references
-    // to vertices to point to the new candidate. This is an inplace operation. Must be
-    // called from Locale #0. Returns a histogram of duplicates
+    /* 
+      Simplify edges in graph by collapsing duplicate edges into equivalence
+      classes. This updates the property map, if there is one, to update all references
+      to vertices to point to the new candidate. This is an inplace operation. Must be
+      called from Locale #0. Returns a histogram of duplicates
+    */
     proc collapseEdges() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1477,7 +1535,13 @@ module AdjListHyperGraph {
       return [n in dupeHistogram] n.read();
     }
     
-    // Collapses hyperedges into the toplex they are apart of, if one exists. 
+    /*
+      Collapses hyperedges into the equivalence class of the toplex they are apart of.
+      This updates the property map, if there is one, to update all references
+      to vertices to point to the new candidate. This is an inplace operation. Must be
+      called from Locale #0. Returns a histogram representing the number of edges collapsed
+      into toplexes.
+    */
     proc collapseSubsets() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
@@ -1615,8 +1679,10 @@ module AdjListHyperGraph {
       return [n in dupeHistogram] n.read();
     }
     
-    // Equivalent to a call to `collapseVertices` and `collapseEdges`; returns the histogram
-    // of vertices and edges (vDuplicateHistogram, eDuplicateHistogram)
+    /*
+      Equivalent to a call to `collapseVertices` and `collapseEdges`; returns the histogram
+      of vertices and edges (vDuplicateHistogram, eDuplicateHistogram)
+    */
     proc collapse() {
       var vDupeHistogram = collapseVertices();
       if Debug.ALHG_DEBUG {
@@ -1704,10 +1770,12 @@ module AdjListHyperGraph {
       return (vDupeHistogram, eDupeHistogram);
     }
 
-    // Removes components in the hypergraph where a hyperedge cannot 'walk' to
-    // another hyperedge; that is a hyperedge that is isolated from all other
-    // hyperedges.
-    proc removeIsolatedComponents() {
+    /* 
+      Removes components in the hypergraph where a hyperedge cannot 'walk' to
+      another hyperedge; that is a hyperedge that is isolated from all other
+      hyperedges. Returns the number of isolated components.
+    */
+    proc removeIsolatedComponents() : int {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
         // Cannot jump and return as return type is inferred by compiler.
@@ -1894,16 +1962,31 @@ module AdjListHyperGraph {
         if isToplex then yield e;
       }
     }
+    
+    /*
+      Check if we can s-walk from a source vertex to sink vertex.
 
+      :arg v1: Source vertex.
+      :arg v2: Sink vertex.
+    */
     proc isConnected(v1 : vDescType, v2 : vDescType, s) {
       return getVertex(v1).canWalk(getVertex(v2), s);
     }
 
+    /*
+      Check if we can s-walk from a source edge to sink edge.
+
+      :arg e1: Source edge.
+      :arg e2: Sink edge.
+    */
     proc isConnected(e1 : eDescType, e2 : eDescType, s) {
       return getEdge(e1).canWalk(getEdge(e2), s);
     }
-
-    proc getInclusions() return + reduce getVertexDegrees();
+    
+    /*
+      Obtains the sum of all degrees of all vertices.
+    */
+    proc getInclusions() : int return + reduce getVertexDegrees();
 
 
     /*
@@ -1912,6 +1995,10 @@ module AdjListHyperGraph {
         getPrivatizedInstance; one easy way to do this is to do something
         like 'with (var _this = getPrivatizedInstance())' so that its only
         obtained once per task per locale.
+    */
+    
+    /*
+      Yields all edges in the graph.
     */
     pragma "fn returns iterator"
     proc getEdges(param tag : iterKind) where tag == iterKind.leader {
@@ -1931,6 +2018,9 @@ module AdjListHyperGraph {
       for e in edgesDomain do yield toEdge(e);
     }
 
+    /*
+      Yields all vertices in the graph.
+    */
     iter getVertices(param tag : iterKind) where tag == iterKind.standalone {
       forall v in verticesDomain do yield toVertex(v);
     }
@@ -1982,7 +2072,10 @@ module AdjListHyperGraph {
         }
       }
     }
-
+  
+    /*
+      Flush all aggregation buffers.
+    */
     proc flushBuffers() {
       forall (buf, loc) in _destBuffer.flushGlobal() {
         emptyBuffer(buf, loc);
@@ -1990,6 +2083,7 @@ module AdjListHyperGraph {
     }
 
 
+    pragma "no doc" 
     // Resize the edges array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of edges can be increased or decreased
@@ -1997,6 +2091,7 @@ module AdjListHyperGraph {
       edges.setIndices({0..(size-1)});
     }
 
+    pragma "no doc"
     // Resize the vertices array
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
@@ -2004,7 +2099,9 @@ module AdjListHyperGraph {
       vertices.setIndices({0..(size-1)});
     }
   
-    // Causes all calls to `addInclusion` to be aggregated
+    /*
+      Activate automatic aggregation where all calls to `addInclusion` will be aggregated.
+    */
     proc startAggregation() {
       // Must copy on stack to utilize remote-value forwarding
       const _pid = pid;
@@ -2014,7 +2111,10 @@ module AdjListHyperGraph {
       }
     }
 
-    // Ceases the implicit aggregation of all 'addInclusion' calls
+    /*
+      Ceases the implicit aggregation of all 'addInclusion' calls. Explicit calls to
+      'addInclusionBuffered' will still be aggregated.
+    */
     proc stopAggregation() {
       // Must copy on stack to utilize remote-value forwarding
       const _pid = pid;
@@ -2026,6 +2126,9 @@ module AdjListHyperGraph {
   
     /*
       Explicitly aggregate the vertex and element.
+      
+      :arg vDesc: Vertex.
+      :arg eDesc: Edge.
     */
     proc addInclusionBuffered(vDesc : vDescType, eDesc : eDescType) {
       // Forward to normal 'addInclusion' if aggregation is disabled
@@ -2082,6 +2185,9 @@ module AdjListHyperGraph {
       Adds 'e' as a neighbor of 'v' and 'v' as a neighbor of 'e'.
       If aggregation is enabled via 'startAggregation', this will 
       forward to the aggregated version, 'addInclusionBuffered'.
+
+      :arg vDesc: Vertex.
+      :arg eDesc: Edge.
     */
     inline proc addInclusion(vDesc : vDescType, eDesc : eDescType) {
       if !AdjListHyperGraphDisableAggregation && useAggregation {
@@ -2114,14 +2220,20 @@ module AdjListHyperGraph {
       Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
     }
 
-
+    
+    /*
+      Check if the vertex 'v' is incident in edge 'e'.
+      
+      :arg v: Vertex.
+      :arg e: Edge.
+    */ 
     proc hasInclusion(v : vIndexType, e : eIndexType) {
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
 
       return getVertex(vDesc).hasNeighbor(eDesc);
     }
-
+    
     proc hasInclusion(vDesc : vDescType, e : eIndexType) {
       const eDesc = toEdge(e);
       return getVertex(vDesc).hasNeighbor(eDesc);
@@ -2141,7 +2253,9 @@ module AdjListHyperGraph {
       Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
     }
 
-
+    /*
+      Remove duplicates from incidence list both vertices and edges. Useful to invoke after graph generation.
+    */
     proc removeDuplicates() {
         var (vertexNeighborsRemoved, edgeNeighborsRemoved) : 2 * int;
         forall v in getVertices() with (+ reduce vertexNeighborsRemoved, var _this = getPrivatizedInstance()) {
@@ -2153,6 +2267,12 @@ module AdjListHyperGraph {
         return (vertexNeighborsRemoved, edgeNeighborsRemoved);
     }
 
+    /*
+      Obtains the edge descriptor for the integral edge id. If 'boundsChecking' is
+      enabled, we verify that the id is a valid index (I.E compiling without --fast).
+    
+      :arg id: Integer identifier for an edge.
+    */
     inline proc toEdge(id : integral) {
       if boundsChecking && !edgesDomain.contains(id : eIndexType) {
         halt(id, " is out of range, expected within ", edgesDomain);
@@ -2170,6 +2290,12 @@ module AdjListHyperGraph {
       Debug.badArgs(other, (eIndexType, eDescType));
     }
 
+    /*
+      Obtains the vertex descriptor for the integral vertex id. If 'boundsChecking' is
+      enabled, we verify that the id is a valid index (I.E compiling without --fast).
+    
+      :arg id: Integer identifier for a vertex.
+    */
     inline proc toVertex(id : integral) {
       if boundsChecking && !verticesDomain.contains(id : vIndexType) {
         halt(id, " is out of range, expected within ", verticesDomain);
@@ -2222,6 +2348,8 @@ module AdjListHyperGraph {
     
     /*
       Obtain the locale that the given vertex is allocated on
+    
+      :arg v: Vertex.
     */
     inline proc getLocale(v : vDescType) : locale {
       return verticesDist.idxToLocale(v.id);
@@ -2229,6 +2357,8 @@ module AdjListHyperGraph {
     
     /*
       Obtain the locale that the given edge is allocated on
+
+      :arg e: Edge.
     */
     inline proc getLocale(e : eDescType) : locale {
       return edgesDist.idxToLocale(e.id);
@@ -2238,15 +2368,33 @@ module AdjListHyperGraph {
     inline proc getLocale(other) {
       Debug.badArgs(other, (vDescType, eDescType));
     }
+    
+    /*
+      Obtain the size of the intersection of both hyperedges.
 
+      :arg e1: Hyperedge.
+      :arg e2: Hyperedge.
+    */
     proc intersectionSize(e1 : eDescType, e2 : eDescType) {
       return getEdge(e1).intersectionSize(getEdge(e2));
     }
+    
+    /*
+      Obtain the size of the intersection of both vertices.
 
+      :arg v1: Vertex.
+      :arg v2: Vertex.
+    */
     proc intersectionSize(v1 : vDescType, v2 : vDescType) {
       return getVertex(v1).intersectionSize(getVertex(v2));
     }
 
+    /*
+      Yield edges that are in the intersection of both vertices.
+      
+      :arg e1: Hyperedge.
+      :arg e2: Hyperedge.
+    */
     iter intersection(e1 : eDescType, e2 : eDescType) {
       for n in getEdge(e1).neighborIntersection(getEdge(e2)) do yield n; 
     }
@@ -2358,7 +2506,9 @@ module AdjListHyperGraph {
     }
   } // class AdjListHyperGraph
   
-  // Call 'addInclusion'
+  /*
+    Invokes 'addInclusion'
+  */
   inline proc +=(graph : AdjListHyperGraph, other) {
     graph._value += other;
   }
