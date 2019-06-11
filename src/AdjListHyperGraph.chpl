@@ -923,11 +923,11 @@ module AdjListHyperGraph {
       complete();
 
       // Obtain privatized instance...
-      this._privatizedVertices = other._privatizedVertices;
-      this._privatizedEdges = other._privatizedEdges;
-      this._destBuffer = other._destBuffer;
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
+      this._privatizedVertices = chpl_getPrivatizedCopy(other._privatizedVertices.type, this._privatizedVerticesPID);
+      this._privatizedEdges = chpl_getPrivatizedCopy(other._privatizedEdges.type, this._privatizedEdgesPID);
+      this._destBuffer = other._destBuffer;
     }
     
     pragma "no doc"
