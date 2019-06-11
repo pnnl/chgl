@@ -50,13 +50,13 @@ module AdjListHyperGraph {
     Disable aggregation. This will cause all calls to `addInclusionBuffered` to go to `addInclusion` and
     all calls to `flush` to do a NOP.
   */
-  config const AdjListHyperGraphDisableAggregation = false;
+  config param AdjListHyperGraphDisableAggregation = false;
 
   /*
     This will forward all calls to the original instance rather than the privatized instance.
     This will result in severe communication overhead.
   */
-  config const AdjListHyperGraphDisablePrivatization = false;
+  config param AdjListHyperGraphDisablePrivatization = false;
 
   /*
     Record-wrapper for the AdjListHyperGraphImpl. The record-wrapper follows from the optimization
@@ -110,11 +110,13 @@ module AdjListHyperGraph {
 
     pragma "no doc"
     proc _value {
-      if pid == -1 {
+      // If privatization is used, the privatization id must be at least 0
+      if boundsChecking && pid == -1 {
         halt("AdjListHyperGraph is uninitialized...");
       }
-
-      return if AdjListHyperGraphDisablePrivatization then instance else chpl_getPrivatizedCopy(instance.type, pid);
+      
+      // If privatization is used, then return the privatized instance; else return the normal one
+      return chpl_getPrivatizedCopy(instance.type, pid);
     }
 
     /*
@@ -218,7 +220,7 @@ module AdjListHyperGraph {
         the privatized instance for all of them, and hence this operation is not thread-safe.
     */
     proc destroy() {
-      if pid == -1 then halt("Attempt to destroy 'AdjListHyperGraph' which is not initialized...");
+      if boundsChecking && pid == -1 then halt("Attempt to destroy 'AdjListHyperGraph' which is not initialized...");
       coforall loc in Locales do on loc {
         delete chpl_getPrivatizedCopy(instance.type, pid);
       }
@@ -289,7 +291,7 @@ module AdjListHyperGraph {
     var _lock : chpl__processorAtomicType(bool);
 
     inline proc acquire() {
-      local {
+      on this do local {
         if _lock.testAndSet() == true { 
           while _lock.read() == true || _lock.testAndSet() == true {
             chpl_task_yield();
@@ -299,7 +301,7 @@ module AdjListHyperGraph {
     }
 
     inline proc release() {
-      local do _lock.clear();
+      on this do local do _lock.clear();
     }
   }
 
@@ -847,7 +849,7 @@ module AdjListHyperGraph {
         var node : unmanaged NodeData(vDescType, _ePropType) = new unmanaged NodeData(vDescType, _ePropType);
         e = node;
       }
-
+      
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
     }
 
@@ -928,8 +930,8 @@ module AdjListHyperGraph {
       }
       this._privatizedVerticesPID = privatizedData[3];
       this._privatizedEdgesPID = privatizedData[5];
-      this._privatizedVertices = chpl_getPrivatizedCopy(privatizedData[2].type, privatizedData[3]);
-      this._privatizedEdges = chpl_getPrivatizedCopy(privatizedData[4].type, privatizedData[5]);
+      this._privatizedVertices = if isPrivatized() then chpl_getPrivatizedCopy(privatizedData[2].type, privatizedData[3]) else privatizedData[2];
+      this._privatizedEdges = if isPrivatized() then chpl_getPrivatizedCopy(privatizedData[4].type, privatizedData[5]) else privatizedData[4];
       this._destBuffer = privatizedData[6];
     }
     
@@ -962,23 +964,33 @@ module AdjListHyperGraph {
       Obtain the domain of vertices; each index of the domain is a vertex id.
     */
     inline proc verticesDomain {
-      return _getDomain(_to_unmanaged(_privatizedVertices.dom));
+      return _getDomain(_to_unmanaged(vertices.dom));
     }
     
     /*
       Obtain the domain of hyperedges; each index of the domain is a hyperedge id.
     */
     inline proc edgesDomain {
-      return _getDomain(_to_unmanaged(_privatizedEdges.dom));
+      return _getDomain(_to_unmanaged(edges.dom));
     }
     
     pragma "no doc"    
     inline proc vertices {
+      if boundsChecking {
+        if _privatizedVertices == nil {
+          halt(here, " has a nil _privatizedVertices");
+        }
+      }
       return _privatizedVertices;
     }
 
     pragma "no doc"    
     inline proc edges {
+      if boundsChecking {
+        if _privatizedEdges == nil {
+          halt(here, " has a nil _privatizedEdges");
+        }
+      }
       return _privatizedEdges;
     }
 
@@ -1025,6 +1037,11 @@ module AdjListHyperGraph {
     pragma "no doc"
     inline proc useAggregation {
       return _useAggregation;
+    }
+
+    pragma "no doc"
+    proc isPrivatized() param {
+      return _isPrivatized(_vertices._instance) || _isPrivatized(_edges._instance);
     }
     
     /*
@@ -2094,6 +2111,8 @@ module AdjListHyperGraph {
     proc startAggregation() {
       // Must copy on stack to utilize remote-value forwarding
       const _pid = pid;
+      // Privatization: Set this flag across all locales.
+      // No Privatization: Set this flag only for this locale.
       coforall loc in Locales do on loc {
         var _this = chpl_getPrivatizedCopy(this.type, _pid);
         _this._useAggregation = true;
@@ -2120,7 +2139,8 @@ module AdjListHyperGraph {
       :arg eDesc: Edge.
     */
     proc addInclusionBuffered(vDesc : vDescType, eDesc : eDescType) {
-      // Forward to normal 'addInclusion' if aggregation is disabled
+      // Forward to normal 'addInclusion' if aggregation is disabled or if not privatized
+      // We don't aggregate when not privatized as there is no other locale to send to.
       if AdjListHyperGraphDisableAggregation {
         addInclusion(vDesc, eDesc);
         return;
