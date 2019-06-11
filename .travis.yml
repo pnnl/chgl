@@ -16,6 +16,7 @@ jobs:
         chpldoc src/*.chpl
         touch docs/.nojekyll
         cd test
+        chpl --version
         export GASNET_BACKTRACE=1
         start_test -junit-xml -numlocales 4'
 
