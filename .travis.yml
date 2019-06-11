@@ -9,7 +9,8 @@ jobs:
   include:
     - script: |
         # TODO - how to get performance folder from current gh-pages to not get overwritten. Do we need to clone branch & copy it in?
-        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git louisjenkinscs/chapel-experimental:chapel-1.19 /bin/bash -c '
+        docker build -t docker/gasnet-experimental/
+        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git -d gasnet-experimental /bin/bash -c '
         pushd $CHPL_HOME
         . util/setchplenv.sh
         popd
@@ -17,8 +18,6 @@ jobs:
         touch docs/.nojekyll
         cd test
         chpl --version
-        export CHPL_UNWIND=libunwind
-        export GASNET_BACKTRACE=1
         start_test -junit-xml -numlocales 4'
 
 deploy:
