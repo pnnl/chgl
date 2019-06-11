@@ -1,7 +1,7 @@
 /*
   Compilation of common metrics to be performed on hypergraphs or graphs.
 */
-use Metrics {
+module Metrics {
   use Vectors;
   use Traversal;
 
