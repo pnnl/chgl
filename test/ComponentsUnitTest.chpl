@@ -1,5 +1,4 @@
-use AdjListHyperGraph;
-use Components;
+use CHGL;
 
 var graph = new AdjListHyperGraph(numVertices = 10, numEdges = 10);
 for v in 0..4 {
