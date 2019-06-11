@@ -908,7 +908,7 @@ module AdjListHyperGraph {
     }
 
     pragma "no doc"
-    proc init(other : AdjListHyperGraphImpl, pid : int(64)) {
+    proc init(other : AdjListHyperGraphImpl, privatizedData) {
       var verticesDomain = other._verticesDomain;
       var edgesDomain = other._edgesDomain;
       verticesDomain.clear();
@@ -919,15 +919,18 @@ module AdjListHyperGraph {
       this._ePropType = other._ePropType;
       this._destBuffer = other._destBuffer;
       this._propertyMap = other._propertyMap;
-
+    
       complete();
 
-      // Obtain privatized instance...
-      this._privatizedVertices = other._privatizedVertices;
-      this._privatizedEdges = other._privatizedEdges;
-      this._destBuffer = other._destBuffer;
-      this._privatizedVerticesPID = other._privatizedVerticesPID;
-      this._privatizedEdgesPID = other._privatizedEdgesPID;
+      this.pid = privatizedData[1];
+      if here == Locales[0] {
+        halt("AdjListHyperGraph not created on Locale #0!");
+      }
+      this._privatizedVerticesPID = privatizedData[3];
+      this._privatizedEdgesPID = privatizedData[5];
+      this._privatizedVertices = chpl_getPrivatizedCopy(privatizedData[2].type, privatizedData[3]);
+      this._privatizedEdges = chpl_getPrivatizedCopy(privatizedData[4].type, privatizedData[5]);
+      this._destBuffer = privatizedData[6];
     }
     
     pragma "no doc"
@@ -941,13 +944,13 @@ module AdjListHyperGraph {
     }
 
     pragma "no doc"
-    proc dsiPrivatize(pid) {
-      return new unmanaged AdjListHyperGraphImpl(this, pid);
+    proc dsiPrivatize(privatizedData) {
+      return new unmanaged AdjListHyperGraphImpl(this, privatizedData);
     }
 
     pragma "no doc"
     proc dsiGetPrivatizeData() {
-      return pid;
+      return (pid, _privatizedVertices, _privatizedVerticesPID, _privatizedEdges, _privatizedEdgesPID, _destBuffer);
     }
 
     pragma "no doc"
