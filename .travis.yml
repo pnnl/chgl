@@ -17,6 +17,7 @@ jobs:
         touch docs/.nojekyll
         cd test
         chpl --version
+        export CHPL_UNWIND=libunwind
         export GASNET_BACKTRACE=1
         start_test -junit-xml -numlocales 4'
 
