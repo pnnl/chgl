@@ -1,11 +1,6 @@
-use Utilities;
-use PropertyMap;
-use AdjListHyperGraph;
+use CHGL;
 use Time;
 use Regexp;
-use WorkQueue;
-use Metrics;
-use Traversal;
 use ReplicatedDist;
 use FileSystem;
 

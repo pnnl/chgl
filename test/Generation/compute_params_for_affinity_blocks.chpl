@@ -1,5 +1,4 @@
-use Generation;
-
+use CHGL;
 
 
 var sorted_vertex_degrees = [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0]: int;

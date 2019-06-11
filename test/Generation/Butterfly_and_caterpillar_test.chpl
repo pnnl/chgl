@@ -1,8 +1,5 @@
 use Math;
-use AdjListHyperGraph;
-use Butterfly;
-use Random;
-use Generation;
+use CHGL;
 
 // with this test there are a possiblility of 16 edges total being generated
 var graph = new AdjListHyperGraph(5,4);

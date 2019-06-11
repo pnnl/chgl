@@ -1,7 +1,6 @@
-use AdjListHyperGraph;
 use CyclicDist;
-use Generation;
 use BlockDist;
+use CHGL;
 
 var prob = 0.6; real;
 var num_vertices = 16: int;

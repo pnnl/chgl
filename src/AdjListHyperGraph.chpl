@@ -811,8 +811,6 @@ module AdjListHyperGraph {
     pragma "no doc"
     var _privatizedEdgesPID = _edges.pid;
     pragma "no doc"
-    var _masterHandle : unmanaged object;
-    pragma "no doc"
     var _useAggregation : bool;
 
     pragma "no doc"
@@ -925,21 +923,9 @@ module AdjListHyperGraph {
       complete();
 
       // Obtain privatized instance...
-      if other.locale.id == 0 {
-        this._masterHandle = _to_unmanaged(other);
-        this._privatizedVertices = other._vertices._value;
-        this._privatizedEdges = other._edges._value;
-        this._destBuffer = other._destBuffer;
-      } else {
-        assert(other._masterHandle != nil, 
-          "Parent not properly privatized on Locale0... here: ", here, ", other: ", other.locale
-        );
-        this._masterHandle = other._masterHandle;
-        var instance = this._masterHandle : this.type;
-        this._privatizedVertices = instance._vertices._value;
-        this._privatizedEdges = instance._edges._value;
-        this._destBuffer = instance._destBuffer;
-      }
+      this._privatizedVertices = other._privatizedVertices;
+      this._privatizedEdges = other._privatizedEdges;
+      this._destBuffer = other._destBuffer;
       this._privatizedVerticesPID = other._privatizedVerticesPID;
       this._privatizedEdgesPID = other._privatizedEdgesPID;
     }
@@ -947,7 +933,7 @@ module AdjListHyperGraph {
     pragma "no doc"
     proc deinit() {
       // Only delete data from master locale
-      if this._masterHandle == nil {
+      if here == Locales[0] {
         _destBuffer.destroy();
         [v in _verticesDomain] delete _vertices[v];
         [e in _edgesDomain] delete _edges[e];

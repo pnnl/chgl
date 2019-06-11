@@ -1,9 +1,6 @@
 use IO;
 use Sort;
-use AdjListHyperGraph;
-use Generation;
-use Butterfly;
-
+use CHGL;
 
 var graph = fromAdjacencyList("condMat.txt", " ");
 

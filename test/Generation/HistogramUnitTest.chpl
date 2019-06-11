@@ -1,4 +1,4 @@
-use Generation;
+use CHGL;
 
 var probabilities: [0..9] real;
 var numRandom = 1000000:int;

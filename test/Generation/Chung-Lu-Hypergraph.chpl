@@ -1,8 +1,5 @@
 use Math;
-use AdjListHyperGraph;
-use Random;
-use Generation;
-
+use CHGL;
 
 var graph = new AdjListHyperGraph(10,20);
 var inclusions_to_add = 600;

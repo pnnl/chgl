@@ -1,4 +1,4 @@
-use Generation;
+use CHGL;
 use Types;
 
 var vd_file = open("../../data/condMat/dSeq_v_list.csv", iomode.r).reader();

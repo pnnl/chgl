@@ -1,4 +1,4 @@
-use AdjListHyperGraph;
+use CHGL;
 
 var graph = new AdjListHyperGraph();
 
