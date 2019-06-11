@@ -32,7 +32,7 @@
   
     <link rel="top" title="chpldoc 0.0.1 documentation" href="../../index.html"/>
         <link rel="next" title="PropertyMap" href="PropertyMap.html"/>
-        <link rel="prev" title="LocalAtomicObject" href="LocalAtomicObject.html"/> 
+        <link rel="prev" title="Graph" href="Graph.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -90,23 +90,18 @@
 <li class="toctree-l1"><a class="reference internal" href="BinReader.html">BinReader</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Butterfly.html">Butterfly</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CHGL.html">CHGL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Components.html">Components</a></li>
 <li class="toctree-l1"><a class="reference internal" href="DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EquivalenceClasses.html">EquivalenceClasses</a></li>
-<li class="toctree-l1"><a class="reference internal" href="FIFOChannel.html">FIFOChannel</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Generation.html">Generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Graph.html">Graph</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LocalAtomicObject.html">LocalAtomicObject</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Metrics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PropertyMap.html">PropertyMap</a></li>
-<li class="toctree-l1"><a class="reference internal" href="SMetrics.html">SMetrics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="TerminationDetection.html">TerminationDetection</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Traversal.html">Traversal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Utilities.html">Utilities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Vectors.html">Vectors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualize.html">Visualize</a></li>
 <li class="toctree-l1"><a class="reference internal" href="WorkQueue.html">WorkQueue</a></li>
-<li class="toctree-l1"><a class="reference internal" href="testBTER.html">testBTER</a></li>
 </ul>
 
             
@@ -157,25 +152,129 @@
 <div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">Metrics</span><span class="p">;</span>
 </pre></div>
 </div>
+<p>Compilation of common metrics to be performed on hypergraphs or graphs.</p>
+<dl class="iterfunction">
+<dt id="Metrics.getVertexComponents">
+<em class="property">iter </em><code class="descname">getVertexComponents</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Metrics.getVertexComponents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over all vertices in graph and count the number of s-connected components.
+A s-connected component is a group of vertices that can be s-walked to. A vertex
+v can s-walk to a vertex v&#8217; if the intersection of both v and v&#8217; is at least s.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>graph</strong> &#8211; Hypergraph or Graph to obtain the vertex components of.</li>
+<li><strong>s</strong> &#8211; Minimum s-connectivity.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="iterfunction">
+<dt id="Metrics.getEdgeComponents">
+<em class="property">iter </em><code class="descname">getEdgeComponents</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Metrics.getEdgeComponents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over all edges in graph and count the number of s-connected components.
+A s-connected component is a group of vertices that can be s-walked to. A edge
+e can s-walk to a edge e&#8217; if the intersection of both e and e&#8217; is at least s.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>graph</strong> &#8211; Hypergraph or Graph to obtain the vertex components of.</li>
+<li><strong>s</strong> &#8211; Minimum s-connectivity.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Metrics.getEdgeComponentMappings">
+<em class="property">proc </em><code class="descname">getEdgeComponentMappings</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Metrics.getEdgeComponentMappings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns hyperedges to components and assigns them component ids. Returns an array
+that is mapped over the same domain as the hypergraph or graph.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>graph</strong> &#8211; Hypergraph or graph.</li>
+<li><strong>s</strong> &#8211; Minimum s-connectivity.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="function">
 <dt id="Metrics.vertexDegreeDistribution">
 <em class="property">proc </em><code class="descname">vertexDegreeDistribution</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="headerlink" href="#Metrics.vertexDegreeDistribution" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the degree distribution of vertices as a histogram.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>graph</strong> &#8211; Hypergraph or graph.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="Metrics.edgeDegreeDistribution">
 <em class="property">proc </em><code class="descname">edgeDegreeDistribution</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="headerlink" href="#Metrics.edgeDegreeDistribution" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the degree distribution of edges as a histogram.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><strong>graph</strong> &#8211; Hypergraph or graph.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="Metrics.vertexComponentSizeDistribution">
 <em class="property">proc </em><code class="descname">vertexComponentSizeDistribution</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Metrics.vertexComponentSizeDistribution" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the component size distribution of vertices as a histogram.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>graph</strong> &#8211; Hypergraph or graph.</li>
+<li><strong>s</strong> &#8211; Minimum s-connectivity.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="Metrics.edgeComponentSizeDistribution">
 <em class="property">proc </em><code class="descname">edgeComponentSizeDistribution</code><span class="sig-paren">(</span><em>graph</em>, <em>s = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#Metrics.edgeComponentSizeDistribution" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtain the component size distribution of edges as a histogram.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>graph</strong> &#8211; Hypergraph or graph.</li>
+<li><strong>s</strong> &#8211; Minimum s-connectivity.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </div>
 
@@ -189,7 +288,7 @@
         <a href="PropertyMap.html" class="btn btn-neutral float-right" title="PropertyMap" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="LocalAtomicObject.html" class="btn btn-neutral" title="LocalAtomicObject" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="Graph.html" class="btn btn-neutral" title="Graph" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
