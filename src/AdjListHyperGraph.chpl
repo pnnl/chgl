@@ -930,8 +930,8 @@ module AdjListHyperGraph {
       }
       this._privatizedVerticesPID = privatizedData[3];
       this._privatizedEdgesPID = privatizedData[5];
-      this._privatizedVertices = if isPrivatized() then chpl_getPrivatizedCopy(privatizedData[2].type, privatizedData[3]) else privatizedData[2];
-      this._privatizedEdges = if isPrivatized() then chpl_getPrivatizedCopy(privatizedData[4].type, privatizedData[5]) else privatizedData[4];
+      this._privatizedVertices = if _isPrivatized(_vertices._instance) then chpl_getPrivatizedCopy(privatizedData[2].type, privatizedData[3]) else privatizedData[2];
+      this._privatizedEdges = if _isPrivatized(_edges._instance) then chpl_getPrivatizedCopy(privatizedData[4].type, privatizedData[5]) else privatizedData[4];
       this._destBuffer = privatizedData[6];
     }
     
