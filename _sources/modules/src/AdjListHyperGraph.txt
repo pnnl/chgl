@@ -48,14 +48,14 @@ There are a few ways to create a :record:`AdjListHyperGraph`
   var graph = new AdjListHyperGraph(propertyMap, new Cyclic(startIdx=0));
 
 
-.. data:: config const AdjListHyperGraphDisableAggregation = false
+.. data:: config param AdjListHyperGraphDisableAggregation = false
 
    
    Disable aggregation. This will cause all calls to `addInclusionBuffered` to go to `addInclusion` and
    all calls to `flush` to do a NOP.
    
 
-.. data:: config const AdjListHyperGraphDisablePrivatization = false
+.. data:: config param AdjListHyperGraphDisablePrivatization = false
 
    
    This will forward all calls to the original instance rather than the privatized instance.
