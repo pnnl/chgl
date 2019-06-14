@@ -6,6 +6,78 @@ use CommDiagnostics;
 use VisualDebug;
 use Memory;
 
+pragma "no doc"
+pragma "default intent is ref"
+record Lock {
+  var _lock : chpl__processorAtomicType(bool);
+
+  inline proc acquire() {
+    on this do local {
+      if _lock.testAndSet() == true { 
+        while _lock.read() == true || _lock.testAndSet() == true {
+          chpl_task_yield();
+        }
+      }
+    }
+  }
+
+  inline proc release() {
+    on this do local do _lock.clear();
+  }
+}
+
+pragma "no doc"
+// Acquires in a global lock order to ensure we do not deadlock
+proc acquireLocks(ref a : Lock, ref b : Lock) {
+  if a.locale.id > b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) > __primitive("cast", uint(64), __primitive("_wide_get_addr", b)) {
+    if a.locale != here && b.locale != here && a.locale == b.locale {
+      on a {
+        a.acquire();
+        b.acquire();
+      }
+    } else {
+      a.acquire();
+      b.acquire();
+    }
+  } else {
+    if a.locale != here && b.locale != here && a.locale == b.locale {
+      on b {
+        b.acquire();
+        a.acquire();
+      }
+    } else {
+      b.acquire();
+      a.acquire();
+    }
+  }
+}
+
+pragma "no doc"
+// Releases in global locking order so that we do not deadlock
+proc releaseLocks(ref a : Lock, ref b : Lock) {
+  if a.locale.id > b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) > __primitive("cast", uint(64), __primitive("_wide_get_addr", b)) {
+    if a.locale != here && b.locale != here && a.locale == b.locale {
+      on a {
+        a.release();
+        b.release();
+      }
+    } else {
+      a.release();
+      b.release();
+    }
+  } else {
+    if a.locale != here && b.locale != here && a.locale == b.locale {
+      on b {
+        b.release();
+        a.release();
+      }
+    } else {
+      b.release();
+      a.release();
+    }
+  }
+}
+
 config const profileCommDiagnostics = false;
 config const profileCommDiagnosticsVerbose = false;
 config const profileVisualDebug = false;
