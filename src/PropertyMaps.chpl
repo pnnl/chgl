@@ -1,20 +1,12 @@
 module PropertyMaps {
   use AggregationBuffer;
+  use HashedDist; // Hashed is not used, but the Mapper is
   use Utilities;
   
   /*
     Uninitialized property map (does not initialize nor privatize).
   */
   proc UninitializedPropertyMap(type propertyType) return new PropertyMap(propertyType, pid=-1, map=nil);
-
-  /*
-    Obtains the locale this object belongs to.
-  */
-  pragma "no doc"
-  proc propertyToLocale(property) : locale {
-    if numLocales == 1 then return Locales[0];
-    return Locales[chpl__defaultHashWrapper(property) % numLocales];
-  }
 
   pragma "always RVF"
     record PropertyMap {
@@ -29,10 +21,11 @@ module PropertyMaps {
         Create an empty property map.
 
         :arg propertyType: Type of properties.
+        :arg mapper: Determines which locale to hash to.
       */
-      proc init(type propertyType) {
+      proc init(type propertyType, mapper : ?t = new DefaultMapper()) {
         this.propertyType = propertyType;
-        this.map = new unmanaged PropertyMapImpl(propertyType);
+        this.map = new unmanaged PropertyMapImpl(propertyType, mapper);
         this.pid = this.map.pid;
       }
 
@@ -94,71 +87,9 @@ module PropertyMaps {
       forwarding _value;
     }
 
-  pragma "no doc"
-  class PropertyMapping {
-    type propertyType;
-    var lock$ : sync bool;
-    var dom : domain(propertyType);
-    var arr : [dom] int;
-
-    proc init(type propertyType) {
-      this.propertyType = propertyType;
-    }
-
-    proc init(other : PropertyMapping(?propertyType)) {
-      this.propertyType = propertyType;
-      other.lock$.writeEF(true);
-      this.dom = other.dom;
-      this.arr = other.arr;
-      other.lock$.readFE();
-    }
-
-    proc append(other : this.type) {
-      other.lock$.writeEF(true);
-      this.dom += other.dom;
-      other.lock$.readFE();
-    }
-
-    proc addProperty(property : propertyType) {
-      lock$ = true;
-      dom += property;
-      arr[property] = -1;
-      lock$;
-    }
-
-    proc setProperty(property : propertyType, id : int) {
-      lock$ = true;
-      dom += property;
-      arr[property] = id;
-      lock$;
-    } 
-
-    proc getProperty(property : propertyType) : int {
-      lock$ = true;
-      assert(dom.contains(property), property, " was not found in: ", dom); 
-      var retval = arr[property];
-      lock$;
-      return retval;
-    }
-
-    proc numProperties() : int {
-      lock$ = true;
-      var retval = dom.size;
-      lock$;
-      return retval;
-    }
-
-    iter these() : (propertyType, int) {
-      for (prop, ix) in zip(dom, arr) do yield (prop, ix);
-    }
-
-    iter these(param tag : iterKind) : (propertyType, int) where tag == iterKind.standalone {
-      forall (prop, ix) in zip(dom, arr) do yield (prop, ix);
-    }
-  }
-  
   class PropertyMapImpl {
     type propertyType;
+    var mapper;
     var lock : Lock;
     // The properties
     pragma "no doc"
@@ -173,13 +104,16 @@ module PropertyMaps {
     pragma "no doc"
     var pid = -1;
 
-    proc init(type propertyType) {
+    proc init(type propertyType, mapper : ?t = new DefaultMapper()) {
       this.propertyType = propertyType;
+      this.mapper = mapper;
+      this.complete();
       this.pid = _newPrivatizedClass(this:unmanaged);
     }
 
     proc init(other : PropertyMapImpl(?propertyType)) {
       this.propertyType = propertyType;
+      this.mapper = other.mapper;
       this.complete();
       this.aggregator = new Aggregator((propertyType, int));
       
@@ -195,6 +129,7 @@ module PropertyMaps {
     pragma "no doc"
     proc init(other : PropertyMapImpl(?propertyType), privatizedData) {
       this.propertyType = propertyType;
+      this.mapper = privatizedData[3];
       this.complete();
       this.pid = privatizedData[1];
       this.aggregator = privatizedData[2];
@@ -215,7 +150,7 @@ module PropertyMaps {
 
     pragma "no doc"
     proc dsiGetPrivatizeData() {
-      return (pid, aggregator);
+      return (pid, aggregator, mapper);
     }
 
     pragma "no doc"
@@ -254,14 +189,33 @@ module PropertyMaps {
       }
     }
 
-
-    
     proc create(property : propertyType, param aggregated = false, param acquireLock = true) {
       setProperty(property, -1, aggregated, acquireLock);
     }
 
+    proc flushLocal(param acquireLock = true) {
+      coforall (buf, loc) in aggregator.flushLocal() do on loc {
+        var arr = buf.getArray();
+        buf.done();
+        var _this = getPrivatizedInstance();
+        local {
+          if acquireLock then _this.lock.acquire();
+          for (prop, id) in arr {
+            _this.keys += prop;
+            _this.values[prop] = id;
+          }
+          if acquireLock then _this.lock.release();
+        }
+      }
+    }
+    proc flushGlobal(param acquireLock = true) {
+      coforall loc in Locales do on loc {
+        getPrivatizedInstance().flushLocal(acquireLock);
+      }
+    }
+
     proc setProperty(property : propertyType, id : int, param aggregated = false, param acquireLock = true) {
-      const loc = propertyToLocale(property);
+      const loc = Locales[mapper(property)];
       
       if aggregated {
         var buf = aggregator.aggregate((property, id), loc);
@@ -292,7 +246,7 @@ module PropertyMaps {
     }
 
     proc getProperty(property : propertyType, param acquireLock) : int {
-      const loc = propertyToLocale(property);
+      const loc = Locales[mapper(property)];
       
       var retid : int;
       on loc {
@@ -320,14 +274,23 @@ module PropertyMaps {
     /*
       Obtains local property keys and values (serial).
     */
-    iter properties() : (propertyType, int) {
+    iter localProperties() : (propertyType, int) {
       for (k,v) in zip(keys, values) do yield (k,v);
     }
+
+    iter localProperties() : (propertyType, int) {
+      forall (k,v) in zip(keys, values) do yield (k,v);
+    }
   
+    iter these() : (propertyType, int) {
+      halt("Serial 'these' not supported since serial iterators cannot yield from different locales; 
+          call 'localProperties' if you want properties for this node only!");
+    }
+
     /*
       Obtains global property keys and values (parallel).
     */
-    iter properties(param tag : iterKind) : (propertyType, int) where tag == iterKind.standalone {
+    iter these(param tag : iterKind) : (propertyType, int) where tag == iterKind.standalone {
       coforall loc in Locales do on loc {
         var _this = getPrivatizedThis();
         forall (k,v) in zip(_this.keys, _this.values) do yield (k,v);
