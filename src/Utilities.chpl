@@ -37,17 +37,59 @@ proc endProfile() {
   }
 }
 
+/*
+  Array reference wrapper; captures the privatization id and instance, and can be treated mostly
+  as an array, except without the implicit by-value copying. Note that the lifetime of the original
+  array is unaffected by this 'reference', hence care must be used to not use this after the original 
+  array goes out of scope.
+*/
+pragma "always RVF"
+record ArrayRef {
+  var pid : int = -1;
+  var instance;
 
-// Optimize for locality... migrate data 
-// locally if they are not already.
+  proc init(ref A : []) {
+    this.pid = A._pid;
+    this.instance = A._instance;
+  }
+
+  proc _value {
+    if boundsChecking && ((_isPrivatized(instance) && pid == -1) || instance == nil) {
+      halt("Attempt to use ArrayRef without initialization!");
+    }
+    
+    if _isPrivatized(instance) {
+      return chpl_getPrivatizedCopy(instance.type, pid);
+    } else {
+      return instance;
+    }
+  }
+  
+  forwarding _value;
+}
+
+pragma "no doc"
+/*
+  Checks to see if the array has a local array and domain.
+*/
+proc isLocalArray(A : []) : bool {
+  return A.locale == here && A.domain.locale == here;
+}
+
+/*
+  Obtains the intersection of two arrays, A and B. This method is optimized for
+  locality and will copy any remote arrays to be entirely local; this includes
+  a locality check for the array and the domain itself (which will be remote if
+  the user creates an implicit copy).
+*/
 proc intersection(A : [] ?t, B : [] t) {
-  if A.locale == here && B.locale == here {
+  if isLocalArray(A) && isLocalArray(B) {
     return _intersection(A, B);
-  } else if A.locale == here && B.locale != here {
+  } else if isLocalArray(A) && !isLocalArray(B) {
     const _BD = B.domain; // Make by-value copy so domain is not remote.
     var _B : [_BD] t = B;
     return _intersection(A, _B);
-  } else if A.locale != here && B.locale == here {
+  } else if !isLocalArray(A) && isLocalArray(B) {
     const _AD = A.domain; // Make by-value copy so domain is not remote.
     var _A : [_AD] t = A;
     return _intersection(_A, B);
@@ -60,6 +102,7 @@ proc intersection(A : [] ?t, B : [] t) {
   }
 }
 
+pragma "no doc"
 proc _intersection(A : [] ?t, B : [] t) {
   var CD = {0..#min(A.size, B.size)};
   var C : [CD] t;
@@ -87,14 +130,20 @@ proc _intersection(A : [] ?t, B : [] t) {
   return C;
 }
 
+/*
+  Obtains the intersection size of two arrays, A and B. This method is optimized for
+  locality and will copy any remote arrays to be entirely local; this includes
+  a locality check for the array and the domain itself (which will be remote if
+  the user creates an implicit copy).
+*/
 proc intersectionSize(A : [] ?t, B : [] t) {
-  if A.locale == here && B.locale == here {
+  if isLocalArray(A) && isLocalArray(B) {
     return _intersectionSize(A, B);
-  } else if A.locale == here && B.locale != here {
+  } else if isLocalArray(A) && !isLocalArray(B) {
     const _BD = B.domain; // Make by-value copy so domain is not remote.
     var _B : [_BD] t = B;
     return _intersectionSize(A, _B);
-  } else if A.locale != here && B.locale == here {
+  } else if !isLocalArray(A) && isLocalArray(B) {
     const _AD = A.domain; // Make by-value copy so domain is not remote.
     var _A : [_AD] t = A;
     return _intersectionSize(_A, B);
@@ -107,6 +156,7 @@ proc intersectionSize(A : [] ?t, B : [] t) {
   }
 }
 
+pragma "no doc"
 proc _intersectionSize(A : [] ?t, B : [] t) {
   var match : int;
   local {
@@ -130,14 +180,20 @@ proc _intersectionSize(A : [] ?t, B : [] t) {
   return match;
 }
 
+/*
+  Determines whether the size of the intersection of two arrays, A and B is at least 's'. 
+  This method is optimized for locality and will copy any remote arrays to be entirely local; 
+  this includes a locality check for the array and the domain itself (which will be remote if
+  the user creates an implicit copy).
+*/
 proc intersectionSizeAtLeast(A : [] ?t, B : [] t, s : integral) {
-  if A.locale == here && B.locale == here {
+  if isLocalArray(A) && isLocalArray(B) {
     return _intersectionSizeAtLeast(A, B, s);
-  } else if A.locale == here && B.locale != here {
+  } else if isLocalArray(A) && !isLocalArray(B) {
     const _BD = B.domain; // Make by-value copy so domain is not remote.
     var _B : [_BD] t = B;
     return _intersectionSizeAtLeast(A, _B, s);
-  } else if A.locale != here && B.locale == here {
+  } else if !isLocalArray(A) && !isLocalArray(B) {
     const _AD = A.domain; // Make by-value copy so domain is not remote.
     var _A : [_AD] t = A;
     return _intersectionSizeAtLeast(_A, B, s);
@@ -182,13 +238,13 @@ proc _arrayEquality(A : [] ?t, B : [] t) {
 }
 
 proc arrayEquality(A : [] ?t, B : [] t) {
-  if A.locale == here && B.locale == here {
+  if isLocalArray(A) && isLocalArray(B) {
     return _arrayEquality(A, B);
-  } else if A.locale == here && B.locale != here {
+  } else if isLocalArray(A) && !isLocalArray(B) {
     const _BD = B.domain; // Make by-value copy so domain is not remote.
     var _B : [_BD] t = B;
     return _arrayEquality(A, _B);
-  } else if A.locale != here && B.locale == here {
+  } else if !isLocalArray(A) && isLocalArray(B) {
     const _AD = A.domain; // Make by-value copy so domain is not remote.
     var _A : [_AD] t = A;
     return _arrayEquality(_A, B);
