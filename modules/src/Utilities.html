@@ -177,30 +177,61 @@
 <em class="property">proc </em><code class="descname">endProfile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Utilities.endProfile" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="record">
+<dt id="Utilities.ArrayRef">
+<em class="property">record </em><code class="descname">ArrayRef</code><a class="headerlink" href="#Utilities.ArrayRef" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array reference wrapper; captures the privatization id and instance, and can be treated mostly
+as an array, except without the implicit by-value copying. Note that the lifetime of the original
+array is unaffected by this &#8216;reference&#8217;, hence care must be used to not use this after the original
+array goes out of scope.</p>
+<dl class="attribute">
+<dt id="Utilities.ArrayRef.pid">
+<em class="property">var </em><code class="descname">pid</code>: int = -1<a class="headerlink" href="#Utilities.ArrayRef.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Utilities.ArrayRef.instance">
+<em class="property">var </em><code class="descname">instance</code><a class="headerlink" href="#Utilities.ArrayRef.instance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Utilities.ArrayRef.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>ref A: []</em><span class="sig-paren">)</span><a class="headerlink" href="#Utilities.ArrayRef.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Utilities.ArrayRef._value">
+<em class="property">proc </em><code class="descname">_value</code><a class="headerlink" href="#Utilities.ArrayRef._value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="Utilities.intersection">
 <em class="property">proc </em><code class="descname">intersection</code><span class="sig-paren">(</span><em>A: [] ?t</em>, <em>B: [] t</em><span class="sig-paren">)</span><a class="headerlink" href="#Utilities.intersection" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Utilities._intersection">
-<em class="property">proc </em><code class="descname">_intersection</code><span class="sig-paren">(</span><em>A: [] ?t</em>, <em>B: [] t</em><span class="sig-paren">)</span><a class="headerlink" href="#Utilities._intersection" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtains the intersection of two arrays, A and B. This method is optimized for
+locality and will copy any remote arrays to be entirely local; this includes
+a locality check for the array and the domain itself (which will be remote if
+the user creates an implicit copy).</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="Utilities.intersectionSize">
 <em class="property">proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>A: [] ?t</em>, <em>B: [] t</em><span class="sig-paren">)</span><a class="headerlink" href="#Utilities.intersectionSize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Utilities._intersectionSize">
-<em class="property">proc </em><code class="descname">_intersectionSize</code><span class="sig-paren">(</span><em>A: [] ?t</em>, <em>B: [] t</em><span class="sig-paren">)</span><a class="headerlink" href="#Utilities._intersectionSize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtains the intersection size of two arrays, A and B. This method is optimized for
+locality and will copy any remote arrays to be entirely local; this includes
+a locality check for the array and the domain itself (which will be remote if
+the user creates an implicit copy).</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="Utilities.intersectionSizeAtLeast">
 <em class="property">proc </em><code class="descname">intersectionSizeAtLeast</code><span class="sig-paren">(</span><em>A: [] ?t</em>, <em>B: [] t</em>, <em>s: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#Utilities.intersectionSizeAtLeast" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Determines whether the size of the intersection of two arrays, A and B is at least &#8216;s&#8217;.
+This method is optimized for locality and will copy any remote arrays to be entirely local;
+this includes a locality check for the array and the domain itself (which will be remote if
+the user creates an implicit copy).</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="Utilities._intersectionSizeAtLeast">

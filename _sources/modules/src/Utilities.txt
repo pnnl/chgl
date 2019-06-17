@@ -20,15 +20,46 @@ Utilities
 
 .. function:: proc endProfile()
 
+.. record:: ArrayRef
+
+   
+   Array reference wrapper; captures the privatization id and instance, and can be treated mostly
+   as an array, except without the implicit by-value copying. Note that the lifetime of the original
+   array is unaffected by this 'reference', hence care must be used to not use this after the original 
+   array goes out of scope.
+
+
+   .. attribute:: var pid: int = -1
+
+   .. attribute:: var instance
+
+   .. method:: proc init(ref A: [])
+
+   .. method:: proc _value
+
 .. function:: proc intersection(A: [] ?t, B: [] t)
 
-.. function:: proc _intersection(A: [] ?t, B: [] t)
+   
+   Obtains the intersection of two arrays, A and B. This method is optimized for
+   locality and will copy any remote arrays to be entirely local; this includes
+   a locality check for the array and the domain itself (which will be remote if
+   the user creates an implicit copy).
 
 .. function:: proc intersectionSize(A: [] ?t, B: [] t)
 
-.. function:: proc _intersectionSize(A: [] ?t, B: [] t)
+   
+   Obtains the intersection size of two arrays, A and B. This method is optimized for
+   locality and will copy any remote arrays to be entirely local; this includes
+   a locality check for the array and the domain itself (which will be remote if
+   the user creates an implicit copy).
 
 .. function:: proc intersectionSizeAtLeast(A: [] ?t, B: [] t, s: integral)
+
+   
+   Determines whether the size of the intersection of two arrays, A and B is at least 's'. 
+   This method is optimized for locality and will copy any remote arrays to be entirely local; 
+   this includes a locality check for the array and the domain itself (which will be remote if
+   the user creates an implicit copy).
 
 .. function:: proc _intersectionSizeAtLeast(A: [] ?t, B: [] t, s: integral)
 
