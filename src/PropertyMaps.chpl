@@ -6,14 +6,16 @@ module PropertyMaps {
   /*
     Uninitialized property map (does not initialize nor privatize).
   */
-  proc UninitializedPropertyMap(type propertyType) return new PropertyMap(propertyType, pid=-1, map=nil);
+  proc UninitializedPropertyMap(type propertyType, mapper : ?t = new DefaultMapper()) return new PropertyMap(propertyType, mapper.type, pid=-1, nil);
 
   pragma "always RVF"
     record PropertyMap {
       // Type of property.
       type propertyType;
+      // Type of mapper.
+      type mapperType;
       pragma "no doc"
-      var map : unmanaged PropertyMapImpl(propertyType);
+      var map : unmanaged PropertyMapImpl(propertyType, mapperType);
       pragma "no doc"
       var pid = -1;
       
@@ -23,8 +25,9 @@ module PropertyMaps {
         :arg propertyType: Type of properties.
         :arg mapper: Determines which locale to hash to.
       */
-      proc init(type propertyType, mapper : ?t = new DefaultMapper()) {
+      proc init(type propertyType, mapper : ?mapperType = new DefaultMapper()) {
         this.propertyType = propertyType;
+        this.mapperType = mapperType;
         this.map = new unmanaged PropertyMapImpl(propertyType, mapper);
         this.pid = this.map.pid;
       }
@@ -36,8 +39,9 @@ module PropertyMaps {
 
         :arg other: Other property map.
       */
-      proc init(other : PropertyMap(?propertyType)) {
+      proc init(other : PropertyMap(?propertyType, ?mapperType)) {
         this.propertyType = propertyType;
+        this.mapperType = mapperType;
         this.map = other.map;        
         this.pid = other.pid;
       }
@@ -46,8 +50,9 @@ module PropertyMaps {
         This initializer is used internally, as it is used to create an uninitialized version of this property map.
       */
       pragma "no doc"
-      proc init(type propertyType, pid : int, map : unmanaged PropertyMapImpl(propertyType)) {
+      proc init(type propertyType, type mapperType, pid : int, map : unmanaged PropertyMapImpl(propertyType, mapperType)) {
         this.propertyType = propertyType;
+        this.mapperType = mapperType;
         this.map = map;        
         this.pid = pid;
       }
@@ -57,8 +62,9 @@ module PropertyMaps {
 
         :arg other: Other property map.
       */
-      proc clone(other : PropertyMap(?propertyType)) {
+      proc clone(other : PropertyMap(?propertyType, ?mapperType)) {
         this.propertyType = propertyType;
+        this.mapperType = mapperType;
         this.map = new unmanaged PropertyMap(other.map);
       }
 
@@ -215,7 +221,7 @@ module PropertyMaps {
     }
 
     proc setProperty(property : propertyType, id : int, param aggregated = false, param acquireLock = true) {
-      const loc = Locales[mapper(property)];
+      const loc = Locales[mapper(property, Locales)];
       
       if aggregated {
         var buf = aggregator.aggregate((property, id), loc);
@@ -245,8 +251,8 @@ module PropertyMaps {
       }
     }
 
-    proc getProperty(property : propertyType, param acquireLock) : int {
-      const loc = Locales[mapper(property)];
+    proc getProperty(property : propertyType, param acquireLock = true) : int {
+      const loc = Locales[mapper(property, Locales)];
       
       var retid : int;
       on loc {
@@ -283,8 +289,8 @@ module PropertyMaps {
     }
   
     iter these() : (propertyType, int) {
-      halt("Serial 'these' not supported since serial iterators cannot yield from different locales; 
-          call 'localProperties' if you want properties for this node only!");
+      halt("Serial 'these' not supported since serial iterators cannot yield from different locales;",
+          "call 'localProperties' if you want properties for this node only!");
     }
 
     /*

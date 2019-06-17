@@ -11,7 +11,8 @@ config const componentsOutput = outputDirectory + "components.txt";
 config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$";
 
 var badDNSNamesRegexp = compile(badDNSNamesRegex);
-var propertyMap = new PropertyMap(string, string);
+var vPropMap = new PropertyMap(string);
+var ePropMap = new PropertyMap(string);
 var badIPAddresses : domain(string);
 var badDNSNames : domain(string);
 
@@ -29,20 +30,20 @@ for line in getLines(input) {
     var dns = attrs[1].strip();
     var iplist = attrs[2].strip();
     
-    propertyMap.addEdgeProperty(dns);
+    ePropMap.create(dns);
     for ip in iplist.split(",").strip() {
-        propertyMap.addVertexProperty(ip);
+        vPropMap.create(ip);
     }
 }
 
 // Create hypergraph
-var graph = new AdjListHyperGraph(propertyMap);
+var graph = new AdjListHyperGraph(vPropMap, ePropMap);
 for line in getLines(input) {
     var attrs = line.split("\t");
     var dns = attrs[1].strip();
     var iplist = attrs[2].strip().split(",");
     forall ip in iplist {
-        graph.addInclusion(propertyMap.getVertexProperty(ip), propertyMap.getEdgeProperty(dns));
+        graph.addInclusion(vPropMap.getProperty(ip), ePropMap.getProperty(dns));
     }
 }
 
