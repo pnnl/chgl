@@ -887,15 +887,12 @@ module AdjListHyperGraph {
       // If the property map is initialized (I.E not UninitializedPropertyMap)
       // we need to assign them the appropriate vertices.
       if _vPropertyMap.isInitialized {
-        coforall loc in Locales do on loc {
-          
-        }
+        _vertices = _vPropertyMap;
       }
       if _ePropertyMap.isInitialized {
-  
+        _edges = _ePropertyMap;
       }
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
- 
     }
 
 
@@ -903,45 +900,32 @@ module AdjListHyperGraph {
     pragma "no doc"
     proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings) {
       const pmap = UninitializedPropertyMap(bool);
-      init(numVertices, pmat, vertexMappings, numEdges, pmat, edgeMappings);
+      init(numVertices, pmap, vertexMappings, numEdges, pmap, edgeMappings);
     }
 
     pragma "no doc"
-    proc init(
-      propMap : PropertyMap(?vPropType, ?ePropType), 
-      vertexMappings = new unmanaged DefaultDist(), 
-      edgeMappings = vertexMappings
-    ) {
-      var verticesDomain = {
-        0:int(64)..#propMap.numVertexProperties():int(64)
-      } dmapped new dmap(vertexMappings);
-      var edgesDomain = {
-        0:int(64)..#propMap.numEdgeProperties():int(64)
-      } dmapped new dmap(edgeMappings);
-      this._verticesDomain = verticesDomain;
-      this._edgesDomain = edgesDomain;
-      this._vPropType = vPropType;
-      this._ePropType = ePropType;
-      this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
-      const _tmp = propMap;
-      this._propertyMap = _tmp;
-
-      complete();
- 
-      for (vIdx, vProp) in zip(_verticesDomain, this._propertyMap.vPropMap.dom) {
-        on _vertices[vIdx] do _vertices[vIdx] = new unmanaged NodeData(eDescType, vProp);
-        _propertyMap.setVertexProperty(vProp, vIdx);
-      }
-
-      for (eIdx, eProp) in zip(_edgesDomain, this._propertyMap.ePropMap.dom) {
-        on _edges[eIdx] do _edges[eIdx] = new unmanaged NodeData(vDescType, eProp);
-        _propertyMap.setEdgeProperty(eProp, eIdx);
-      }
-      
-      assert(_propertyMap.isInitialized);
-      this.pid = _newPrivatizedClass(_to_unmanaged(this));
+    proc init(vPropertyMap : PropertyMap(?vPropType), vertexMappings, numEdges = 0, edgeMappings) {
+      const pmap = UninitializedPropertyMap(bool);
+      init(nPropertyMap.numProperties(), vPropertyMap, vertexMappings, numEdges, pmap, edgeMappings);
     }
-  
+
+    pragma "no doc"
+    proc init(vPropertyMap : PropertyMap(?vPropType), vertexMappings, numEdges = 0, edgeMappings) {
+      const pmap = UninitializedPropertyMap(bool);
+      init(vPropertyMap.numProperties(), vPropertyMap, vertexMappings, numEdges, pmap, edgeMappings);
+    }
+
+    pragma "no doc"
+    proc init(vPropertyMap : PropertyMap(?vPropType), vertexMappings, ePropertyMap : PropertyMap(?ePropType), edgeMappings) {
+      init(vPropertyMap.numProperties(), vPropertyMap, vertexMappings, ePropertyMap.numProperties(), ePropertyMap, edgeMappings);
+    }
+
+    pragma "no doc"
+    proc init(numVertices = 0, vertexMappings, ePropertyMap : PropertyMap(?ePropType), edgeMappings) {
+      const pmap = UninitializedPropertyMap(bool);
+      init(numVertices, pmap, vertexMappings, ePropertyMap.numProperties(), ePropertyMap, edgeMappings);
+    }
+
     // Note: Do not create a copy initializer as it is called whenever you create a copy
     // of the object. This is undesirable.
     pragma "no doc"
@@ -953,9 +937,11 @@ module AdjListHyperGraph {
       this._vPropType = other._vPropType;
       this._ePropType = other._ePropType;
       this._destBuffer = other._destBuffer;
-      this._propertyMap = new PropertyMap(other._propertyMap);
-
-      complete();
+      this._vPropertyMap = new PropertyMap(other._vPropertyMap);
+      this._ePropertyMap = new PropertyMap(other._ePropertyMap);
+  
+      // Done initializing generic types
+      this.complete();
       
       forall (ourV, theirV) in zip(this._vertices, other._vertices) do ourV = new unmanaged NodeData(theirV);
       forall (ourE, theirE) in zip(this._edges, other._edges) do ourE = new unmanaged NodeData(theirE);     
@@ -973,7 +959,8 @@ module AdjListHyperGraph {
       this._vPropType = other._vPropType;
       this._ePropType = other._ePropType;
       this._destBuffer = other._destBuffer;
-      this._propertyMap = other._propertyMap;
+      this._vPropertyMap = privatizedData[7];
+      this._ePropertyMap = privatizedData[8];
     
       complete();
 
@@ -1005,7 +992,7 @@ module AdjListHyperGraph {
 
     pragma "no doc"
     proc dsiGetPrivatizeData() {
-      return (pid, _privatizedVertices, _privatizedVerticesPID, _privatizedEdges, _privatizedEdgesPID, _destBuffer);
+      return (pid, _privatizedVertices, _privatizedVerticesPID, _privatizedEdges, _privatizedEdgesPID, _destBuffer, _vPropertyMap, _ePropertyMap);
     }
 
     pragma "no doc"
@@ -1217,8 +1204,8 @@ module AdjListHyperGraph {
 
       :arg vDesc: Vertex to obtain the property of.
     */
-    proc getProperty(vDesc : vDescType) : this._propertyMap.vertexPropertyType {
-      if !_propertyMap.isInitialized then halt("No property map is created for this hypergraph!");
+    proc getProperty(vDesc : vDescType) : _vPropType {
+      if !_vPropertyMap.isInitialized then halt("No vertex property map is created for this hypergraph!");
       return getVertex(vDesc).property;
     }
 
@@ -1227,8 +1214,8 @@ module AdjListHyperGraph {
 
       :arg eDesc: Edge to obtain the property of.
     */
-    proc getProperty(eDesc : eDescType) : this._propertyMap.edgePropertyType {
-      if !_propertyMap.isInitialized then halt("No property map is created for this hypergraph");
+    proc getProperty(eDesc : eDescType) : _ePropType {
+      if !_ePropertyMap.isInitialized then halt("No edge property map is created for this hypergraph");
       return getEdge(eDesc).property;
     }
 
@@ -1395,13 +1382,13 @@ module AdjListHyperGraph {
         }
       }
       
-      if _propertyMap.isInitialized {
+      if _vPropertyMap.isInitialized {
         //writeln("Updating PropertyMap...");
         // Pass 4: Update PropertyMap
         {
           //writeln("Updating PropertyMap for Vertices...");
-          for (vProp, vIdx) in _propertyMap.vertexProperties() {
-            if vIdx != -1 then _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
+          forall (vProp, vIdx) in _vPropertyMap {
+            if vIdx != -1 then _vPropertyMap.setProperty(vProp, vertexMappings[vIdx]);
           }
         }
       }
@@ -1567,12 +1554,12 @@ module AdjListHyperGraph {
         }
       }
       
-      if _propertyMap.isInitialized {
+      if _ePropertyMap.isInitialized {
         //writeln("Updating PropertyMap for Edges...");
         // Pass 4: Update PropertyMap
         {
-          for (eProp, eIdx) in _propertyMap.edgeProperties() {
-            if eIdx != -1 then _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
+          forall (eProp, eIdx) in _ePropertyMap {
+            if eIdx != -1 then _ePropertyMap.setProperty(eProp, edgeMappings[eIdx]);
           }
         }
       }
@@ -1702,17 +1689,17 @@ module AdjListHyperGraph {
         }
       }
       
-      if _propertyMap.isInitialized {
+      if _ePropertyMap.isInitialized {
         writeln("Updating PropertyMap for Edges...");
         // Pass 4: Update PropertyMap
         {
-          for (eProp, eIdx) in _propertyMap.edgeProperties() {
+          forall (eProp, eIdx) in _ePropertyMap {
             if eIdx != -1 {
               var toplexId = eIdx;
               while toplexEdges[toplexId].read() != -1 {
                 toplexId = toplexEdges[toplexId].read();
               }
-              _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
+              _ePropertyMap.setProperty(eProp, edgeMappings[eIdx]);
             } 
           }
         }
@@ -1855,11 +1842,11 @@ module AdjListHyperGraph {
             var nn = getVertex(v).degree;
             assert(nn > 0, v, " has no neighbors... nn=", nn);
             if nn == 1 {
-              if _propertyMap.isInitialized then _propertyMap.setEdgeProperty(_edges[e].property, -1);
+              if _ePropertyMap.isInitialized then _ePropertyMap.setProperty(_edges[e].property, -1);
               delete _edges[e];
               _edges[e] = nil;
               
-              if _propertyMap.isInitialized then _propertyMap.setVertexProperty(_vertices[v.id].property, -1);
+              if _vPropertyMap.isInitialized then _vPropertyMap.setProperty(_vertices[v.id].property, -1);
               delete _vertices[v.id];
               _vertices[v.id] = nil;
               
@@ -1950,18 +1937,18 @@ module AdjListHyperGraph {
         }
       }
 
-      if _propertyMap.isInitialized {
+      if _vPropertyMap.isInitialized {
         writeln("Updating PropertyMap...");
         // Pass 4: Update PropertyMap
         {
           writeln("Updating PropertyMap for Vertices...");
-          for (vProp, vIdx) in _propertyMap.vertexProperties() {
-            if vIdx != -1 then _propertyMap.setVertexProperty(vProp, vertexMappings[vIdx]);
+          forall (vProp, vIdx) in _vPropertyMap {
+            if vIdx != -1 then _vPropertyMap.setProperty(vProp, vertexMappings[vIdx]);
           }
 
           writeln("Updating PropertyMap for Edges...");
-          for (eProp, eIdx) in _propertyMap.edgeProperties() {
-            if eIdx != -1 then _propertyMap.setEdgeProperty(eProp, edgeMappings[eIdx]);
+          for (eProp, eIdx) in _ePropertyMap {
+            if eIdx != -1 then _ePropertyMap.setProperty(eProp, edgeMappings[eIdx]);
           }
         }
       }
