@@ -27,7 +27,7 @@ pipeline {
                         cd tmp
                         git clone -b gh-pages --single-branch https://github.com/pnnl/chgl-perf.git
                         cd chgl-perf
-                        cp -r $WORKSPACE/test_performance/dat/html .
+                        cp -ar $WORKSPACE/test_performance/dat/html/. .
                         git add .
                         git commit -m "Performance Test Update"
                         git push
