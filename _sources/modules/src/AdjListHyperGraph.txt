@@ -80,8 +80,48 @@ There are a few ways to create a :record:`AdjListHyperGraph`
    .. method:: proc init(numVertices: integral, numEdges: integral, mapping)
 
       
-      Create a new hypergraph with the desired number of vertices and edges, with
-      a mapping the desired distribution of both.
+      Create a new hypergraph with the desired number of vertices and edges, using
+      the same distribution.
+      
+
+   .. method:: proc init(vPropMap: PropertyMap(?vPropType), numEdges)
+
+      
+      Create a hypergraph with a vertex property map and desired number of edges, with
+      a default distribution.
+      
+
+   .. method:: proc init(vPropMap: PropertyMap(?vPropType), numEdges, mapping)
+
+      
+      Create a hypergraph with a vertex property map and desired number of edges, with
+      the same distribution.
+      
+
+   .. method:: proc init(numVertices, ePropMap: PropertyMap(?ePropType))
+
+      
+      Create a hypergraph with a edge property map and desired number of vertices, with
+      a default distribution.
+      
+
+   .. method:: proc init(numVertices, ePropMap: PropertyMap(?ePropType), mapping)
+
+      
+      Create a hypergraph with a edge property map and desired number of vertices, with
+      the same distribution.
+      
+
+   .. method:: proc init(vPropMap: PropertyMap(?vPropType), ePropMap: PropertyMap(?ePropType))
+
+      
+      Create a hypergraph with a edge and vertex property map with a default distribution.
+      
+
+   .. method:: proc init(vPropMap: PropertyMap(?vPropType), ePropMap: PropertyMap(?ePropType), mapping)
+
+      
+      Create a hypergraph with a edge and vertex property map with the same distribution.
       
 
    .. method:: proc init(numVertices: integral, numEdges: integral, verticesMappings, edgesMappings)
@@ -96,28 +136,42 @@ There are a few ways to create a :record:`AdjListHyperGraph`
       :arg edgesMapping: Distribution of edges.
       
 
-   .. method:: proc init(propMap: ?vPropTypePropertyMap?ePropType, vertexMappings, edgeMappings)
+   .. method:: proc init(vPropMap: PropertyMap(?vPropType), vertexMappings, numEdges, edgeMappings)
 
       
-      Create a new hypergraph from a property map with the respective desired distributions.
-      The number of vertices and edges are determined from the number of properties
-      for vertices and hyperedges respectively.
+      Create a new hypergraph where vertices are determined via the property map and with
+      the desired number of edges, along with their respective desired distributions.
       
-      :arg propMap: PropertyMap for vertices and edges.
+      :arg vPropMap: PropertyMap for vertices.
       :arg vertexMappings: Distribution for vertices.
+      :arg numEdges: Number of edges.
       :arg edgeMappings: Distribution for edges.
       
 
-   .. method:: proc init(propMap: ?vPropTypePropertyMap?ePropType, mapping)
+   .. method:: proc init(numVertices, vertexMappings, ePropMap: PropertyMap(?ePropType), edgeMappings)
 
       
-      Create a new hypergraph from a property map with the desired distributions.
+      Create a new hypergraph with the desired number of vertices, where hyperedges are 
+      determined via the property map, along with their respective desired distributions.
+      The number of vertices are determined from the number of properties for vertices. 
+      
+      :arg numVertices: Number of vertices.
+      :arg vertexMappings: Distribution for vertices.
+      :arg ePropMap: PropertyMap for edges.
+      :arg edgeMappings: Distribution for edges.
       
 
-   .. method:: proc init(propMap: ?vPropTypePropertyMap?ePropType)
+   .. method:: proc init(vPropMap: PropertyMap(?vPropType), vertexMappings, ePropMap: PropertyMap(?ePropType), edgeMappings)
 
       
-      Create a new hypergraph from a property map with the 'DefaultDist()'.
+      Create a new hypergraph where hyperedges and vertices are 
+      determined via their property map, along with their respective desired distributions.
+      The number of vertices are determined from the number of properties for vertices. 
+      
+      :arg numVertices: Number of vertices.
+      :arg vertexMappings: Distribution for vertices.
+      :arg ePropMap: PropertyMap for edges.
+      :arg edgeMappings: Distribution for edges.
       
 
    .. method:: proc init(other: AdjListHyperGraph)
@@ -274,7 +328,7 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
    .. itermethod:: iter getToplexes(param tag: iterKind)
 
-   .. method:: proc getProperty(vDesc: vDescType): this._propertyMap.vertexPropertyType
+   .. method:: proc getProperty(vDesc: vDescType): _vPropType
 
       
       Obtain the property associated with a vertex.
@@ -282,7 +336,7 @@ There are a few ways to create a :record:`AdjListHyperGraph`
       :arg vDesc: Vertex to obtain the property of.
       
 
-   .. method:: proc getProperty(eDesc: eDescType): this._propertyMap.edgePropertyType
+   .. method:: proc getProperty(eDesc: eDescType): _ePropType
 
       
       Obtain the property associated with a edge.

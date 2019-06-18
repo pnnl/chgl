@@ -99,7 +99,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Generation.html">Generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Graph.html">Graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Metrics.html">Metrics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="PropertyMap.html">PropertyMap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PropertyMaps.html">PropertyMaps</a></li>
 <li class="toctree-l1"><a class="reference internal" href="TerminationDetection.html">TerminationDetection</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Traversal.html">Traversal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Utilities.html">Utilities</a></li>
@@ -215,8 +215,48 @@ Uses the &#8216;DefaultDist&#8217;, which is normally the shared-memory &#8216;D
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
-<dd><p>Create a new hypergraph with the desired number of vertices and edges, with
-a mapping the desired distribution of both.</p>
+<dd><p>Create a new hypergraph with the desired number of vertices and edges, using
+the same distribution.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>vPropMap: PropertyMap(?vPropType)</em>, <em>numEdges</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a hypergraph with a vertex property map and desired number of edges, with
+a default distribution.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>vPropMap: PropertyMap(?vPropType)</em>, <em>numEdges</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a hypergraph with a vertex property map and desired number of edges, with
+the same distribution.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices</em>, <em>ePropMap: PropertyMap(?ePropType)</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a hypergraph with a edge property map and desired number of vertices, with
+a default distribution.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices</em>, <em>ePropMap: PropertyMap(?ePropType)</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a hypergraph with a edge property map and desired number of vertices, with
+the same distribution.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>vPropMap: PropertyMap(?vPropType)</em>, <em>ePropMap: PropertyMap(?ePropType)</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a hypergraph with a edge and vertex property map with a default distribution.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>vPropMap: PropertyMap(?vPropType)</em>, <em>ePropMap: PropertyMap(?ePropType)</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a hypergraph with a edge and vertex property map with the same distribution.</p>
 </dd></dl>
 
 <dl class="method">
@@ -242,17 +282,17 @@ their respective desired distributions.</p>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em>, <em>vertexMappings</em>, <em>edgeMappings</em><span class="sig-paren">)</span></dt>
-<dd><p>Create a new hypergraph from a property map with the respective desired distributions.
-The number of vertices and edges are determined from the number of properties
-for vertices and hyperedges respectively.</p>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>vPropMap: PropertyMap(?vPropType)</em>, <em>vertexMappings</em>, <em>numEdges</em>, <em>edgeMappings</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a new hypergraph where vertices are determined via the property map and with
+the desired number of edges, along with their respective desired distributions.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
-<li><strong>propMap</strong> &#8211; PropertyMap for vertices and edges.</li>
+<li><strong>vPropMap</strong> &#8211; PropertyMap for vertices.</li>
 <li><strong>vertexMappings</strong> &#8211; Distribution for vertices.</li>
+<li><strong>numEdges</strong> &#8211; Number of edges.</li>
 <li><strong>edgeMappings</strong> &#8211; Distribution for edges.</li>
 </ul>
 </td>
@@ -263,14 +303,46 @@ for vertices and hyperedges respectively.</p>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
-<dd><p>Create a new hypergraph from a property map with the desired distributions.</p>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices</em>, <em>vertexMappings</em>, <em>ePropMap: PropertyMap(?ePropType)</em>, <em>edgeMappings</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a new hypergraph with the desired number of vertices, where hyperedges are
+determined via the property map, along with their respective desired distributions.
+The number of vertices are determined from the number of properties for vertices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>numVertices</strong> &#8211; Number of vertices.</li>
+<li><strong>vertexMappings</strong> &#8211; Distribution for vertices.</li>
+<li><strong>ePropMap</strong> &#8211; PropertyMap for edges.</li>
+<li><strong>edgeMappings</strong> &#8211; Distribution for edges.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>propMap: ?vPropTypePropertyMap?ePropType</em><span class="sig-paren">)</span></dt>
-<dd><p>Create a new hypergraph from a property map with the &#8216;DefaultDist()&#8217;.</p>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>vPropMap: PropertyMap(?vPropType)</em>, <em>vertexMappings</em>, <em>ePropMap: PropertyMap(?ePropType)</em>, <em>edgeMappings</em><span class="sig-paren">)</span></dt>
+<dd><p>Create a new hypergraph where hyperedges and vertices are
+determined via their property map, along with their respective desired distributions.
+The number of vertices are determined from the number of properties for vertices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>numVertices</strong> &#8211; Number of vertices.</li>
+<li><strong>vertexMappings</strong> &#8211; Distribution for vertices.</li>
+<li><strong>ePropMap</strong> &#8211; PropertyMap for edges.</li>
+<li><strong>edgeMappings</strong> &#8211; Distribution for edges.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -507,7 +579,7 @@ of any other edge.</p>
 
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraphImpl.getProperty">
-<em class="property">proc </em><code class="descname">getProperty</code><span class="sig-paren">(</span><em>vDesc: vDescType</em><span class="sig-paren">)</span>: this._propertyMap.vertexPropertyType<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getProperty" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">getProperty</code><span class="sig-paren">(</span><em>vDesc: vDescType</em><span class="sig-paren">)</span>: _vPropType<a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraphImpl.getProperty" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the property associated with a vertex.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -521,7 +593,7 @@ of any other edge.</p>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">getProperty</code><span class="sig-paren">(</span><em>eDesc: eDescType</em><span class="sig-paren">)</span>: this._propertyMap.edgePropertyType</dt>
+<em class="property">proc </em><code class="descname">getProperty</code><span class="sig-paren">(</span><em>eDesc: eDescType</em><span class="sig-paren">)</span>: _ePropType</dt>
 <dd><p>Obtain the property associated with a edge.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />

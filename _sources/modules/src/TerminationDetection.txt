@@ -79,6 +79,8 @@ Example of its usage::
 
    .. method:: proc finished(n = 1)
 
+   .. method:: proc getStatistics(): (int, int)
+
    .. method:: proc hasTerminated(): bool
 
    .. method:: proc awaitTermination(minBackoff = 0, maxBackoff = 1024, multBackoff = 2)
