@@ -58,7 +58,7 @@ module AggregationBuffer {
     }
 
     proc _value {
-      if pid == -1 {
+      if boundsChecking && pid == -1 {
         halt("Aggregator: Not initialized...");
       }
 

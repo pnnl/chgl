@@ -63,7 +63,7 @@ module AdjListHyperGraph {
       var localIndices : [0..#A.domain.localSubdomain().size] int = A.domain.localSubdomain();
       var localProperties = M.keys.these();
       ref iterIndices = localIndices[0..#min(localIndices.size, localProperties.size)];
-      ref iterProperties = localProperties[0..#min(localIndices.size, localProperties.size)];
+      ref iterProperties = localProperties[localProperties.domain.low..#min(localIndices.size, localProperties.size)];
       forall (idx, prop) in zip(iterIndices, iterProperties) {
         M.setProperty(prop, idx);
         A[idx].property = prop;
@@ -72,8 +72,8 @@ module AdjListHyperGraph {
       if localIndices.size != localProperties.size {
         on propLock$ {
           propLock$ = true;
-          leftoverIndices.push_back(localIndices);
-          leftoverProperties.push_back(localProperties);
+          leftoverIndices.push_back(localIndices[min(localIndices.size, localProperties.size)-1..localIndices.size-1]);
+          leftoverProperties.push_back(localProperties[min(localIndices.size, localProperties.size)-1..localProperties.size-1]);
           propLock$;
         }
       }
@@ -1608,18 +1608,18 @@ module AdjListHyperGraph {
         forall e in _edgesDomain do if toplexEdges[e].read() == -1 {
           label look for v in _edges[e] {
             if toplexEdges[e].read() != -1 then break look;
-            for ee in _vertices[v.id] do if e != ee.id && toplexEdges[ee.id].read() == -1 {
-              if _edges[e].canWalk(_edges[ee.id], s=_edges[e].degree) {
-                if _edges[e].degree > _edges[ee.id].degree {
-                  toplexEdges[ee.id].write(e);
-                } else if _edges[ee.id].degree > _edges[e].degree {
-                  toplexEdges[e].write(ee.id);
+            for ee in _vertices[v] do if e != ee && toplexEdges[ee].read() == -1 {
+              if _edges[e].canWalk(_edges[ee], s=_edges[e].degree) {
+                if _edges[e].degree > _edges[ee].degree {
+                  toplexEdges[ee].write(e);
+                } else if _edges[ee].degree > _edges[e].degree {
+                  toplexEdges[e].write(ee);
                   break look;
-                } else if e < ee.id {
+                } else if e < ee {
                   // Same size, greater priority
-                  toplexEdges[ee.id].write(e);
-                } else if ee.id > e {
-                  toplexEdges[e].write(ee.id);
+                  toplexEdges[ee].write(e);
+                } else if ee > e {
+                  toplexEdges[e].write(ee);
                 }
               }
             }
@@ -1682,10 +1682,10 @@ module AdjListHyperGraph {
             // If the edge has been collapsed, first obtain the id of the edge it was collapsed
             // into, and then obtain the mapping for the collapsed edge. Otherwise just
             // get the mapping for the unique edge.
-            while toplexEdges[e.id].read() != -1 {
-              e.id = toplexEdges[e.id].read();
+            while toplexEdges[e].read() != -1 {
+              e = toplexEdges[e].read();
             }
-            e.id = edgeMappings[e.id];
+            e = edgeMappings[e];
           }
         }
       }
@@ -1847,9 +1847,9 @@ module AdjListHyperGraph {
               delete _edges[e];
               _edges[e] = nil;
               
-              if _vPropMap.isInitialized then _vPropMap.setProperty(_vertices[v.id].property, -1);
-              delete _vertices[v.id];
-              _vertices[v.id] = nil;
+              if _vPropMap.isInitialized then _vPropMap.setProperty(_vertices[v].property, -1);
+              delete _vertices[v];
+              _vertices[v] = nil;
               
               numIsolatedComponents += 1;
             }
@@ -1925,7 +1925,7 @@ module AdjListHyperGraph {
         forall v in _vertices {
           assert(v != nil, "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
           for e in v {
-            e = edgeMappings[e.id] : eDescType;
+            e = edgeMappings[e];
           }
         }
 
@@ -1933,7 +1933,7 @@ module AdjListHyperGraph {
         forall e in _edges {
           assert(e != nil, "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
           for v in e {
-            v = vertexMappings[v.id] : vDescType;
+            v = vertexMappings[v];
           }
         }
       }

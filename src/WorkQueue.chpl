@@ -52,18 +52,26 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
     coforall tid in 1..here.maxTaskPar {
       var timer = new Timer();
       var timerRunning = false;
+      var hasReported = false;
       label loop while keepAlive.read() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
           if !timerRunning {
             timer.start();
             timerRunning = true;
+          } else if boundsChecking && !hasReported {
+            if timer.elapsed(TimeUnits.seconds) > 60 {
+              writeln(here.id, "-", tid, " has been spinning for ", timer.elapsed());
+              writeln("Hint: Use TerminationDetector.started() and TerminationDetector.finished()! ", td.getStatistics());
+              hasReported = true;
+            }
           }
           chpl_task_yield();
           continue;
         }
         if timerRunning {
           timerRunning = false;
+          hasReported = false;
           timer.stop();
         }
         yield workItem;

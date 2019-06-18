@@ -114,12 +114,14 @@ module PropertyMaps {
       this.propertyType = propertyType;
       this.mapper = mapper;
       this.complete();
+      this.aggregator = new Aggregator((propertyType, int));
       this.pid = _newPrivatizedClass(this:unmanaged);
     }
 
     proc init(other : PropertyMapImpl(?propertyType)) {
       this.propertyType = propertyType;
       this.mapper = other.mapper;
+      this.aggregator = other.aggregator;
       this.complete();
       this.aggregator = new Aggregator((propertyType, int));
       
@@ -298,7 +300,7 @@ module PropertyMaps {
     */
     iter these(param tag : iterKind) : (propertyType, int) where tag == iterKind.standalone {
       coforall loc in Locales do on loc {
-        var _this = getPrivatizedThis();
+        var _this = getPrivatizedInstance();
         forall (k,v) in zip(_this.keys, _this.values) do yield (k,v);
       }
     }
