@@ -145,7 +145,7 @@ pragma "no doc"
   Checks to see if the array has a local array and domain.
 */
 proc isLocalArray(A : []) : bool {
-  return A.locale == here && A.domain.locale == here;
+  return A.locale == here && A._value.dom.locale == here;
 }
 
 /*

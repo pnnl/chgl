@@ -76,8 +76,8 @@ module Metrics {
     var componentId : atomic int;
     var numComponents : atomic int;
     // Work queue will hold (eIdx, componentId);
-    var workQueue = new WorkQueue((int, int));
-    var terminationDetector = new TerminatorDetector();
+    var workQueue = new WorkQueue((int, int), 1024 * 1024);
+    var terminationDetector = new TerminationDetector();
 
     // Set all componnet ids to be the maximum so that they are the lowest priority
     forall (eIdx, component) in zip(graph.edgesDomain, components) { 
@@ -89,57 +89,21 @@ module Metrics {
     forall (eIdx, componentId) in doWorkLoop(workQueue, terminationDetector) {
       // If the current componentId is less than the current componentId, set it...
       var id : int;
-      local {
-        while true {
-          var id = component[eIdx].read();
-          if id < componentId && component[eIdx].compareExchangeWeak(id, componentId) {
-             
-          } 
-        }
-      }
-    }
-
-    forall e in graph.getEdges() with (var taskComponentId : int = -1) do if graph.degree(e) >= s {
-      if taskComponentId == -1 {
-        taskComponentId = componentId.fetchAdd(1);
-      }
-
-      var retid = visit(e, taskComponentId);
-      if retid == taskComponentId {
-        taskComponentId = -1;
-        numComponents.add(1);
-      }
-    }
-    
-  
-    proc visit(e : graph._value.eDescType, id) : int {
-      var currId = id;
       while true {
-        var eid = components[e.id].read();
-        //writeln("Read component id: ", eid);
-        // Higher priority, take this edge...
-        if eid > currId && components[e.id].compareExchange(eid, currId) {
-          // TODO: Optimize to not check s-connectivity until we know we haven't looked at that s-neighbor...
-          label checkNeighbor while true {
-            for n in graph.walk(e, s) {
-              //writeln("Walking from ", e, " to ", n, " for id: ", currId);
-              var retid = visit(n, currId);
-              // We're helping another component...
-              if retid != currId {
-                currId = retid;
-                //writeln("Current helping ", currId);
-                continue checkNeighbor;
-              }
-            }
-            break;
-          }
-          return currId;
-        } else if eid <= currId {
-          // Great priority or we already explored this edge...
-          return eid;
+        var id : int;
+        var ownEdge : bool;
+        local { 
+          id = components[eIdx].read();
+          ownEdge = id < componentId && components[eIdx].compareExchangeWeak(id, componentId);
         }
+        if ownEdge {
+          for neighbor in graph.walk(graph.toEdge(eIdx), s) {
+            terminationDetector.started(1);
+            workQueue.addWork((neighbor.id, id), graph.getLocale(neighbor));
+          }
+        }
+        terminationDetector.finished(1);
       }
-      halt("Somehow exited loop...");
     }
 
     return [component in components] if component.read() == max(int) then -1 else component.read();

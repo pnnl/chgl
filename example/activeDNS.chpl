@@ -74,12 +74,6 @@ config const numMaxFiles = max(int(64));
 // Perform profiling (specific flags listed in src/Utilities.chpl)
 config const doProfiling = false;
 
-// Gets around issue where `c_sizeof(string)` results in compiler error
-// that asserts that I use c_string.
-record StringWrapper {
-  var str : string;
-}
-
 //Need to create outputDirectory prior to opening files
 if !exists(outputDirectory) {
    try {
@@ -109,7 +103,7 @@ var blacklistIPRegexp = compile(blacklistIPRegex);
 var blacklistDNSNamesRegexp = compile(blacklistDNSNamesRegex);
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(StringWrapper, WorkQueueUnlimitedAggregation);
+var wq = new WorkQueue(int, WorkQueueUnlimitedAggregation);
 var td = new TerminationDetector();
 var blacklistIPAddresses : domain(string);
 var blacklistDNSNames : domain(string);
@@ -282,11 +276,13 @@ t.start();
 // Fill work queue with files to load up
 var currLoc : int; 
 var nFiles : int;
+var fileNames : [0..-1] string;
 for fileName in listdir(datasetDirectory, dirs=false) {
     if !fileName.endsWith(".csv") then continue;
     if nFiles == numMaxFiles then break;
     files.push_back(fileName);
-    wq.addWork(new StringWrapper(datasetDirectory + fileName), currLoc % numLocales);
+    fileNames.push_back(datasetDirectory + fileName);
+    wq.addWork(nFiles, currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
 }
@@ -294,8 +290,8 @@ wq.flush();
 td.started(nFiles);
 
 // Initialize property maps; aggregation is used as properties can be remote to current locale.
-forall fileName in doWorkLoop(wq,td) { 
-  for line in getLines(fileName.str) {
+forall fileIdx in doWorkLoop(wq,td) { 
+  for line in getLines(fileNames[fileIdx]) {
     var attrs = line.split(",");
     var qname = attrs[1];
     var rdata = attrs[2];
@@ -316,23 +312,26 @@ writeln("Adding inclusions to HyperGraph...");
 currLoc = 0;
 nFiles = 0;
 for fileName in files {    
-    wq.addWork(new StringWrapper(datasetDirectory + fileName), currLoc % numLocales);
+    wq.addWork(nFiles, currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
 }
 wq.flush();
 td.started(nFiles);
 
-forall fileName in doWorkLoop(wq,td) { 
-  for line in getLines(fileName.str) {
+graph.startAggregation();
+forall fileIdx in doWorkLoop(wq,td) { 
+  for line in getLines(fileNames[fileIdx]) {
     var attrs = line.split(",");
     var qname = attrs[1];
     var rdata = attrs[2];
-
+    
     graph.addInclusion(vPropMap.getProperty(rdata.strip()), ePropMap.getProperty(qname.strip()));
   }
   td.finished();  
 }
+graph.stopAggregation();
+graph.flushBuffers();
 
 t.stop();
 writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
