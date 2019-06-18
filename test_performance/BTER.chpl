@@ -6,7 +6,7 @@ use Time;
 
 /* Performance Test for BTER algorithm */
 config const dataset = "VerySmall";
-config const dataDirectory = "../../data/LiveJournal/";
+config const dataDirectory = "../data/LiveJournal/";
 config const doCommDiagnostics = false;
 config const doVerboseComm = false;
 config const doVisualDebug = false;
