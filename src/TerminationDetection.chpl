@@ -88,6 +88,17 @@ module TerminationDetection {
       assert(ret >= 0 && ret + n >= 0, "tasksFinished overflowed in 'finished': (", ret, " -> ", ret + n, ")");
     }
 
+    proc getStatistics() : (int, int) {
+      var started : int;
+      var finished : int;
+      coforall loc in Locales with (+ reduce started, + reduce finished) do on loc {
+        const _this = getPrivatizedInstance();
+        started += _this.tasksStarted.read();
+        finished += _this.tasksFinished.read();
+      }
+      return (started, finished);
+    }
+
     proc hasTerminated() : bool {
       var started = 0;
       var finished = 0;

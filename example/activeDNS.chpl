@@ -4,26 +4,81 @@ use Regexp;
 use ReplicatedDist;
 use FileSystem;
 
-config const ValidIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
-config const datasetDirectory = "../../data/DNS/";
+/*
+  The Regular Expression used for searching for IP Addresses.
+*/
+config const blacklistIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+/*
+  Directory containing the DNS dataset in CSV format. Each file is parsed
+  individually, in parallel, and distributed. This is liable to change to be
+  more flexible, I.E to consider binary format (preprocessed), but for now
+  it must be a directory containing files ending in ".csv".
+*/
+config const datasetDirectory = "../data/DNS/";
+/*
+  Data file containing a list of blacklisted ip addresses. Checked for after all segmentation
+  is performed.
+*/
+config const blacklistIPs = "../data/ip-most-wanted.txt";
+/*
+  Data file containing a list of blacklisted dns names. Checked for after all segmentation
+  is performed.
+*/
+config const blacklistDNS = "../data/dns-most-wanted.txt";
+/*
+  Output directory.
+*/
 config const outputDirectory = "tmp/";
+/*
+  Name of output file containing metrics.
+*/
 config const metricsOutput = outputDirectory + "metrics.txt";
-config const componentsOutput = outputDirectory + "collapsed-hypergraph-components.txt";
-config const hypergraphOutput = outputDirectory + "collapsed-hypergraph.txt";
-config const badDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$";
+/*
+  Name of output directory for components
+*/
+config const componentsDirectory = outputDirectory + "components/";
+/*
+  Name of output file containing hypergraph list of hyperedges.
+*/
+config const hypergraphOutput = outputDirectory + "hypergraph.txt";
+/*
+  Regular expression for blacklist of DNS names.
+*/
+config const blacklistDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$";
+// Obtain metrics prior to collapsing subsets
 config const preCollapseMetrics = true;
+// Obtain components prior to collapsing subsets
 config const preCollapseComponents = true;
+// Scan for blacklist prior to collapsing subsets 
 config const preCollapseBlacklist = true;
+// Obtain metrics prior to collapsing subsets
 config const postCollapseMetrics = true;
+// Obtain components after collapsing subsets
 config const postCollapseComponents = true;
+// Scan for blacklist after collapsing subsets 
 config const postCollapseBlacklist = true;
+// Obtain metrics after removing isolated components
 config const postRemovalMetrics = true;
+// Obtain components after removing isolated components
 config const postRemovalComponents = true;
+// Scan for blacklist after removing isolated components
 config const postRemovalBlacklist = true;
+// Obtain metrics after reducing to toplex hyperedges.
 config const postToplexMetrics = true;
+// Obtain components after reducing to toplex hyperedges.
 config const postToplexComponents = true;
+// Scan for blacklist after reducing to toplex hyperedges. 
 config const postToplexBlacklist = true;
+// Maximum number of files to process.
 config const numMaxFiles = max(int(64));
+// Perform profiling (specific flags listed in src/Utilities.chpl)
+config const doProfiling = false;
+
+// Gets around issue where `c_sizeof(string)` results in compiler error
+// that asserts that I use c_string.
+record StringWrapper {
+  var str : string;
+}
 
 //Need to create outputDirectory prior to opening files
 if !exists(outputDirectory) {
@@ -31,27 +86,40 @@ if !exists(outputDirectory) {
       mkdir(outputDirectory);
    }
    catch {
-      writeln("*Unable to create directory ", outputDirectory);
+      halt("*Unable to create directory ", outputDirectory);
    }
 }
 
-var ValidIPRegexp = compile(ValidIPRegex);
-var badDNSNamesRegexp = compile(badDNSNamesRegex);
-var masterPropertyMap = EmptyPropertyMap;
-var f = open(metricsOutput, iomode.cw).writer();
+if !exists(componentsDirectory) {
+   try {
+      mkdir(componentsDirectory);
+   }
+   catch {
+      halt("*Unable to create directory ", componentsDirectory);
+   }
+}
+
+if doProfiling then beginProfile("Blacklist-Profile");
+
 var t = new Timer();
 var tt = new Timer();
 var files : [0..-1] string;
+var f = open(metricsOutput, iomode.cw).writer();
+var blacklistIPRegexp = compile(blacklistIPRegex);
+var blacklistDNSNamesRegexp = compile(blacklistDNSNamesRegex);
+var vPropMap = new PropertyMap(string);
+var ePropMap = new PropertyMap(string);
+var wq = new WorkQueue(StringWrapper, WorkQueueUnlimitedAggregation);
+var td = new TerminationDetector();
+var blacklistIPAddresses : domain(string);
+var blacklistDNSNames : domain(string);
 tt.start();
-var wq = new WorkQueue(string);
 
-var badIPAddresses : domain(string);
-var badDNSNames : domain(string);
-for line in getLines("../../data/ip-most-wanted.txt") {
-    badIPAddresses += line;
+for line in getLines(blacklistIPs) {
+    blacklistIPAddresses += line;
 }
-for line in getLines("../../data/dns-most-wanted.txt") {
-    badDNSNames += line;
+for line in getLines(blacklistDNS) {
+    blacklistDNSNames += line;
 }
 
 proc getMetrics(graph, prefix, doComponents, cachedComponents) {
@@ -128,7 +196,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
     }
     forall v in graph.getVertices() {
         var ip = graph.getProperty(v);
-        if badIPAddresses.contains(ip) {
+        if blacklistIPAddresses.contains(ip) {
 	    var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
             f.writeln("Blacklisted ip address ", ip);
             halt("Vertex blacklist scan not implemented...");
@@ -168,8 +236,8 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
     } writeln("Finished searching for blacklisted IPs...");
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
-        var isBadDNS = dnsName.matches(badDNSNamesRegexp);
-        if badDNSNames.contains(dnsName) || isBadDNS.size != 0 {
+        var isBadDNS = dnsName.matches(blacklistDNSNamesRegexp);
+        if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
             var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
             
@@ -218,83 +286,52 @@ for fileName in listdir(datasetDirectory, dirs=false) {
     if !fileName.endsWith(".csv") then continue;
     if nFiles == numMaxFiles then break;
     files.push_back(fileName);
-    wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
+    wq.addWork(new StringWrapper(datasetDirectory + fileName), currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
 }
 wq.flush();
+td.started(nFiles);
 
-// Initialize property maps
-{
-    var propertyMapsDomain = {0..#here.maxTaskPar} dmapped Replicated();
-    var propertyMaps : [propertyMapsDomain] PropertyMap(string, string);
-    coforall loc in Locales do on loc {
-        coforall tid in 0..#here.maxTaskPar {
-            var propMap = new PropertyMap(string, string);
-            while true {
-                var (hasFile, fileName) = wq.getWork();
-                if !hasFile {
-                    break;
-                }
-                
-                for line in getLines(fileName) {
-                    var attrs = line.split(",");
-                    var qname = attrs[1];
-                    var rdata = attrs[2];
+// Initialize property maps; aggregation is used as properties can be remote to current locale.
+forall fileName in doWorkLoop(wq,td) { 
+  for line in getLines(fileName.str) {
+    var attrs = line.split(",");
+    var qname = attrs[1];
+    var rdata = attrs[2];
 
-                    propMap.addVertexProperty(rdata.strip());
-                    propMap.addEdgeProperty(qname.strip());
-                }
-            }
-            propertyMaps[tid] = propMap;
-        }
-        // Do Merge...
-        if propertyMaps.size > 1 {
-            for propMap in propertyMaps[1..] {
-                propertyMaps[0].append(propMap);
-            }
-        }
-    }
-    // Do Merge
-    masterPropertyMap = propertyMaps[0];
-    if numLocales > 1 {
-        for loc in Locales do on loc {
-            masterPropertyMap.append(propertyMaps[0]);
-        }
-    }
+    vPropMap.create(rdata.strip(), aggregated=true);
+    ePropMap.create(qname.strip(), aggregated=true);
+  }
+  td.finished();  
 }
+vPropMap.flushGlobal();
+ePropMap.flushGlobal();
 
 writeln("Constructing HyperGraph...");
-var graph = new AdjListHyperGraph(masterPropertyMap);
+var graph = new AdjListHyperGraph(vPropMap, ePropMap);
 
 writeln("Adding inclusions to HyperGraph...");
 // Fill work queue with files to load up
 currLoc = 0;
 nFiles = 0;
 for fileName in files {    
-    wq.addWork(datasetDirectory + fileName, currLoc % numLocales);
+    wq.addWork(new StringWrapper(datasetDirectory + fileName), currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
 }
 wq.flush();
+td.started(nFiles);
 
-coforall loc in Locales do on loc {
-    coforall tid in 0..#here.maxTaskPar {
-        while true {
-            var (hasFile, fileName) = wq.getWork();
-            if !hasFile {
-                break;
-            }
-            
-            for line in getLines(fileName) {
-              var attrs = line.split(",");
-              var qname = attrs[1];
-              var rdata = attrs[2];
+forall fileName in doWorkLoop(wq,td) { 
+  for line in getLines(fileName.str) {
+    var attrs = line.split(",");
+    var qname = attrs[1];
+    var rdata = attrs[2];
 
-              graph.addInclusion(masterPropertyMap.getVertexProperty(rdata.strip()), masterPropertyMap.getEdgeProperty(qname.strip()));
-            }
-        }
-    }
+    graph.addInclusion(vPropMap.getProperty(rdata.strip()), ePropMap.getProperty(qname.strip()));
+  }
+  td.finished();  
 }
 
 t.stop();
@@ -507,32 +544,33 @@ if !cachedComponentMappingsInitialized {
 }
 
 writeln("Printing out components of collapsed toplex graph...");
-var fff = open(componentsOutput, iomode.cw).writer();
 for s in 1..3 {
-    var dom : domain(int);
-    var arr : [dom] string;
-    fff.writeln("Edge Connected Components (s = ", s, "): ");
-    for (ix, id) in zip(graph.edgesDomain, cachedComponents[s].cachedComponentMappings) {
-        var ee = graph.toEdge(ix);
-        dom += id;
-        ref str = arr[id];
-        str += "\t\t" + graph.getProperty(ee) + "\t";
-        for n in graph.incidence(ee) {
-            str += graph.getProperty(n) + ",";
-        }
-        str = str[..str.size - 1] + "\n";
+  const sdir = componentsDirectory + "s=" + s + "/";
+  if !exists(sdir) {
+    try {
+      mkdir(sdir);
     }
-    var numComponents = 1;
-    for str in arr {
-        fff.writeln("\tComponent #", numComponents, ":");
-        fff.write(str);
-        fff.flush();
-        numComponents += 1;
+    catch {
+      halt("*Unable to create directory ", sdir);
     }
+  }
+
+  writeln("Edge Connected Components (s = ", s, "): ");
+  forall (ix, id) in zip(graph.edgesDomain, cachedComponents[s].cachedComponentMappings) {
+    var ee = graph.toEdge(ix);
+    var fff = open(componentsDirectory + "s=" + s + "/" + graph.getProperty(ee), iomode.cw).writer();
+    var str = "";
+    for n in graph.incidence(ee) {
+      str += graph.getProperty(n) + ",";
+    }
+    str = str[..str.size - 1];
+    fff.writeln(str);
+    fff.close();
+  }
 }
 
 writeln("Finished in ", tt.elapsed(), " seconds...");
 f.writeln("Finished in ", tt.elapsed(), " seconds...");
 f.close();
 ff.close();
-fff.close();
+if doProfiling then endProfile();
