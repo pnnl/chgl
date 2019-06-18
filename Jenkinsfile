@@ -39,9 +39,9 @@ pipeline {
             }
             post {
                 always { 
-                    archiveArtifacts artifacts: 'test/**/dat/**/*.*'
-                    junit 'test/**/Logs/*.xml' 
-                    perfReport 'test/**/Logs/*.xml'
+                    archiveArtifacts artifacts: 'test_performance/**/dat/**/*.*'
+                    junit 'test_performance/**/Logs/*.xml' 
+                    perfReport 'test_performance/**/Logs/*.xml'
                 }
             }
         }
