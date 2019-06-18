@@ -23,6 +23,7 @@ pipeline {
                     // Push CHGL performance graphs to gh-pages
                     sh '''
                         cd $WORKSPACE/test_performance/dat
+                        rm -rf tmp
                         mkdir -p tmp
                         cd tmp
                         git clone -b gh-pages --single-branch https://github.com/pnnl/chgl-perf.git
