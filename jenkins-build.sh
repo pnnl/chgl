@@ -25,4 +25,5 @@ cd $WORKSPACE/test_performance
 bash -c "start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test_performance/Logs/chapel-perf-tests.xml -numlocales 4"
 
 # Generated HTML does not work locally or in Jenkins due to https://wiki.jenkins.io/display/JENKINS/Configuring+Content+Security+Policy. Copy files that use local resources instead.
-cp -r $WORKSPACE/test_performance/html $WORKSPACE/test_performance/dat
+# disable as we're using GitHub pages
+#cp -r $WORKSPACE/test_performance/html $WORKSPACE/test_performance/dat
