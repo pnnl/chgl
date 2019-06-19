@@ -2,7 +2,9 @@
   Compilation of common metrics to be performed on hypergraphs or graphs.
 */
 module Metrics {
+  use WorkQueue;
   use Vectors;
+  use Utilities;
   use Traversal;
 
   /*
@@ -38,6 +40,10 @@ module Metrics {
     Iterate over all edges in graph and count the number of s-connected components.
     A s-connected component is a group of vertices that can be s-walked to. A edge
     e can s-walk to a edge e' if the intersection of both e and e' is at least s.
+    
+    .. note::
+      
+      This is significantly slower than `getEdgeComponentMappings`
 
     :arg graph: Hypergraph or Graph to obtain the vertex components of.
     :arg s: Minimum s-connectivity.
@@ -71,56 +77,39 @@ module Metrics {
     :arg s: Minimum s-connectivity.
   */
   proc getEdgeComponentMappings(graph, s = 1) {
-    var components : [graph.edgesDomain] atomic int;
-    var componentId : atomic int;
-    var numComponents : atomic int;
+    var components : [graph.edgesDomain] int;
+    var numComponents : int;
+    var componentId = 1; // Begin at 1 so 0 becomes 'not visited' sentinel value
+    var workQueue = new WorkQueue(int, 1024 * 1024);
+    var terminationDetector = new TerminationDetector();
 
-    // Set all componnet ids to be the maximum so that they are the lowest priority
-    [component in components] component.write(max(int));
-    forall e in graph.getEdges() with (var taskComponentId : int = -1) do if graph.degree(e) >= s {
-      if taskComponentId == -1 {
-        taskComponentId = componentId.fetchAdd(1);
+    // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
+    // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
+    for e in graph.edgesDomain {
+      if components[e] == 0 then continue;
+      terminationDetector.started(1);
+      const cId = componentId;
+      componentId += 1;
+      components[e] = cId;
+      for neighbor in graph.walk(graph.toEdge(e), s) {
+        terminationDetector.started(1);
+        workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
       }
 
-      var retid = visit(e, taskComponentId);
-      if retid == taskComponentId {
-        taskComponentId = -1;
-        numComponents.add(1);
+      
+      forall eIdx in doWorkLoop(workQueue, terminationDetector) with (in cId) {
+        if components[eIdx] != 0 {
+          components[eIdx] = cId;
+          for neighbor in graph.walk(graph.toEdge(eIdx), s) {
+            terminationDetector.started(1);
+            workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
+          }
+        }
+        terminationDetector.finished(1);
       }
     }
     
-  
-    proc visit(e : graph._value.eDescType, id) : int {
-      var currId = id;
-      while true {
-        var eid = components[e.id].read();
-        //writeln("Read component id: ", eid);
-        // Higher priority, take this edge...
-        if eid > currId && components[e.id].compareExchange(eid, currId) {
-          // TODO: Optimize to not check s-connectivity until we know we haven't looked at that s-neighbor...
-          label checkNeighbor while true {
-            for n in graph.walk(e, s) {
-              //writeln("Walking from ", e, " to ", n, " for id: ", currId);
-              var retid = visit(n, currId);
-              // We're helping another component...
-              if retid != currId {
-                currId = retid;
-                //writeln("Current helping ", currId);
-                continue checkNeighbor;
-              }
-            }
-            break;
-          }
-          return currId;
-        } else if eid <= currId {
-          // Great priority or we already explored this edge...
-          return eid;
-        }
-      }
-      halt("Somehow exited loop...");
-    }
-
-    return [component in components] if component.read() == max(int) then -1 else component.read();
+    return components;
   }
 
   /*

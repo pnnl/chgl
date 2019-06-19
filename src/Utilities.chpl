@@ -78,9 +78,20 @@ proc releaseLocks(ref a : Lock, ref b : Lock) {
   }
 }
 
+config const printDebugInformation = false;
 config const profileCommDiagnostics = false;
 config const profileCommDiagnosticsVerbose = false;
 config const profileVisualDebug = false;
+
+/*
+  Only prints if `printDebugInformation` is enabled; warning: Chapel still evaluates arguments
+  so side-effects will still occur!
+*/
+proc debug(args...) {
+  if printDebugInformation { 
+    writeln((...args));
+  }
+}
 
 proc beginProfile(vdebugName = "vdebug") {
   if profileCommDiagnostics {
@@ -145,7 +156,7 @@ pragma "no doc"
   Checks to see if the array has a local array and domain.
 */
 proc isLocalArray(A : []) : bool {
-  return A.locale == here && A.domain.locale == here;
+  return A.locale == here && A._value.dom.locale == here;
 }
 
 /*

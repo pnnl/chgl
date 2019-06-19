@@ -1,3 +1,4 @@
+use Utilities;
 use AggregationBuffer;
 use DynamicAggregationBuffer;
 use TerminationDetection;
@@ -61,8 +62,8 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
             timerRunning = true;
           } else if boundsChecking && !hasReported {
             if timer.elapsed(TimeUnits.seconds) > 60 {
-              writeln(here.id, "-", tid, " has been spinning for ", timer.elapsed());
-              writeln("Hint: Use TerminationDetector.started() and TerminationDetector.finished()! ", td.getStatistics());
+              debug(here.id, "-", tid, " has been spinning for ", timer.elapsed());
+              debug("Hint: Use TerminationDetector.started() and TerminationDetector.finished()! ", td.getStatistics());
               hasReported = true;
             }
           }
@@ -76,7 +77,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
         }
         yield workItem;
       }
-      writeln("Task#", here.id, "-", tid, " spent ", timer.elapsed(TimeUnits.milliseconds), "ms waiting!");
+      debug("Task#", here.id, "-", tid, " spent ", timer.elapsed(TimeUnits.milliseconds), "ms waiting!");
     }
   }
 }
