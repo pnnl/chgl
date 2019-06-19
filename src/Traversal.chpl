@@ -10,7 +10,7 @@ use AdjListHyperGraph;
 
 iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType {
   var explored : domain(int);
-  var queue = new list(int);
+  var queue = new LinkedList(int);
   queue.push_back(v.id);
   while queue.size != 0 {
     var currV = queue.pop_front();
