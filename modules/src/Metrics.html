@@ -179,6 +179,10 @@ v can s-walk to a vertex v&#8217; if the intersection of both v and v&#8217; is 
 <dd><p>Iterate over all edges in graph and count the number of s-connected components.
 A s-connected component is a group of vertices that can be s-walked to. A edge
 e can s-walk to a edge e&#8217; if the intersection of both e and e&#8217; is at least s.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This is significantly slower than <cite>getEdgeComponentMappings</cite></p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

@@ -10,13 +10,13 @@ Traversal
 
    use Traversal;
 
-.. method:: proc list.contains(elt: eltType)
+.. iterfunction:: iter vertexBFS(graph, v: graph._value.vDescType, s = 1): graph._value.vDescType
 
    
    Requires implementation of termination detection first. Need to have a generic visitor pattern using
    both a breadth first and depth first search. After this is done, can implement the components code.
-
-.. iterfunction:: iter vertexBFS(graph, v: graph._value.vDescType, s = 1): graph._value.vDescType
+   
+   NOTE: An unrolled linked list offered a full order of magnitude speedup!
 
 .. iterfunction:: iter edgeBFS(graph, e: graph._value.eDescType, s = 1): graph._value.eDescType
 

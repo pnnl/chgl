@@ -10,11 +10,19 @@ Utilities
 
    use Utilities;
 
+.. data:: config const printDebugInformation = false
+
 .. data:: config const profileCommDiagnostics = false
 
 .. data:: config const profileCommDiagnosticsVerbose = false
 
 .. data:: config const profileVisualDebug = false
+
+.. function:: proc debug(args ...)
+
+   
+   Only prints if `printDebugInformation` is enabled; warning: Chapel still evaluates arguments
+   so side-effects will still occur!
 
 .. function:: proc beginProfile(vdebugName = "vdebug")
 

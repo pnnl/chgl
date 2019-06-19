@@ -32,6 +32,10 @@ Compilation of common metrics to be performed on hypergraphs or graphs.
    A s-connected component is a group of vertices that can be s-walked to. A edge
    e can s-walk to a edge e' if the intersection of both e and e' is at least s.
    
+   .. note::
+     
+     This is significantly slower than `getEdgeComponentMappings`
+   
    :arg graph: Hypergraph or Graph to obtain the vertex components of.
    :arg s: Minimum s-connectivity.
    

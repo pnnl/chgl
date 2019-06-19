@@ -153,6 +153,11 @@
 </pre></div>
 </div>
 <dl class="data">
+<dt id="Utilities.printDebugInformation">
+<em class="property">config const </em><code class="descname">printDebugInformation</code> = false<a class="headerlink" href="#Utilities.printDebugInformation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
 <dt id="Utilities.profileCommDiagnostics">
 <em class="property">config const </em><code class="descname">profileCommDiagnostics</code> = false<a class="headerlink" href="#Utilities.profileCommDiagnostics" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -166,6 +171,13 @@
 <dt id="Utilities.profileVisualDebug">
 <em class="property">config const </em><code class="descname">profileVisualDebug</code> = false<a class="headerlink" href="#Utilities.profileVisualDebug" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="Utilities.debug">
+<em class="property">proc </em><code class="descname">debug</code><span class="sig-paren">(</span><em>args ...</em><span class="sig-paren">)</span><a class="headerlink" href="#Utilities.debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Only prints if <cite>printDebugInformation</cite> is enabled; warning: Chapel still evaluates arguments
+so side-effects will still occur!</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="Utilities.beginProfile">
