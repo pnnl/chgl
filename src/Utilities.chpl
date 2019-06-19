@@ -78,9 +78,18 @@ proc releaseLocks(ref a : Lock, ref b : Lock) {
   }
 }
 
+config const printDebugInformation = false;
 config const profileCommDiagnostics = false;
 config const profileCommDiagnosticsVerbose = false;
 config const profileVisualDebug = false;
+
+/*
+  Only prints if `printDebugInformation` is enabled; warning: Chapel still evaluates arguments
+  so side-effects will still occur!
+*/
+proc debug(args...) {
+  if printDebugInformation then writeln((...args));
+}
 
 proc beginProfile(vdebugName = "vdebug") {
   if profileCommDiagnostics {
