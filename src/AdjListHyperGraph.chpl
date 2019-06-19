@@ -2475,7 +2475,8 @@ module AdjListHyperGraph {
     inline proc _snapshot(e : eDescType) {
       ref edge = getEdge(e);
       edge.lock.acquire();
-      var snapshot = edge.incident[0..#edge.degree];
+      var snapshotDom = {0..#edge.degree};
+      var snapshot : [snapshotDom] int = edge.incident[0..#edge.degree];
       edge.lock.release();
 
       return snapshot;

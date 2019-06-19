@@ -254,16 +254,14 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
             for s in 1..3 {
                 var compId = cachedComponents[s].cachedComponentMappings[e.id];
                 f.writeln("\tComponent (s=", s, "):");
-                for (ix, id) in zip(graph.edgesDomain, cachedComponents[s].cachedComponentMappings) {
-                    if id == compId {
-                        var ee = graph.toEdge(ix);
-                        var str = "\t\t" + graph.getProperty(ee) + "\t";
-                        for n in graph.incidence(ee) {
-                            str += graph.getProperty(n) + ",";
-                        }
-                        f.writeln(str[..str.size - 1]);
-                        f.flush();
-                    }
+                for ee in edgeBFS(graph, e, s) {
+                  var eee = graph.toEdge(ee);
+                  var str = "\t\t" + graph.getProperty(eee) + "\t";
+                  for n in graph.incidence(eee) {
+                    str += graph.getProperty(n) + ",";
+                  }
+                  f.writeln(str[..str.size - 1]);
+                  f.flush();
                 }
             }
         }

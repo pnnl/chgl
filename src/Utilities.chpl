@@ -88,7 +88,9 @@ config const profileVisualDebug = false;
   so side-effects will still occur!
 */
 proc debug(args...) {
-  if printDebugInformation then writeln((...args));
+  if printDebugInformation { 
+    writeln((...args));
+  }
 }
 
 proc beginProfile(vdebugName = "vdebug") {
