@@ -19,7 +19,7 @@ pipeline {
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/Logs $WORKSPACE/test_performance'
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/dat $WORKSPACE/test_performance'
                 }
-                sshagent (['40cddb85-453e-48cc-850e-942ca9edab7c']) {
+                sshagent (['81ec5075-8219-4d21-9c90-b6caefc2e2de']) {
                     // Push CHGL performance graphs to gh-pages
                     sh '''
                         cd $WORKSPACE/test_performance/dat
