@@ -23,7 +23,6 @@ pipeline {
                     // Push CHGL performance graphs to gh-pages
                     sh '''
                         #!/bin/sh -e
-                        echo "Clonging chgl-perf to publish test results..."
                         cd $WORKSPACE/test_performance/dat
                         rm -rf tmp
                         mkdir -p tmp
