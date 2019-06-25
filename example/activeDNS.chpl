@@ -73,6 +73,12 @@ config const postToplexBlacklist = true;
 config const numMaxFiles = max(int(64));
 // Perform profiling (specific flags listed in src/Utilities.chpl)
 config const doProfiling = false;
+// The index for the DNS name
+config const dnsNameIndex = 1;
+// The index for the IP Address
+config const ipAddressIndex = 2;
+// Skips first line of header file.
+config const skipHeader = false;
 
 // Ensures that this never gets reclaimed automatically
 // Gets around subtle bug where the string gets deallocated
