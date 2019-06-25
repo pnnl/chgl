@@ -74,6 +74,16 @@ config const numMaxFiles = max(int(64));
 // Perform profiling (specific flags listed in src/Utilities.chpl)
 config const doProfiling = false;
 
+// Ensures that this never gets reclaimed automatically
+// Gets around subtle bug where the string gets deallocated
+class StringWrapper {
+  const str : string;
+  
+  proc init(str : string) {
+    this.str = new string(str, true);
+  }
+}
+
 //Need to create outputDirectory prior to opening files
 if !exists(outputDirectory) {
    try {

@@ -235,7 +235,7 @@ module PropertyMaps {
             local {
               if acquireLock then _this.lock.acquire();
               for (prop, id) in arr {
-                _this.keys += prop;
+                if id == -1 then _this.keys += prop;
                 _this.values[prop] = id;
               }
               if acquireLock then _this.lock.release();
@@ -246,7 +246,7 @@ module PropertyMaps {
         on loc {
           var _this = getPrivatizedInstance();
           if acquireLock then _this.lock.acquire();          
-          _this.keys += property;
+          if id == -1 then _this.keys += property;
           _this.values[property] = id;
           if acquireLock then _this.lock.release();
         }
@@ -301,7 +301,13 @@ module PropertyMaps {
     iter these(param tag : iterKind) : (propertyType, int) where tag == iterKind.standalone {
       coforall loc in Locales do on loc {
         var _this = getPrivatizedInstance();
-        forall (k,v) in zip(_this.keys, _this.values) do yield (k,v);
+        forall k in _this.keys { 
+          if propertyType == string {
+            yield (new string(k, isowned=false),_this.values[k]);
+          } else {
+            yield (k, _this.values[k]);
+          }
+        }
       }
     }
   }
