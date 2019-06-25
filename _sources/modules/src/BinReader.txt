@@ -12,6 +12,8 @@ BinReader
 
 .. data:: config param DEBUG_BIN_READER = false
 
+.. data:: config const numEdgesPresent = true
+
 .. function:: proc debug(args ...?nArgs)
 
 .. function:: proc debug(args ...?nArgs)
