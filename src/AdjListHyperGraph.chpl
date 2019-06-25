@@ -1331,13 +1331,13 @@ module AdjListHyperGraph {
         }
       }
 
-      //writeln("Moving into temporary array...");
+      writeln("Moving into temporary array...");
       // Move current array into auxiliary...
       const oldVerticesDom = this._verticesDomain;
       var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices;
       this._verticesDomain = newVerticesDomain;
 
-      //writeln("Shifting down NodeData for Vertices...");
+      writeln("Shifting down NodeData for Vertices...");
       // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
       {
@@ -1364,10 +1364,10 @@ module AdjListHyperGraph {
             vertexMappings[v] = ix;
           }
         }
-        //writeln("Shifted down to idx ", idx.read(), " for oldVertices.domain = ", oldVertices.domain);
+        writeln("Shifted down to idx ", idx.read(), " for oldVertices.domain = ", oldVertices.domain);
       }
       
-      //writeln("Redirecting references to Vertices...");
+      writeln("Redirecting references to Vertices...");
       // Pass 3: Redirect references to collapsed vertices to new mappings
       {
         forall e in _edges {
@@ -1384,17 +1384,19 @@ module AdjListHyperGraph {
       }
       
       if _vPropMap.isInitialized {
-        //writeln("Updating PropertyMap...");
+        writeln("Updating PropertyMap...");
         // Pass 4: Update PropertyMap
         {
-          //writeln("Updating PropertyMap for Vertices...");
-          forall (vProp, vIdx) in _vPropMap {
-            if vIdx != -1 then _vPropMap.setProperty(vProp, vertexMappings[vIdx]);
+          writeln("Updating PropertyMap for Vertices...");
+          forall vIdx in _vPropMap.values {
+            if vIdx != -1 {
+              vIdx = vertexMappings[vIdx];
+            }
           }
         }
       }
 
-      //writeln("Removing duplicates: ", removeDuplicates());
+      writeln("Removing duplicates: ", removeDuplicates());
       removeDuplicates();
 
       // Obtain duplicate stats...
@@ -1559,8 +1561,8 @@ module AdjListHyperGraph {
         //writeln("Updating PropertyMap for Edges...");
         // Pass 4: Update PropertyMap
         {
-          forall (eProp, eIdx) in _ePropMap {
-            if eIdx != -1 then _ePropMap.setProperty(eProp, edgeMappings[eIdx]);
+          forall eIdx in _ePropMap.values {
+            if eIdx != -1 then eIdx = edgeMappings[eIdx];
           }
         }
       }
@@ -1694,13 +1696,13 @@ module AdjListHyperGraph {
         writeln("Updating PropertyMap for Edges...");
         // Pass 4: Update PropertyMap
         {
-          forall (eProp, eIdx) in _ePropMap {
+          forall eIdx in _ePropMap.values {
             if eIdx != -1 {
               var toplexId = eIdx;
               while toplexEdges[toplexId].read() != -1 {
                 toplexId = toplexEdges[toplexId].read();
               }
-              _ePropMap.setProperty(eProp, edgeMappings[eIdx]);
+              eIdx = edgeMappings[eIdx];
             } 
           }
         }
@@ -1732,6 +1734,7 @@ module AdjListHyperGraph {
     */
     proc collapse() {
       var vDupeHistogram = collapseVertices();
+      writeln("Collapsed vertices");
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
           assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
@@ -1943,13 +1946,13 @@ module AdjListHyperGraph {
         // Pass 4: Update PropertyMap
         {
           writeln("Updating PropertyMap for Vertices...");
-          forall (vProp, vIdx) in _vPropMap {
-            if vIdx != -1 then _vPropMap.setProperty(vProp, vertexMappings[vIdx]);
+          forall vIdx in _vPropMap.values {
+            if vIdx != -1 then vIdx = vertexMappings[vIdx]; 
           }
 
           writeln("Updating PropertyMap for Edges...");
-          for (eProp, eIdx) in _ePropMap {
-            if eIdx != -1 then _ePropMap.setProperty(eProp, edgeMappings[eIdx]);
+          for eIdx in _ePropMap.values {
+            if eIdx != -1 then eIdx = edgeMappings[eIdx];
           }
         }
       }
