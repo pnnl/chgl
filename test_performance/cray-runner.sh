@@ -1,19 +1,22 @@
 #!/bin/bash
 
-numVertices=100000
-numEdges=100000
-probability=0.1
+threads=44
+nodes=1
+walltime=01:00:00
 
-while getopts ":v:e:c:" opt; do
+while getopts ":a:t:n:w:" opt; do
   case ${opt} in
-    v )
-      numVertices=$OPTARG
+    a )
+      args=$OPTARG
       ;;
-    e )
-      numEdges=$OPTARG
+    t )
+      threads=$OPTARG
       ;;
-    p )
-      probability=$OPTARG
+    n )
+      nodes=$OPTARG
+      ;;
+    w )
+      walltime=$OPTARG
       ;;
     \? )
       echo "Invalid option: $OPTARG" 1>&2
@@ -29,20 +32,19 @@ BINARY=$@
 
 set -x
 
-for NODES in 32; do
-for THREADS in 44; do
-for BUFFERSIZE in 1 10 100 1000 10000 100000 1000000; do
-probability_adjusted=$probability; # $( echo "scale = 10; ${probability} * ${THREADS}" | bc )
-echo "Nodes: ${NODES}, Threads: ${THREADS}, BufferSize: ${BUFFERSIZE}\n"
+for NODES in ${nodes}; do
+for THREADS in ${threads}; do
+echo "Nodes: ${NODES}, Threads: ${THREADS}, walltime=${walltime}, args=${args}"
+echo "aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} ${args}"
+echo "Filename: $(basename -- ${BINARY})-${NODES}-${THREADS}"
 qsub - <<EOF
 #!/bin/bash -l
-#PBS -l nodes=${NODES}:ppn=44
-#PBS -l walltime=01:00:00
-#PBS -N strong2-$( echo ${BINARY} | cut -d "/" -f 2 )-${NODES}-${THREADS}-small-smp
+#PBS -l place=scatter,select=${NODES},walltime=${walltime}
+#PBS -l walltime=${walltime}
+#PBS -N $(basename -- ${BINARY})-${NODES}-${THREADS}
 #PBS -V
 #PBS -j oe
 #PBS -m abe
-#PBS -M zalewski@pnnl.gov
 #PBS -S /bin/bash
 #PBS -W umask=0000
 
@@ -57,19 +59,8 @@ module load craype-hugepages16M
 
 cd \$PBS_O_WORKDIR
 echo 'Running script\n'
-for nodes in ${NODES}; do
-  for threads in ${THREADS}; do
-    for prob in ${BUFFERSIZE}; do
-        time -v aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} --verbose --numVertices ${numVertices} --numEdges ${numEdges} --AdjListHyperGraphBufferSize ${BUFFERSIZE}
-    done
-  done
-done
+aprun  -cc none -d 44 -n ${NODES} -N 1 -j 0 ${BINARY}_real -nl ${NODES} ${args}
 EOF
 
 done
 done
-done
-
-
-#aprun -b -n $(( 2 * $NODES )) -N 2 $PT --threads $THREADS --warm-up-iterations 1 --iterations 8 --scale ${scalemap[$NODES]} --rmat1 --run_bucket_mis --coalescing-size 30000,50000,240000
-#export LD_LIBRARY_PATH=/home/users/p02119/development/cds-2.1.0/bin/cc-amd64-linux-64/:$LD_LIBRARY_PATH

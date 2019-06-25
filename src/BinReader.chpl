@@ -10,6 +10,7 @@ use RangeChunk;
 
 // Parameter to determine whether or not verbose debugging information is provided.
 config param DEBUG_BIN_READER = false;
+config const numEdgesPresent = true;
 
 // Print debug messages
 proc debug(args...?nArgs) where DEBUG_BIN_READER {
@@ -48,7 +49,7 @@ proc binToHypergraph(dataset : string) throws {
         for idx in chunk {
           reader.mark();
           // Open file again and skip to portion of file we want...
-          const headerOffset = 16;
+          const headerOffset = if numEdgesPresent then 16 else 8;
           reader.advance(headerOffset + idx * 8);
 
           // Read our beginning and ending offset... since the ending is the next
@@ -124,7 +125,7 @@ proc binToGraph(dataset : string) {
           // Pre-allocate buffer for vector and read directly into it
           var vertices : [0..#(endOffset - beginOffset + 1)] uint(64);
           reader.readBytes(c_ptrTo(vertices[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
-          for v in vertices do graph.addEdge(idx, v : int);
+          for v in vertices do if idx < v then graph.addEdge(idx, v : int);
           reader.revert();
         }
       }
