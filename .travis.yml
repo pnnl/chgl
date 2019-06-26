@@ -13,7 +13,7 @@ jobs:
         pushd $CHPL_HOME
         . util/setchplenv.sh
         popd
-        chpldoc src/*.chpl
+        chpldoc src/*.chpl --author=PNNL
         touch docs/.nojekyll
         cd test
         chpl --version
