@@ -209,7 +209,7 @@ module PropertyMaps {
         local {
           if acquireLock then _this.lock.acquire();
           for (prop, id) in arr {
-            _this.keys += prop;
+            if id == -1 then _this.keys += prop;
             _this.values[prop] = id;
           }
           if acquireLock then _this.lock.release();
@@ -234,9 +234,9 @@ module PropertyMaps {
             var _this = getPrivatizedInstance();
             local {
               if acquireLock then _this.lock.acquire();
-              for (prop, id) in arr {
-                if id == -1 then _this.keys += prop;
-                _this.values[prop] = id;
+              for (prop, _id) in arr {
+                if _id == -1 then _this.keys += prop;
+                _this.values[prop] = _id;
               }
               if acquireLock then _this.lock.release();
             }

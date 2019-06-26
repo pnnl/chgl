@@ -126,6 +126,15 @@ for line in getLines(blacklistDNS) {
     blacklistDNSNames += line;
 }
 
+proc printPropertyDistribution(propMap) : void {
+  var localNumProperties : [LocaleSpace] int;
+  coforall loc in Locales do on loc do localNumProperties[here.id] = propMap.numProperties();
+  var globalNumProperties = + reduce localNumProperties;
+  for locid in LocaleSpace {
+    writeln("Locale#", locid, " has ", localNumProperties[locid], "(", localNumProperties[locid] : real / globalNumProperties * 100, "%)");
+  }
+}
+
 proc getMetrics(graph, prefix, doComponents, cachedComponents) {
     f.writeln("(", prefix, ") #V = ", graph.numVertices);
     f.writeln("(", prefix, ") #E = ", graph.numEdges);
@@ -262,7 +271,6 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
 
             // Print out its component
             for s in 1..3 {
-                var compId = cachedComponents[s].cachedComponentMappings[e.id];
                 f.writeln("\tComponent (s=", s, "):");
                 for ee in edgeBFS(graph, e, s) {
                   var eee = graph.toEdge(ee);
@@ -312,8 +320,12 @@ forall fileIdx in doWorkLoop(wq,td) {
 vPropMap.flushGlobal();
 ePropMap.flushGlobal();
 
+writeln("Vertex Property Map");
+printPropertyDistribution(vPropMap);
+writeln("Edge Property Map");
+printPropertyDistribution(ePropMap);
 writeln("Constructing HyperGraph...");
-var graph = new AdjListHyperGraph(vPropMap, ePropMap);
+var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx=0));
 
 writeln("Adding inclusions to HyperGraph...");
 // Fill work queue with files to load up
