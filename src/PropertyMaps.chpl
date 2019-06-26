@@ -2,6 +2,7 @@ module PropertyMaps {
   use AggregationBuffer;
   use HashedDist; // Hashed is not used, but the Mapper is
   use Utilities;
+  use TerminationDetection;
   
   /*
     Uninitialized property map (does not initialize nor privatize).
@@ -105,7 +106,9 @@ module PropertyMaps {
     var values : [keys] int;
     // Aggregation used to batch up potentially remote insertions.
     pragma "no doc"
-    var aggregator = UninitializedAggregator((propertyType, int)); 
+    var aggregator = UninitializedAggregator((propertyType, int));
+    pragma "no doc"
+    var terminationDetector : TerminationDetector;
 
     pragma "no doc"
     var pid = -1;
@@ -115,16 +118,17 @@ module PropertyMaps {
       this.mapper = mapper;
       this.complete();
       this.aggregator = new Aggregator((propertyType, int));
+      this.terminationDetector = new TerminationDetector();
       this.pid = _newPrivatizedClass(this:unmanaged);
     }
 
     proc init(other : PropertyMapImpl(?propertyType)) {
       this.propertyType = propertyType;
       this.mapper = other.mapper;
-      this.aggregator = other.aggregator;
       this.complete();
       this.aggregator = new Aggregator((propertyType, int));
-      
+      this.terminationDetector = new TerminationDetector();
+
       this.pid = _newPrivatizedClass(this:unmanaged);
       coforall loc in Locales do on loc {
         var _this = getPrivatizedInstance();
@@ -141,6 +145,7 @@ module PropertyMaps {
       this.complete();
       this.pid = privatizedData[1];
       this.aggregator = privatizedData[2];
+      this.terminationDetector = privatizedData[4];
     }
 
     pragma "no doc"
@@ -158,7 +163,7 @@ module PropertyMaps {
 
     pragma "no doc"
     proc dsiGetPrivatizeData() {
-      return (pid, aggregator, mapper);
+      return (pid, aggregator, mapper, terminationDetector);
     }
 
     pragma "no doc"
@@ -220,6 +225,8 @@ module PropertyMaps {
       coforall loc in Locales do on loc {
         getPrivatizedInstance().flushLocal(acquireLock);
       }
+      // Wait for any asynchronous tasks to finish
+      terminationDetector.awaitTermination();
     }
 
     proc setProperty(property : propertyType, id : int, param aggregated = false, param acquireLock = true) {
@@ -228,6 +235,7 @@ module PropertyMaps {
       if aggregated {
         var buf = aggregator.aggregate((property, id), loc);
         if buf != nil {
+          terminationDetector.started(1);
           begin on loc {
             var arr = buf.getArray();
             buf.done();
@@ -239,6 +247,7 @@ module PropertyMaps {
                 _this.values[prop] = _id;
               }
               if acquireLock then _this.lock.release();
+              _this.terminationDetector.finished(1);
             }
           }
         }

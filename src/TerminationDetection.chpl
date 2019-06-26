@@ -36,6 +36,7 @@
 
 module TerminationDetection {
   use Time;
+  use Utilities;
   use Random;
 
   /*

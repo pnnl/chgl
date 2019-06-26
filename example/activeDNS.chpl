@@ -325,15 +325,23 @@ forall fileIdx in doWorkLoop(wq,td) {
 }
 vPropMap.flushGlobal();
 ePropMap.flushGlobal();
+t.stop();
+writeln("Constructed Property Map with ", vPropMap.numPropertiesGlobal(), 
+    " vertex properties and ", ePropMap.numPropertiesGlobal(), 
+    " edge properties in ", t.elapsed(), "s");
+t.clear();
 
 writeln("Vertex Property Map");
 printPropertyDistribution(vPropMap);
 writeln("Edge Property Map");
 printPropertyDistribution(ePropMap);
 writeln("Constructing HyperGraph...");
+t.start();
 var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx=0));
-
-writeln("Adding inclusions to HyperGraph...");
+t.stop();
+writeln("Constructed HyperGraph in ", t.elapsed(), "s");
+t.clear();
+writeln("Populating HyperGraph...");
 // Fill work queue with files to load up
 currLoc = 0;
 nFiles = 0;
@@ -345,6 +353,7 @@ for fileName in files {
 wq.flush();
 td.started(nFiles);
 
+t.start();
 graph.startAggregation();
 forall fileIdx in doWorkLoop(wq,td) { 
   for line in getLines(fileNames[fileIdx]) {
@@ -360,8 +369,7 @@ graph.stopAggregation();
 graph.flushBuffers();
 
 t.stop();
-writeln("Hypergraph Construction: ", t.elapsed(), " seconds...");
-f.writeln("Hypergraph Construction: ", t.elapsed());
+writeln("Populated HyperGraph in ", t.elapsed(), "s");
 t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
 writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
@@ -407,12 +415,17 @@ if preCollapseMetrics {
 
 cachedComponentMappingsInitialized = false;
 
-writeln("Collapsing HyperGraph...");
+writeln("Collapsing Vertices in HyperGraph...");
 t.start();
-var (vDupeHistogram, eDupeHistogram) = graph.collapse();
+var vDupeHistogram = graph.collapseVertices();
 t.stop();
-writeln("Collapsed Hypergraph: ", t.elapsed(), " seconds...");
-f.writeln("Collapsed Hypergraph: ", t.elapsed());
+writeln("Collapsed Vertices in HyperGraph in ", t.elapsed(), "s");
+t.clear();
+writeln("Collapsing Edges in HyperGraph...");
+t.start();
+var eDupeHistogram = graph.collapseEdges();
+t.stop();
+writeln("Collapsed Edges in HyperGraph in ", t.elapsed(), "s");
 t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
@@ -462,7 +475,6 @@ t.start();
 var numIsolatedComponents = graph.removeIsolatedComponents();
 t.stop();
 writeln("Removed isolated components: ", t.elapsed());
-f.writeln("Removed Isolated Components: ", t.elapsed());
 f.writeln("Isolated Components Removed: ", numIsolatedComponents);
 t.clear();
 
@@ -482,7 +494,6 @@ if postRemovalBlacklist {
     searchBlacklist(graph, "Post-Removal", cachedComponents);
     t.stop();
     writeln("(Post-Removal) Blacklist Scan: ", t.elapsed(), " seconds...");
-    f.writeln("Computed Post-Removal Blacklist: ", t.elapsed());
     t.clear();
 }
 if postRemovalMetrics {
@@ -491,13 +502,11 @@ if postRemovalMetrics {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
         writeln("(Post-Removal) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Post-Removal Components: ", t.elapsed());
         t.clear();
     }
     getMetrics(graph, "Post-Removal", postRemovalComponents, cachedComponents);
     t.stop();
     writeln("(Post-Removal) Collected Metrics: ", t.elapsed(), " seconds...");
-    f.writeln("Collected Post-Removal Metrics: ", t.elapsed());
     t.clear();
 }
 
@@ -508,7 +517,6 @@ t.start();
 var toplexStats = graph.collapseSubsets();
 t.stop();
 writeln("Removed non-toplexes: ", t.elapsed());
-f.writeln("Removed non-toplexes:", t.elapsed());
 f.writeln("Distribution of Non-Toplex Edges:");
 for (deg, freq) in zip(toplexStats.domain, toplexStats) {
     if freq != 0 then f.writeln("\t", deg, ",", freq);
@@ -522,13 +530,11 @@ if postToplexBlacklist {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
         writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Post-Collapse Components: ", t.elapsed());
         t.clear();
     }
     searchBlacklist(graph, "Post-Toplex", cachedComponents);
     t.stop();
     writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
-    f.writeln("Computed Blacklist: ", t.elapsed());
     t.clear();
 }
 
@@ -538,13 +544,11 @@ if postToplexMetrics {
         for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
         cachedComponentMappingsInitialized = true;
         writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Post-Toplex Components: ", t.elapsed());
         t.clear();
     }
     getMetrics(graph, "Post-Toplex", postToplexComponents, cachedComponents);
     t.stop();
     writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
-    f.writeln("Collected Post-Toplex Metrics: ", t.elapsed());
     t.clear();
 }
 
@@ -564,7 +568,6 @@ if !cachedComponentMappingsInitialized {
     for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
     cachedComponentMappingsInitialized = true;
     writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-    f.writeln("Generated Components: ", t.elapsed());
     t.clear();
 }
 
@@ -595,7 +598,6 @@ for s in 1..3 {
 }
 
 writeln("Finished in ", tt.elapsed(), " seconds...");
-f.writeln("Finished in ", tt.elapsed(), " seconds...");
 f.close();
 ff.close();
 if doProfiling then endProfile();

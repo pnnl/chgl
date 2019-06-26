@@ -46,10 +46,6 @@ module AdjListHyperGraph {
   use PropertyMaps;
   use EquivalenceClasses;
   
-  /*
-    This code is commented out because it has trouble working in distributed memory. Need to improve later.
-  */
-  /*
   pragma "no doc"
   // Best-case approach to redistribution of properties to nodes in the hypergraph; this
   // will try to ensure as many properties remain local to node it belongs to as possible.
@@ -61,7 +57,6 @@ module AdjListHyperGraph {
     var leftoverIndices : [0..-1] int;
     var propLock$ : sync bool;
     coforall loc in Locales with (ref propLock$, ref leftoverIndices, ref leftoverProperties) do on loc {
-      writeln(here, " = ", A.localSubdomain());
       // Counters representing the current indices of properties.
       var propIdx : int;
       var arrayIdx : int;
@@ -77,11 +72,11 @@ module AdjListHyperGraph {
       if localIndices.size != localProperties.size {
         on propLock$ {
           propLock$ = true;
-          if localIndices.size != 0 {
+          if localIndices.size > localProperties.size {
             ref localLeftoverIndices = localIndices[localProperties.size..];
             leftoverIndices.push_back(localLeftoverIndices);
-          } else {
-            ref localLeftoverProperties = localProperties[max(localProperties.domain.low, localIndices.size)..];
+          } else if localProperties.size > localIndices.size {
+            ref localLeftoverProperties = localProperties[localIndices.size + localProperties.domain.low..];
             leftoverProperties.push_back(localLeftoverProperties);
           }
           propLock$;
@@ -89,56 +84,23 @@ module AdjListHyperGraph {
       }
     }
     
-    writeln(leftoverProperties.size);
-    assert(leftoverProperties.size == leftoverIndices.size, "leftoverProperties.size(", 
-        leftoverProperties.size, ") != leftoverIndices.size(", leftoverIndices.size, ")");
+    if Debug.ALHG_DEBUG || boundsChecking { 
+      assert(leftoverProperties.size == leftoverIndices.size, "leftoverProperties.size(", 
+          leftoverProperties.size, ") != leftoverIndices.size(", leftoverIndices.size, ")");
+    }
     forall (prop, idx) in zip(leftoverProperties, leftoverIndices) {
       M.setProperty(prop, idx);
-      writeln(M.getProperty(prop));
       A[idx].property = prop;
     }
 
-    var numBad = 0;
-    coforall loc in Locales with (+ reduce numBad) do on loc {
-      forall idx in M.values with (+ reduce numBad) do if idx == -1 then numBad += 1;
-      if numBad != 0 then writeln(here, " has ", numBad, " bad indices!");
-    }
-    assert(numBad == 0, numBad, " bad property indices found!");
-  }*/
-
-  pragma "no doc"
-  // Best-case approach to redistribution of properties to nodes in the hypergraph; this
-  // will try to ensure as many properties remain local to node it belongs to as possible.
-  proc =(ref A : [?D] ?T, M : PropertyMap(?propType)) {
-    // For each locale, handle assigning local properties to local portions of the array.
-    // The number of properties and last index read of the array represent "leftover" 
-    // properties and are recordered below.
-    var leftoverProperties : [0..-1] propType;
-    var leftoverIndices : [D] int = D;
-    var propLock$ : sync bool;
-    coforall loc in Locales with (ref propLock$, ref leftoverIndices, ref leftoverProperties) do on loc {
-      // Counters representing the current indices of properties.
-      var properties = M.keys.these();
-      on propLock$ {
-        propLock$ = true;
-        leftoverProperties.push_back(properties);
-        propLock$;
+    if Debug.ALHG_DEBUG || boundsChecking {
+      var numBad = 0;
+      coforall loc in Locales with (+ reduce numBad) do on loc {
+        forall idx in M.values with (+ reduce numBad) do if idx == -1 then numBad += 1;
+        if numBad != 0 then writeln(here, " has ", numBad, " bad indices!");
       }
+      assert(numBad == 0, numBad, " bad property indices found!");
     }
-    
-    assert(leftoverProperties.size == leftoverIndices.size, "leftoverProperties.size(", 
-        leftoverProperties.size, ") != leftoverIndices.size(", leftoverIndices.size, ")");
-    forall (prop, idx) in zip(leftoverProperties, leftoverIndices) {
-      M.setProperty(prop, idx);
-      A[idx].property = prop;
-    }
-
-    var numBad = 0;
-    coforall loc in Locales with (+ reduce numBad) do on loc {
-      forall idx in M.values with (+ reduce numBad) do if idx == -1 then numBad += 1;
-      if numBad != 0 then writeln(here, " has ", numBad, " bad indices!");
-    }
-    assert(numBad == 0, numBad, " bad property indices found!");
   }
 
   /*
