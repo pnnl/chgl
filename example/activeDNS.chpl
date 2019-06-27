@@ -3,6 +3,7 @@ use Time;
 use Regexp;
 use ReplicatedDist;
 use FileSystem;
+use ReplicatedVar;
 
 /*
   The Regular Expression used for searching for IP Addresses.
@@ -115,8 +116,12 @@ var t = new Timer();
 var tt = new Timer();
 var files : [0..-1] string;
 var f = open(metricsOutput, iomode.cw).writer();
-var blacklistIPRegexp = compile(blacklistIPRegex);
-var blacklistDNSNamesRegexp = compile(blacklistDNSNamesRegex);
+var blacklistIPRegexp : [rcDomain] regexp;
+var blacklistDNSNamesRegexp : [rcDomain] regexp; 
+coforall loc in Locales do on loc {
+  rcLocal(blacklistIPRegexp) = compile(blacklistDNSNamesRegex);
+  rcLocal(blacklistDNSNamesRegexp) = compile(blacklistIPRegex);
+}
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
 var wq = new WorkQueue(int, WorkQueueUnlimitedAggregation);
@@ -255,7 +260,7 @@ proc searchBlacklist(graph, prefix, cachedComponents) {
     } writeln("Finished searching for blacklisted IPs...");
     forall e in graph.getEdges() {
         var dnsName = graph.getProperty(e);
-        var isBadDNS = dnsName.matches(blacklistDNSNamesRegexp);
+        var isBadDNS = dnsName.matches(rcLocal(blacklistDNSNamesRegexp));
         if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
             var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
             writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);

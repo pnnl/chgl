@@ -1,1 +1,1 @@
--M=../../src --no-warnings --no-dead-code-elimination --devel 
+--ccflags=-O3 -M=../../src --no-warnings --no-dead-code-elimination --devel 
