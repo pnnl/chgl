@@ -1,1 +1,1 @@
--ccflags=-O3 -M=../src --override-checking --no-dead-code-elimination --devel --no-warnings
+--ccflags=-O3 -M=../src --override-checking --no-dead-code-elimination --devel --no-warnings
