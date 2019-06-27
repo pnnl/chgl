@@ -1,3 +1,12 @@
+/*
+  Provides an abstraction used to efficiently compute equivalence classes. An
+  equivalence class is a set where all elements of that set are equivalent to
+  each other. The `cmpType` is used to determine the equivalence class associated
+  with a `keyType`. For example, if the `keyType` is a hyperedge, the `cmpType`
+  is the set of vertices that are incident in it. Each equivalence class has what
+  is known as a `candidate`, which is an arbitrarily chosen leader for an equivalence
+  class, making it easy to select which `keyType` to keep based on duplicate `cmpType`.
+*/
 module EquivalenceClasses {
   use Vectors;
   
@@ -42,29 +51,40 @@ module EquivalenceClasses {
     proc add(key : keyType) {
       add(key, key);
     }
-
-    proc add(key : keyType, x : cmpType) {
-      if eqclassesDom.contains(x) {
-        var y = eqclasses[x];
-        candidates[y] += key;
+    
+    /*
+      Adds 'key' to an equivalence class, or making it the candidate
+      if no current equivalence class exists. 
+    */
+    proc add(key : keyType, cmp : cmpType) {
+      // Make ourselves a follower of the current candidate
+      if eqclassesDom.contains(cmp) {
+        var candidate = eqclasses[cmp];
+        candidates[candidate] += key;
       } else {
-        this.eqclassesDom += x;
-        eqclasses[x] = key;
+        // Make ourselves a candidate
+        this.eqclassesDom += cmp;
+        eqclasses[cmp] = key;
         this.candidatesDom += key;
       }
     }
-
+    
+    /*
+      Adds another equivalence class to this one.
+    */
     proc add(other : this.type) {
-      for (key, value) in zip(other.eqclassesDom, other.eqclasses) {
-        if this.eqclassesDom.contains(key) {
-          var newKey = this.eqclasses[key];
-          this.candidates[newKey] += value;
-          this.candidates[newKey] += other.candidates[value];
+      for (cmp, key) in zip(other.eqclassesDom, other.eqclasses) {
+        // We already have one of their candidates, add them as our followers
+        if this.eqclassesDom.contains(cmp) {
+          var candidate = this.eqclasses[cmp];
+          this.candidates[candidate] += key;
+          this.candidates[candidate] += other.candidates[key];
         } else {
-          this.eqclassesDom += key;
-          this.eqclasses[key] = value;
-          this.candidatesDom += value;
-          this.candidates[value] += other.candidates[value];
+          // New candidate...
+          this.eqclassesDom += cmp;
+          this.eqclasses[cmp] = key;
+          this.candidatesDom += key;
+          this.candidates[key] += other.candidates[key];
         }
       }
     }

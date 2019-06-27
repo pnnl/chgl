@@ -1276,16 +1276,28 @@ module AdjListHyperGraph {
         // parallel across multiple cores if possible. 
         // Step 3: Take pairs of locales and handle merging their equivalent classes into a single
         // equivalence class. Then count the number of unique vertices.
-        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
         
-        var redux = eqclass.reduction();
-        forall v in _verticesDomain with (redux reduce eqclass) {
+        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, ArrayWrapper(int));
+        coforall loc in Locales  do on loc {
           var _this = getPrivatizedInstance();
-          var _v = _this.toVertex(v);
-          var tmp = [e in _this.incidence(_v)] e.id;
-          sort(tmp);
-          eqclass.add(v, new ArrayWrapper(tmp));
+          var reduxLock : Lock;
+          var localeqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+          forall v in _verticesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
+            var _v = _this.toVertex(v);
+            var tmp = [e in _this.incidence(_v)] e.id;
+            sort(tmp);
+            var wrapper = new ArrayWrapper(tmp);
+            reduxLock.acquire();
+            localeqclass.add(v, wrapper);
+            reduxLock.release();
+          }
+          eqclasses[here.id] = localeqclass;
         }
+        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+        for localeqclass in eqclasses {
+          eqclass.add(localeqclass);
+        }
+        delete eqclasses;
         
         var numUnique : int;
         forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
@@ -1352,7 +1364,8 @@ module AdjListHyperGraph {
       const oldVerticesDom = this._verticesDomain;
       var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices;
       this._verticesDomain = newVerticesDomain;
-
+      
+      // TODO: Optimize next for locality!
       writeln("Shifting down NodeData for Vertices...");
       // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
@@ -1458,15 +1471,27 @@ module AdjListHyperGraph {
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
         //writeln("Marking and Deleting Edges...");
-        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
-        var redux = eqclass.reduction();
-        forall e in _edgesDomain with (redux reduce eqclass) {
+        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, ArrayWrapper(int));
+        coforall loc in Locales  do on loc {
           var _this = getPrivatizedInstance();
-          var _e = _this.toEdge(e);
-          var tmp = [v in _this.incidence(_e)] v.id;
-          sort(tmp);
-          eqclass.add(e, new ArrayWrapper(tmp));
+          var reduxLock : Lock;
+          var localeqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+          forall e in _edgesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
+            var _e = _this.toEdge(e);
+            var tmp = [v in _this.incidence(_e)] v.id;
+            sort(tmp);
+            var wrapper = new ArrayWrapper(tmp);
+            reduxLock.acquire();
+            localeqclass.add(e, wrapper);
+            reduxLock.release();
+          }
+          eqclasses[here.id] = localeqclass;
         }
+        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+        for localeqclass in eqclasses {
+          eqclass.add(localeqclass);
+        }
+        delete eqclasses;
         
         var numUnique : int;
         forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
