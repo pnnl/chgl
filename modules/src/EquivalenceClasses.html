@@ -152,6 +152,13 @@
 <div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">EquivalenceClasses</span><span class="p">;</span>
 </pre></div>
 </div>
+<p>Provides an abstraction used to efficiently compute equivalence classes. An
+equivalence class is a set where all elements of that set are equivalent to
+each other. The <cite>cmpType</cite> is used to determine the equivalence class associated
+with a <cite>keyType</cite>. For example, if the <cite>keyType</cite> is a hyperedge, the <cite>cmpType</cite>
+is the set of vertices that are incident in it. Each equivalence class has what
+is known as a <cite>candidate</cite>, which is an arbitrarily chosen leader for an equivalence
+class, making it easy to select which <cite>keyType</cite> to keep based on duplicate <cite>cmpType</cite>.</p>
 <dl class="class">
 <dt id="EquivalenceClasses.Equivalence">
 <em class="property">class </em><code class="descname">Equivalence</code><a class="headerlink" href="#EquivalenceClasses.Equivalence" title="Permalink to this definition">¶</a></dt>
@@ -222,13 +229,16 @@
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">add</code><span class="sig-paren">(</span><em>key: keyType</em>, <em>x: cmpType</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<em class="property">proc </em><code class="descname">add</code><span class="sig-paren">(</span><em>key: keyType</em>, <em>cmp: cmpType</em><span class="sig-paren">)</span></dt>
+<dd><p>Adds &#8216;key&#8217; to an equivalence class, or making it the candidate
+if no current equivalence class exists.</p>
+</dd></dl>
 
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">add</code><span class="sig-paren">(</span><em>other: this.type</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
+<dd><p>Adds another equivalence class to this one.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="EquivalenceClasses.Equivalence.reduction">
