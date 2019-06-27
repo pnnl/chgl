@@ -45,6 +45,7 @@ module AdjListHyperGraph {
   use Vectors;
   use PropertyMaps;
   use EquivalenceClasses;
+  use DynamicAggregationBuffer;
   
   pragma "no doc"
   // Best-case approach to redistribution of properties to nodes in the hypergraph; this
@@ -1648,10 +1649,24 @@ module AdjListHyperGraph {
       writeln("Collapsing Subset...");
       {
         writeln("Marking non-toplex edges...");
+        
+        // Work-In-Progress (W.I.P)
+        // We aggregate pairs of hyperedges, (e1, e2), where e1 is the source and
+        // e2 is the sink. We order hyperedges such that given two hyperedges,
+        // e and e', e has priority over e' if e.id < e'.id. We take advantage of this
+        // ordering during aggregation to make two optimizations...
+        // 1) Ensures that for all pairs (e1, e2), that e1 > e2
+        // 2) For pairs (e1, e2), (e3, e2), (e1, e3), we can eliminate (e3, e2) since
+        //    e1 has priority over e3 (transitivity).
+        // 3) Only send the buffer once for each source edge.
+        // The combination of these properties and optimizations should allow this to
+        // scale on infiniband.
+        // var aggregator = new DynamicAggregator((eDescType, eDescType));
         forall e in _edgesDomain do if toplexEdges[e].read() == -1 {
-          label look for v in _edges[e] {
+          var _this = getPrivatizedInstance();
+          label look for v in _this.incidence(_this.toEdge(e)) {
             if toplexEdges[e].read() != -1 then break look;
-            for ee in _vertices[v] do if e != ee && toplexEdges[ee].read() == -1 {
+            for ee in _this._snapshot(_this.toVertex(v)) do if e != ee && toplexEdges[ee].read() == -1 {
               if _edges[e].canWalk(_edges[ee], s=_edges[e].degree) {
                 if _edges[e].degree > _edges[ee].degree {
                   toplexEdges[ee].write(e);
