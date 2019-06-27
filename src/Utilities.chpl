@@ -276,7 +276,7 @@ proc intersectionSizeAtLeast(A : [] ?t, B : [] t, s : integral) {
     const _BD = B.domain; // Make by-value copy so domain is not remote.
     var _B : [_BD] t = B;
     return _intersectionSizeAtLeast(A, _B, s);
-  } else if !isLocalArray(A) && !isLocalArray(B) {
+  } else if !isLocalArray(A) && isLocalArray(B) {
     const _AD = A.domain; // Make by-value copy so domain is not remote.
     var _A : [_AD] t = A;
     return _intersectionSizeAtLeast(_A, B, s);
