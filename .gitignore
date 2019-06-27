@@ -17,6 +17,7 @@
 
 # chpldoc generated content
 /docs/
+/doc/
 
 # Mason lockfile
 Mason.lock
