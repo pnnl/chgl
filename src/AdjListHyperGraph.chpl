@@ -1878,22 +1878,23 @@ module AdjListHyperGraph {
       var numIsolatedComponents : int;    
       {
         forall e in _edgesDomain with (+ reduce numIsolatedComponents) {
-          var n = getEdge(e).degree;
+          var _this = getPrivatizedInstance();
+          var n = _this.getEdge(e).degree;
           assert(n > 0, e, " has no neighbors... n=", n);
           if n == 1 {
-            var v = getEdge(e).incident[0];
+            var v = _this.getEdge(e).incident[0];
 
-            assert(getVertex(v) != nil, "A neighbor of ", e, " has an invalid reference ", v);
-            var nn = getVertex(v).degree;
+            assert(_this.getVertex(v) != nil, "A neighbor of ", e, " has an invalid reference ", v);
+            var nn = _this.getVertex(v).degree;
             assert(nn > 0, v, " has no neighbors... nn=", nn);
             if nn == 1 {
-              if _ePropMap.isInitialized then _ePropMap.setProperty(_edges[e].property, -1);
-              delete _edges[e];
-              _edges[e] = nil;
+              if _this._ePropMap.isInitialized then _this._ePropMap.setProperty(_this.getEdge(e).property, -1);
+              delete _this.getEdge(e);
+              _this.getEdge(e) = nil;
               
-              if _vPropMap.isInitialized then _vPropMap.setProperty(_vertices[v].property, -1);
-              delete _vertices[v];
-              _vertices[v] = nil;
+              if _this._vPropMap.isInitialized then _this._vPropMap.setProperty(_this.getVertex(v).property, -1);
+              delete _this.getVertex(v);
+              _this.getVertex(v) = nil;
               
               numIsolatedComponents += 1;
             }
@@ -1922,17 +1923,19 @@ module AdjListHyperGraph {
         writeln("Shifting down NodeData for Vertices...");
         var idx : atomic int;
         forall v in oldVerticesDom {
+          var _this = getPrivatizedInstance();
           if oldVertices[v] != nil {
             var ix = idx.fetchAdd(1);
             
             // If the locations in the old and new array are the same, we just move it over
-            if oldVertices[v].locale == _vertices[ix].locale {
-              _vertices[ix] = oldVertices[v];
+            if oldVertices[v].locale == _this.getVertex(ix).locale {
+              _this.getVertex(ix) = oldVertices[v];
             } 
             // If the locations are different, we make a copy of the NodeData so that it is local
             // to the new locale.
-            else on _vertices[ix] {
-              _vertices[ix] = new unmanaged NodeData(oldVertices[v]);
+            else on _this.getVertex(ix) {
+              var _this = getPrivatizedInstance();
+              _this.getVertex(ix) = new unmanaged NodeData(oldVertices[v]);
               delete oldVertices[v];
             }
 
@@ -1945,13 +1948,15 @@ module AdjListHyperGraph {
         writeln("Shifting down NodeData for Edges...");
         idx.write(0);
         forall e in oldEdgesDom {
+          var _this = getPrivatizedInstance();
           if oldEdges[e] != nil {
             var ix = idx.fetchAdd(1);
             
-            if oldEdges[e].locale == _edges[ix].locale {
-              _edges[ix] = oldEdges[e];
-            } else on _edges[ix] {
-              _edges[ix] = new unmanaged NodeData(oldEdges[e]);
+            if oldEdges[e].locale == _this.getEdge(ix).locale {
+              _this.getEdge(ix) = oldEdges[e];
+            } else on _this.getEdge(ix) {
+              var _this = getPrivatizedInstance();              
+              _this.getEdge(ix) = new unmanaged NodeData(oldEdges[e]);
               delete oldEdges[e];
             }
             
