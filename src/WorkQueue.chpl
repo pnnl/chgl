@@ -39,10 +39,11 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
           break;
         }
         
-        var currSize = wq.size;
+        var currSize = wq.globalSize;
         var delta = currSize - lastSize;
         var velocity = delta / time.elapsed(TimeUnits.milliseconds);
         time.clear();
+        lastSize = currSize;
         if velocity < workQueueMinVelocityForFlush {
           wq.flushLocal();
         }

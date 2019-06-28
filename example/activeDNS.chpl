@@ -81,16 +81,6 @@ config const ipAddressIndex = 2;
 // Skips first line of header file.
 config const skipHeader = false;
 
-// Ensures that this never gets reclaimed automatically
-// Gets around subtle bug where the string gets deallocated
-class StringWrapper {
-  const str : string;
-  
-  proc init(str : string) {
-    this.str = new string(str, true);
-  }
-}
-
 //Need to create outputDirectory prior to opening files
 if !exists(outputDirectory) {
    try {
@@ -146,7 +136,7 @@ proc printPropertyDistribution(propMap) : void {
   }
 }
 
-proc getMetrics(graph, prefix, doComponents, cachedComponents) {
+proc getMetrics(graph, prefix, doComponents) {
     f.writeln("(", prefix, ") #V = ", graph.numVertices);
     f.writeln("(", prefix, ") #E = ", graph.numEdges);
     f.flush();
@@ -166,142 +156,112 @@ proc getMetrics(graph, prefix, doComponents, cachedComponents) {
         }
     }
     f.flush();
+    // Compute component size distribution
     if doComponents then for s in 1..3 {
-        var componentMappings = cachedComponents[s].cachedComponentMappings;
-        var componentsDom : domain(int);
-        var components : [componentsDom] unmanaged Vector(graph._value.eDescType);
-        // TODO 
-        // This is a local iteration over distributed data, make it parallel and distributed!
-        for (ix, id) in zip(componentMappings.domain, componentMappings) {
-            componentsDom += id;
-            if components[id] == nil {
-                components[id] = new unmanaged VectorImpl(graph._value.eDescType, {0..-1});
-            }
-            components[id].append(graph.toEdge(ix));
-        }
+      var vComponentSizeDistribution = vertexComponentSizeDistribution(graph, s);
+      var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
 
-        var eMax = max reduce [component in components] component.size();
-        var vMax = max reduce [component in components] (+ reduce for edge in component do graph.degree(edge));         
-        var vComponentSizes : [1..vMax] int;
-        var eComponentSizes : [1..eMax] int;
-        // TODO
-        // Note: This is not distributed despite the fact that it should be! Need to think carefully on how to get
-        // the individual components while also ensuring that we evenly distribute this load across all locales!
-        forall component in components with (+ reduce vComponentSizes, + reduce eComponentSizes) {
-            eComponentSizes[component.size()] += 1;
-            var numVertices : int;
-            // Potentially (and likely is) remote; might be okay if RDMA atomics are supported, but otherwise very heavy.
-            for e in component {
-                numVertices += graph.degree(e);
-            }
-            vComponentSizes[numVertices] += 1;
-        }
+      f.writeln("(", prefix, ") Vertex Connected Component Size Distribution (s = " + s + "):");
+      for (sz, freq) in zip(vComponentSizeDistribution.domain, vComponentSizeDistribution) {
+        if freq != 0 then f.writeln("\t" + sz + "," + freq);
+      }
+      f.flush();
 
-        f.writeln("(", prefix, ") Vertex Connected Component Size Distribution (s = " + s + "):");
-        for (sz, freq) in zip(vComponentSizes.domain, vComponentSizes) {
-            if freq != 0 then f.writeln("\t" + sz + "," + freq);
-        }
-        f.flush();
-
-        f.writeln("(", prefix, ") Edge Connected Component Size Distribution (s = " + s + "):");
-        for (sz, freq) in zip(eComponentSizes.domain, eComponentSizes) {
-            if freq != 0 then f.writeln("\t" + sz + "," + freq);
-        }
-        f.flush();
-        delete components;
+      f.writeln("(", prefix, ") Edge Connected Component Size Distribution (s = " + s + "):");
+      for (sz, freq) in zip(eComponentSizeDistribution.domain, eComponentSizeDistribution) {
+        if freq != 0 then f.writeln("\t" + sz + "," + freq);
+      }
+      f.flush();
     }
 }
 
-proc searchBlacklist(graph, prefix, cachedComponents) {
-    // Scan for most wanted...
-    writeln("(" + prefix + ") Searching for known offenders...");
-    //create directory
-    if !exists(outputDirectory + prefix) {
-    	try{
-	   mkdir(outputDirectory + prefix);
-	}
-        catch{
-           writeln("unable to create directory", outputDirectory + prefix);
-        }
+proc searchBlacklist(graph, prefix) {
+  // Scan for most wanted...
+  writeln("(" + prefix + ") Searching for known offenders...");
+  //create directory
+  if !exists(outputDirectory + prefix) {
+    try{
+      mkdir(outputDirectory + prefix);
     }
-    forall v in graph.getVertices() {
-        var ip = graph.getProperty(v);
-        if blacklistIPAddresses.contains(ip) {
-	    var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
-            f.writeln("Blacklisted ip address ", ip);
-            halt("Vertex blacklist scan not implemented...");
-            // TODO! CORRECT THIS, THIS IS WRONG!
-            // Print out its local neighbors...
-            f.writeln("(" + prefix + ") Blacklisted IP Address: ", ip);
-            for s in 1..3 {
-                f.writeln("\tLocal Neighborhood (s=", s, "):");
-                for neighbor in graph.walk(v, s) {
-                    var str = "\t\t" + graph.getProperty(neighbor) + "\t";
-                    for n in graph.incidence(neighbor) {
-                        str += graph.getProperty(n) + ",";
-                    }
-                    f.writeln(str[..str.size - 1]);
-                    f.flush();
-                }
-                f.flush();
-            }
-
-            // Print out its component
-            for s in 1..3 {
-                var compId = cachedComponents[s].cachedComponentMappings[v.id];
-                f.writeln("\tComponent (s=", s, "):");
-                for (ix, id) in zip(graph.verticesDomain, cachedComponents[s].cachedComponentMappings) {
-                    if id == compId {
-                        var vv = graph.toVertex(ix);
-                        var str = "\t\t" + graph.getProperty(vv) + "\t";
-                        for n in graph.incidence(vv) {
-                            str += graph.getProperty(n) + ",";
-                        }
-                        f.writeln(str[..str.size - 1]);
-                        f.flush();
-                    }
-                }
-            } 
-        } 
-    } writeln("Finished searching for blacklisted IPs...");
-    forall e in graph.getEdges() {
-        var dnsName = graph.getProperty(e);
-        var isBadDNS = dnsName.matches(rcLocal(blacklistDNSNamesRegexp));
-        if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
-            var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
-            writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
-            
-            // Print out its local neighbors...
-            f.writeln("(" + prefix + ") Blacklisted DNS Name: ", dnsName);
-            for s in 1..3 {
-                f.writeln("\tLocal Neighborhood (s=", s, "):");
-                for neighbor in graph.walk(e, s) {
-                    var str = "\t\t" + graph.getProperty(neighbor) + "\t";
-                    for n in graph.incidence(neighbor) {
-                        str += graph.getProperty(n) + ",";
-                    }
-                    f.writeln(str[..str.size - 1]);
-                    f.flush();
-                }
-                f.flush();
-            }
-
-            // Print out its component
-            for s in 1..3 {
-                f.writeln("\tComponent (s=", s, "):");
-                for ee in edgeBFS(graph, e, s) {
-                  var eee = graph.toEdge(ee);
-                  var str = "\t\t" + graph.getProperty(eee) + "\t";
-                  for n in graph.incidence(eee) {
-                    str += graph.getProperty(n) + ",";
-                  }
-                  f.writeln(str[..str.size - 1]);
-                  f.flush();
-                }
-            }
-        }
+    catch{
+      writeln("unable to create directory", outputDirectory + prefix);
     }
-    writeln("Finished searching for blacklisted DNSs...");
+  }
+  forall v in graph.getVertices() {
+    var ip = graph.getProperty(v);
+    if blacklistIPAddresses.contains(ip) {
+      var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
+      f.writeln("Blacklisted ip address ", ip);
+      halt("Vertex blacklist scan not implemented...");
+      // TODO! CORRECT THIS, THIS IS WRONG!
+      // Print out its local neighbors...
+      f.writeln("(" + prefix + ") Blacklisted IP Address: ", ip);
+      for s in 1..3 {
+        f.writeln("\tLocal Neighborhood (s=", s, "):");
+        for neighbor in graph.walk(v, s) {
+          var str = "\t\t" + graph.getProperty(neighbor) + "\t";
+          for n in graph.incidence(neighbor) {
+            str += graph.getProperty(n) + ",";
+          }
+          f.writeln(str[..str.size - 1]);
+          f.flush();
+        }
+        f.flush();
+      }
+
+      // Print out its component
+      for s in 1..3 {
+        f.writeln("\tComponent (s=", s, "):");
+        for vv in vertexBFS(graph, v, s) {
+          var vvv = graph.toVertex(vv);
+          var str = "\t\t" + graph.getProperty(vvv) + "\t";
+          for n in graph.incidence(vvv) {
+            str += graph.getProperty(n) + ",";
+          }
+          f.writeln(str[..str.size - 1]);
+          f.flush();
+        }
+      } 
+    } 
+  } writeln("Finished searching for blacklisted IPs...");
+  forall e in graph.getEdges() {
+    var dnsName = graph.getProperty(e);
+    var isBadDNS = dnsName.matches(rcLocal(blacklistDNSNamesRegexp));
+    if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
+      var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
+      writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
+
+      // Print out its local neighbors...
+      f.writeln("(" + prefix + ") Blacklisted DNS Name: ", dnsName);
+      for s in 1..3 {
+        f.writeln("\tLocal Neighborhood (s=", s, "):");
+        for neighbor in graph.walk(e, s) {
+          var str = "\t\t" + graph.getProperty(neighbor) + "\t";
+          for n in graph.incidence(neighbor) {
+            str += graph.getProperty(n) + ",";
+          }
+          f.writeln(str[..str.size - 1]);
+          f.flush();
+        }
+        f.flush();
+      }
+
+      // Print out its component
+      for s in 1..3 {
+        f.writeln("\tComponent (s=", s, "):");
+        for ee in edgeBFS(graph, e, s) {
+          var eee = graph.toEdge(ee);
+          var str = "\t\t" + graph.getProperty(eee) + "\t";
+          for n in graph.incidence(eee) {
+            str += graph.getProperty(n) + ",";
+          }
+          f.writeln(str[..str.size - 1]);
+          f.flush();
+        }
+      }
+    }
+  }
+  writeln("Finished searching for blacklisted DNSs...");
 }
 
 writeln("Constructing PropertyMap...");
@@ -386,24 +346,9 @@ writeln("Number of Inclusions: ", graph.getInclusions());
 writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-beginProfile("ActiveDNS-Perf");
-// Cached components to avoid its costly recalculation...
-pragma "default intent is ref"
-record CachedComponents {
-    var cachedComponentMappingsDomain = graph.edgesDomain;
-    var cachedComponentMappings : [cachedComponentMappingsDomain] int;    
-}
-var cachedComponents : [1..3] CachedComponents;
-var cachedComponentMappingsInitialized = false;
 if preCollapseBlacklist {
     t.start();
-    if !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        t.clear();
-    }
-    searchBlacklist(graph, "Pre-Collapse", cachedComponents);
+    searchBlacklist(graph, "Pre-Collapse");
     t.stop();
     writeln("(Pre-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
     f.writeln("Computed Pre-Collapse Blacklist: ", t.elapsed());
@@ -411,21 +356,12 @@ if preCollapseBlacklist {
 }
 if preCollapseMetrics {
     t.start();
-    if preCollapseComponents && !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Pre-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Pre-Collapse Components: ", t.elapsed());
-        t.clear();
-    }
-    getMetrics(graph, "Pre-Collapse", preCollapseComponents, cachedComponents);
+    getMetrics(graph, "Pre-Collapse", preCollapseComponents);
     t.stop();
     writeln("(Pre-Collapse) Collected Metrics: ", t.elapsed());
     f.writeln("Collected Pre-Collapse Metrics: ", t.elapsed());
     t.clear();
 }
-
-cachedComponentMappingsInitialized = false;
 
 writeln("Collapsing Vertices in HyperGraph...");
 t.start();
@@ -453,14 +389,7 @@ for (deg, freq) in zip(eDupeHistogram.domain, eDupeHistogram) {
 
 if postCollapseBlacklist {
     t.start();
-    if !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Post-Collapse Components: ", t.elapsed());
-        t.clear();
-    }
-    searchBlacklist(graph, "Post-Collapse", cachedComponents);
+    searchBlacklist(graph, "Post-Collapse");
     t.stop();
     writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
     f.writeln("Computed Post-Collapse Blacklist: ", t.elapsed());
@@ -468,14 +397,7 @@ if postCollapseBlacklist {
 }
 if postCollapseMetrics {
     t.start();
-    if postCollapseComponents && !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Components: ", t.elapsed());
-        t.clear();
-    }
-    getMetrics(graph, "Post-Collapse", postCollapseComponents, cachedComponents);
+    getMetrics(graph, "Post-Collapse", postCollapseComponents);
     t.stop();
     writeln("(Post-Collapse) Collected Metrics: ", t.elapsed(), " seconds...");
     f.writeln("Collected Post-Collapse Metrics: ", t.elapsed());
@@ -492,37 +414,20 @@ t.clear();
 
 writeln("Number of Inclusions: ", graph.getInclusions());
 
-cachedComponentMappingsInitialized = false;
-
 if postRemovalBlacklist {
     t.start();
-    if !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Removal) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        f.writeln("Generated Post-Removal Components: ", t.elapsed());
-        t.clear();
-    }
-    searchBlacklist(graph, "Post-Removal", cachedComponents);
+    searchBlacklist(graph, "Post-Removal");
     t.stop();
     writeln("(Post-Removal) Blacklist Scan: ", t.elapsed(), " seconds...");
     t.clear();
 }
 if postRemovalMetrics {
     t.start();
-    if postRemovalComponents && !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Removal) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        t.clear();
-    }
-    getMetrics(graph, "Post-Removal", postRemovalComponents, cachedComponents);
+    getMetrics(graph, "Post-Removal", postRemovalComponents);
     t.stop();
     writeln("(Post-Removal) Collected Metrics: ", t.elapsed(), " seconds...");
     t.clear();
 }
-
-cachedComponentMappingsInitialized = false;
 
 writeln("Removing non-toplexes...");
 t.start();
@@ -535,16 +440,9 @@ for (deg, freq) in zip(toplexStats.domain, toplexStats) {
 }
 t.clear();
 
-cachedComponentMappingsInitialized = false;
 if postToplexBlacklist {
     t.start();
-    if !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Collapse) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        t.clear();
-    }
-    searchBlacklist(graph, "Post-Toplex", cachedComponents);
+    searchBlacklist(graph, "Post-Toplex");
     t.stop();
     writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
     t.clear();
@@ -552,13 +450,7 @@ if postToplexBlacklist {
 
 if postToplexMetrics {
     t.start();
-    if !cachedComponentMappingsInitialized {
-        for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-        cachedComponentMappingsInitialized = true;
-        writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-        t.clear();
-    }
-    getMetrics(graph, "Post-Toplex", postToplexComponents, cachedComponents);
+    getMetrics(graph, "Post-Toplex", postToplexComponents);
     t.stop();
     writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
     t.clear();
@@ -574,41 +466,6 @@ forall e in graph.getEdges() {
     }
     ff.writeln(str[1..#(str.size - 1)]);
 }
-
-cachedComponentMappingsInitialized = false;
-if !cachedComponentMappingsInitialized {
-    for s in 1..3 do cachedComponents[s].cachedComponentMappings = getEdgeComponentMappings(graph, s);
-    cachedComponentMappingsInitialized = true;
-    writeln("(Post-Toplex) Generated Cache of Connected Components for 1..3 in ", t.elapsed(), " seconds...");
-    t.clear();
-}
-
-writeln("Printing out components of collapsed toplex graph...");
-for s in 1..3 {
-  const sdir = componentsDirectory + "s=" + s + "/";
-  if !exists(sdir) {
-    try {
-      mkdir(sdir);
-    }
-    catch {
-      halt("*Unable to create directory ", sdir);
-    }
-  }
-
-  writeln("Edge Connected Components (s = ", s, "): ");
-  forall (ix, id) in zip(graph.edgesDomain, cachedComponents[s].cachedComponentMappings) {
-    var ee = graph.toEdge(ix);
-    var fff = open(componentsDirectory + "s=" + s + "/" + graph.getProperty(ee), iomode.cw).writer();
-    var str = "";
-    for n in graph.incidence(ee) {
-      str += graph.getProperty(n) + ",";
-    }
-    str = str[..str.size - 1];
-    fff.writeln(str);
-    fff.close();
-  }
-}
-
 writeln("Finished in ", tt.elapsed(), " seconds...");
 f.close();
 ff.close();
