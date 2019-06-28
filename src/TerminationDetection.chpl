@@ -116,7 +116,7 @@ module TerminationDetection {
       }
       var newStarted = 0;
       var newFinished = 0;
-      coforall loc in Locales with (+ reduce newStarted, + reduce newFinished) do on loc {
+      for loc in Locales do on loc {
         const _this = getPrivatizedInstance();
         newStarted += _this.tasksStarted.read();
         newFinished += _this.tasksFinished.read();
@@ -146,7 +146,7 @@ module TerminationDetection {
           when 0 {
             started = 0;
             finished = 0;
-            coforall loc in Locales with (+ reduce started, + reduce finished) do on loc {
+            for loc in Locales  do on loc {
               const _this = getPrivatizedInstance();
               started += _this.tasksStarted.read();
               finished += _this.tasksFinished.read();
@@ -163,7 +163,7 @@ module TerminationDetection {
           when 1 {
             var newStarted = 0;
             var newFinished = 0;
-            coforall loc in Locales with (+ reduce newStarted, + reduce newFinished) do on loc {
+            for loc in Locales do on loc {
               const _this = getPrivatizedInstance();
               newStarted += _this.tasksStarted.read();
               newFinished += _this.tasksFinished.read();
