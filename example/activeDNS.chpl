@@ -170,6 +170,8 @@ proc getMetrics(graph, prefix, doComponents, cachedComponents) {
         var componentMappings = cachedComponents[s].cachedComponentMappings;
         var componentsDom : domain(int);
         var components : [componentsDom] unmanaged Vector(graph._value.eDescType);
+        // TODO 
+        // This is a local iteration over distributed data, make it parallel and distributed!
         for (ix, id) in zip(componentMappings.domain, componentMappings) {
             componentsDom += id;
             if components[id] == nil {
@@ -182,9 +184,13 @@ proc getMetrics(graph, prefix, doComponents, cachedComponents) {
         var vMax = max reduce [component in components] (+ reduce for edge in component do graph.degree(edge));         
         var vComponentSizes : [1..vMax] int;
         var eComponentSizes : [1..eMax] int;
+        // TODO
+        // Note: This is not distributed despite the fact that it should be! Need to think carefully on how to get
+        // the individual components while also ensuring that we evenly distribute this load across all locales!
         forall component in components with (+ reduce vComponentSizes, + reduce eComponentSizes) {
             eComponentSizes[component.size()] += 1;
             var numVertices : int;
+            // Potentially (and likely is) remote; might be okay if RDMA atomics are supported, but otherwise very heavy.
             for e in component {
                 numVertices += graph.degree(e);
             }
@@ -380,6 +386,7 @@ writeln("Number of Inclusions: ", graph.getInclusions());
 writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
 writeln("Number of Inclusions: ", graph.getInclusions());
 
+beginProfile("ActiveDNS-Perf");
 // Cached components to avoid its costly recalculation...
 pragma "default intent is ref"
 record CachedComponents {

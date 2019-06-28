@@ -1366,7 +1366,11 @@ module AdjListHyperGraph {
       var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices;
       this._verticesDomain = newVerticesDomain;
       
-      // TODO: Optimize next for locality!
+      // TODO
+      // Optimize next for locality!
+      // Right now, we lose the locality optimization provided by the initial property map assignment.
+      // Perhaps I should use a heuristic where the NodeData is placed where it is likely to be local
+      // and not use a fetchAdd counter.
       writeln("Shifting down NodeData for Vertices...");
       // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
@@ -1377,6 +1381,10 @@ module AdjListHyperGraph {
         var idx : atomic int;
         forall v in oldVertices.domain {
           if oldVertices[v] != nil {
+            // TODO
+            // When no RDMA atomics are supported, this will have _massive_ communication costs
+            // Possibly want to perform explicit `coforall` and create explicit tasks on each
+            // core per locale and claim chunks of indices at once.     
             var ix = idx.fetchAdd(1);
 
             // If the locations in the old and new array are the same, we just move it over
