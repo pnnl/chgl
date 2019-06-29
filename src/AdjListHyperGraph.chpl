@@ -1144,7 +1144,7 @@ module AdjListHyperGraph {
     
     iter walk(eDesc : eDescType, s = 1, param tag : iterKind) : eDescType where tag == iterKind.standalone {
       forall v in incidence(eDesc) {
-        forall e in incidence(v) {
+        for e in incidence(v) {
           if eDesc != e && (s == 1 || isConnected(eDesc, e, s)) {
             yield e;
           }
@@ -1170,7 +1170,7 @@ module AdjListHyperGraph {
 
     iter walk(vDesc : vDescType, s = 1, param tag : iterKind) : vDescType where tag == iterKind.standalone {
       forall e in incidence(vDesc) {
-        forall v in incidence(e) {
+        for v in incidence(e) {
           if vDesc != v && (s == 1 || isConnected(vDesc, v, s)) {
             yield v;
           }

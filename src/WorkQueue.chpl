@@ -3,12 +3,14 @@ use AggregationBuffer;
 use DynamicAggregationBuffer;
 use TerminationDetection;
 use Time;
+use ReplicatedVar;
 
 // TODO: Add a bulk insertion method so aggregation can be much faster!
 
 config const workQueueMinTightSpinCount = 8;
 config const workQueueMaxTightSpinCount = 1024;
-config const workQueueMinVelocityForFlush = 0.1;
+config const workQueueMinVelocityForFlush = 1;
+config const workQueueVerbose = false;
 
 param WorkQueueUnlimitedAggregation = -1;
 param WorkQueueNoAggregation = 0;
@@ -26,36 +28,46 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType 
 }
 
 iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag : iterKind) : workType where tag == iterKind.standalone {
-  coforall loc in Locales do on loc {
-    var keepAlive : atomic bool;
-    keepAlive.write(true);
-    begin {
-      var lastSize = 0;
-      var time = new Timer();
-      time.start();
-      while true {
-        if wq.asyncTasks.hasTerminated() && td.hasTerminated() { 
-          keepAlive.write(false);
-          break;
-        }
-        
-        var currSize = wq.globalSize;
-        var delta = currSize - lastSize;
-        var velocity = delta / time.elapsed(TimeUnits.milliseconds);
-        time.clear();
-        lastSize = currSize;
-        if velocity < workQueueMinVelocityForFlush {
-          wq.flushLocal();
-        }
-        sleep(t=1, unit=TimeUnits.milliseconds);
+  var termination : [rcDomain] atomic bool;
+  // Background task in charge of automatically flushing the buffers. It has a
+  // fairly straight-forward heuristic for determining when to flush the buffer
+  // based on changes in the size of the work queue over time. If the work queue
+  // has changed since last it checked, it will be much less likely to flush it.
+  // N.B: We intentionally use a serial 'for' loop when iterating over locales,
+  // since this task is supposed to be a 'background' task, and so we want to use
+  // as little computational resources as possible, hence no 'coforall' when
+  // migrating to different locales.
+  begin {
+    var lastSize = 0;
+    var time = new Timer();
+    time.start();
+    while true {
+      if wq.asyncTasks.hasTerminated() && td.hasTerminated() {
+        for loc in Locales do on loc do rcLocal(termination).write(true);
+        break;
+      } else if workQueueVerbose {
+        writeln("Background Task: ", td.getStatistics(), ", ", wq.asyncTasks.getStatistics(), ", ", wq.globalSize);
       }
-    }
 
+      var currSize : int;
+      for loc in Locales do on loc { currSize += wq.size; }
+      var delta = currSize - lastSize;
+      var velocity = delta / time.elapsed(TimeUnits.milliseconds);
+      time.clear();
+      lastSize = currSize;
+      if velocity < workQueueMinVelocityForFlush {
+        wq.flush();
+      }
+      sleep(t=1, unit=TimeUnits.milliseconds);
+    }
+  }
+
+  coforall loc in Locales do on loc {
     coforall tid in 1..here.maxTaskPar {
       var timer = new Timer();
       var timerRunning = false;
       var hasReported = false;
-      label loop while keepAlive.read() {
+      label loop while !rcLocal(termination).read() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
           if !timerRunning {
@@ -63,8 +75,8 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
             timerRunning = true;
           } else if boundsChecking && !hasReported {
             if timer.elapsed(TimeUnits.seconds) > 60 {
-              debug(here.id, "-", tid, " has been spinning for ", timer.elapsed());
-              debug("Hint: Use TerminationDetector.started() and TerminationDetector.finished()! ", td.getStatistics());
+              if workQueueVerbose then writeln(here.id, "-", tid, " has been spinning for ", timer.elapsed());
+              if workQueueVerbose then writeln("Hint: Use TerminationDetector.started() and TerminationDetector.finished()! ", td.getStatistics());
               hasReported = true;
             }
           }
@@ -78,7 +90,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
         }
         yield workItem;
       }
-      debug("Task#", here.id, "-", tid, " spent ", timer.elapsed(TimeUnits.milliseconds), "ms waiting!");
+       if workQueueVerbose then writeln("Task#", here.id, "-", tid, " spent ", timer.elapsed(TimeUnits.milliseconds), "ms waiting!");
     }
   }
 }

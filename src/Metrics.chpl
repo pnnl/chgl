@@ -7,6 +7,67 @@ module Metrics {
   use Utilities;
   use Traversal;
 
+  /*
+     Iterate over all vertices in graph and count the number of s-connected components.
+     A s-connected component is a group of vertices that can be s-walked to. A vertex
+     v can s-walk to a vertex v' if the intersection of both v and v' is at least s.
+     :arg graph: Hypergraph or Graph to obtain the vertex components of.
+     :arg s: Minimum s-connectivity.
+  */
+  iter getVertexComponents(graph, s = 1) {
+    // id -> componentID
+    var components : [graph.verticesDomain] int;
+    // current componentID 
+    var component : int(64);
+
+    for v in graph.getVertices() {
+      if components[v.id] != 0 then continue;
+      var sequence : [0..-1] graph._value.vDescType;
+      component += 1;
+      components[v.id] = component;
+      sequence.push_back(v);
+      for vv in vertexBFS(graph, v, s) {
+        if boundsChecking then assert(components[vv.id] == 0, "Already visited a vertex during BFS...", vv);
+        components[vv.id] = component;
+        sequence.push_back(vv);
+      }
+      yield sequence;
+    }
+  }
+
+  /*
+     Iterate over all edges in graph and count the number of s-connected components.
+     A s-connected component is a group of vertices that can be s-walked to. A edge
+     e can s-walk to a edge e' if the intersection of both e and e' is at least s.
+
+     .. note::
+
+     This is significantly slower than `getEdgeComponentMappings`
+     :arg graph: Hypergraph or Graph to obtain the vertex components of.
+     :arg s: Minimum s-connectivity.
+  */
+  iter getEdgeComponents(graph, s = 1) {
+    // id -> componentID
+    var components : [graph.edgesDomain] int;
+    // current componentID 
+    var component : int(64);
+
+    for e in graph.getEdges() {
+      if components[e.id] != 0 then continue;
+      var sequence : [0..-1] graph._value.eDescType;
+      component += 1;
+      components[e.id] = component;
+      sequence.push_back(e);
+      for ee in edgeBFS(graph, e, s) {
+        if boundsChecking then assert(components[ee.id] == 0, "Already visited an edge during BFS...", ee);
+        components[ee.id] = component;
+        sequence.push_back(ee);
+      }
+      yield sequence;
+    }
+  }
+
+
    /*
     Assigns vertices to components and assigns them component ids. Returns an array
     that is mapped over the same domain as the hypergraph or graph.
@@ -39,7 +100,8 @@ module Metrics {
         // If we have not yet visited this vertex
         if components[vIdx] == 0 {
           components[vIdx] = cId;
-          for neighbor in graph.walk(graph.toEdge(vIdx), s) {
+          chpl_atomic_thread_fence(memory_order_seq_cst);
+          for neighbor in graph.walk(graph.toVertex(vIdx), s) {
             terminationDetector.started(1);
             workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
           }
@@ -82,6 +144,7 @@ module Metrics {
       forall eIdx in doWorkLoop(workQueue, terminationDetector) {
         if components[eIdx] == 0 {
           components[eIdx] = cId;
+          chpl_atomic_thread_fence(memory_order_seq_cst);
           for neighbor in graph.walk(graph.toEdge(eIdx), s) {
             terminationDetector.started(1);
             workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
