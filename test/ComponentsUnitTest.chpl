@@ -16,12 +16,12 @@ for s in 1..10 {
   writeln("Calculating components for s = ", s, "...");
   var nComponents : int;
   for component in getVertexComponents(graph, s) {
-    writeln("Vertex Component #", nComponents, ": ", component.size());
+    writeln("Vertex Component #", nComponents, ": ", component.size);
     nComponents += 1;
   }
   nComponents = 0;
   for component in getEdgeComponents(graph, s) {
-    writeln("Edge Component #", nComponents, ": ", component.size());
+    writeln("Edge Component #", nComponents, ": ", component.size);
     nComponents += 1;
   }
   nComponents = 0;
