@@ -41,9 +41,16 @@ pipeline {
             }
             post {
                 always { 
-                    archiveArtifacts artifacts: 'test_performance/**/dat/**/*.*'
+                    // Steps before JUnit plugin may take long enough that Jenkins doesn't like the time difference
+                    script {
+                        def testResults = findFiles(glob: 'test_performance/**/Logs/*.xml')
+                        for(xml in testResults) {
+                            touch xml.getPath()
+                        }
+                    }
                     junit 'test_performance/**/Logs/*.xml' 
                     perfReport 'test_performance/**/Logs/*.xml'
+                    archiveArtifacts artifacts: 'test_performance/**/dat/**/*.*'
                 }
             }
         }
