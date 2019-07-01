@@ -22,6 +22,7 @@ source util/setchplenv.sh
 export GASNET_BACKTRACE=1
 export CHPL_TEST_PERF_DIR=$WORKSPACE/test_performance/dat
 cd $WORKSPACE/test_performance
+rm -rf Logs
 bash -c "start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test_performance/Logs/chapel-perf-tests.xml -numlocales 4"
 
 # Generated HTML does not work locally or in Jenkins due to https://wiki.jenkins.io/display/JENKINS/Configuring+Content+Security+Policy. Copy files that use local resources instead.
