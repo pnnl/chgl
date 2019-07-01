@@ -14,7 +14,8 @@ pipeline {
                     // SSH to puma.pnl.gov and execute jenkins-build.sh
                     sh 'ssh puma.pnl.gov "chmod 755 $CHGL_WORKSPACE/jenkins-build.sh"'
                     sh 'ssh puma.pnl.gov "bash -l -c $CHGL_WORKSPACE/jenkins-build.sh"'
-
+                }
+                sshagent (['250e32c1-122e-43f7-953d-46324a8501b9']) {
                     // Get results back from puma.pnl.gov
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/Logs $WORKSPACE/test_performance'
                     sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/dat $WORKSPACE/test_performance'
