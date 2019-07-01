@@ -84,7 +84,9 @@ module DynamicAggregationBuffer {
     }
 
     proc getArray() {
-      return arr;
+      const _dom = dom;
+      var _arr : [_dom] msgType = arr;
+      return _arr;
     }
 
     proc done() {
@@ -135,7 +137,7 @@ module DynamicAggregationBuffer {
     }
 
     proc aggregate(msg : msgType, loc : locale) : void {
-      return aggregate(msg, loc.id);
+      aggregate(msg, loc.id);
     }
     
     proc aggregate(msg : msgType, locid : int) : void {
