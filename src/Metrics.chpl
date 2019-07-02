@@ -117,6 +117,7 @@ module Metrics {
           workQueue.addWork(neighbor.id, loc);
         }
 
+        if terminationDetector.tasksStarted.read() != 0 then
         forall vIdx in doWorkLoop(workQueue, terminationDetector) {
           // If we have not yet visited this vertex
           if components[vIdx].compareExchange(0, cId) {
@@ -164,7 +165,7 @@ module Metrics {
           workQueue.addWork(neighbor.id, loc);
         }
 
-
+        if terminationDetector.tasksStarted.read() != 0 then
         forall eIdx in doWorkLoop(workQueue, terminationDetector) {
           if components[eIdx].compareExchange(0, cId) {
             for neighbor in graph.walk(graph.toEdge(eIdx), s) {
