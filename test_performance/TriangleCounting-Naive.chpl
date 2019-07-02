@@ -3,8 +3,9 @@ use CyclicDist;
 use Time;
 use Sort;
 
-config const dataset = "../data/karate.mtx_csr.bin";
+config const dataset = "../data/ca-GrQc.mtx_csr.bin";
 config const numEdgesPresent = true;
+config const printTiming = true;
 
 proc isLocalArray(A : []) : bool {
   return A.locale == here && A._value.dom.locale == here;
@@ -138,6 +139,7 @@ try! {
     }
   }
   timer.stop();
-  writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", numTriangles = ", numTriangles / 3, ", in ", timer.elapsed(), "s");
+  writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", numTriangles = ", numTriangles / 3);
+  writeln("Time: ", timer.elapsed());
   f.close();
 }
