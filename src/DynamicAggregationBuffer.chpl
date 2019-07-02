@@ -48,7 +48,7 @@ module DynamicAggregationBuffer {
     }
     
     proc _value {
-      if pid == -1 {
+      if boundsChecking && pid == -1 {
         halt("Aggregator: Not initialized...");
       }
 
@@ -122,6 +122,10 @@ module DynamicAggregationBuffer {
       forall buf in dynamicDestBuffers { 
         buf = new owned DynamicBuffer(msgType);
       }
+    }
+
+    proc deinit() {
+      if here.id == 0 then agg.destroy();
     }
     
     proc dsiPrivatize(pid) {

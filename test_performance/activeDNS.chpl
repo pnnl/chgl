@@ -18,8 +18,6 @@ var t = new Timer();
 var tt = new Timer();
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(int, WorkQueueUnlimitedAggregation);
-var td = new TerminationDetector();
 tt.start();
 
 proc getMetrics(graph) {
@@ -41,11 +39,13 @@ proc getMetrics(graph) {
   for s in 1..3 {
     ttt.start();
     var vComponentSizeDistribution = vertexComponentSizeDistribution(graph, s);
+    writeln(for (i,j) in zip(vComponentSizeDistribution.domain, vComponentSizeDistribution) do (i,j):string);
     ttt.stop();
     if printTiming then writeln("Vertex Component Size Distribution (s=", s, "): ", ttt.elapsed());
     ttt.clear();
     ttt.start();
     var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
+    writeln(for (i,j) in zip(eComponentSizeDistribution.domain, eComponentSizeDistribution) do (i,j):string);
     ttt.stop();
     if printTiming then writeln("Edge Component Size Distribution (s=", s, "): ", ttt.elapsed());
     ttt.clear();
@@ -69,7 +69,7 @@ if printTiming then writeln("Constructed Property Map: ", t.elapsed());
 t.clear();
 
 t.start();
-var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx=0));
+var graph = new AdjListHyperGraph(vPropMap, ePropMap, new Cyclic(startIdx=0));
 t.stop();
 if printTiming then writeln("Constructed HyperGraph: ", t.elapsed());
 t.clear();
@@ -83,7 +83,6 @@ for line in getLines(dataset) {
 
   graph.addInclusion(vPropMap.getProperty(rdata.strip()), ePropMap.getProperty(qname.strip()));
 }
-td.finished();  
 graph.stopAggregation();
 graph.flushBuffers();
 
@@ -112,3 +111,6 @@ var eDupeHistogram = graph.collapseEdges();
 t.stop();
 if printTiming then writeln("Collapsed Edges in HyperGraph: ", t.elapsed());
 t.clear();
+graph.destroy();
+ePropMap.destroy();
+vPropMap.destroy();

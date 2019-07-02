@@ -101,40 +101,9 @@ module Metrics {
     var workQueue = new WorkQueue(int, 1024 * 1024);
     var terminationDetector = new TerminationDetector();
     
-    // Sort the vertices by degree. Since this is over a possible distributed array, we
-    // perform multiple data-parallel passes to accomplish this.
-    var degreeAggregator = new DynamicAggregator((int, int));
-    var maxDegree = max reduce [v in graph.getVertices()] graph.degree(graph.toVertex(v));
-    var verticesByDegree : [1..maxDegree] unmanaged Vector(int);
-    var lockByDegree : [1..maxDegree] Lock;
-    forall vec in verticesByDegree do vec = new unmanaged VectorImpl(int, {0..-1});
-    forall v in graph.getVertices() {
-      degreeAggregator.aggregate((graph.degree(v), v.id), Locales[0]);
-    }
-    forall (buf, loc) in degreeAggregator.flushGlobal() do on loc {
-      var arr = buf.getArray();
-      buf.done();
-      sort(arr);
-      var arrIdx = arr.domain.low;
-      var lastDegree = arr[arrIdx][1];
-      const arrSize = arr.size;
-      lockByDegree[lastDegree].acquire();
-      while arrIdx < arrSize {
-        if lastDegree != arr[arrIdx][1] {
-          lockByDegree[lastDegree].release();
-          lastDegree = arr[arrIdx][1];
-          lockByDegree[lastDegree].acquire();
-        }
-        const vIdx = arr[arrIdx][2];
-        verticesByDegree[lastDegree].append(vIdx);
-        arrIdx += 1;
-      }
-    }
-
-
     // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
     // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for vecIdx in 1..maxDegree by -1 do for v in verticesByDegree[vecIdx] do on graph.getLocale(graph.toVertex(v)) {
+    for v in graph.verticesDomain do on graph.getLocale(graph.toVertex(v)) {
       // If we have visited this vertex or if it has a degree less than 's', skip it.
       if components[v].read() != 0 || graph.degree(graph.toVertex(v)) < s {}
       else {
@@ -144,7 +113,8 @@ module Metrics {
 
         forall neighbor in graph.walk(graph.toVertex(v), s) {
           terminationDetector.started(1);
-          workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
+          const loc = graph.getLocale(neighbor);
+          workQueue.addWork(neighbor.id, loc);
         }
 
         forall vIdx in doWorkLoop(workQueue, terminationDetector) {
@@ -152,7 +122,8 @@ module Metrics {
           if components[vIdx].compareExchange(0, cId) {
             for neighbor in graph.walk(graph.toVertex(vIdx), s) {
               terminationDetector.started(1);
-              workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
+              const loc =  graph.getLocale(neighbor);
+              workQueue.addWork(neighbor.id,loc);
             }
           }
           terminationDetector.finished(1);
@@ -160,7 +131,8 @@ module Metrics {
       }
     }
     
-    delete verticesByDegree;
+    terminationDetector.destroy();
+    workQueue.destroy();
     return components.read();
   }
 
@@ -176,40 +148,10 @@ module Metrics {
     var componentId = 1; // Begin at 1 so 0 becomes 'not visited' sentinel value
     var workQueue = new WorkQueue(int, 1024 * 1024);
     var terminationDetector = new TerminationDetector();
-
-    // Sort the vertices by degree. Since this is over a possible distributed array, we
-    // perform multiple data-parallel passes to accomplish this.
-    var degreeAggregator = new DynamicAggregator((int, int));
-    var maxDegree = max reduce [e in graph.getEdges()] graph.degree(graph.toEdge(e));
-    var edgesByDegree : [1..maxDegree] unmanaged Vector(int);
-    var lockByDegree : [1..maxDegree] Lock;
-    forall vec in edgesByDegree do vec = new unmanaged VectorImpl(int, {0..-1});
-    forall e in graph.getEdges() {
-      degreeAggregator.aggregate((graph.degree(e), e.id), Locales[0]);
-    }
-    forall (buf, loc) in degreeAggregator.flushGlobal() do on loc {
-      var arr = buf.getArray();
-      buf.done();
-      sort(arr);
-      var arrIdx = 0;
-      var lastDegree = arr[0][1];
-      const arrSize = arr.size;
-      lockByDegree[lastDegree].acquire();
-      while arrIdx < arrSize {
-        if lastDegree != arr[arrIdx][1] {
-          lockByDegree[lastDegree].release();
-          lastDegree = arr[arrIdx][1];
-          lockByDegree[lastDegree].acquire();
-        }
-        const vIdx = arr[arrIdx][2];
-        edgesByDegree[lastDegree].append(vIdx);
-        arrIdx += 1;
-      }
-    }
-
+    
     // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
     // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for vecIdx in 1..maxDegree by -1 do for e in edgesByDegree[vecIdx] do on graph.getLocale(graph.toEdge(e)) {
+    for e in graph.edgesDomain do on graph.getLocale(graph.toEdge(e)) {
       // If we have visited this edge or if it has a degree less than 's', skip it.
       if components[e].read() != 0 || graph.degree(graph.toEdge(e)) < s {}
       else {
@@ -218,7 +160,8 @@ module Metrics {
         components[e].write(cId);
         forall neighbor in graph.walk(graph.toEdge(e), s) {
           terminationDetector.started(1);
-          workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
+          const loc = graph.getLocale(neighbor);
+          workQueue.addWork(neighbor.id, loc);
         }
 
 
@@ -226,7 +169,8 @@ module Metrics {
           if components[eIdx].compareExchange(0, cId) {
             for neighbor in graph.walk(graph.toEdge(eIdx), s) {
               terminationDetector.started(1);
-              workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
+              const loc = graph.getLocale(neighbor);
+              workQueue.addWork(neighbor.id, loc);
             }
           }
           terminationDetector.finished(1);
@@ -234,7 +178,8 @@ module Metrics {
       }
     }
     
-    delete edgesByDegree;
+    terminationDetector.destroy();
+    workQueue.destroy();
     return components.read();
   }
 

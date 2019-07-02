@@ -151,7 +151,7 @@ class WorkQueueImpl {
   var dynamicDestBuffer = UninitializedDynamicAggregator(workType);
   var asyncTasks : TerminationDetector;
   var shutdownSignal : atomic bool;
-  
+
   proc init(type workType, numAggregatedWork : int) {
     this.workType = workType;
     if numAggregatedWork == -1 {
@@ -170,6 +170,19 @@ class WorkQueueImpl {
     this.destBuffer = other.destBuffer;
     this.dynamicDestBuffer = other.dynamicDestBuffer;
     this.asyncTasks = other.asyncTasks;
+  }
+
+  proc destroy() {
+    // Destroy memory we have control over.
+    delete queue;
+    if here.id == 0 {
+      if destBuffer.isInitialized() {
+        destBuffer.destroy();
+      } else if dynamicDestBuffer.isInitialized() {
+        dynamicDestBuffer.destroy();
+      }
+      asyncTasks.destroy();
+    }
   }
   
   proc globalSize {

@@ -53,8 +53,14 @@ module TerminationDetection {
     }
 
     proc _value {
-      if pid == -1 then halt("TerminationDetector is uninitialized...");
+      if boundsChecking && pid == -1 then halt("TerminationDetector is uninitialized...");
       return chpl_getPrivatizedCopy(instance.type, pid);
+    }
+
+    proc destroy() {
+      coforall loc in Locales do on loc {
+        delete _value;
+      }
     }
 
     forwarding _value;
