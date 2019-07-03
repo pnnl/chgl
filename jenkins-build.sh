@@ -3,7 +3,6 @@
 # Build script for puma.pnl.gov
 
 # TODO parameterize vs hard-coded path?
-CHAPEL_HOME=/home/zale916/software/chapel-1.19.0
 WORKSPACE=/lustre/jenkins/chgl-workspace
 
 # Load required modules
