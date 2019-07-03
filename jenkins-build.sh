@@ -14,13 +14,8 @@ module load hdf5/1.10.5
 module load zmq/4.3.1
 module load chapel/1.19.0
 
-# Initialize Chapel environment
-cd $CHAPEL_HOME
-source util/setchplenv.sh
-
 # Execute peformance tests
 export CHPL_LAUNCHER_WALLTIME=06:00:00
-export GASNET_PHYSMEM_MAX=1G
 export GASNET_BACKTRACE=1
 export CHPL_TEST_PERF_DIR=$WORKSPACE/test_performance/dat
 cd $WORKSPACE/test_performance
