@@ -20,6 +20,7 @@ source util/setchplenv.sh
 
 # Execute peformance tests
 export CHPL_LAUNCHER_WALLTIME=06:00:00
+export GASNET_PHYSMEM_MAX=1G
 export GASNET_BACKTRACE=1
 export CHPL_TEST_PERF_DIR=$WORKSPACE/test_performance/dat
 cd $WORKSPACE/test_performance
