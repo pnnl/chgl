@@ -14,6 +14,7 @@ module load zmq/4.3.1
 module load chapel/1.19.0
 
 # Execute peformance tests
+export CHPL_TEST_LAUNCHCMD=$CHPL_HOME/util/test/chpl_launchcmd.py
 export CHPL_LAUNCHER_WALLTIME=06:00:00
 export GASNET_BACKTRACE=1
 export CHPL_TEST_PERF_DIR=$WORKSPACE/test_performance/dat
