@@ -2474,7 +2474,7 @@ module AdjListHyperGraph {
       :arg v: Vertex.
     */
     inline proc getLocale(v : vDescType) : locale {
-      return verticesDist.idxToLocale(v.id);
+      return verticesDomain.dist.idxToLocale(v.id);
     }
     
     /*
@@ -2483,7 +2483,7 @@ module AdjListHyperGraph {
       :arg e: Edge.
     */
     inline proc getLocale(e : eDescType) : locale {
-      return edgesDist.idxToLocale(e.id);
+      return edgesDomain.dist.idxToLocale(e.id);
     }
     
     pragma "no doc"

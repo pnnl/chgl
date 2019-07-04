@@ -6,6 +6,25 @@ module Metrics {
   use Vectors;
   use Utilities;
   use Traversal;
+  use DynamicAggregationBuffer;
+
+  record EdgeSorter {
+    var graph;
+    proc init(graph) {
+      this.graph = graph;
+    }
+
+    proc key(e) { return graph.degree(graph.toEdge(e)); }
+  }
+  
+  record VertexSorter {
+    var graph;
+    proc init(graph) {
+      this.graph = graph;
+    }
+
+    proc key(e) { return graph.degree(graph.toVertex(e)); }
+  }
 
   /*
      Iterate over all vertices in graph and count the number of s-connected components.
@@ -76,44 +95,48 @@ module Metrics {
     :arg s: Minimum s-connectivity.
   */
   proc getVertexComponentMappings(graph, s = 1) {
-    var components : [graph.verticesDomain] int;
+    var components : [graph.verticesDomain] atomic int;
     var numComponents : int;
     var componentId = 1; // Begin at 1 so 0 becomes 'not visited' sentinel value
     var workQueue = new WorkQueue(int, 1024 * 1024);
     var terminationDetector = new TerminationDetector();
-
+    
     // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
     // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for v in graph.verticesDomain {
+    for v in graph.verticesDomain do on graph.getLocale(graph.toVertex(v)) {
       // If we have visited this vertex or if it has a degree less than 's', skip it.
-      if components[v] != 0 || graph.degree(graph.toVertex(v)) < s then continue;
-      const cId = componentId;
-      componentId += 1;
-      components[v] = cId;
+      if components[v].read() != 0 || graph.degree(graph.toVertex(v)) < s {}
+      else {
+        const cId = componentId;
+        componentId += 1;
+        components[v].write(cId);
 
-      forall neighbor in graph.walk(graph.toVertex(v), s) {
-        terminationDetector.started(1);
-        workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
-      }
-
-      forall vIdx in doWorkLoop(workQueue, terminationDetector) {
-        // If we have not yet visited this vertex
-        if components[vIdx] == 0 {
-          components[vIdx] = cId;
-          chpl_atomic_thread_fence(memory_order_seq_cst);
-          for neighbor in graph.walk(graph.toVertex(vIdx), s) {
-            terminationDetector.started(1);
-            workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
-          }
+        forall neighbor in graph.walk(graph.toVertex(v), s) {
+          terminationDetector.started(1);
+          const loc = graph.getLocale(neighbor);
+          workQueue.addWork(neighbor.id, loc);
         }
-        terminationDetector.finished(1);
+
+        if terminationDetector.tasksStarted.read() != 0 then
+        forall vIdx in doWorkLoop(workQueue, terminationDetector) {
+          // If we have not yet visited this vertex
+          if components[vIdx].compareExchange(0, cId) {
+            for neighbor in graph.walk(graph.toVertex(vIdx), s) {
+              terminationDetector.started(1);
+              const loc =  graph.getLocale(neighbor);
+              workQueue.addWork(neighbor.id,loc);
+            }
+          }
+          terminationDetector.finished(1);
+        }
       }
     }
     
-    return components;
+    terminationDetector.destroy();
+    workQueue.destroy();
+    return components.read();
   }
 
-  
   /*
     Assigns hyperedges to components and assigns them component ids. Returns an array
     that is mapped over the same domain as the hypergraph or graph. Component ids are
@@ -122,39 +145,43 @@ module Metrics {
     :arg s: Minimum s-connectivity.
   */
   proc getEdgeComponentMappings(graph, s = 1) {
-    var components : [graph.edgesDomain] int;
+    var components : [graph.edgesDomain] atomic int;
     var componentId = 1; // Begin at 1 so 0 becomes 'not visited' sentinel value
     var workQueue = new WorkQueue(int, 1024 * 1024);
     var terminationDetector = new TerminationDetector();
-
+    
     // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
     // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for e in graph.edgesDomain {
+    for e in graph.edgesDomain do on graph.getLocale(graph.toEdge(e)) {
       // If we have visited this edge or if it has a degree less than 's', skip it.
-      if components[e] != 0 || graph.degree(graph.toEdge(e)) < s then continue;
-      const cId = componentId;
-      componentId += 1;
-      components[e] = cId;
-      forall neighbor in graph.walk(graph.toEdge(e), s) {
-        terminationDetector.started(1);
-        workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
-      }
-
-      
-      forall eIdx in doWorkLoop(workQueue, terminationDetector) {
-        if components[eIdx] == 0 {
-          components[eIdx] = cId;
-          chpl_atomic_thread_fence(memory_order_seq_cst);
-          for neighbor in graph.walk(graph.toEdge(eIdx), s) {
-            terminationDetector.started(1);
-            workQueue.addWork(neighbor.id, graph.getLocale(neighbor));
-          }
+      if components[e].read() != 0 || graph.degree(graph.toEdge(e)) < s {}
+      else {
+        const cId = componentId;
+        componentId += 1;
+        components[e].write(cId);
+        forall neighbor in graph.walk(graph.toEdge(e), s) {
+          terminationDetector.started(1);
+          const loc = graph.getLocale(neighbor);
+          workQueue.addWork(neighbor.id, loc);
         }
-        terminationDetector.finished(1);
+
+        if terminationDetector.tasksStarted.read() != 0 then
+        forall eIdx in doWorkLoop(workQueue, terminationDetector) {
+          if components[eIdx].compareExchange(0, cId) {
+            for neighbor in graph.walk(graph.toEdge(eIdx), s) {
+              terminationDetector.started(1);
+              const loc = graph.getLocale(neighbor);
+              workQueue.addWork(neighbor.id, loc);
+            }
+          }
+          terminationDetector.finished(1);
+        }
       }
     }
     
-    return components;
+    terminationDetector.destroy();
+    workQueue.destroy();
+    return components.read();
   }
 
   /*

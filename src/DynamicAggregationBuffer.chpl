@@ -48,7 +48,7 @@ module DynamicAggregationBuffer {
     }
     
     proc _value {
-      if pid == -1 {
+      if boundsChecking && pid == -1 {
         halt("Aggregator: Not initialized...");
       }
 
@@ -84,7 +84,9 @@ module DynamicAggregationBuffer {
     }
 
     proc getArray() {
-      return arr;
+      const _dom = dom;
+      var _arr : [_dom] msgType = arr;
+      return _arr;
     }
 
     proc done() {
@@ -121,6 +123,10 @@ module DynamicAggregationBuffer {
         buf = new owned DynamicBuffer(msgType);
       }
     }
+
+    proc deinit() {
+      if here.id == 0 then agg.destroy();
+    }
     
     proc dsiPrivatize(pid) {
       return new unmanaged DynamicAggregatorImpl(this, pid);
@@ -135,7 +141,7 @@ module DynamicAggregationBuffer {
     }
 
     proc aggregate(msg : msgType, loc : locale) : void {
-      return aggregate(msg, loc.id);
+      aggregate(msg, loc.id);
     }
     
     proc aggregate(msg : msgType, locid : int) : void {
