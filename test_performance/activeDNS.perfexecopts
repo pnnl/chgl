@@ -1,1 +1,1 @@
---printTiming=true --dataset=DNS/smallDNS.txt --walltime=06:00:00
+--printTiming=true --dataset=DNS/tinyDNS.txt --walltime=06:00:00
