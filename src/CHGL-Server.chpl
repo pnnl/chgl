@@ -78,7 +78,7 @@ proc get_hostname(): string {
   use Spawn;
   use IO;
   use FileSystem;
-  const tmpfile = '/tmp/arkouda.hostname';
+  const tmpfile = '/tmp/CHGL.hostname';
   if exists(tmpfile) {
     remove(tmpfile);
   }
