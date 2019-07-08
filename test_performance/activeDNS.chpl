@@ -4,6 +4,7 @@ use Regexp;
 use ReplicatedDist;
 use FileSystem;
 use ReplicatedVar;
+use VisualDebug;
 
 /*
   Directory containing the DNS dataset in CSV format. Each file is parsed
@@ -35,21 +36,27 @@ proc getMetrics(graph) {
   }
   ttt.stop();
   if printTiming then writeln("Edge Cardinality Distribution: ", ttt.elapsed());
+  startVdebug("Metrics-Perf");
   // Compute component size distribution
   for s in 1..3 {
     ttt.start();
+    tagVdebug("vc" + s:string);
     var vComponentSizeDistribution = vertexComponentSizeDistribution(graph, s);
+    pauseVdebug();
     writeln(for (i,j) in zip(vComponentSizeDistribution.domain, vComponentSizeDistribution) do (i,j):string);
     ttt.stop();
     if printTiming then writeln("Vertex Component Size Distribution (s=", s, "): ", ttt.elapsed());
     ttt.clear();
     ttt.start();
+    tagVdebug("ec" + s:string);
     var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
+    pauseVdebug();
     writeln(for (i,j) in zip(eComponentSizeDistribution.domain, eComponentSizeDistribution) do (i,j):string);
     ttt.stop();
     if printTiming then writeln("Edge Component Size Distribution (s=", s, "): ", ttt.elapsed());
     ttt.clear();
   }
+  stopVdebug();
 }
 
 t.start();
