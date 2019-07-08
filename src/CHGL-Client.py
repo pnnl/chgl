@@ -3,6 +3,7 @@ import multiprocessing
 from concurrent.futures import *
 import argparse
 import functools
+import random
 
 
 # Abstraction that represents an operation descriptor.
@@ -107,5 +108,7 @@ if __name__ == "__main__":
     graph = CHGL(args.connStr, args.numVertices, args.numEdges)
     for i in range(int(args.numVertices)):
         for j in range(int(args.numEdges)):
-            graph.addInclusion(i,j)
+            if random.random() <= 0.1:
+                graph.addInclusion(i,j)
+            
     print(graph.size().result())
