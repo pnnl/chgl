@@ -62,7 +62,6 @@ class CHGL:
         x = "{}:".format(OpDescr.GET_SIZE)
         x.encode('ascii', 'ignore')
         self.socket.send_string(x)
-        self.get_ack()
         return self.__get();
 
     # Private method to send a descritpr to the server. This will be aggregated
@@ -82,7 +81,7 @@ class CHGL:
                 inclusionData.add(tuple(descr.args))
         
         if inclusionData is not None:
-            x = functools.reduce(lambda x,y: "{}:{}".format(x,y), set([OpDescr.ADD_INCLUSION]) | inclusionData)
+            x = "{}:{}".format(OpDescr.ADD_INCLUSION, functools.reduce(lambda x,y: "{}:{}".format(x,y), inclusionData))
             x.encode('ascii', 'ignore')
             self.socket.send_string(x)
             self.get_ack();
@@ -96,7 +95,7 @@ class CHGL:
 
     def __getHelper(self):
         ret = self.socket.recv()
-        return int.from_bytes(ret)
+        return int.from_bytes(ret, byteorder='little', signed=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Python interface for CHGL (W.I.P)')

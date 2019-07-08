@@ -42,7 +42,6 @@ proc main() {
       }
       when GET_SIZE {
         writeln("[GET_SIZE] Received.");
-        socket.send(ACK);
         socket.send(graph.getInclusions());
       }
       when CREATE_GRAPH {
@@ -52,7 +51,16 @@ proc main() {
         graph = new AdjListHyperGraph(numVertices, numEdges);
       }
       when ADD_INCLUSION {
-        
+        writeln("[ADD_INCLUSION] Received request for ", fields.size - 1, " inclusions.");
+        socket.send(ACK);
+        forall inclusion in fields[2..] do if !inclusion.isEmpty() {
+          try {
+            var subfields = inclusion.split(",").strip();
+            graph.addInclusion(subfields[1][2..]:int, subfields[2][..subfields[2].size - 1]:int);
+          } catch e : Error {
+            writeln("Bad string: ", inclusion, ", error: ", e);
+          }
+        }
       }
       otherwise {
         writeln("Received bad command: '", reqMsg, "', Sending 'ACK'.");
