@@ -20,6 +20,7 @@ var vIdx : int;
 var eIdx : int;
 var locIdx : int;
 var localeWork : [LocaleSpace] domain(2*int);
+
 // Fill up keys and values from file.
 for line in getLines(dataset) {
   var attrs = line.split(",");
@@ -52,7 +53,12 @@ for line in getLines(dataset) {
 
 // After filling up the graph with work, we can now benchmark
 timer.start();
-var graph = new AdjListHyperGraph(vIdx, eIdx, new Cyclic(startIdx=0));
+var graph = new AdjListHyperGraph(vIdx, eIdx, new unmanaged Cyclic(startIdx=0));
+timer.stop();
+writeln("Graph Creation: ", timer.elapsed());
+timer.clear();
+
+timer.start();
 coforall loc in Locales do on loc {
   const ourDom = localeWork[here.id];
   forall (vIdx, eIdx) in ourDom {
@@ -61,10 +67,16 @@ coforall loc in Locales do on loc {
 }
 timer.stop();
 writeln("AddInclusion: ", timer.elapsed());
-graph.destroy();
 timer.clear();
+
 timer.start();
-graph = new AdjListHyperGraph(vIdx, eIdx, new Cyclic(startIdx=0));
+graph.destroy();
+timer.stop();
+writeln("Graph Destroy: ", timer.elapsed());
+timer.clear();
+
+graph = new AdjListHyperGraph(vIdx, eIdx, new unmanaged Cyclic(startIdx=0));
+timer.start();
 coforall loc in Locales do on loc {
   const ourDom = localeWork[here.id];
   forall (vIdx, eIdx) in ourDom {
@@ -76,3 +88,31 @@ timer.stop();
 writeln("AddInclusionBuffered: ", timer.elapsed());
 timer.clear();
 
+timer.start();
+graph.getInclusions();
+timer.stop();
+writeln("GetInclusions: ", timer.elapsed());
+timer.clear();
+
+timer.start();
+forall e in graph.getEdges() {
+  for ee in graph.walk(e) do ;
+}
+timer.stop();
+writeln("Walk (s=1, edges): ", timer.elapsed());
+timer.clear();
+
+var totalTime : real;
+forall e in graph.getEdges() with (+ reduce totalTime) {
+  var timer = new Timer();
+  for ee in graph.walk(e) {
+    timer.start();
+    graph.intersectionSize(e, ee);
+    timer.stop();
+  }
+  totalTime += timer.elapsed();
+}
+writeln("Intersection Size: ", totalTime);
+timer.clear();
+
+graph.destroy();
