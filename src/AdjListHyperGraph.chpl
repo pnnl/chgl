@@ -2207,6 +2207,7 @@ module AdjListHyperGraph {
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of edges can be increased or decreased
     proc resizeEdges(size) {
+      compilerWarning("Not actually implemented...");
       edges.setIndices({0..(size-1)});
     }
 
@@ -2215,6 +2216,7 @@ module AdjListHyperGraph {
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
     proc resizeVertices(size) {
+      compilerWarning("Not actually implemented...");
       vertices.setIndices({0..(size-1)});
     }
   
@@ -2537,7 +2539,8 @@ module AdjListHyperGraph {
     inline proc _snapshot(v : vDescType) {
       ref vertex = getVertex(v);
       vertex.lock.acquire();
-      var snapshot = vertex.incident[0..#vertex.degree];
+      var snapshotDom = {0..#vertex.degree};
+      var snapshot : [snapshotDom] int = vertex.incident[0..#vertex.degree];
       vertex.lock.release();
 
       return snapshot;

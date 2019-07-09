@@ -104,15 +104,28 @@ timer.clear();
 
 var totalTime : real;
 forall e in graph.getEdges() with (+ reduce totalTime) {
-  var timer = new Timer();
+  var _timer = new Timer();
   for ee in graph.walk(e) {
-    timer.start();
+    _timer.start();
     graph.intersectionSize(e, ee);
-    timer.stop();
+    _timer.stop();
   }
   totalTime += timer.elapsed();
 }
-writeln("Intersection Size: ", totalTime);
+timer.clear();
+
+timer.start();
+forall e in graph.getEdges() {
+  for v in graph.incidence(e) do ;
+}
+timer.stop();
+writeln("Incidence: ", timer.elapsed());
+timer.clear();
+
+timer.start();
+graph.removeDuplicates();
+timer.stop();
+writeln("removeDuplicates: ", timer.elapsed());
 timer.clear();
 
 graph.destroy();
