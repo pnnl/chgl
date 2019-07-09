@@ -1216,10 +1216,50 @@ module AdjListHyperGraph {
     }
 
     iter walk(vDesc : vDescType, s = 1, param tag : iterKind, param isImmutable = false) : vDescType where tag == iterKind.standalone {
-      forall e in incidence(vDesc, isImmutable) {
-        for v in incidence(e, isImmutable) {
-          if vDesc != v && (s == 1 || isConnected(vDesc, v, s, isImmutable)) {
-            yield v;
+      // When we have one locale, just run the normal work loop.
+      if numLocales == 1 {
+        forall e in incidence(vDesc, isImmutable) {
+          for v in incidence(e, isImmutable) {
+            if vDesc != v && (s == 1 || isConnected(vDesc, v, s, isImmutable)) {
+              yield v;
+            }
+          }
+        }
+      } else {
+        // Since its possible that we have multiple locales, its possible
+        // that the incidence list is remote. To prevent having to make multiple
+        // remote gets, we instead 'push' work to the locales.
+        
+        // Phase 1: Group work by target locales
+        var localeWork : [LocaleSpace] unmanaged Vector(int);
+        for e in incidence(vDesc, isImmutable) {
+          const locid = getLocale(e).id;
+          if localeWork[locid] == nil then localeWork[locid] = new unmanaged VectorImpl(int, {0..0});
+          localeWork[locid].append(e.id);
+        }
+        //Phase 2: Scatter work to respective locales.
+        coforall loc in Locales do if localeWork[loc.id] != nil then on loc {
+          // If the vector is local to the current locale already,
+          // do not make a copy.
+          if localeWork[here.id].locale == here {
+            ref vec = localeWork[here.id];
+            forall e in vec.getArray() {
+              for v in incidence(toEdge(e), isImmutable) do if vDesc != v {
+                // if s == 1, no intersection needed
+                if s == 1 || isConnected(vDesc, v, s, isImmutable) then yield v;
+              }
+            }
+          } else {
+            const sz = localeWork[here.id].size();
+            var dom = {0..#sz};
+            var arr : [dom] int = localeWork[here.id].getArray();
+            var _this = getPrivatizedInstance();
+            forall e in arr {
+              for v in _this.incidence(_this.toEdge(e), isImmutable) do if vDesc != v {
+                // if s == 1, no intersection needed
+                if s == 1 || _this.isConnected(vDesc, v, s, isImmutable) then yield v;
+              }
+            } 
           }
         }
       }

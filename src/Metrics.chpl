@@ -111,7 +111,7 @@ module Metrics {
         componentId += 1;
         components[v].write(cId);
 
-        forall neighbor in graph.walk(graph.toVertex(v), s) {
+        forall neighbor in graph.walk(graph.toVertex(v), s, isImmutable=true) {
           terminationDetector.started(1);
           const loc = graph.getLocale(neighbor);
           workQueue.addWork(neighbor.id, loc);
@@ -121,7 +121,7 @@ module Metrics {
         forall vIdx in doWorkLoop(workQueue, terminationDetector) {
           // If we have not yet visited this vertex
           if components[vIdx].compareExchange(0, cId) {
-            for neighbor in graph.walk(graph.toVertex(vIdx), s) {
+            forall neighbor in graph.walk(graph.toVertex(vIdx), s, isImmutable=true) {
               terminationDetector.started(1);
               const loc =  graph.getLocale(neighbor);
               workQueue.addWork(neighbor.id,loc);
@@ -159,7 +159,7 @@ module Metrics {
         const cId = componentId;
         componentId += 1;
         components[e].write(cId);
-        forall neighbor in graph.walk(graph.toEdge(e), s) {
+        forall neighbor in graph.walk(graph.toEdge(e), s, isImmutable=true) {
           terminationDetector.started(1);
           const loc = graph.getLocale(neighbor);
           workQueue.addWork(neighbor.id, loc);
@@ -168,7 +168,7 @@ module Metrics {
         if terminationDetector.tasksStarted.read() != 0 then
         forall eIdx in doWorkLoop(workQueue, terminationDetector) {
           if components[eIdx].compareExchange(0, cId) {
-            for neighbor in graph.walk(graph.toEdge(eIdx), s) {
+            forall neighbor in graph.walk(graph.toEdge(eIdx), s, isImmutable=true) {
               terminationDetector.started(1);
               const loc = graph.getLocale(neighbor);
               workQueue.addWork(neighbor.id, loc);
