@@ -95,31 +95,64 @@ writeln("GetInclusions: ", timer.elapsed());
 timer.clear();
 
 timer.start();
-forall e in graph.getEdges() {
-  for ee in graph.walk(e) do ;
+// Ensures compiler does not optimize this stuff away
+var totalNeighborID : int;
+forall e in graph.getEdges() with (+ reduce totalNeighborID) {
+  for ee in graph.walk(e, isImmutable=false) do totalNeighborID += ee.id;
 }
 timer.stop();
-writeln("Walk (s=1, edges): ", timer.elapsed());
+writeln("Walk (s=1, edges, isImmutable=false): ", timer.elapsed());
+timer.clear();
+
+timer.start();
+totalNeighborID = 0;
+forall e in graph.getEdges() with (+ reduce totalNeighborID) {
+  for ee in graph.walk(e, isImmutable=true) do totalNeighborID += ee.id;
+}
+timer.stop();
+writeln("Walk (s=1, edges, isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 var totalTime : real;
-forall e in graph.getEdges() with (+ reduce totalTime) {
+forall e in graph.getEdges() with (max reduce totalTime) {
   var _timer = new Timer();
-  for ee in graph.walk(e) {
+  for ee in graph.walk(e, isImmutable=true) {
     _timer.start();
-    graph.intersectionSize(e, ee);
+    graph.intersectionSize(e, ee, isImmutable=false);
     _timer.stop();
   }
-  totalTime += timer.elapsed();
+  totalTime = max(totalTime, _timer.elapsed());
 }
+writeln("Intersection Size(isImmutable=false): ", totalTime);
+timer.clear();
+
+totalTime = 0;
+forall e in graph.getEdges() with (max reduce totalTime) {
+  var _timer = new Timer();
+  for ee in graph.walk(e, isImmutable=true) {
+    _timer.start();
+    graph.intersectionSize(e, ee, isImmutable=true);
+    _timer.stop();
+  }
+  totalTime = max(totalTime, _timer.elapsed());
+}
+writeln("Intersection Size (isImmutable=true): ", totalTime);
 timer.clear();
 
 timer.start();
 forall e in graph.getEdges() {
-  for v in graph.incidence(e) do ;
+  for v in graph.incidence(e, isImmutable=false) do ;
 }
 timer.stop();
-writeln("Incidence: ", timer.elapsed());
+writeln("Incidence (isImmutable=false): ", timer.elapsed());
+timer.clear();
+
+timer.start();
+forall e in graph.getEdges() {
+  for v in graph.incidence(e, isImmutable=true) do ;
+}
+timer.stop();
+writeln("Incidence (isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 timer.start();
