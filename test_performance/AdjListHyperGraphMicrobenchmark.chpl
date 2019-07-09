@@ -101,7 +101,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   for ee in graph.walk(e, isImmutable=false) do totalNeighborID += ee.id;
 }
 timer.stop();
-writeln("Walk (s=1, edges, isImmutable=false): ", timer.elapsed());
+writeln("Walk (s=1, serial, isImmutable=false): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -110,31 +110,51 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   for ee in graph.walk(e, isImmutable=true) do totalNeighborID += ee.id;
 }
 timer.stop();
-writeln("Walk (s=1, edges, isImmutable=true): ", timer.elapsed());
+writeln("Walk (s=1, serial, isImmutable=true): ", timer.elapsed());
+timer.clear();
+
+timer.start();
+totalNeighborID = 0;
+forall e in graph.getEdges() with (+ reduce totalNeighborID) {
+  forall ee in graph.walk(e, isImmutable=false) with (+ reduce totalNeighborID) do totalNeighborID += ee.id;
+}
+timer.stop();
+writeln("Walk (s=1, parallel, isImmutable=false): ", timer.elapsed());
+timer.clear();
+
+timer.start();
+totalNeighborID = 0;
+forall e in graph.getEdges() with (+ reduce totalNeighborID) {
+  forall ee in graph.walk(e, isImmutable=true) with (+ reduce totalNeighborID) do totalNeighborID += ee.id;
+}
+timer.stop();
+writeln("Walk (s=1, parallel, isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 var totalTime : real;
 forall e in graph.getEdges() with (max reduce totalTime) {
-  var _timer = new Timer();
-  for ee in graph.walk(e, isImmutable=true) {
+  
+  forall ee in graph.walk(e, isImmutable=true) with (max reduce totalTime) {
+    var _timer = new Timer();
     _timer.start();
     graph.intersectionSize(e, ee, isImmutable=false);
     _timer.stop();
+    totalTime = max(totalTime, _timer.elapsed());
   }
-  totalTime = max(totalTime, _timer.elapsed());
+  
 }
 writeln("Intersection Size(isImmutable=false): ", totalTime);
 timer.clear();
 
 totalTime = 0;
 forall e in graph.getEdges() with (max reduce totalTime) {
-  var _timer = new Timer();
-  for ee in graph.walk(e, isImmutable=true) {
+  forall ee in graph.walk(e, isImmutable=true) with (max reduce totalTime) {
+    var _timer = new Timer();
     _timer.start();
     graph.intersectionSize(e, ee, isImmutable=true);
     _timer.stop();
+    totalTime = max(totalTime, _timer.elapsed());
   }
-  totalTime = max(totalTime, _timer.elapsed());
 }
 writeln("Intersection Size (isImmutable=true): ", totalTime);
 timer.clear();

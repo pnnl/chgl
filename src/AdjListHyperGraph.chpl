@@ -1166,30 +1166,31 @@ module AdjListHyperGraph {
         // Phase 1: Group work by target locales
         var localeWork : [LocaleSpace] unmanaged Vector(int);
         for v in incidence(eDesc, isImmutable) {
-          const locid = getLocales(v).id;
+          const locid = getLocale(v).id;
           if localeWork[locid] == nil then localeWork[locid] = new unmanaged VectorImpl(int, {0..0});
           localeWork[locid].append(v.id);
         }
         //Phase 2: Scatter work to respective locales.
-        coforall loc in Locales do on loc {
+        coforall loc in Locales do if localeWork[loc.id] != nil then on loc {
           // If the vector is local to the current locale already,
           // do not make a copy.
           if localeWork[here.id].locale == here {
             ref vec = localeWork[here.id];
-            forall v in vec {
-              for e in incidence(v, isImmutable) do if eDesc != e {
+            forall v in vec.getArray() {
+              for e in incidence(toVertex(v), isImmutable) do if eDesc != e {
                 // if s == 1, no intersection needed
                 if s == 1 || isConnected(eDesc, e, s, isImmutable) then yield e;
               }
             }
           } else {
             const sz = localeWork[here.id].size();
-            var dom = {0..sz};
+            var dom = {0..#sz};
             var arr : [dom] int = localeWork[here.id].getArray();
+            var _this = getPrivatizedInstance();
             forall v in arr {
-              for e in incidence(v, isImmutable) do if eDesc != e {
+              for e in _this.incidence(_this.toVertex(v), isImmutable) do if eDesc != e {
                 // if s == 1, no intersection needed
-                if s == 1 || isConnected(eDesc, e, s, isImmutable) then yield e;
+                if s == 1 || _this.isConnected(eDesc, e, s, isImmutable) then yield e;
               }
             } 
           }
