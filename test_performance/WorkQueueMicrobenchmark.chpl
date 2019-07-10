@@ -1,4 +1,4 @@
-use CHGL;
+use WorkQueue;
 use Time;
 use CyclicDist;
 

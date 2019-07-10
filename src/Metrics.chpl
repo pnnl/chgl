@@ -148,37 +148,30 @@ module Metrics {
   */
   proc getEdgeComponentMappings(graph, s = 1) {
     var components : [graph.edgesDomain] atomic int;
-    var componentId = 1; // Begin at 1 so 0 becomes 'not visited' sentinel value
-    var workQueue = new WorkQueue(int, 1024 * 1024);
+    var componentId : atomic int;
+    var workQueue = new WorkQueue((int,int), 1024 * 1024);
     var terminationDetector = new TerminationDetector();
+
+    // Begin at 1 so 0 becomes 'not visited' sentinel value
+    componentId.write(1);
     
-    // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
-    // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for e in graph.edgesDomain {
-      // If we have visited this edge or if it has a degree less than 's', skip it.
-      if components[e].read() != 0 || graph.degree(graph.toEdge(e)) < s {}
-      else {
-        const cId = componentId;
-        componentId = cId + 1;
-        components[e].write(cId);
-        forall neighbor in graph.walk(graph.toEdge(e), s, isImmutable=true) {
+    // Add all edges with a degree of at least 's' to the work queue
+    // so we can perform a breadth-first search.
+    forall e in graph.edgesDomain {
+      if graph.degree(e) >= s {
+        td.started(1);
+        workQueue.addWork(e);
+      }
+    }
+    forall eIdx in doWorkLoop(workQueue, terminationDetector) with (var componentId : int) {
+      if components[eIdx].compareExchange(0, cId) {
+        forall neighbor in graph.walk(graph.toEdge(eIdx), s, isImmutable=true) {
           terminationDetector.started(1);
           const loc = graph.getLocale(neighbor);
           workQueue.addWork(neighbor.id, loc);
         }
-
-        if terminationDetector.tasksStarted.read() != 0 then
-        forall eIdx in doWorkLoop(workQueue, terminationDetector) {
-          if components[eIdx].compareExchange(0, cId) {
-            forall neighbor in graph.walk(graph.toEdge(eIdx), s, isImmutable=true) {
-              terminationDetector.started(1);
-              const loc = graph.getLocale(neighbor);
-              workQueue.addWork(neighbor.id, loc);
-            }
-          }
-          terminationDetector.finished(1);
-        }
       }
+      terminationDetector.finished(1);
     }
     
     terminationDetector.destroy();
