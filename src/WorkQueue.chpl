@@ -377,8 +377,9 @@ class Bag {
     }
   }
 
-  // Note: Serial so runtime does not try to parallelize this
-  // Serial for loop is faster when we have one task per core already in use.
+  // .. note::
+  //    Serial so runtime does not try to parallelize this
+  //    Serial for loop is faster when we have one task per core already in use.
   proc size {
     var sz = 0;
     forall idx in 0..#here.maxTaskPar with (+ reduce sz) { 
