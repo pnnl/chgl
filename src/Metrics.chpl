@@ -61,9 +61,9 @@ module Metrics {
 
      .. note::
 
-     This is significantly slower than `getEdgeComponentMappings`
-     :arg graph: Hypergraph or Graph to obtain the vertex components of.
-     :arg s: Minimum s-connectivity.
+       This is significantly slower than `getEdgeComponentMappings`
+       :arg graph: Hypergraph or Graph to obtain the vertex components of.
+       :arg s: Minimum s-connectivity.
   */
   iter getEdgeComponents(graph, s = 1) {
     // id -> componentID
