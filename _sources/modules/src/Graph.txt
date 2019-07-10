@@ -1,0 +1,102 @@
+.. default-domain:: chpl
+
+.. module:: Graph
+   :synopsis: Prototype 2-Uniform Hypergraph. Forwards implementation to AdjListHyperGraph and should
+
+Graph
+=====
+**Usage**
+
+.. code-block:: chapel
+
+   use Graph;
+
+
+Prototype 2-Uniform Hypergraph. Forwards implementation to AdjListHyperGraph and should
+support simple 'addEdge(v1,v2)' and 'forall (v1, v2) in graph.getEdges()'; everything else
+should be forwarded to the underlying Hypergraph.
+
+.. record:: Graph
+
+   .. attribute:: var instance
+
+   .. attribute:: var pid: int = -1
+
+   .. method:: proc init(numVertices: integral, numEdges: integral)
+
+   .. method:: proc init(numVertices: integral, numEdges: integral, mapping)
+
+   .. method:: proc init(numVertices: integral, numEdges: integral, verticesMappings, edgesMappings)
+
+   .. method:: proc _value
+
+   .. method:: proc destroy()
+
+.. class:: GraphImpl
+
+   .. attribute:: var pid: int
+
+   .. attribute:: var hg
+
+   .. attribute:: var edgeCounter
+
+   .. attribute:: type vDescType
+
+   .. attribute:: var insertAggregator = UninitializedAggregator((hg.vDescType, hg.vDescType, int))
+
+   .. attribute:: var cachedNeighborListDom: hg.verticesDomain.type 
+
+   .. attribute:: var cachedNeighborList: [cachedNeighborListDom] unmanaged Vector(hg.vDescType)
+
+   .. attribute:: var privatizedCachedNeighborListInstance = cachedNeighborList._value
+
+   .. attribute:: var privatizedCachedNeighborListPID = cachedNeighborList._pid
+
+   .. attribute:: var cacheValid: atomicbool
+
+   .. method:: proc init(numVertices, numEdges, verticesMapping, edgesMapping)
+
+   .. method:: proc init(other: GraphImpl, pid: int)
+
+   .. method:: proc invalidateCache()
+
+   .. method:: proc validateCache()
+
+   .. method:: proc isCacheValid()
+
+   .. method:: proc addEdge(v1: integral, v2: integral)
+
+   .. method:: proc addEdge(v1: hg.vDescType, v2: hg.vDescType)
+
+   .. method:: proc flush()
+
+   .. itermethod:: iter getEdges(): (hg.vDescType, hg.vDescType)
+
+   .. itermethod:: iter getEdges(param tag: iterKind): (hg.vDescType, hg.vDescType)
+
+   .. itermethod:: iter neighbors(v: integral)
+
+   .. itermethod:: iter neighbors(v: integral, param tag: iterKind)
+
+   .. itermethod:: iter neighbors(v: hg.vDescType)
+
+   .. itermethod:: iter neighbors(v: hg.vDescType, param tag: iterKind)
+
+   .. method:: proc hasEdge(v1: integral, v2: integral)
+
+   .. method:: proc hasEdge(v1: integral, v2: hg.vDescType)
+
+   .. method:: proc hasEdge(v1: hg.vDescType, v2: integral)
+
+   .. method:: proc hasEdge(v1: hg.vDescType, v2: hg.vDescType)
+
+   .. method:: proc intersection(_v1, _v2)
+
+   .. method:: proc intersectionSize(_v1, _v2)
+
+   .. method:: proc simplify()
+
+   .. method:: proc degree(v: hg.vDescType)
+
+   .. method:: proc degree(v: integral): int
+

@@ -1,0 +1,443 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Graph &mdash; chpldoc 0.0.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="chpldoc 0.0.1 documentation" href="../../index.html"/>
+        <link rel="next" title="Metrics" href="Metrics.html"/>
+        <link rel="prev" title="Generation" href="Generation.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> chpldoc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">chpldoc documentation</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph.html">AdjListHyperGraph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AggregationBuffer.html">AggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BinReader.html">BinReader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Butterfly.html">Butterfly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHGL.html">CHGL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHGL-Server.html">CHGL-Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EquivalenceClasses.html">EquivalenceClasses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Generation.html">Generation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PropertyMaps.html">PropertyMaps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TerminationDetection.html">TerminationDetection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Traversal.html">Traversal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Vectors.html">Vectors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualize.html">Visualize</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WorkQueue.html">WorkQueue</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">chpldoc</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+    <li>Graph</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/modules/src/Graph.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-Graph"></span><div class="section" id="graph">
+<h1>Graph<a class="headerlink" href="#graph" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">Graph</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Prototype 2-Uniform Hypergraph. Forwards implementation to AdjListHyperGraph and should
+support simple &#8216;addEdge(v1,v2)&#8217; and &#8216;forall (v1, v2) in graph.getEdges()&#8217;; everything else
+should be forwarded to the underlying Hypergraph.</p>
+<dl class="record">
+<dt id="Graph.Graph">
+<em class="property">record </em><code class="descname">Graph</code><a class="headerlink" href="#Graph.Graph" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="Graph.Graph.instance">
+<em class="property">var </em><code class="descname">instance</code><a class="headerlink" href="#Graph.Graph.instance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.Graph.pid">
+<em class="property">var </em><code class="descname">pid</code>: int = -1<a class="headerlink" href="#Graph.Graph.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.Graph.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.Graph.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>mapping</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>verticesMappings</em>, <em>edgesMappings</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.Graph._value">
+<em class="property">proc </em><code class="descname">_value</code><a class="headerlink" href="#Graph.Graph._value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.Graph.destroy">
+<em class="property">proc </em><code class="descname">destroy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.Graph.destroy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Graph.GraphImpl">
+<em class="property">class </em><code class="descname">GraphImpl</code><a class="headerlink" href="#Graph.GraphImpl" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="Graph.GraphImpl.pid">
+<em class="property">var </em><code class="descname">pid</code>: int<a class="headerlink" href="#Graph.GraphImpl.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.hg">
+<em class="property">var </em><code class="descname">hg</code><a class="headerlink" href="#Graph.GraphImpl.hg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.edgeCounter">
+<em class="property">var </em><code class="descname">edgeCounter</code><a class="headerlink" href="#Graph.GraphImpl.edgeCounter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.vDescType">
+<em class="property">type </em><code class="descname">vDescType</code><a class="headerlink" href="#Graph.GraphImpl.vDescType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.insertAggregator">
+<em class="property">var </em><code class="descname">insertAggregator</code> = UninitializedAggregator((hg.vDescType, hg.vDescType, int))<a class="headerlink" href="#Graph.GraphImpl.insertAggregator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.cachedNeighborListDom">
+<em class="property">var </em><code class="descname">cachedNeighborListDom</code>: hg.verticesDomain.type<a class="headerlink" href="#Graph.GraphImpl.cachedNeighborListDom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.cachedNeighborList">
+<em class="property">var </em><code class="descname">cachedNeighborList</code>: [cachedNeighborListDom] unmanaged Vector(hg.vDescType)<a class="headerlink" href="#Graph.GraphImpl.cachedNeighborList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.privatizedCachedNeighborListInstance">
+<em class="property">var </em><code class="descname">privatizedCachedNeighborListInstance</code> = cachedNeighborList._value<a class="headerlink" href="#Graph.GraphImpl.privatizedCachedNeighborListInstance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.privatizedCachedNeighborListPID">
+<em class="property">var </em><code class="descname">privatizedCachedNeighborListPID</code> = cachedNeighborList._pid<a class="headerlink" href="#Graph.GraphImpl.privatizedCachedNeighborListPID" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Graph.GraphImpl.cacheValid">
+<em class="property">var </em><code class="descname">cacheValid</code>: atomicbool<a class="headerlink" href="#Graph.GraphImpl.cacheValid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices</em>, <em>numEdges</em>, <em>verticesMapping</em>, <em>edgesMapping</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other: GraphImpl</em>, <em>pid: int</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.invalidateCache">
+<em class="property">proc </em><code class="descname">invalidateCache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.invalidateCache" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.validateCache">
+<em class="property">proc </em><code class="descname">validateCache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.validateCache" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.isCacheValid">
+<em class="property">proc </em><code class="descname">isCacheValid</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.isCacheValid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.addEdge">
+<em class="property">proc </em><code class="descname">addEdge</code><span class="sig-paren">(</span><em>v1: integral</em>, <em>v2: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.addEdge" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">addEdge</code><span class="sig-paren">(</span><em>v1: hg.vDescType</em>, <em>v2: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.flush">
+<em class="property">proc </em><code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt id="Graph.GraphImpl.getEdges">
+<em class="property">iter </em><code class="descname">getEdges</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (hg.vDescType, hg.vDescType)<a class="headerlink" href="#Graph.GraphImpl.getEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">getEdges</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span>: (hg.vDescType, hg.vDescType)</dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt id="Graph.GraphImpl.neighbors">
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.neighbors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: integral</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="itermethod">
+<dt>
+<em class="property">iter </em><code class="descname">neighbors</code><span class="sig-paren">(</span><em>v: hg.vDescType</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.hasEdge">
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: integral</em>, <em>v2: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.hasEdge" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: integral</em>, <em>v2: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: hg.vDescType</em>, <em>v2: integral</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">hasEdge</code><span class="sig-paren">(</span><em>v1: hg.vDescType</em>, <em>v2: hg.vDescType</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.intersection">
+<em class="property">proc </em><code class="descname">intersection</code><span class="sig-paren">(</span><em>_v1</em>, <em>_v2</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.intersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.intersectionSize">
+<em class="property">proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>_v1</em>, <em>_v2</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.intersectionSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.simplify">
+<em class="property">proc </em><code class="descname">simplify</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.simplify" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Graph.GraphImpl.degree">
+<em class="property">proc </em><code class="descname">degree</code><span class="sig-paren">(</span><em>v: hg.vDescType</em><span class="sig-paren">)</span><a class="headerlink" href="#Graph.GraphImpl.degree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">degree</code><span class="sig-paren">(</span><em>v: integral</em><span class="sig-paren">)</span>: int</dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Metrics.html" class="btn btn-neutral float-right" title="Metrics" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Generation.html" class="btn btn-neutral" title="Generation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, PNNL.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+  
+ 
+
+
+
+</body>
+</html>

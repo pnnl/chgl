@@ -1,0 +1,367 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>TerminationDetection &mdash; chpldoc 0.0.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="chpldoc 0.0.1 documentation" href="../../index.html"/>
+        <link rel="next" title="Traversal" href="Traversal.html"/>
+        <link rel="prev" title="PropertyMaps" href="PropertyMaps.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> chpldoc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">chpldoc documentation</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AdjListHyperGraph.html">AdjListHyperGraph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AggregationBuffer.html">AggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BinReader.html">BinReader</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Butterfly.html">Butterfly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHGL.html">CHGL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHGL-Server.html">CHGL-Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EquivalenceClasses.html">EquivalenceClasses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Generation.html">Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Graph.html">Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PropertyMaps.html">PropertyMaps</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">TerminationDetection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Traversal.html">Traversal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Vectors.html">Vectors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualize.html">Visualize</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WorkQueue.html">WorkQueue</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">chpldoc</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+    <li>TerminationDetection</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/modules/src/TerminationDetection.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-TerminationDetection"></span><div class="section" id="terminationdetection">
+<h1>TerminationDetection<a class="headerlink" href="#terminationdetection" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">TerminationDetection</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>In termination detection, each time a task spawns another task, the spawning task
+becomes the parent and the spawned task is the child. The parent must increment the
+&#8216;tasksStarted&#8217; counter each time it creates a child, and the child must increment the
+&#8216;tasksFinished&#8217; counter before being destroyed. Each locale has its own privatized counters,
+so if the parent and child are not located on the same locale, the increment and decrement
+occur on the respective locales counters, hence a locale can have a &#8216;tasksStarted&#8217; counter that is
+higher or lower than the &#8216;tasksFinished&#8217; counter, even if all tasks have terminated. The benefit
+to having increments being local is the increased locality.</p>
+<p>Determining whether or not all tasks have terminated involves performing multiple distributed
+reductions, which Chapel makes very easy. Spawning a remote task on each node, and using the
+reduce intent is enough to implement a distributed reduction. Once the reduction has been
+performed twice, and if there has been no update, and if both times the reduction of both
+the &#8216;tasksStarted&#8217; and &#8216;tasksFinished&#8217; are equivalent, no task is alive at that given time.</p>
+<p>Example of its usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>proc visit(n : node, term : TerminationDetection) {
+  doSomethingTo(n.data);
+
+  // About to spawn two tasks...
+  term.start(2);
+  begin on n.left {
+    visit(n.left, term);
+  }
+  begin on n.right {
+    visit(n.right, term);
+  }
+
+  // Task just finished...
+  term.finish();
+}
+</pre></div>
+</div>
+<dl class="record">
+<dt id="TerminationDetection.TerminationDetector">
+<em class="property">record </em><code class="descname">TerminationDetector</code><a class="headerlink" href="#TerminationDetection.TerminationDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Termination detector.</p>
+<dl class="attribute">
+<dt id="TerminationDetection.TerminationDetector.instance">
+<em class="property">var </em><code class="descname">instance</code>: unmanaged TerminationDetectorImpl<a class="headerlink" href="#TerminationDetection.TerminationDetector.instance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="TerminationDetection.TerminationDetector.pid">
+<em class="property">var </em><code class="descname">pid</code> = -1<a class="headerlink" href="#TerminationDetection.TerminationDetector.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetector.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>n = 0</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetector.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetector._value">
+<em class="property">proc </em><code class="descname">_value</code><a class="headerlink" href="#TerminationDetection.TerminationDetector._value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetector.destroy">
+<em class="property">proc </em><code class="descname">destroy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetector.destroy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="TerminationDetection.&lt;=&gt;">
+<em class="property">proc </em><code class="descname">&lt;=&gt;</code><span class="sig-paren">(</span><em>ref lhs: TerminationDetector</em>, <em>ref rhs: TerminationDetector</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.<=>" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="TerminationDetection.TerminationDetectorImpl">
+<em class="property">class </em><code class="descname">TerminationDetectorImpl</code><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="TerminationDetection.TerminationDetectorImpl.tasksStarted">
+<em class="property">var </em><code class="descname">tasksStarted</code>: chpl__processorAtomicType(int)<a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.tasksStarted" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="TerminationDetection.TerminationDetectorImpl.tasksFinished">
+<em class="property">var </em><code class="descname">tasksFinished</code>: chpl__processorAtomicType(int)<a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.tasksFinished" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="TerminationDetection.TerminationDetectorImpl.pid">
+<em class="property">var </em><code class="descname">pid</code> = -1<a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>n = 0</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other</em>, <em>pid</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.started">
+<em class="property">proc </em><code class="descname">started</code><span class="sig-paren">(</span><em>n = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.started" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.finished">
+<em class="property">proc </em><code class="descname">finished</code><span class="sig-paren">(</span><em>n = 1</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.finished" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.getStatistics">
+<em class="property">proc </em><code class="descname">getStatistics</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (int, int)<a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.getStatistics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.hasTerminated">
+<em class="property">proc </em><code class="descname">hasTerminated</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: bool<a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.hasTerminated" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.awaitTermination">
+<em class="property">proc </em><code class="descname">awaitTermination</code><span class="sig-paren">(</span><em>minBackoff = 0</em>, <em>maxBackoff = 1024</em>, <em>multBackoff = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.awaitTermination" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.dsiPrivatize">
+<em class="property">proc </em><code class="descname">dsiPrivatize</code><span class="sig-paren">(</span><em>pid</em><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.dsiPrivatize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.dsiGetPrivatizeData">
+<em class="property">proc </em><code class="descname">dsiGetPrivatizeData</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.dsiGetPrivatizeData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TerminationDetection.TerminationDetectorImpl.getPrivatizedInstance">
+<em class="property">proc </em><code class="descname">getPrivatizedInstance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TerminationDetection.TerminationDetectorImpl.getPrivatizedInstance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Traversal.html" class="btn btn-neutral float-right" title="Traversal" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="PropertyMaps.html" class="btn btn-neutral" title="PropertyMaps" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, PNNL.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+  
+ 
+
+
+
+</body>
+</html>

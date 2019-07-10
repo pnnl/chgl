@@ -1,0 +1,28 @@
+.. default-domain:: chpl
+
+.. module:: CHGL-Server
+
+CHGL-Server
+===========
+**Usage**
+
+.. code-block:: chapel
+
+   use CHGL-Server;
+
+.. data:: config const ServerPort = 5555
+
+.. data:: param SYN = 0
+
+.. data:: param ACK = 1
+
+.. data:: param CREATE_GRAPH = 2
+
+.. data:: param ADD_INCLUSION = 3
+
+.. data:: param GET_SIZE = 4
+
+.. function:: proc main()
+
+.. function:: proc get_hostname(): string
+

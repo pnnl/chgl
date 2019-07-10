@@ -1,0 +1,93 @@
+.. default-domain:: chpl
+
+.. module:: EquivalenceClasses
+   :synopsis: Provides an abstraction used to efficiently compute equivalence classes. An
+
+EquivalenceClasses
+==================
+**Usage**
+
+.. code-block:: chapel
+
+   use EquivalenceClasses;
+
+
+Provides an abstraction used to efficiently compute equivalence classes. An
+equivalence class is a set where all elements of that set are equivalent to
+each other. The `cmpType` is used to determine the equivalence class associated
+with a `keyType`. For example, if the `keyType` is a hyperedge, the `cmpType`
+is the set of vertices that are incident in it. Each equivalence class has what
+is known as a `candidate`, which is an arbitrarily chosen leader for an equivalence
+class, making it easy to select which `keyType` to keep based on duplicate `cmpType`.
+
+.. class:: Equivalence
+
+   .. attribute:: type keyType
+
+   .. attribute:: type cmpType
+
+   .. attribute:: var eqclassesDom: domain(cmpType)
+
+   .. attribute:: var eqclasses: [eqclassesDom] keyType
+
+   .. attribute:: var candidatesDom: domain(keyType)
+
+   .. attribute:: var candidates: [candidatesDom] domain(keyType)
+
+   .. method:: proc init(type keyType)
+
+   .. method:: proc init(type keyType, type cmpType)
+
+   .. itermethod:: iter getEquivalenceClasses(): keyType
+
+   .. itermethod:: iter getEquivalenceClasses(param tag: iterKind): keyType
+
+   .. itermethod:: iter getCandidates(key: keyType): keyType
+
+   .. itermethod:: iter getCandidates(key: keyType, param tag: iterKind): keyType
+
+   .. method:: proc add(key: keyType)
+
+   .. method:: proc add(key: keyType, cmp: cmpType)
+
+      
+      Adds 'key' to an equivalence class, or making it the candidate
+      if no current equivalence class exists. 
+      
+
+   .. method:: proc add(other: this.type )
+
+      
+      Adds another equivalence class to this one.
+      
+
+   .. method:: proc reduction()
+
+   .. method:: proc readWriteThis(f)
+
+.. class:: ReduceEQClass : ReduceScanOp
+
+   .. attribute:: type keyType
+
+   .. attribute:: type cmpType
+
+   .. attribute:: var value: unmanaged keyTypeEquivalencecmpType
+
+   .. method:: proc init(eq: unmanaged ?keyTypeEquivalence?cmpType)
+
+   .. method:: proc init(type keyType, type cmpType)
+
+   .. method:: proc identity
+
+   .. method:: proc accumulate(x)
+
+   .. method:: proc accumulateOntoState(ref state, x)
+
+   .. method:: proc combine(x)
+
+   .. method:: proc generate()
+
+   .. method:: proc clone()
+
+.. function:: proc main()
+

@@ -1,0 +1,112 @@
+.. default-domain:: chpl
+
+.. module:: Metrics
+   :synopsis: Compilation of common metrics to be performed on hypergraphs or graphs.
+
+Metrics
+=======
+**Usage**
+
+.. code-block:: chapel
+
+   use Metrics;
+
+
+Compilation of common metrics to be performed on hypergraphs or graphs.
+
+.. record:: EdgeSorter
+
+   .. attribute:: var graph
+
+   .. method:: proc init(graph)
+
+   .. method:: proc key(e)
+
+.. record:: VertexSorter
+
+   .. attribute:: var graph
+
+   .. method:: proc init(graph)
+
+   .. method:: proc key(e)
+
+.. iterfunction:: iter getVertexComponents(graph, s = 1)
+
+   
+   Iterate over all vertices in graph and count the number of s-connected components.
+   A s-connected component is a group of vertices that can be s-walked to. A vertex
+   v can s-walk to a vertex v' if the intersection of both v and v' is at least s.
+   :arg graph: Hypergraph or Graph to obtain the vertex components of.
+   :arg s: Minimum s-connectivity.
+   
+
+.. iterfunction:: iter getEdgeComponents(graph, s = 1)
+
+   
+   Iterate over all edges in graph and count the number of s-connected components.
+   A s-connected component is a group of vertices that can be s-walked to. A edge
+   e can s-walk to a edge e' if the intersection of both e and e' is at least s.
+   
+   .. note::
+   
+     This is significantly slower than `getEdgeComponentMappings`
+     :arg graph: Hypergraph or Graph to obtain the vertex components of.
+     :arg s: Minimum s-connectivity.
+   
+
+.. function:: proc getVertexComponentMappings(graph, s = 1)
+
+   
+   Assigns vertices to components and assigns them component ids. Returns an array
+   that is mapped over the same domain as the hypergraph or graph.
+   
+   :arg graph: Hypergraph or graph.
+   :arg s: Minimum s-connectivity.
+   
+
+.. function:: proc getEdgeComponentMappings(graph, s = 1)
+
+   
+   Assigns hyperedges to components and assigns them component ids. Returns an array
+   that is mapped over the same domain as the hypergraph or graph. Component ids are
+   
+   :arg graph: Hypergraph or graph.
+   :arg s: Minimum s-connectivity.
+   
+
+.. function:: proc vertexDegreeDistribution(graph)
+
+   
+   Obtain the degree distribution of vertices as a histogram.
+   
+   :arg graph: Hypergraph or graph.
+   
+
+.. function:: proc edgeDegreeDistribution(graph)
+
+   
+   Obtain the degree distribution of edges as a histogram.
+   
+   :arg graph: Hypergraph or graph.
+   
+
+.. function:: proc componentSizeDistribution(componentMappings: [?D] int)
+
+.. function:: proc vertexComponentSizeDistribution(graph, s = 1)
+
+   
+   Obtain the component size distribution of vertices as a histogram.
+   
+   :arg graph: Hypergraph or graph.
+   :arg s: Minimum s-connectivity.
+   
+
+.. function:: proc edgeComponentSizeDistribution(graph, s = 1)
+
+   
+   Obtain the component size distribution of edges as a histogram.
+   
+   :arg graph: Hypergraph or graph.
+   :arg s: Minimum s-connectivity.
+   
+

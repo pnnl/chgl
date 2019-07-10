@@ -1,0 +1,78 @@
+.. default-domain:: chpl
+
+.. module:: Generation
+
+Generation
+==========
+**Usage**
+
+.. code-block:: chapel
+
+   use Generation;
+
+.. data:: param GenerationSeedOffset = 3735928559
+
+.. data:: config const GenerationUseAggregation = true
+
+.. record:: WorkInfo
+
+   .. attribute:: var rngSeed: int
+
+   .. attribute:: var rngOffset: int
+
+   .. attribute:: var numOperations: int
+
+.. function:: proc calculateWork(numInclusions, targetLoc = Locales)
+
+.. function:: proc weightedRandomSample(items, probabilities, randValue)
+
+.. function:: proc distributedHistogram(probTable, numRandoms, targetLocales)
+
+.. function:: proc histogram(probabilities, numRandoms)
+
+.. function:: proc generateErdosRenyiSMP(graph, probability, vertexDomain, edgeDomain, couponCollector = true)
+
+.. function:: proc generateErdosRenyi(graph, probability, verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, couponCollector = true, targetLocales = Locales)
+
+.. function:: proc generateChungLuSMP(graph, verticesDomain, edgesDomain, desiredVertexDegrees, desiredEdgeDegrees, inclusionsToAdd)
+
+.. function:: proc generateChungLuPreScanSMP(graph, verticesDomain, edgesDomain, vertexScan, edgeScan, inclusionsToAdd)
+
+.. record:: DynamicArray
+
+   .. attribute:: var dom = {0..-1}
+
+   .. attribute:: var arr: [dom] int
+
+   .. method:: proc init()
+
+   .. method:: proc init(other)
+
+   .. method:: proc this(idx: integral) const ref
+
+.. function:: proc generateChungLu(graph, vDegSeq: [?vDegSeqDom] int, eDegSeq: [?eDegSeqDom] int, inclusionsToAdd: int(64), verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLoc = Locales)
+
+   
+   Generates a graph from the desired vertex and edge degree sequence. 
+   
+   :arg graph: Mutable graph to generate.
+   :arg vDegSeq: Vertex degree sequence. Must be sorted.
+   :arg eDegSeq: HyperEdge degree sequence. Must be sorted.
+   :arg inclusionsToAdd: Number of edges to create between vertices and hyperedges.
+   :arg verticesDomain: Subset of vertices to generate edges between. Defaults to the entire set of vertices.
+   :arg edgesDomain: Subset of hyperedges to generate edges between. Defaults to the entire set of hyperedges.
+   :arg targetLoc: Locales to perform computation over. Defaults to Locales, which includes all locales.
+   
+
+.. function:: proc generateChungLuAdjusted(graph, num_vertices, num_edges, desired_vertex_degrees, desired_edge_degrees)
+
+.. function:: proc computeAffinityBlocks(dV, dE, mV, mE)
+
+.. function:: proc _round(x: real): int
+
+.. function:: proc generateBTER(vd: [?vdDom], ed: [?edDom], vmc: [?vmcDom], emc: [?emcDom], targetLocales = Locales)
+
+   
+   Block Two-Level Erdos Renyi
+   
+

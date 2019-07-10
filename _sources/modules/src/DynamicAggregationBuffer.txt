@@ -1,0 +1,100 @@
+.. default-domain:: chpl
+
+.. module:: DynamicAggregationBuffer
+   :synopsis: Dynamic aggregator that will hold all buffers to be sent until explicitly requested
+
+DynamicAggregationBuffer
+========================
+**Usage**
+
+.. code-block:: chapel
+
+   use DynamicAggregationBuffer;
+
+
+Dynamic aggregator that will hold all buffers to be sent until explicitly requested
+by the user. This avoids the need to have to handle sending partial data when it is
+not needed to make progress. This comes with the issue that if no explicit flush is
+called, data never gets sent, but it opens the possibility of the user creating
+their own background progress task.
+
+.. function:: proc UninitializedDynamicAggregator(type msgType)
+
+.. record:: DynamicAggregator
+
+   .. attribute:: type msgType
+
+   .. attribute:: var pid = -1
+
+   .. attribute:: var instance: unmanaged DynamicAggregatorImpl(msgType)
+
+   .. method:: proc init(type msgType)
+
+   .. method:: proc init(type msgType, instance: unmanaged DynamicAggregatorImpl(msgType), pid: int)
+
+   .. method:: proc init(other)
+
+   .. method:: proc destroy()
+
+   .. method:: proc isInitialized()
+
+   .. method:: proc _value
+
+.. class:: DynamicBuffer
+
+   .. attribute:: type msgType
+
+   .. attribute:: var dom = {0..-1}
+
+   .. attribute:: var arr: [dom] msgType
+
+   .. attribute:: var lock: atomicbool
+
+   .. method:: proc acquire()
+
+   .. method:: proc release()
+
+   .. method:: proc append(buf)
+
+   .. method:: proc getArray()
+
+   .. method:: proc done()
+
+   .. method:: proc size
+
+.. class:: DynamicAggregatorImpl
+
+   .. attribute:: type msgType
+
+   .. attribute:: var pid: int
+
+   .. attribute:: var agg = UninitializedAggregator(msgType)
+
+   .. attribute:: var dynamicDestBuffers: [LocaleSpace] unmanaged DynamicBuffer(msgType)
+
+   .. method:: proc init(type msgType)
+
+   .. method:: proc init(other, pid: int)
+
+   .. method:: proc deinit()
+
+   .. method:: proc dsiPrivatize(pid)
+
+   .. method:: proc dsiGetPrivatizeData()
+
+   .. method:: proc getPrivatizedInstance()
+
+   .. method:: proc size()
+
+   .. method:: proc aggregate(msg: msgType, loc: locale): void
+
+   .. method:: proc aggregate(msg: msgType, locid: int): void
+
+   .. itermethod:: iter flushLocal(): (DynamicBuffer(msgType), locale)
+
+   .. itermethod:: iter flushLocal(param tag: iterKind)
+
+   .. itermethod:: iter flushGlobal(): (DynamicBuffer(msgType), locale)
+
+   .. itermethod:: iter flushGlobal(param tag: iterKind): (DynamicBuffer(msgType), locale)
+

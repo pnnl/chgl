@@ -1,0 +1,145 @@
+.. default-domain:: chpl
+
+.. module:: Utilities
+
+Utilities
+=========
+**Usage**
+
+.. code-block:: chapel
+
+   use Utilities;
+
+.. iterfunction:: iter forEachLocale(): int
+
+.. iterfunction:: iter forEachLocale(param tag: iterKind): int
+
+.. iterfunction:: iter forEachCorePerLocale(): int
+
+.. iterfunction:: iter forEachCorePerLocale(param tag: iterKind): int
+
+.. data:: config const printDebugInformation = false
+
+.. data:: config const profileCommDiagnostics = false
+
+.. data:: config const profileCommDiagnosticsVerbose = false
+
+.. data:: config const profileVisualDebug = false
+
+.. function:: proc debug(args ...)
+
+   
+   Only prints if `printDebugInformation` is enabled; warning: Chapel still evaluates arguments
+   so side-effects will still occur!
+
+.. function:: proc beginProfile(vdebugName = "vdebug")
+
+.. function:: proc endProfile()
+
+.. record:: ArrayRef
+
+   
+   Array reference wrapper; captures the privatization id and instance, and can be treated mostly
+   as an array, except without the implicit by-value copying. Note that the lifetime of the original
+   array is unaffected by this 'reference', hence care must be used to not use this after the original 
+   array goes out of scope.
+
+
+   .. attribute:: var pid: int = -1
+
+   .. attribute:: var instance
+
+   .. method:: proc init(ref A: [])
+
+   .. method:: proc _value
+
+.. function:: proc intersection(A: [] ?t, B: [] t)
+
+   
+   Obtains the intersection of two arrays, A and B. This method is optimized for
+   locality and will copy any remote arrays to be entirely local; this includes
+   a locality check for the array and the domain itself (which will be remote if
+   the user creates an implicit copy).
+
+.. function:: proc intersectionSize(A: [] ?t, B: [] t)
+
+   
+   Obtains the intersection size of two arrays, A and B. This method is optimized for
+   locality and will copy any remote arrays to be entirely local; this includes
+   a locality check for the array and the domain itself (which will be remote if
+   the user creates an implicit copy).
+
+.. function:: proc intersectionSizeAtLeast(A: [] ?t, B: [] t, s: integral)
+
+   
+   Determines whether the size of the intersection of two arrays, A and B is at least 's'. 
+   This method is optimized for locality and will copy any remote arrays to be entirely local; 
+   this includes a locality check for the array and the domain itself (which will be remote if
+   the user creates an implicit copy).
+
+.. function:: proc _intersectionSizeAtLeast(A: [] ?t, B: [] t, s: integral)
+
+.. function:: proc _arrayEquality(A: [] ?t, B: [] t)
+
+.. function:: proc arrayEquality(A: [] ?t, B: [] t)
+
+.. type:: type chpl_comm_nb_handle_t
+
+.. function:: proc chpl_comm_get_nb(addr: c_void_ptr, node: chpl_nodeID_t, raddr: c_void_ptr, size: size_t, typeIndex: int(32), commID: int(32), ln: c_int, fn: int(32)): chpl_comm_nb_handle_t
+
+.. function:: proc getAddr(ref x: ?t): c_void_ptr
+
+.. function:: proc getLocaleID(ref x: ?t): chpl_localeID_t
+
+.. function:: proc getNodeID(ref x: ?t): chpl_nodeID_t
+
+.. function:: proc get_nb(ref r1: ?t1): Future((t1))
+
+.. data:: var _globalIntRandomStream = makeRandomStream(int)
+
+.. data:: var _globalRealRandomStream = makeRandomStream(real)
+
+.. function:: proc randInt(low, high)
+
+.. function:: proc randInt(high)
+
+.. function:: proc randInt()
+
+.. function:: proc randReal(low, high)
+
+.. function:: proc randReal(high)
+
+.. function:: proc randReal()
+
+.. class:: Centralized
+
+   .. attribute:: var x
+
+   .. method:: proc init(x)
+
+   .. method:: proc init(type X)
+
+.. function:: proc getLocale(dom, idx)
+
+.. function:: proc getLocale(arr: [], idx)
+
+.. function:: proc createCyclic(dom: domain)
+
+.. function:: proc createCyclic(rng: range)
+
+.. function:: proc createCyclic(sz: integral, startIdx = 1)
+
+.. function:: proc createBlock(dom: domain)
+
+.. function:: proc createBlock(rng: range)
+
+.. function:: proc createBlock(sz: integral, startIdx = 1)
+
+.. iterfunction:: iter getLines(file: string): string
+
+.. iterfunction:: iter getLines(file: string, chunkSize = 1024, param tag: iterKind): string
+
+.. function:: proc any(it: _iteratorRecord)
+
+.. function:: proc all(it: _iteratorRecord)
+

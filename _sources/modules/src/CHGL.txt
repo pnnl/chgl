@@ -1,0 +1,12 @@
+.. default-domain:: chpl
+
+.. module:: CHGL
+
+CHGL
+====
+**Usage**
+
+.. code-block:: chapel
+
+   use CHGL;
+

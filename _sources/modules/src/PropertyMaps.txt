@@ -1,0 +1,108 @@
+.. default-domain:: chpl
+
+.. module:: PropertyMaps
+
+PropertyMaps
+============
+**Usage**
+
+.. code-block:: chapel
+
+   use PropertyMaps;
+
+.. function:: proc UninitializedPropertyMap(type propertyType, mapper: ?t = new DefaultMapper())
+
+   
+   Uninitialized property map (does not initialize nor privatize).
+   
+
+.. record:: PropertyMap
+
+   .. attribute:: type propertyType
+
+   .. attribute:: type mapperType
+
+   .. method:: proc init(type propertyType, mapper: ?mapperType = new DefaultMapper())
+
+      
+      Create an empty property map.
+      
+      :arg propertyType: Type of properties.
+      :arg mapper: Determines which locale to hash to.
+      
+
+   .. method:: proc init(other: ?propertyTypePropertyMap?mapperType)
+
+      
+      Create a shallow-copy of the property map. The resulting map refers to the same
+      internals as the original.
+      
+      :arg other: Other property map.
+      
+
+   .. method:: proc clone(other: ?propertyTypePropertyMap?mapperType)
+
+      
+      Performs a deep-copy of a property map.
+      
+      :arg other: Other property map.
+      
+
+   .. method:: proc isInitialized
+
+   .. method:: proc _value
+
+   .. method:: proc destroy()
+
+.. class:: PropertyMapImpl
+
+   .. attribute:: type propertyType
+
+   .. attribute:: var mapper
+
+   .. attribute:: var lock: Lock
+
+   .. method:: proc init(type propertyType, mapper: ?t = new DefaultMapper())
+
+   .. method:: proc init(other: PropertyMapImpl(?propertyType))
+
+   .. method:: proc append(other: this.type , param overwrite = true, param acquireLock = true)
+
+      
+      Appends the other property map's properties. If a property already exists, it will overwrite
+      the current value if 'overwrite' policy is set.
+      
+      :arg other: Other property map to append.
+      :arg overwrite: Whether or not to overwrite when a duplicate is found.
+      
+
+   .. method:: proc create(property: propertyType, param aggregated = false, param acquireLock = true)
+
+   .. method:: proc flushLocal(param acquireLock = true)
+
+   .. method:: proc flushGlobal(param acquireLock = true)
+
+   .. method:: proc setProperty(property: propertyType, id: int, param aggregated = false, param acquireLock = true)
+
+   .. method:: proc getProperty(property: propertyType, param acquireLock = true): int
+
+   .. method:: proc numProperties(): int
+
+   .. method:: proc numPropertiesGlobal(): int
+
+   .. itermethod:: iter localProperties(): (propertyType, int)
+
+      
+      Obtains local property keys and values (serial).
+      
+
+   .. itermethod:: iter localProperties(): (propertyType, int)
+
+   .. itermethod:: iter these(): (propertyType, int)
+
+   .. itermethod:: iter these(param tag: iterKind): (propertyType, int)
+
+      
+      Obtains global property keys and values (parallel).
+      
+

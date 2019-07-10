@@ -1,0 +1,21 @@
+.. default-domain:: chpl
+
+.. module:: Visualize
+
+Visualize
+=========
+**Usage**
+
+.. code-block:: chapel
+
+   use Visualize;
+
+.. function:: proc visualize(graph: Graph, fileName = "out.dot") throws
+
+.. function:: proc visualize(graph: AdjListHyperGraph, fileName = "out.dot") throws
+
+   
+   Exports graph in GraphViz DOT format
+
+.. function:: proc main()
+
