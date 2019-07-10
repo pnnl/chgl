@@ -6,24 +6,32 @@ module Metrics {
   use Vectors;
   use Utilities;
   use Traversal;
+  use Sort;
   use DynamicAggregationBuffer;
 
-  record EdgeSorter {
-    var graph;
-    proc init(graph) {
-      this.graph = graph;
-    }
+  // Coalescing of s-connected components. When given the
+  // array of (idx, cid) pairs, we want to eliminate the
+  // greater cids directed at the same idx. We also eliminate
+  // redundant cids.
+  record ComponentCoalescer {
+    proc this(arr : [] (int, int), dom : domain) {
+      var indicesDom : domain(int); // idx
+      var indices : [indicesDom] int;  // cid
 
-    proc key(e) { return graph.degree(graph.toEdge(e)); }
-  }
-  
-  record VertexSorter {
-    var graph;
-    proc init(graph) {
-      this.graph = graph;
-    }
+      for (idx, cid) in arr {
+        if indicesDom.contains(idx) {
+          const _cid = indices[idx];
+          if _cid > cid {
+            indices[idx] = cid;
+          }
+        }
+      }
 
-    proc key(e) { return graph.degree(graph.toVertex(e)); }
+      dom = {0..#indicesDom.size};
+      for (idx, cid, arrIdx) in zip(indicesDom, indices, dom) {
+        arr[arrIdx] = (idx, cid);
+      }
+    } 
   }
 
   /*

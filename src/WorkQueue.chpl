@@ -129,7 +129,7 @@ record WorkQueue {
   var instance : unmanaged WorkQueueImpl(workType, colaesceFnType);
   var pid = -1;
   
-  proc init(type workType, numAggregatedWork : int = WorkQueueNoAggregation, coalesceFn : ?t = nopCoalescer(workType)) {
+  proc init(type workType, numAggregatedWork : int = WorkQueueNoAggregation, coalesceFn : ?t = new nopCoalescer(workType)) {
     this.workType = workType;
     this.colaesceFnType = coalesceFn.type;
     this.instance = new unmanaged WorkQueueImpl(workType, numAggregatedWork, coalesceFn);
@@ -140,7 +140,7 @@ record WorkQueue {
   /*
     "Uninitialized" initializer
   */
-  proc init(type workType, instance : unmanaged WorkQueueImpl(workType), pid : int, coalesceFn : ?t = nopCoalescer(workType)) {
+  proc init(type workType, instance : unmanaged WorkQueueImpl(workType), pid : int, coalesceFn : ?t = new nopCoalescer(workType)) {
     this.workType = workType;
     this.colaesceFnType = coalesceFn.type;
     this.instance = instance;
@@ -169,7 +169,7 @@ class WorkQueueImpl {
   var shutdownSignal : atomic bool;
   var coalesceFn;
 
-  proc init(type workType, numAggregatedWork : int, coalesceFn : ?t = nopCoalescer(workType)) {
+  proc init(type workType, numAggregatedWork : int, coalesceFn : ? = new nopCoalescer(workType)) {
     this.workType = workType;
     if numAggregatedWork == -1 {
       this.dynamicDestBuffer = new DynamicAggregator(workType);
@@ -255,8 +255,8 @@ class WorkQueueImpl {
           asyncTasks.started(1);
           begin with (in buffer) on Locales[locid] {
             var arr = buffer.getArray();
-            coalesceFn(arr);
             var _this = getPrivatizedInstance();
+            _this.coalesceFn(arr);
             buffer.done();
             local do _this.queue.add(arr);
             _this.asyncTasks.finished(1);
@@ -291,7 +291,7 @@ class WorkQueueImpl {
       for (buf, loc) in destBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();      
         var arr = buf.getArray();
-        coalesceFn(arr);
+        _this.coalesceFn(arr);
         _this.queue.add(arr);
         buf.done();
       }
@@ -299,7 +299,7 @@ class WorkQueueImpl {
       for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        coalesceFn(arr);
+        _this.coalesceFn(arr);
         _this.queue.add(arr);
         buf.done();
       }
@@ -311,7 +311,7 @@ class WorkQueueImpl {
       forall (buf, loc) in destBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        coalesceFn(arr);
+        _this.coalesceFn(arr);
         _this.queue.add(arr);
         buf.done();
       }
@@ -319,7 +319,7 @@ class WorkQueueImpl {
       forall (buf, loc) in dynamicDestBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        coalesceFn(arr);
+        _this.coalesceFn(arr);
         _this.queue.add(arr);
         buf.done();
       }
