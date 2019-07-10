@@ -130,9 +130,10 @@ module PropertyMaps {
       this.terminationDetector = new TerminationDetector();
 
       this.pid = _newPrivatizedClass(this:unmanaged);
+      const _pid = pid;
       coforall loc in Locales do on loc {
-        var _this = getPrivatizedInstance();
-        var _other = other.getPrivatizedInstance();
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
+        var _other = chpl_getPrivatizedCopy(other.type, _pid);
         _this.keys += _other.keys;
         _this.values = _other.values;
       }
@@ -179,9 +180,10 @@ module PropertyMaps {
       :arg overwrite: Whether or not to overwrite when a duplicate is found.
     */
     proc append(other : this.type, param overwrite = true, param acquireLock = true) {
+      const _pid = pid;
       coforall loc in Locales do on loc {
-        var _this = getPrivatizedInstance();
-        var _other = other.getPrivatizedInstance();
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
+        var _other = chpl_getPrivatizedCopy(other.type, _pid);
         
         local {
           if acquireLock then acquireLocks(_this.lock, _other.lock);
@@ -207,10 +209,11 @@ module PropertyMaps {
     }
 
     proc flushLocal(param acquireLock = true) {
+      const _pid = pid;
       coforall (buf, loc) in aggregator.flushLocal() do on loc {
         var arr = buf.getArray();
         buf.done();
-        var _this = getPrivatizedInstance();
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
         local {
           if acquireLock then _this.lock.acquire();
           for (prop, id) in arr {
@@ -222,8 +225,9 @@ module PropertyMaps {
       }
     }
     proc flushGlobal(param acquireLock = true) {
+      const _pid = pid;
       coforall loc in Locales do on loc {
-        getPrivatizedInstance().flushLocal(acquireLock);
+        chpl_getPrivatizedCopy(this.type, _pid).flushLocal(acquireLock);
       }
       // Wait for any asynchronous tasks to finish
       terminationDetector.awaitTermination();
@@ -231,6 +235,7 @@ module PropertyMaps {
 
     proc setProperty(property : propertyType, id : int, param aggregated = false, param acquireLock = true) {
       const loc = Locales[mapper(property, Locales)];
+      const _pid = pid;
       
       if aggregated {
         var buf = aggregator.aggregate((property, id), loc);
@@ -239,7 +244,7 @@ module PropertyMaps {
           begin on loc {
             var arr = buf.getArray();
             buf.done();
-            var _this = getPrivatizedInstance();
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
             local {
               if acquireLock then _this.lock.acquire();
               for (prop, _id) in arr {
@@ -253,7 +258,7 @@ module PropertyMaps {
         }
       } else {
         on loc {
-          var _this = getPrivatizedInstance();
+          var _this = chpl_getPrivatizedCopy(this.type, _pid);
           if acquireLock then _this.lock.acquire();          
           if id == -1 then _this.keys += property;
           _this.values[property] = id;
@@ -266,8 +271,9 @@ module PropertyMaps {
       const loc = Locales[mapper(property, Locales)];
       
       var retid : int;
+      const _pid = pid;
       on loc {
-        var _this = getPrivatizedInstance();
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
         if acquireLock then _this.lock.acquire();
         retid = _this.values[property];
         if acquireLock then _this.lock.release();
@@ -281,8 +287,9 @@ module PropertyMaps {
 
     proc numPropertiesGlobal() : int {
       var sz : int;
+      const _pid = pid;
       coforall loc in Locales with (+ reduce sz) do on loc {
-        var _this = getPrivatizedInstance();
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
         sz += _this.numProperties();
       }
       return sz;
@@ -308,8 +315,9 @@ module PropertyMaps {
       Obtains global property keys and values (parallel).
     */
     iter these(param tag : iterKind) : (propertyType, int) where tag == iterKind.standalone {
+      const _pid = pid;
       coforall loc in Locales do on loc {
-        var _this = getPrivatizedInstance();
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
         forall k in _this.keys { 
           if propertyType == string {
             yield (new string(k, isowned=false),_this.values[k]);

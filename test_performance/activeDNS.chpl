@@ -15,6 +15,7 @@ use VisualDebug;
 config const dataset = "../data/DNS/";
 config const printTiming = true;
 
+
 var t = new Timer();
 var tt = new Timer();
 var vPropMap = new PropertyMap(string);
@@ -36,27 +37,23 @@ proc getMetrics(graph) {
   }
   ttt.stop();
   if printTiming then writeln("Edge Cardinality Distribution: ", ttt.elapsed());
-  startVdebug("Metrics-Perf");
   // Compute component size distribution
+  beginProfile("Components-Perf");
   for s in 1..3 {
     ttt.start();
-    tagVdebug("vc" + s:string);
     var vComponentSizeDistribution = vertexComponentSizeDistribution(graph, s);
-    pauseVdebug();
     writeln(for (i,j) in zip(vComponentSizeDistribution.domain, vComponentSizeDistribution) do (i,j):string);
     ttt.stop();
     if printTiming then writeln("Vertex Component Size Distribution (s=", s, "): ", ttt.elapsed());
     ttt.clear();
     ttt.start();
-    tagVdebug("ec" + s:string);
     var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
-    pauseVdebug();
     writeln(for (i,j) in zip(eComponentSizeDistribution.domain, eComponentSizeDistribution) do (i,j):string);
     ttt.stop();
     if printTiming then writeln("Edge Component Size Distribution (s=", s, "): ", ttt.elapsed());
     ttt.clear();
   }
-  stopVdebug();
+  endProfile();
 }
 
 t.start();

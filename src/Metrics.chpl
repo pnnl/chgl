@@ -103,15 +103,17 @@ module Metrics {
     
     // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
     // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for v in graph.verticesDomain do on graph.getLocale(graph.toVertex(v)) {
+    for v in graph.verticesDomain {
       // If we have visited this vertex or if it has a degree less than 's', skip it.
       if components[v].read() != 0 || graph.degree(graph.toVertex(v)) < s {}
       else {
         const cId = componentId;
-        componentId += 1;
+        componentId = cId + 1;
         components[v].write(cId);
 
-        forall neighbor in graph.walk(graph.toVertex(v), s, isImmutable=true) {
+        const vertex = graph.toVertex(v);
+        const _s = s;
+        forall neighbor in graph.walk(vertex, _s, isImmutable=true) {
           terminationDetector.started(1);
           const loc = graph.getLocale(neighbor);
           workQueue.addWork(neighbor.id, loc);
@@ -152,12 +154,12 @@ module Metrics {
     
     // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
     // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for e in graph.edgesDomain do on graph.getLocale(graph.toEdge(e)) {
+    for e in graph.edgesDomain {
       // If we have visited this edge or if it has a degree less than 's', skip it.
       if components[e].read() != 0 || graph.degree(graph.toEdge(e)) < s {}
       else {
         const cId = componentId;
-        componentId += 1;
+        componentId = cId + 1;
         components[e].write(cId);
         forall neighbor in graph.walk(graph.toEdge(e), s, isImmutable=true) {
           terminationDetector.started(1);

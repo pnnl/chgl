@@ -39,6 +39,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
   // migrating to different locales.
   begin {
     var lastSize = 0;
+    var sleepTime = 0;
     var time = new Timer();
     time.start();
     while true {
@@ -46,7 +47,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
         for loc in Locales do on loc do rcLocal(termination).write(true);
         break;
       } else if workQueueVerbose {
-        writeln("Background Task: ", td.getStatistics(), ", ", wq.asyncTasks.getStatistics(), ", ", wq.globalSize);
+        writeln("Background Task: ", td.getStatistics(), ", ", wq.asyncTasks.getStatistics(), ", ", wq.globalSize, ", ", wq.workPending);
       }
 
       var currSize : int;
@@ -57,8 +58,11 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
       lastSize = currSize;
       if velocity < workQueueMinVelocityForFlush {
         wq.flush();
+        sleepTime = 0;
+      } else {
+        sleepTime = max(1, min(1024, sleepTime * 2));
       }
-      sleep(t=1, unit=TimeUnits.milliseconds);
+      sleep(t=sleepTime, unit=TimeUnits.microseconds);
     }
   }
 
@@ -195,6 +199,12 @@ class WorkQueueImpl {
 
   proc size return queue.size;
 
+  proc workPending {
+    if destBuffer.isInitialized() then return destBuffer.size();
+    else if dynamicDestBuffer.isInitialized() then return dynamicDestBuffer.size();
+    else return 0;
+  }
+
   proc dsiPrivatize(pid) {
     return new unmanaged WorkQueueImpl(this, pid);
   }
@@ -242,7 +252,8 @@ class WorkQueueImpl {
         return;
       } else {
         on Locales[locid] {
-          local do getPrivatizedInstance().queue.add(work);
+          var _this = getPrivatizedInstance();
+          local do _this.queue.add(work);
         }
         return;
       }
@@ -260,14 +271,14 @@ class WorkQueueImpl {
   proc isEmpty() return this.size == 0;
 
   proc flushLocal() {
-    if destBuffer.isInitialized() {
+    if destBuffer.isInitialized() && destBuffer.size() > 0 {
       for (buf, loc) in destBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();        
         var arr = buf.getArray();
         _this.queue.add(arr);
         buf.done();
       }
-    } else if dynamicDestBuffer.isInitialized() {
+    } else if dynamicDestBuffer.isInitialized() && dynamicDestBuffer.size() > 0 {
       for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();

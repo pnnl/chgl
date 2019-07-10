@@ -1149,6 +1149,7 @@ module AdjListHyperGraph {
     // size at least the size of s, as it was reachable from at least s distinct vertices.
     // This annihilates the need to perform any intersections.
     iter walk(eDesc : eDescType, s = 1, param isImmutable = false, param tag : iterKind) : eDescType where tag == iterKind.standalone {
+      const _pid = pid;
       // When we have one locale, just run the normal work loop.
       if numLocales == 1 {
         forall v in incidence(eDesc, isImmutable) {
@@ -1186,7 +1187,7 @@ module AdjListHyperGraph {
             const sz = localeWork[here.id].size();
             var dom = {0..#sz};
             var arr : [dom] int = localeWork[here.id].getArray();
-            var _this = getPrivatizedInstance();
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
             forall v in arr {
               for e in _this.incidence(_this.toVertex(v), isImmutable) do if eDesc != e {
                 // if s == 1, no intersection needed
@@ -1216,6 +1217,7 @@ module AdjListHyperGraph {
     }
 
     iter walk(vDesc : vDescType, s = 1, param tag : iterKind, param isImmutable = false) : vDescType where tag == iterKind.standalone {
+      const _pid = pid;
       // When we have one locale, just run the normal work loop.
       if numLocales == 1 {
         forall e in incidence(vDesc, isImmutable) {
@@ -1253,7 +1255,7 @@ module AdjListHyperGraph {
             const sz = localeWork[here.id].size();
             var dom = {0..#sz};
             var arr : [dom] int = localeWork[here.id].getArray();
-            var _this = getPrivatizedInstance();
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
             forall e in arr {
               for v in _this.incidence(_this.toEdge(e), isImmutable) do if vDesc != v {
                 // if s == 1, no intersection needed
