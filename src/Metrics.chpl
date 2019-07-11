@@ -24,6 +24,9 @@ module Metrics {
           if _cid > cid {
             indices[idx] = cid;
           }
+        } else {
+          indicesDom += idx;
+          indices[idx] = cid;
         }
       }
 
@@ -176,13 +179,9 @@ module Metrics {
         workQueue.addWork((e, 0));
       }
     }
-    forall (eIdx, cid) in doWorkLoop(workQueue, terminationDetector) with (var taskCID : int) {
-      if eIdx != -1 && cid != -1 {
-        if taskCID == 0 {
-          taskCID = componentId.fetchAdd(1);
-        }
-
-        const cId = if cid == 0 then taskCID else cid;
+    forall (eIdx, cid) in doWorkLoop(workQueue, terminationDetector) {
+      if eIdx != -1 && cid != -1 && graph.degree(graph.toEdge(eIdx)) >= s {
+        const cId = if cid == 0 then componentId.fetchAdd(1) else cid;
 
         // If the component id is not set for this edge, or if the component
         // id has a larger value, we can try to 'claim' this edge, and if successful
