@@ -28,17 +28,27 @@ WorkQueue
 
 .. function:: proc <=>(ref wq1: WorkQueue, ref wq2: WorkQueue)
 
-.. function:: proc UninitializedWorkQueue(type workType)
+.. record:: nopCoalescer
+
+   .. attribute:: type t
+
+   .. method:: proc init(type t)
+
+   .. method:: proc this(arr: [] ?t): void
+
+.. function:: proc UninitializedWorkQueue(type workType, coalesceFn: ?t = nopCoalescer(workType))
 
 .. record:: WorkQueue
 
    .. attribute:: type workType
 
-   .. attribute:: var instance: unmanaged WorkQueueImpl(workType)
+   .. attribute:: type colaesceFnType
+
+   .. attribute:: var instance: unmanaged workTypeWorkQueueImplcolaesceFnType
 
    .. attribute:: var pid = -1
 
-   .. method:: proc init(type workType, numAggregatedWork: int = WorkQueueNoAggregation)
+   .. method:: proc init(type workType, numAggregatedWork: int = WorkQueueNoAggregation, coalesceFn: ?t = new nopCoalescer(workType))
 
    .. method:: proc isInitialized()
 
@@ -60,7 +70,9 @@ WorkQueue
 
    .. attribute:: var shutdownSignal: atomicbool
 
-   .. method:: proc init(type workType, numAggregatedWork: int)
+   .. attribute:: var coalesceFn
+
+   .. method:: proc init(type workType, numAggregatedWork: int, coalesceFn: ? = new nopCoalescer(workType))
 
    .. method:: proc init(other, pid)
 

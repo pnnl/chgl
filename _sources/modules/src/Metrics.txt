@@ -14,21 +14,9 @@ Metrics
 
 Compilation of common metrics to be performed on hypergraphs or graphs.
 
-.. record:: EdgeSorter
+.. record:: ComponentCoalescer
 
-   .. attribute:: var graph
-
-   .. method:: proc init(graph)
-
-   .. method:: proc key(e)
-
-.. record:: VertexSorter
-
-   .. attribute:: var graph
-
-   .. method:: proc init(graph)
-
-   .. method:: proc key(e)
+   .. method:: proc this(arr: [?D] (int, int))
 
 .. iterfunction:: iter getVertexComponents(graph, s = 1)
 
