@@ -192,11 +192,11 @@ module Generation {
     var inclusionsToAdd = round(numVertices * numEdges * newP) : int; 
     var workInfo = calculateWork(inclusionsToAdd, targetLocales);
     
-    sync coforall loc in targetLocales do on loc {
+    coforall loc in targetLocales do on loc {
       coforall tid in 1..here.maxTaskPar {
         var work = workInfo[here.id, tid];
         var rng = new owned RandomStream(int, seed=work.rngSeed);
-        if work.rngOffset != 0 then rng.skipToNth(work.rngOffset);
+        if work.rngOffset != 0 then try! rng.skipToNth(work.rngOffset);
         for 1..work.numOperations {
           var vertex = rng.getNext(0, vertSize - 1) * vertStride + vertLow;
           var edge = rng.getNext(0, edgeSize - 1) * edgeStride + edgeLow;

@@ -1,0 +1,5 @@
+perfkeys: Time:
+files: dat/BTER.dat
+graphkeys: BTER
+graphtitle: BTER Hypergraph Generation (100K Vertices, 200K Edges, 1M Inclusions)
+ylabel: Time (seconds)
