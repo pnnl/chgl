@@ -496,7 +496,6 @@ module Generation {
     var expectedDuplicates : int;
     var currLoc : int;
     var rngOffset : int;
-    graph.startAggregation();
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
@@ -550,12 +549,11 @@ module Generation {
         // Compute affinity blocks
         for v in vertices {
           for e in edges {
-            if rng.getNext() > rho then graph.addInclusion(v,e);
+            if rng.getNext() > rho then graph.addInclusionBuffered(v,e);
           }
         }
         td.finished(1);
     }
-    graph.stopAggregation();
     graph.flushBuffers();
         
     forall v in graph.getVertices() {
@@ -566,6 +564,7 @@ module Generation {
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
     generateChungLu(graph, vd, ed, nInclusions);
+
     return graph;
   }
 }
