@@ -1,5 +1,5 @@
 perfkeys: Time:
 files: dat/ChungLu.dat
 graphkeys: Chung Lu
-graphtitle: Chung-Lu Hypergraph Generation (1M Vertices, 2M Edges, 10M Inclusions)
+graphtitle: Chung-Lu Hypergraph Generation (10M Vertices, 20M Edges, 100M Inclusions)
 ylabel: Time (seconds)
