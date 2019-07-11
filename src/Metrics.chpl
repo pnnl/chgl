@@ -2,28 +2,44 @@
   Compilation of common metrics to be performed on hypergraphs or graphs.
 */
 module Metrics {
-  use WorkQueue;
+  use CHGL;
   use Vectors;
   use Utilities;
   use Traversal;
+  use Sort;
   use DynamicAggregationBuffer;
 
-  record EdgeSorter {
-    var graph;
-    proc init(graph) {
-      this.graph = graph;
-    }
+  // Coalescing of s-connected components. When given the
+  // array of (idx, cid) pairs, we want to eliminate the
+  // greater cids directed at the same idx. We also eliminate
+  // redundant cids.
+  record ComponentCoalescer {
+    proc this(arr : [?D] (int, int)) {
+      var indicesDom : domain(int); // idx
+      var indices : [indicesDom] int;  // cid
 
-    proc key(e) { return graph.degree(graph.toEdge(e)); }
-  }
-  
-  record VertexSorter {
-    var graph;
-    proc init(graph) {
-      this.graph = graph;
-    }
+      for (idx, cid) in arr {
+        if indicesDom.contains(idx) {
+          const _cid = indices[idx];
+          if _cid > cid {
+            indices[idx] = cid;
+          }
+        } else {
+          indicesDom += idx;
+          indices[idx] = cid;
+        }
+      }
 
-    proc key(e) { return graph.degree(graph.toVertex(e)); }
+      var arrIdx = D.low;
+      for (idx, cid) in zip(indicesDom, indices) {
+        arr[arrIdx] = (idx, cid);
+        arrIdx += 1;
+      }
+
+      if arrIdx < D.high {
+        arr[arrIdx..] = (-1, -1);
+      }
+    } 
   }
 
   /*
@@ -96,42 +112,51 @@ module Metrics {
   */
   proc getVertexComponentMappings(graph, s = 1) {
     var components : [graph.verticesDomain] atomic int;
-    var numComponents : int;
-    var componentId = 1; // Begin at 1 so 0 becomes 'not visited' sentinel value
-    var workQueue = new WorkQueue(int, 1024 * 1024);
+    var componentId : atomic int;
+    var workQueue = new WorkQueue((int,int), 1024 * 1024, new ComponentCoalescer());
     var terminationDetector = new TerminationDetector();
+
+    // Begin at 1 so 0 becomes 'not visited' sentinel value
+    componentId.write(1);
     
-    // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
-    // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for v in graph.verticesDomain {
-      // If we have visited this vertex or if it has a degree less than 's', skip it.
-      if components[v].read() != 0 || graph.degree(graph.toVertex(v)) < s {}
-      else {
-        const cId = componentId;
-        componentId = cId + 1;
-        components[v].write(cId);
+    // Add all edges with a degree of at least 's' to the work queue
+    // so we can perform a breadth-first search.
+    forall v in graph.verticesDomain {
+      if graph.degree(graph.toVertex(v)) >= s {
+        terminationDetector.started(1);
+        workQueue.addWork((v, 0));
+      }
+    }
+    forall (vIdx, cid) in doWorkLoop(workQueue, terminationDetector) {
+      if vIdx != -1 && cid != -1 && graph.degree(graph.toVertex(vIdx)) >= s {
+        const cId = if cid == 0 then componentId.fetchAdd(1) else cid;
 
-        const vertex = graph.toVertex(v);
-        const _s = s;
-        forall neighbor in graph.walk(vertex, _s, isImmutable=true) {
-          terminationDetector.started(1);
-          const loc = graph.getLocale(neighbor);
-          workQueue.addWork(neighbor.id, loc);
-        }
-
-        if terminationDetector.tasksStarted.read() != 0 then
-        forall vIdx in doWorkLoop(workQueue, terminationDetector) {
-          // If we have not yet visited this vertex
-          if components[vIdx].compareExchange(0, cId) {
-            forall neighbor in graph.walk(graph.toVertex(vIdx), s, isImmutable=true) {
-              terminationDetector.started(1);
-              const loc =  graph.getLocale(neighbor);
-              workQueue.addWork(neighbor.id,loc);
+        // If the component id is not set for this edge, or if the component
+        // id has a larger value, we can try to 'claim' this edge, and if successful
+        // try to claim its neighbors, and so on and so forth. If the component
+        // id has a smaller or equal value, we do nothing. 
+        var shouldAddNeighbors = false;
+        while true do local {
+          var currId = components[vIdx].read();
+          if (currId == 0 || currId > cId) {
+            // Claimed...
+            if components[vIdx].compareExchange(currId, cId) {
+              shouldAddNeighbors = true;
+              break;
             }
+          } else {
+            // Edge is already claimed by an equal or lower component id. Do nothing.
+            break;
           }
-          terminationDetector.finished(1);
+        }
+        if shouldAddNeighbors {
+          forall neighbor in graph.walk(graph.toVertex(vIdx), s, isImmutable=true) {
+            terminationDetector.started(1);
+            workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+          }
         }
       }
+      terminationDetector.finished(1);
     }
     
     terminationDetector.destroy();
@@ -148,37 +173,51 @@ module Metrics {
   */
   proc getEdgeComponentMappings(graph, s = 1) {
     var components : [graph.edgesDomain] atomic int;
-    var componentId = 1; // Begin at 1 so 0 becomes 'not visited' sentinel value
-    var workQueue = new WorkQueue(int, 1024 * 1024);
+    var componentId : atomic int;
+    var workQueue = new WorkQueue((int,int), 1024 * 1024, new ComponentCoalescer());
     var terminationDetector = new TerminationDetector();
-    
-    // Iterate over edges serially to avoid A) redundant work, B) large space needed for parallel
-    // BFS, and C) bound the number of work we perform (as part of eliminating redundant work)
-    for e in graph.edgesDomain {
-      // If we have visited this edge or if it has a degree less than 's', skip it.
-      if components[e].read() != 0 || graph.degree(graph.toEdge(e)) < s {}
-      else {
-        const cId = componentId;
-        componentId = cId + 1;
-        components[e].write(cId);
-        forall neighbor in graph.walk(graph.toEdge(e), s, isImmutable=true) {
-          terminationDetector.started(1);
-          const loc = graph.getLocale(neighbor);
-          workQueue.addWork(neighbor.id, loc);
-        }
 
-        if terminationDetector.tasksStarted.read() != 0 then
-        forall eIdx in doWorkLoop(workQueue, terminationDetector) {
-          if components[eIdx].compareExchange(0, cId) {
-            forall neighbor in graph.walk(graph.toEdge(eIdx), s, isImmutable=true) {
-              terminationDetector.started(1);
-              const loc = graph.getLocale(neighbor);
-              workQueue.addWork(neighbor.id, loc);
+    // Begin at 1 so 0 becomes 'not visited' sentinel value
+    componentId.write(1);
+    
+    // Add all edges with a degree of at least 's' to the work queue
+    // so we can perform a breadth-first search.
+    forall e in graph.edgesDomain {
+      if graph.degree(graph.toEdge(e)) >= s {
+        terminationDetector.started(1);
+        workQueue.addWork((e, 0));
+      }
+    }
+    forall (eIdx, cid) in doWorkLoop(workQueue, terminationDetector) {
+      if eIdx != -1 && cid != -1 && graph.degree(graph.toEdge(eIdx)) >= s {
+        const cId = if cid == 0 then componentId.fetchAdd(1) else cid;
+
+        // If the component id is not set for this edge, or if the component
+        // id has a larger value, we can try to 'claim' this edge, and if successful
+        // try to claim its neighbors, and so on and so forth. If the component
+        // id has a smaller or equal value, we do nothing. 
+        var shouldAddNeighbors = false;
+        while true do local {
+          var currId = components[eIdx].read();
+          if (currId == 0 || currId > cId) {
+            // Claimed...
+            if components[eIdx].compareExchange(currId, cId) {
+              shouldAddNeighbors = true;
+              break;
             }
+          } else {
+            // Edge is already claimed by an equal or lower component id. Do nothing.
+            break;
           }
-          terminationDetector.finished(1);
+        }
+        if shouldAddNeighbors {
+          forall neighbor in graph.walk(graph.toEdge(eIdx), s, isImmutable=true) {
+            terminationDetector.started(1);
+            workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+          }
         }
       }
+      terminationDetector.finished(1);
     }
     
     terminationDetector.destroy();
