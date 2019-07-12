@@ -1,0 +1,5 @@
+perfkeys: PropertyMap Creation:, HashedDist Creation:, PropertyMap Insertion (no aggregation):, PropertyMap Insertion (aggregation):, HashedDist Insertion:, PropertyMap Retrieval:, HashedDist Retrieval:
+files: dat/PropertyMapMicrobenchmark.dat, dat/PropertyMapMicrobenchmark.dat, dat/PropertyMapMicrobenchmark.dat, dat/PropertyMapMicrobenchmark.dat, dat/PropertyMapMicrobenchmark.dat, dat/PropertyMapMicrobenchmark.dat, dat/PropertyMapMicrobenchmark.dat
+graphkeys: PropertyMap Creation, HashedDist Creation, PropertyMap Insertion (no aggregation), PropertyMap Insertion (aggregation), HashedDist Insertion, PropertyMap Retrieval, HashedDist Retrieval
+graphtitle: PropertyMap vs HashedDist Microbenchmark
+ylabel: Time (seconds)
