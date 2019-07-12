@@ -495,7 +495,8 @@ module Generation {
     var blockID = 1;
     var expectedDuplicates : int;
     var currLoc : int;
-    var rngOffset : int;
+    var rngOffset = 1;
+    var seed = randInt();
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
@@ -535,7 +536,7 @@ module Generation {
         }
         workQueue.addWork((idV..#nV_int, idE..#nE_int, rngOffset, rho), currLoc % numLocales);
         currLoc += 1;
-        rngOffset += nV_int + nE_int;
+        rngOffset += nV_int * nE_int;
         td.started(1);
         
         idV += nV_int;
@@ -545,11 +546,12 @@ module Generation {
       }
     }
 
-    forall (vertices, edges, rngOffset, rho) in doWorkLoop(workQueue, td) with (var rng = new RandomStream(real, parSafe=false))  {
+    forall (vertices, edges, rngOffset, rho) in doWorkLoop(workQueue, td) with (var rng = new RandomStream(real, parSafe=false, seed=seed))  {
+        try! rng.skipToNth(rngOffset);
         // Compute affinity blocks
         for v in vertices {
           for e in edges {
-            if rng.getNext() > rho then graph.addInclusionBuffered(v,e);
+            if rng.getNext() < rho then graph.addInclusionBuffered(v,e);
           }
         }
         td.finished(1);
@@ -564,7 +566,6 @@ module Generation {
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
     generateChungLu(graph, vd, ed, nInclusions);
-
     return graph;
   }
 }

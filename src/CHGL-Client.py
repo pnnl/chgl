@@ -1,3 +1,11 @@
+#
+# This Client is a prototype that uses ZMQ to connect to a running
+# Chapel server. This has been heavily inspired by Arkouda, the first
+# project to take and use this approach. This is a prototype and is 
+# intended as a brief proof-of-concept; the hope is that CHGL will 
+# have integration with Arkouda at a later date. 
+#
+
 import zmq
 import multiprocessing
 from concurrent.futures import *
