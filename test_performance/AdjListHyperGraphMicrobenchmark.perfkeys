@@ -3,10 +3,10 @@ AddInclusion:
 Graph Destroy:
 AddInclusionBuffered:
 GetInclusions:
-Walk (s=1, serial, isImmutable=false):
-Walk (s=1, serial, isImmutable=true):
-Walk (s=1, parallel, isImmutable=false):
-Walk (s=1, parallel, isImmutable=true):
+Walk (s=1; serial; isImmutable=false):
+Walk (s=1; serial; isImmutable=true):
+Walk (s=1; parallel; isImmutable=false):
+Walk (s=1; parallel; isImmutable=true):
 Intersection Size(isImmutable=false):
 Intersection Size (isImmutable=true):
 Incidence (isImmutable=false):

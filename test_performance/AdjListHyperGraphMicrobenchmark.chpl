@@ -102,7 +102,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   for ee in graph.walk(e, isImmutable=false) do totalNeighborID += ee.id;
 }
 timer.stop();
-if printTiming then writeln("Walk (s=1, serial, isImmutable=false): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; serial; isImmutable=false): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -111,7 +111,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   for ee in graph.walk(e, isImmutable=true) do totalNeighborID += ee.id;
 }
 timer.stop();
-if printTiming then writeln("Walk (s=1, serial, isImmutable=true): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; serial; isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -120,7 +120,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   forall ee in graph.walk(e, isImmutable=false) with (+ reduce totalNeighborID) do totalNeighborID += ee.id;
 }
 timer.stop();
-if printTiming then writeln("Walk (s=1, parallel, isImmutable=false): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; parallel; isImmutable=false): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -129,7 +129,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   forall ee in graph.walk(e, isImmutable=true) with (+ reduce totalNeighborID) do totalNeighborID += ee.id;
 }
 timer.stop();
-if printTiming then writeln("Walk (s=1, parallel, isImmutable=true): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; parallel; isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 var totalTime : real;
