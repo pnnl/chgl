@@ -1,0 +1,50 @@
+.. default-domain:: chpl
+
+.. module:: UnrolledLinkedList
+
+UnrolledLinkedList
+==================
+**Usage**
+
+.. code-block:: chapel
+
+   use UnrolledLinkedList;
+
+.. class:: UnrollBlock
+
+   .. attribute:: type eltType
+
+   .. attribute:: param cap: int
+
+   .. attribute:: var end: int
+
+   .. attribute:: var start: int
+
+   .. attribute:: var data: eltTypec_arraycap
+
+   .. attribute:: var next: unmanaged eltTypeUnrollBlockcap
+
+.. record:: UnrolledLinkedList
+
+   .. attribute:: type eltType
+
+   .. attribute:: param unrollBlockSize: int
+
+   .. attribute:: var sz: int
+
+   .. attribute:: var head: unmanaged eltTypeUnrollBlockunrollBlockSize
+
+   .. method:: proc init(type eltType, param unrollBlockSize: int)
+
+   .. method:: proc append(elt: eltType)
+
+   .. method:: proc size
+
+   .. method:: proc remove(ref elt: ?eltType): bool
+
+   .. itermethod:: iter these(): eltType
+
+   .. method:: proc deinit()
+
+.. function:: proc main()
+
