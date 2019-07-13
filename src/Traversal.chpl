@@ -7,33 +7,36 @@
 
 use LinkedLists;
 use AdjListHyperGraph;
+use UnrolledLinkedList;
+
+
 
 iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType {
   var explored : domain(int);
-  var queue = new LinkedList(int);
-  queue.push_back(v.id);
+  var queue = new UnrolledLinkedList(int, 1024);
+  queue.append(v.id);
   while queue.size != 0 {
-    var currV = queue.pop_front();
+    var currV : int; 
+    assert(queue.remove(currV));
     if explored.contains(currV) then continue;
     explored += currV;
     if v.id != currV then yield graph.toVertex(currV); 
-    for vv in graph.walk(graph.toVertex(currV), s) {
-      queue.push_back(vv.id);
-    }
+    var neighbors = forall vv in graph.walk(graph.toVertex(currV), s) do vv.id;
+    for neighbor in neighbors do queue.append(neighbor);
   }
 }
 
 iter edgeBFS(graph, e : graph._value.eDescType, s=1) : graph._value.eDescType {
   var explored : domain(int);
-  var queue = new LinkedList(int);
-  queue.push_back(e.id);
+  var queue = new UnrolledLinkedList(int, 1024);
+  queue.append(e.id);
   while queue.size != 0 {
-    var currE = queue.pop_front();
+    var currE : int; 
+    assert(queue.remove(currE));
     if explored.contains(currE) then continue;
     explored += currE;
     if e.id != currE then yield graph.toEdge(currE);
-    for ee in graph.walk(graph.toEdge(currE), s) {
-      queue.push_back(ee.id);
-    }
+    var neighbors = forall ee in graph.walk(graph.toEdge(currE), s, isImmutable=true) do ee.id;
+    for neighbor in neighbors do queue.append(neighbor);
   }
 }
