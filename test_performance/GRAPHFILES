@@ -3,3 +3,5 @@ ChungLu.graph
 BTER.graph
 activeDNS.graph
 AdjListHyperGraphMicrobenchmark.graph
+WorkQueueMicrobenchmark.graph
+PropertyMapMicrobenchmark.graph
