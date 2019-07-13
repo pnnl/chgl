@@ -159,14 +159,13 @@ proc getMetrics(graph, prefix, doComponents) {
     // Compute component size distribution
     if doComponents then for s in 1..3 {
       var vComponentSizeDistribution = vertexComponentSizeDistribution(graph, s);
-      var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
-
       f.writeln("(", prefix, ") Vertex Connected Component Size Distribution (s = " + s + "):");
       for (sz, freq) in zip(vComponentSizeDistribution.domain, vComponentSizeDistribution) {
         if freq != 0 then f.writeln("\t" + sz + "," + freq);
       }
       f.flush();
 
+      var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
       f.writeln("(", prefix, ") Edge Connected Component Size Distribution (s = " + s + "):");
       for (sz, freq) in zip(eComponentSizeDistribution.domain, eComponentSizeDistribution) {
         if freq != 0 then f.writeln("\t" + sz + "," + freq);

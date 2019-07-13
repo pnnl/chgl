@@ -256,7 +256,7 @@ module Metrics {
     forall cid in componentMappings with (+ reduce componentSizes) do if cid != 0 then componentSizes[cid] += 1;
     var maxComponentSize = max reduce componentSizes;
     var componentSizeDistribution : [1..maxComponentSize] int;
-    forall size in componentSizes with (+ reduce componentSizeDistribution) do componentSizeDistribution[size] += 1;
+    forall size in componentSizes with (+ reduce componentSizeDistribution) do if size != 0 then componentSizeDistribution[size] += 1;
     return componentSizeDistribution;
   }
 
