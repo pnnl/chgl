@@ -1168,7 +1168,7 @@ module AdjListHyperGraph {
         var localeWork : [LocaleSpace] unmanaged Vector(int);
         for v in incidence(eDesc, isImmutable) {
           const locid = getLocale(v).id;
-          if localeWork[locid] == nil then localeWork[locid] = new unmanaged VectorImpl(int, {0..0});
+          if localeWork[locid] == nil then localeWork[locid] = new unmanaged Vector(int, 1);
           localeWork[locid].append(v.id);
         }
         //Phase 2: Scatter work to respective locales.
@@ -1177,7 +1177,7 @@ module AdjListHyperGraph {
           // do not make a copy.
           if localeWork[here.id].locale == here {
             ref vec = localeWork[here.id];
-            forall v in vec.getArray() {
+            forall v in vec.toArray() {
               for e in incidence(toVertex(v), isImmutable) do if eDesc != e {
                 // if s == 1, no intersection needed
                 if s == 1 || isConnected(eDesc, e, s, isImmutable) then yield e;
@@ -1186,7 +1186,7 @@ module AdjListHyperGraph {
           } else {
             const sz = localeWork[here.id].size();
             var dom = {0..#sz};
-            var arr : [dom] int = localeWork[here.id].getArray();
+            var arr : [dom] int = localeWork[here.id].toArray();
             var _this = chpl_getPrivatizedCopy(this.type, _pid);
             forall v in arr {
               for e in _this.incidence(_this.toVertex(v), isImmutable) do if eDesc != e {
@@ -1236,7 +1236,7 @@ module AdjListHyperGraph {
         var localeWork : [LocaleSpace] unmanaged Vector(int);
         for e in incidence(vDesc, isImmutable) {
           const locid = getLocale(e).id;
-          if localeWork[locid] == nil then localeWork[locid] = new unmanaged VectorImpl(int, {0..0});
+          if localeWork[locid] == nil then localeWork[locid] = new unmanaged Vector(int, 0);
           localeWork[locid].append(e.id);
         }
         //Phase 2: Scatter work to respective locales.
@@ -1245,7 +1245,7 @@ module AdjListHyperGraph {
           // do not make a copy.
           if localeWork[here.id].locale == here {
             ref vec = localeWork[here.id];
-            forall e in vec.getArray() {
+            forall e in vec {
               for v in incidence(toEdge(e), isImmutable) do if vDesc != v {
                 // if s == 1, no intersection needed
                 if s == 1 || isConnected(vDesc, v, s, isImmutable) then yield v;
@@ -1254,7 +1254,7 @@ module AdjListHyperGraph {
           } else {
             const sz = localeWork[here.id].size();
             var dom = {0..#sz};
-            var arr : [dom] int = localeWork[here.id].getArray();
+            var arr : [dom] int = localeWork[here.id].toArray();
             var _this = chpl_getPrivatizedCopy(this.type, _pid);
             forall e in arr {
               for v in _this.incidence(_this.toEdge(e), isImmutable) do if vDesc != v {

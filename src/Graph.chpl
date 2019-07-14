@@ -98,7 +98,7 @@ module Graph {
       }
       this.cachedNeighborListDom = hg.verticesDomain;
       complete();
-      forall vec in cachedNeighborList do vec = new unmanaged VectorImpl(hg.vDescType, {0..-1});
+      forall vec in cachedNeighborList do vec = new unmanaged Vector(hg.vDescType);
       this.pid = _newPrivatizedClass(this:unmanaged); 
     }
 
@@ -318,7 +318,7 @@ module Graph {
       var v2 = hg.toVertex(_v2);
       if isCacheValid() {
         return Utilities.intersection(
-            privatizedCachedNeighborListInstance.dsiAccess(v1.id).getArray(), privatizedCachedNeighborListInstance.dsiAccess(v2.id).getArray()
+            privatizedCachedNeighborListInstance.dsiAccess(v1.id).toArray(), privatizedCachedNeighborListInstance.dsiAccess(v2.id).toArray()
         );
       } else {
         hg.getVertex(v1).sortIncidence(true);
@@ -334,7 +334,7 @@ module Graph {
       var v2 = hg.toVertex(_v2);
       if isCacheValid() {
         return Utilities.intersectionSize(
-            privatizedCachedNeighborListInstance.dsiAccess(v1.id).getArray(), privatizedCachedNeighborListInstance.dsiAccess(v2.id).getArray()
+            privatizedCachedNeighborListInstance.dsiAccess(v1.id).toArray(), privatizedCachedNeighborListInstance.dsiAccess(v2.id).toArray()
         );
       } else {
       hg.getVertex(v1).sortIncidence(true);
