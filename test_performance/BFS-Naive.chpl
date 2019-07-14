@@ -1,6 +1,6 @@
 use RangeChunk;
 use WorkQueue;
-use BlockDist;
+use CyclicDist;
 use Vectors;
 use Utilities;
 use Barriers;
@@ -34,7 +34,7 @@ try! {
   f.close();
 }
 
-var verticesDomain = {0..#numVertices} dmapped Block(boundingBox={0..#numVertices});
+var verticesDomain = {0..#numVertices} dmapped Cyclic(startIdx=0);
 var vertices : [verticesDomain] unmanaged Vector(int);
 
 try! {
@@ -66,7 +66,7 @@ try! {
 
 
         // Pre-allocate buffer for vector and read directly into it
-        var vec = new unmanaged VectorImpl(int, {0..#(endOffset - beginOffset + 1)});
+        var vec = new unmanaged Vector(int, endOffset - beginOffset + 1);
         reader.readBytes(c_ptrTo(vec.arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
         vec.sz = (endOffset - beginOffset + 1) : int;
         vec.sort();
@@ -76,6 +76,27 @@ try! {
     }
     f.close();
   }
+}
+
+// Redistribute again...
+record DistArray {
+  var dom = {0..0} dmapped Cyclic(startIdx=0);
+  var arr : [dom] int;
+
+  proc init() { this.dom = {0..0} dmapped Cyclic(startIdx=0); }
+
+  proc init(arr : [?D] int) {
+    this.dom = {0..#arr.size} dmapped Cyclic(startIdx=0);
+    this.complete();
+    this.arr = arr;
+  }
+}
+
+var distVerticesDom = {0..#numVertices} dmapped Cyclic(startIdx=0);
+var distVertices : [distVerticesDom] DistArray;
+
+forall (vec, distArr) in zip(vertices, distVertices) {
+  distArr = new DistArray(vec.toArray());
 }
 
 timer.stop();
@@ -97,7 +118,7 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
     if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
-      for neighbor in vertices[vertex] {
+      forall neighbor in vertices[vertex].arr {
         if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
           continue;
         }

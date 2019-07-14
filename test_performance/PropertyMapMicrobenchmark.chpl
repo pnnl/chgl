@@ -49,6 +49,16 @@ if printTiming then writeln("PropertyMap Retrieval: ", timer.elapsed());
 timer.clear();
 
 timer.start();
+{
+    var propertyHandles : [cyclicDom] shared PropertyHandle;
+    forall idx in cyclicDom do propertyHandles[idx] = propertyMap.getPropertyAsync(idx);
+    propertyMap.flushGlobal();
+}
+timer.stop();
+if printTiming then writeln("PropertyMap Retrieval (aggregated): ", timer.elapsed());
+timer.clear();
+
+timer.start();
 forall idx in cyclicDom do arr[idx];
 timer.stop();
 if printTiming then writeln("HashedDist Retrieval: ", timer.elapsed());

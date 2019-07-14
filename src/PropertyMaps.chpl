@@ -106,7 +106,10 @@ module PropertyMaps {
     var values : [keys] int;
     // Aggregation used to batch up potentially remote insertions.
     pragma "no doc"
-    var aggregator = UninitializedAggregator((propertyType, int));
+    var setAggregator = UninitializedAggregator((propertyType, int));
+    // Aggregation used to batch up potentially remote 'fetches' of properties.
+    pragma "no doc"
+    var getAggregator = UninitializedAggregator((propertyType, shared PropertyHandle));
     pragma "no doc"
     var terminationDetector : TerminationDetector;
 
@@ -117,7 +120,8 @@ module PropertyMaps {
       this.propertyType = propertyType;
       this.mapper = mapper;
       this.complete();
-      this.aggregator = new Aggregator((propertyType, int));
+      this.setAggregator = new Aggregator((propertyType, int));
+      this.getAggregator = new Aggregator((propertyType, shared PropertyHandle));
       this.terminationDetector = new TerminationDetector();
       this.pid = _newPrivatizedClass(this:unmanaged);
     }
@@ -126,7 +130,7 @@ module PropertyMaps {
       this.propertyType = propertyType;
       this.mapper = other.mapper;
       this.complete();
-      this.aggregator = new Aggregator((propertyType, int));
+      this.setAggregator = new setAggregator((propertyType, int));
       this.terminationDetector = new TerminationDetector();
 
       this.pid = _newPrivatizedClass(this:unmanaged);
@@ -145,7 +149,8 @@ module PropertyMaps {
       this.mapper = privatizedData[3];
       this.complete();
       this.pid = privatizedData[1];
-      this.aggregator = privatizedData[2];
+      this.setAggregator = privatizedData[2];
+      this.getAggregator = privatizedData[5];
       this.terminationDetector = privatizedData[4];
     }
 
@@ -153,7 +158,7 @@ module PropertyMaps {
     proc deinit() {
       // Only delete data from master locale
       if here == Locales[0] {
-        aggregator.destroy();
+        setAggregator.destroy();
       }
     }
 
@@ -164,7 +169,7 @@ module PropertyMaps {
 
     pragma "no doc"
     proc dsiGetPrivatizeData() {
-      return (pid, aggregator, mapper, terminationDetector);
+      return (pid, setAggregator, mapper, terminationDetector, getAggregator);
     }
 
     pragma "no doc"
@@ -209,8 +214,10 @@ module PropertyMaps {
     }
 
     proc flushLocal(param acquireLock = true) {
+      // Flush aggregation buffer 'setAggregator' first so any written
+      // values are seen. Then flush 'getAggregator'.
       const _pid = pid;
-      coforall (buf, loc) in aggregator.flushLocal() do on loc {
+      forall (buf, loc) in setAggregator.flushLocal() do on loc {
         var arr = buf.getArray();
         buf.done();
         var _this = chpl_getPrivatizedCopy(this.type, _pid);
@@ -222,6 +229,10 @@ module PropertyMaps {
           }
           if acquireLock then _this.lock.release();
         }
+      }
+
+      forall (buf, loc) in getAggregator.flushLocal() {
+        _flushGetAggregatorBuffer(buf, loc, acquireLock = acquireLock);
       }
     }
     proc flushGlobal(param acquireLock = true) {
@@ -238,7 +249,7 @@ module PropertyMaps {
       const _pid = pid;
       
       if aggregated {
-        var buf = aggregator.aggregate((property, id), loc);
+        var buf = setAggregator.aggregate((property, id), loc);
         if buf != nil {
           terminationDetector.started(1);
           begin on loc {
@@ -265,6 +276,64 @@ module PropertyMaps {
           if acquireLock then _this.lock.release();
         }
       }
+    }
+
+    proc _flushGetAggregatorBuffer(buf : Buffer, loc : locale, param acquireLock = true) {
+      // Obtain separate array of properties and handles; we need to isolate properties
+      // so we can do a bulk-transfer on the other locales.
+      var arr = buf.getArray();
+      buf.done();
+      const arrSz = arr.size;
+      var properties : [0..#arrSz] propertyType;
+      var keys : [0..#arrSz] int;
+      var handles : [0..#arrSz] shared PropertyHandle;
+      forall ((prop, hndle), _prop, _hndle) in zip(arr, properties, handles) {
+        _prop = prop;
+        _hndle = hndle;
+      }
+      on loc {
+        // Make local arrays to store directly into...
+        var _this = getPrivatizedInstance();
+        const localDomain = {0..#arrSz};
+        // Remote bulk transfer (GET) x 2
+        var _properties : [localDomain] propertyType = properties;
+        var _keys : [localDomain] int;
+        if acquireLock then _this.lock.acquire();
+
+        // Gather all keys (local)
+        forall (prop, key) in zip(_properties, _keys) {
+          _keys = _this.values[prop];
+        }
+        if acquireLock then _this.lock.release();
+        // Remote bulk transfer (PUT)
+        keys = _keys; 
+      }
+      forall (key, handle) in zip(keys, handles) {
+        handle.set(key);
+      }
+    }
+
+    proc getPropertyAsync(property : propertyType, param acquireLock = true) : shared PropertyHandle {
+      const loc = Locales[mapper(property, Locales)];
+
+      var handle = new shared PropertyHandle();
+
+      if loc == here {
+        if acquireLock then this.lock.acquire();
+        handle.set(this.values[property]);
+        if acquireLock then this.lock.release();
+      } else {
+        var buf = getAggregator.aggregate((property, handle), loc);
+        if buf != nil {
+          terminationDetector.started(1);
+          begin with (in buf, in loc) {
+            _flushGetAggregatorBuffer(buf, loc, acquireLock);
+            terminationDetector.finished(1);
+          }
+        }
+      }
+
+      return handle;
     }
 
     proc getProperty(property : propertyType, param acquireLock = true) : int {
@@ -327,5 +396,36 @@ module PropertyMaps {
         }
       }
     }
+  }
+
+  class PropertyHandle {
+    var retVal : int;
+    var ready : atomic bool;
+
+    proc init() {}
+
+    proc init(val : int) {
+      this.retVal = val;
+      this.read.write(true);
+    }
+
+    proc get() : int {
+      ready.waitFor(true);
+      return retVal;
+    }
+
+    proc set(val : int) {
+      retVal = val;
+      ready.write(true);
+    }
+
+    proc isReady() {
+      return ready.read();
+    }
+  }
+
+  proc =(ref x : (int(64), _shared(PropertyHandle)), y : (int(64), _shared(PropertyHandle))) {
+    x[1] = y[1];
+    x[2] = y[2];
   }
 }
