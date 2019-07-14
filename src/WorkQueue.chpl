@@ -100,27 +100,48 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
 }
 
 // Swap will only swap the privatization ids, so it only applies to this instance.
-// Will also flush the aggregation buffer
 proc <=>(ref wq1 : WorkQueue, ref wq2 : WorkQueue) {
-  sync {
-    wq1.flush();
-    wq2.flush();
-  }
   wq1.pid <=> wq2.pid;
   wq1.instance <=> wq2.instance;
 }
 
-record nopCoalescer {
+// Coalescing function that discards duplicate values. 
+record DuplicateCoalescer {
+  type t;
+  var dupValue : t;
+
+  proc init(type t, dupValue : t) {
+    this.t = t;
+    this.dupValue = dupValue;
+  }
+
+  proc this(A : [?D] ?t) {
+    var set : domain(t);
+    for a in A do set += a;
+    // Bug for tuple size mismatch
+    var ix = D.low;
+    for s in set {
+      A[ix] = s;
+        ix += 1;
+    }
+    if ix < D.high {
+      A[ix..] = dupValue;
+    }
+  }
+}
+
+// No coalescing - Default
+record NopCoalescer {
   type t;
   proc init(type t) {
     this.t = t;
   }
 
-  proc this(arr : [] ?t) : void {}
+  proc this(arr : [?D] t) { }
 }
 
 // Represents an uninitialized work queue. 
-proc UninitializedWorkQueue(type workType, coalesceFn : ?t = nopCoalescer(workType)) return new WorkQueue(workType, instance=nil, pid = -1, coalesceFn = coalesceFn);
+proc UninitializedWorkQueue(type workType, coalesceFn : ?t = NopCoalescer(workType)) return new WorkQueue(workType, instance=nil, pid = -1, coalesceFn = coalesceFn);
 
 pragma "always RVF"
 record WorkQueue {
@@ -129,7 +150,7 @@ record WorkQueue {
   var instance : unmanaged WorkQueueImpl(workType, colaesceFnType);
   var pid = -1;
   
-  proc init(type workType, numAggregatedWork : int = WorkQueueNoAggregation, coalesceFn : ?t = new nopCoalescer(workType)) {
+  proc init(type workType, numAggregatedWork : int = WorkQueueNoAggregation, coalesceFn : ?t = new NopCoalescer(workType)) {
     this.workType = workType;
     this.colaesceFnType = coalesceFn.type;
     this.instance = new unmanaged WorkQueueImpl(workType, numAggregatedWork, coalesceFn);
@@ -140,7 +161,7 @@ record WorkQueue {
   /*
     "Uninitialized" initializer
   */
-  proc init(type workType, instance : unmanaged WorkQueueImpl(workType), pid : int, coalesceFn : ?t = new nopCoalescer(workType)) {
+  proc init(type workType, instance : unmanaged WorkQueueImpl(workType), pid : int, coalesceFn : ?t = new NopCoalescer(workType)) {
     this.workType = workType;
     this.colaesceFnType = coalesceFn.type;
     this.instance = instance;
@@ -169,7 +190,7 @@ class WorkQueueImpl {
   var shutdownSignal : atomic bool;
   var coalesceFn;
 
-  proc init(type workType, numAggregatedWork : int, coalesceFn : ? = new nopCoalescer(workType)) {
+  proc init(type workType, numAggregatedWork : int, coalesceFn : ? = new NopCoalescer(workType)) {
     this.workType = workType;
     if numAggregatedWork == -1 {
       this.dynamicDestBuffer = new DynamicAggregator(workType);
@@ -255,9 +276,9 @@ class WorkQueueImpl {
           asyncTasks.started(1);
           begin with (in buffer) on Locales[locid] {
             var arr = buffer.getArray();
+            buffer.done();
             var _this = getPrivatizedInstance();
             _this.coalesceFn(arr);
-            buffer.done();
             local do _this.queue.add(arr);
             _this.asyncTasks.finished(1);
           }
@@ -291,17 +312,17 @@ class WorkQueueImpl {
       for (buf, loc) in destBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();      
         var arr = buf.getArray();
-        _this.coalesceFn(arr);
-        _this.queue.add(arr);
         buf.done();
+        _this.coalesceFn(arr);
+        local do _this.queue.add(arr);
       }
     } else if dynamicDestBuffer.isInitialized() && dynamicDestBuffer.size() > 0 {
       for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        _this.coalesceFn(arr);
-        _this.queue.add(arr);
         buf.done();
+        _this.coalesceFn(arr);
+        local do _this.queue.add(arr);
       }
     }
   }
@@ -311,17 +332,17 @@ class WorkQueueImpl {
       forall (buf, loc) in destBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        _this.coalesceFn(arr);
-        _this.queue.add(arr);
         buf.done();
+        _this.coalesceFn(arr);
+        local do _this.queue.add(arr);
       }
     } else if dynamicDestBuffer.isInitialized() {
       forall (buf, loc) in dynamicDestBuffer.flushGlobal() do on loc {
         var _this = getPrivatizedInstance();
         var arr = buf.getArray();
-        _this.coalesceFn(arr);
-        _this.queue.add(arr);
         buf.done();
+        _this.coalesceFn(arr);
+        local do _this.queue.add(arr);
       }
     }
   }

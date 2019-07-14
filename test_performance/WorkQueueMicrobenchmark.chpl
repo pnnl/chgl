@@ -4,20 +4,6 @@ use CyclicDist;
 
 proc logN(val: integral, base: integral) return (log(val)/log(base)) : int;
 
-record DuplicateRemover {
-    proc this(A : [?D] int) {
-        var set : domain(int);
-        for a in A do set += a;
-        // Bug for tuple size mismatch
-        var ix = D.low;
-        for s in set {
-            A[ix] = s;
-            ix += 1;
-        }
-        if ix < D.high then A[ix..] = -1; 
-    }
-}
-
 var timer = new Timer();
 config const N = 1024 * 1024;
 config const printTiming = false;
@@ -106,7 +92,7 @@ wqLimitedAgg.destroy();
 wqUnlimitedAgg.destroy();
 
 
-var wqCoalesced = new WorkQueue(int, -1, new DuplicateRemover());
+var wqCoalesced = new WorkQueue(int, -1, new DuplicateCoalescer(int, dupValue=-1));
 timer.start();
 td.started(1);
 wqCoalesced.addWork(0);
