@@ -28,15 +28,25 @@ WorkQueue
 
 .. function:: proc <=>(ref wq1: WorkQueue, ref wq2: WorkQueue)
 
-.. record:: nopCoalescer
+.. record:: DuplicateCoalescer
+
+   .. attribute:: type t
+
+   .. attribute:: var dupValue: t
+
+   .. method:: proc init(type t, dupValue: t)
+
+   .. method:: proc this(A: [?D] ?t)
+
+.. record:: NopCoalescer
 
    .. attribute:: type t
 
    .. method:: proc init(type t)
 
-   .. method:: proc this(arr: [] ?t): void
+   .. method:: proc this(arr: [?D] t)
 
-.. function:: proc UninitializedWorkQueue(type workType, coalesceFn: ?t = nopCoalescer(workType))
+.. function:: proc UninitializedWorkQueue(type workType, coalesceFn: ?t = NopCoalescer(workType))
 
 .. record:: WorkQueue
 
@@ -48,7 +58,7 @@ WorkQueue
 
    .. attribute:: var pid = -1
 
-   .. method:: proc init(type workType, numAggregatedWork: int = WorkQueueNoAggregation, coalesceFn: ?t = new nopCoalescer(workType))
+   .. method:: proc init(type workType, numAggregatedWork: int = WorkQueueNoAggregation, coalesceFn: ?t = new NopCoalescer(workType))
 
    .. method:: proc isInitialized()
 
@@ -72,7 +82,7 @@ WorkQueue
 
    .. attribute:: var coalesceFn
 
-   .. method:: proc init(type workType, numAggregatedWork: int, coalesceFn: ? = new nopCoalescer(workType))
+   .. method:: proc init(type workType, numAggregatedWork: int, coalesceFn: ? = new NopCoalescer(workType))
 
    .. method:: proc init(other, pid)
 

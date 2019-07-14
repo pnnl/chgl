@@ -199,28 +199,53 @@
 <dd></dd></dl>
 
 <dl class="record">
-<dt id="WorkQueue.nopCoalescer">
-<em class="property">record </em><code class="descname">nopCoalescer</code><a class="headerlink" href="#WorkQueue.nopCoalescer" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.DuplicateCoalescer">
+<em class="property">record </em><code class="descname">DuplicateCoalescer</code><a class="headerlink" href="#WorkQueue.DuplicateCoalescer" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
-<dt id="WorkQueue.nopCoalescer.t">
-<em class="property">type </em><code class="descname">t</code><a class="headerlink" href="#WorkQueue.nopCoalescer.t" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.DuplicateCoalescer.t">
+<em class="property">type </em><code class="descname">t</code><a class="headerlink" href="#WorkQueue.DuplicateCoalescer.t" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="WorkQueue.DuplicateCoalescer.dupValue">
+<em class="property">var </em><code class="descname">dupValue</code>: t<a class="headerlink" href="#WorkQueue.DuplicateCoalescer.dupValue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.nopCoalescer.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type t</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.nopCoalescer.init" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.DuplicateCoalescer.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type t</em>, <em>dupValue: t</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.DuplicateCoalescer.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="WorkQueue.nopCoalescer.this">
-<em class="property">proc </em><code class="descname">this</code><span class="sig-paren">(</span><em>arr: [] ?t</em><span class="sig-paren">)</span>: void<a class="headerlink" href="#WorkQueue.nopCoalescer.this" title="Permalink to this definition">¶</a></dt>
+<dt id="WorkQueue.DuplicateCoalescer.this">
+<em class="property">proc </em><code class="descname">this</code><span class="sig-paren">(</span><em>A: [?D] ?t</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.DuplicateCoalescer.this" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="record">
+<dt id="WorkQueue.NopCoalescer">
+<em class="property">record </em><code class="descname">NopCoalescer</code><a class="headerlink" href="#WorkQueue.NopCoalescer" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="WorkQueue.NopCoalescer.t">
+<em class="property">type </em><code class="descname">t</code><a class="headerlink" href="#WorkQueue.NopCoalescer.t" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.NopCoalescer.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type t</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.NopCoalescer.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="WorkQueue.NopCoalescer.this">
+<em class="property">proc </em><code class="descname">this</code><span class="sig-paren">(</span><em>arr: [?D] t</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.NopCoalescer.this" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="function">
 <dt id="WorkQueue.UninitializedWorkQueue">
-<em class="property">proc </em><code class="descname">UninitializedWorkQueue</code><span class="sig-paren">(</span><em>type workType</em>, <em>coalesceFn: ?t = nopCoalescer(workType)</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.UninitializedWorkQueue" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">UninitializedWorkQueue</code><span class="sig-paren">(</span><em>type workType</em>, <em>coalesceFn: ?t = NopCoalescer(workType)</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.UninitializedWorkQueue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="record">
@@ -248,7 +273,7 @@
 
 <dl class="method">
 <dt id="WorkQueue.WorkQueue.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em>, <em>numAggregatedWork: int = WorkQueueNoAggregation</em>, <em>coalesceFn: ?t = new nopCoalescer(workType)</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueue.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em>, <em>numAggregatedWork: int = WorkQueueNoAggregation</em>, <em>coalesceFn: ?t = new NopCoalescer(workType)</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueue.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -308,7 +333,7 @@
 
 <dl class="method">
 <dt id="WorkQueue.WorkQueueImpl.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em>, <em>numAggregatedWork: int</em>, <em>coalesceFn: ? = new nopCoalescer(workType)</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type workType</em>, <em>numAggregatedWork: int</em>, <em>coalesceFn: ? = new NopCoalescer(workType)</em><span class="sig-paren">)</span><a class="headerlink" href="#WorkQueue.WorkQueueImpl.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
