@@ -5,3 +5,4 @@ PropertyMap Insertion (aggregation):
 HashedDist Insertion:
 PropertyMap Retrieval:
 HashedDist Retrieval:
+PropertyMap Retrieval (aggregated):
