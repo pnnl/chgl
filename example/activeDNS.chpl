@@ -114,7 +114,7 @@ coforall loc in Locales do on loc {
 }
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(int, WorkQueueUnlimitedAggregation);
+var wq = new WorkQueue(string, WorkQueueUnlimitedAggregation);
 var td = new TerminationDetector();
 var blacklistIPAddresses : domain(string);
 var blacklistDNSNames : domain(string);
@@ -274,23 +274,27 @@ for fileName in listdir(datasetDirectory, dirs=false) {
     if nFiles == numMaxFiles then break;
     files.push_back(fileName);
     fileNames.push_back(datasetDirectory + fileName);
-    wq.addWork(nFiles, currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
 }
+
+// Spread out the work across multiple locales.
+forall fileName in fileNames with (var currLoc : int) {
+  for line in getLines(fileName) {
+    td.started(1);
+    wq.addWork(line, currLoc % numLocales);
+    currLoc += 1;
+  }
+}
 wq.flush();
-td.started(nFiles);
 
 // Initialize property maps; aggregation is used as properties can be remote to current locale.
-forall fileIdx in doWorkLoop(wq,td) { 
-  for line in getLines(fileNames[fileIdx]) {
-    var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
-
-    vPropMap.create(rdata.strip(), aggregated=true);
-    ePropMap.create(qname.strip(), aggregated=true);
-  }
+forall line in doWorkLoop(wq, td) {
+  var attrs = line.split(",");
+  var qname = attrs[1];
+  var rdata = attrs[2];
+  vPropMap.create(rdata.strip(), aggregated=true);
+  ePropMap.create(qname.strip(), aggregated=true);
   td.finished();  
 }
 vPropMap.flushGlobal();
@@ -312,28 +316,36 @@ t.stop();
 writeln("Constructed HyperGraph in ", t.elapsed(), "s");
 t.clear();
 writeln("Populating HyperGraph...");
-// Fill work queue with files to load up
-currLoc = 0;
-nFiles = 0;
-for fileName in files {    
-    wq.addWork(nFiles, currLoc % numLocales);
-    currLoc += 1;
-    nFiles += 1;
-}
-wq.flush();
-td.started(nFiles);
 
 t.start();
-graph.startAggregation();
-forall fileIdx in doWorkLoop(wq,td) { 
-  for line in getLines(fileNames[fileIdx]) {
-    var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
-    
-    graph.addInclusion(vPropMap.getProperty(rdata.strip()), ePropMap.getProperty(qname.strip()));
+// Spread out the work across multiple locales.
+forall fileName in fileNames with (var currLoc : int) {
+  for line in getLines(fileName) {
+    td.started(1);
+    wq.addWork(line, currLoc % numLocales);
+    currLoc += 1;
   }
-  td.finished();  
+}
+wq.flush();
+
+// Aggregate fetches to properties into another work queue; when we flush
+// each of the property maps, their individual PropertyHandle will be finished.
+var handleWQ = new WorkQueue((shared PropertyHandle, shared PropertyHandle));
+var handleTD = new TerminationDetector();
+forall line in doWorkLoop(wq, td) {
+  var attrs = line.split(",");
+  var qname = attrs[1];
+  var rdata = attrs[2];
+  handleTD.started(1);
+  handleWQ.addWork((vPropMap.getPropertyAsync(qname), ePropMap.getPropertyAsync(rdata)));
+}
+vPropMap.flushGlobal();
+ePropMap.flushGlobal();
+
+// Finally aggregate inclusions for the hypergraph.
+graph.startAggregation();
+forall (vHandle, eHandle) in doWorkLoop(handleWQ, handleTD) {
+  graph.addInclusion(vHandle.get(), eHandle.get());
 }
 graph.stopAggregation();
 graph.flushBuffers();

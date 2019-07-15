@@ -80,12 +80,18 @@ t.clear();
 
 t.start();
 graph.startAggregation();
+// Aggregate fetching of keys
+var handles = new owned Vector((shared PropertyHandle, shared PropertyHandle));
 for line in getLines(dataset) {
   var attrs = line.split(",");
   var qname = attrs[1];
   var rdata = attrs[2];
-
-  graph.addInclusion(vPropMap.getProperty(rdata.strip()), ePropMap.getProperty(qname.strip()));
+  handles.append((vPropMap.getPropertyAsync(rdata.strip()), ePropMap.getPropertyAsync(qname.strip())));
+}
+vPropMap.flushGlobal();
+ePropMap.flushGlobal();
+forall (vHandle, eHandle) in handles {
+  graph.addInclusion(vHandle.get(), eHandle.get());
 }
 graph.stopAggregation();
 graph.flushBuffers();

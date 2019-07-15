@@ -504,6 +504,7 @@ class Bag {
 
             // Attempt to acquire...
             if !segment.isEmpty && segment.acquireWithStatus(STATUS_REMOVE) {
+              compilerWarning((bool, eltType) : string);
               var (hasElem, elem) : (bool, eltType) = segment.takeElement();
               segment.releaseStatus();
 
