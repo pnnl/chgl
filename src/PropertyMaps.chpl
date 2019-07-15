@@ -424,7 +424,9 @@ module PropertyMaps {
     }
   }
 
-  proc =(ref x : (int(64), _shared(PropertyHandle)), y : (int(64), _shared(PropertyHandle))) {
+  // Side-steps issue where tuple assignment discards lifetime (including the wrapper somehow)
+  // and results in a compiler error.
+  proc =(ref x : (?t, _shared(PropertyHandle)), y : (t, _shared(PropertyHandle))) {
     x[1] = y[1];
     x[2] = y[2];
   }
