@@ -1184,7 +1184,7 @@ module AdjListHyperGraph {
               }
             }
           } else {
-            const sz = localeWork[here.id].size();
+            const sz = localeWork[here.id].size;
             var dom = {0..#sz};
             var arr : [dom] int = localeWork[here.id].toArray();
             var _this = chpl_getPrivatizedCopy(this.type, _pid);
@@ -1252,7 +1252,7 @@ module AdjListHyperGraph {
               }
             }
           } else {
-            const sz = localeWork[here.id].size();
+            const sz = localeWork[here.id].size;
             var dom = {0..#sz};
             var arr : [dom] int = localeWork[here.id].toArray();
             var _this = chpl_getPrivatizedCopy(this.type, _pid);
