@@ -86,7 +86,7 @@ PropertyMaps
 
    .. method:: proc _flushGetAggregatorBuffer(buf: Buffer, loc: locale, param acquireLock = true)
 
-   .. method:: proc getPropertyAsync(property: propertyType, param acquireLock = true): shared PropertyHandle
+   .. method:: proc getPropertyAsync(property: propertyType, param acquireLock = true): unmanaged PropertyHandle
 
    .. method:: proc getProperty(property: propertyType, param acquireLock = true): int
 
@@ -112,6 +112,21 @@ PropertyMaps
 
 .. class:: PropertyHandle
 
+   
+   Represents an asynchronous result that will be computed once the
+   aggregation buffer for it gets flushed. Can be thought of as a
+   way to 'prefetch' data. 
+   
+   .. note ::
+   
+     Cannot be used as `shared` due to bug where assigning a tuple
+     involving a 'shared' object will result in the compiler stripping
+     the lifetime of the object and throwing a compiler error. It is
+     not known to me whether or not this would result in dangerous
+     deallocations or memory leakage.
+   
+
+
    .. attribute:: var retVal: int
 
    .. attribute:: var ready: atomicbool
@@ -125,10 +140,4 @@ PropertyMaps
    .. method:: proc set(val: int)
 
    .. method:: proc isReady()
-
-.. function:: proc =(ref x: (?t, shared PropertyHandle), y: (t, shared PropertyHandle))
-
-.. function:: proc =(ref x: (bool, 2*(shared PropertyHandle)), y: (bool, 2*(shared PropertyHandle)))
-
-.. function:: proc =(ref x: (shared PropertyHandle, shared PropertyHandle), y: (shared PropertyHandle, shared PropertyHandle))
 

@@ -311,7 +311,7 @@ the current value if &#8216;overwrite&#8217; policy is set.</p>
 
 <dl class="method">
 <dt id="PropertyMaps.PropertyMapImpl.getPropertyAsync">
-<em class="property">proc </em><code class="descname">getPropertyAsync</code><span class="sig-paren">(</span><em>property: propertyType</em>, <em>param acquireLock = true</em><span class="sig-paren">)</span>: shared PropertyHandle<a class="headerlink" href="#PropertyMaps.PropertyMapImpl.getPropertyAsync" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">getPropertyAsync</code><span class="sig-paren">(</span><em>property: propertyType</em>, <em>param acquireLock = true</em><span class="sig-paren">)</span>: unmanaged PropertyHandle<a class="headerlink" href="#PropertyMaps.PropertyMapImpl.getPropertyAsync" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -356,7 +356,18 @@ the current value if &#8216;overwrite&#8217; policy is set.</p>
 <dl class="class">
 <dt id="PropertyMaps.PropertyHandle">
 <em class="property">class </em><code class="descname">PropertyHandle</code><a class="headerlink" href="#PropertyMaps.PropertyHandle" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
+<dd><p>Represents an asynchronous result that will be computed once the
+aggregation buffer for it gets flushed. Can be thought of as a
+way to &#8216;prefetch&#8217; data.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Cannot be used as <cite>shared</cite> due to bug where assigning a tuple
+involving a &#8216;shared&#8217; object will result in the compiler stripping
+the lifetime of the object and throwing a compiler error. It is
+not known to me whether or not this would result in dangerous
+deallocations or memory leakage.</p>
+</div>
+<dl class="attribute">
 <dt id="PropertyMaps.PropertyHandle.retVal">
 <em class="property">var </em><code class="descname">retVal</code>: int<a class="headerlink" href="#PropertyMaps.PropertyHandle.retVal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -392,21 +403,6 @@ the current value if &#8216;overwrite&#8217; policy is set.</p>
 <dd></dd></dl>
 
 </dd></dl>
-
-<dl class="function">
-<dt id="PropertyMaps.=">
-<em class="property">proc </em><code class="descname">=</code><span class="sig-paren">(</span><em>ref x: (?t</em>, <em>shared PropertyHandle)</em>, <em>y: (t</em>, <em>shared PropertyHandle)</em><span class="sig-paren">)</span><a class="headerlink" href="#PropertyMaps.=" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt>
-<em class="property">proc </em><code class="descname">=</code><span class="sig-paren">(</span><em>ref x: (bool</em>, <em>2*(shared PropertyHandle))</em>, <em>y: (bool</em>, <em>2*(shared PropertyHandle))</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt>
-<em class="property">proc </em><code class="descname">=</code><span class="sig-paren">(</span><em>ref x: (shared PropertyHandle</em>, <em>shared PropertyHandle)</em>, <em>y: (shared PropertyHandle</em>, <em>shared PropertyHandle)</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
 
 </div>
 
