@@ -88,17 +88,17 @@ for s in 1..3 {
         if id == -1 then continue;
         componentsDom += id;
         if components[id] == nil {
-            components[id] = new unmanaged Vector(graph._value.eDescType, {0..-1});
+            components[id] = new unmanaged Vector(graph._value.eDescType);
         }
         components[id].append(graph.toEdge(ix));
     }
 
-    var eMax = max reduce [component in components] component.size();
+    var eMax = max reduce [component in components] component.size;
     var vMax = max reduce [component in components] (+ reduce for edge in component do graph.degree(edge));         
     var vComponentSizes : [1..vMax] int;
     var eComponentSizes : [1..eMax] int;
     forall component in components with (+ reduce vComponentSizes, + reduce eComponentSizes) {
-        eComponentSizes[component.size()] += 1;
+        eComponentSizes[component.size] += 1;
         var numVertices : int;
         for e in component {
             numVertices += graph.degree(e);
