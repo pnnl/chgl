@@ -421,7 +421,6 @@ module PropertyMaps {
     }
 
     proc get() : int {
-      ready.waitFor(true);
       return retVal;
     }
 
