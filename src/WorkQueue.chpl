@@ -279,7 +279,7 @@ class WorkQueueImpl {
             buffer.done();
             var _this = getPrivatizedInstance();
             _this.coalesceFn(arr);
-            local do _this.queue.add(arr);
+            _this.queue.add(arr);
             _this.asyncTasks.finished(1);
           }
         }
@@ -290,18 +290,18 @@ class WorkQueueImpl {
       } else {
         on Locales[locid] {
           var _this = getPrivatizedInstance();
-          local do _this.queue.add(work);
+          _this.queue.add(work);
         }
         return;
       }
     }
 
-    local do queue.add(work);
+    queue.add(work);
   }
     
   proc getWork() : (bool, workType) {
     var retval : (bool, workType);
-    local do retval = queue.remove();
+    retval = queue.remove();
     return retval;
   }
 
@@ -314,7 +314,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
       }
     } else if dynamicDestBuffer.isInitialized() && dynamicDestBuffer.size() > 0 {
       for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
@@ -322,7 +322,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
       }
     }
   }
@@ -334,7 +334,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
       }
     } else if dynamicDestBuffer.isInitialized() {
       forall (buf, loc) in dynamicDestBuffer.flushGlobal() do on loc {
@@ -342,7 +342,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        local do _this.queue.add(arr);
+        _this.queue.add(arr);
       }
     }
   }
@@ -578,7 +578,7 @@ class BagSegmentBlock {
   type eltType;
 
   // Contiguous memory containing all elements
-  var elems :  c_ptr(eltType);
+  var elems :  _ddata(eltType);
   var next : unmanaged BagSegmentBlock(eltType);
 
   // The capacity of this block.
@@ -627,7 +627,8 @@ class BagSegmentBlock {
       halt("WorkQueue Internal Error: Capacity is 0...");
     }
 
-    elems = c_malloc(eltType, capacity);
+    // TODO: For `master`, update to `initElts=false`
+    elems = _ddata_allocate(eltType, capacity);
     cap = capacity;
   }
 
@@ -639,7 +640,7 @@ class BagSegmentBlock {
   }
 
   proc deinit() {
-    c_free(elems);
+    _ddata_free(elems, cap);
   }
 }
 

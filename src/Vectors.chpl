@@ -95,7 +95,8 @@ class Vector {
     this.sz = dom.low;
   }
 
-  // Returns a copy of the used portion of this vector.
+  // Returns a reference to the array
+  pragma "no copy return"
   proc toArray() {
     return arr[dom.low..#sz];
   }

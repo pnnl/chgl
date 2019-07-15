@@ -50,9 +50,10 @@ timer.clear();
 
 timer.start();
 {
-    var propertyHandles : [cyclicDom] shared PropertyHandle;
+    var propertyHandles : [cyclicDom] unmanaged PropertyHandle;
     forall idx in cyclicDom do propertyHandles[idx] = propertyMap.getPropertyAsync(idx);
     propertyMap.flushGlobal();
+    delete propertyHandles;
 }
 timer.stop();
 if printTiming then writeln("PropertyMap Retrieval (aggregated): ", timer.elapsed());
