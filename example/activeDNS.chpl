@@ -114,7 +114,7 @@ coforall loc in Locales do on loc {
 }
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(string, WorkQueueUnlimitedAggregation);
+var wq = new WorkQueue((string, string), WorkQueueUnlimitedAggregation);
 var td = new TerminationDetector();
 var blacklistIPAddresses : domain(string);
 var blacklistDNSNames : domain(string);
@@ -282,19 +282,19 @@ for fileName in listdir(datasetDirectory, dirs=false) {
 forall fileName in fileNames with (var currLoc : int) {
   for line in getLines(fileName) {
     td.started(1);
-    wq.addWork(line, currLoc % numLocales);
+    var attrs = line.split(",");
+    var qname = attrs[1];
+    var rdata = attrs[2];
+    wq.addWork((qname.strip(), rdata.strip()), currLoc % numLocales);
     currLoc += 1;
   }
 }
 wq.flush();
 
 // Initialize property maps; aggregation is used as properties can be remote to current locale.
-forall line in doWorkLoop(wq, td) {
-  var attrs = line.split(",");
-  var qname = attrs[1];
-  var rdata = attrs[2];
-  vPropMap.create(rdata.strip(), aggregated=true);
-  ePropMap.create(qname.strip(), aggregated=true);
+forall (rdata, qname) in doWorkLoop(wq, td) {
+  vPropMap.create(rdata, aggregated=true);
+  ePropMap.create(qname, aggregated=true);
   td.finished();  
 }
 vPropMap.flushGlobal();
@@ -321,8 +321,11 @@ t.start();
 // Spread out the work across multiple locales.
 forall fileName in fileNames with (var currLoc : int) {
   for line in getLines(fileName) {
+    var attrs = line.split(",");
+    var qname = attrs[1];
+    var rdata = attrs[2];
     td.started(1);
-    wq.addWork(line, currLoc % numLocales);
+    wq.addWork((qname.strip(), rdata.strip()), currLoc % numLocales);
     currLoc += 1;
   }
 }
@@ -330,12 +333,9 @@ wq.flush();
 
 // Aggregate fetches to properties into another work queue; when we flush
 // each of the property maps, their individual PropertyHandle will be finished.
-var handleWQ = new WorkQueue((shared PropertyHandle, shared PropertyHandle));
+var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle));
 var handleTD = new TerminationDetector();
-forall line in doWorkLoop(wq, td) {
-  var attrs = line.split(",");
-  var qname = attrs[1];
-  var rdata = attrs[2];
+forall (qname, rdata) in doWorkLoop(wq, td) {
   handleTD.started(1);
   handleWQ.addWork((vPropMap.getPropertyAsync(qname), ePropMap.getPropertyAsync(rdata)));
 }
@@ -346,6 +346,8 @@ ePropMap.flushGlobal();
 graph.startAggregation();
 forall (vHandle, eHandle) in doWorkLoop(handleWQ, handleTD) {
   graph.addInclusion(vHandle.get(), eHandle.get());
+  delete vHandle;
+  delete eHandle;
 }
 graph.stopAggregation();
 graph.flushBuffers();

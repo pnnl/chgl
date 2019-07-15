@@ -81,7 +81,7 @@ t.clear();
 t.start();
 graph.startAggregation();
 // Aggregate fetching of keys
-var handles = new owned Vector((shared PropertyHandle, shared PropertyHandle));
+var handles = new owned Vector((unmanaged PropertyHandle, unmanaged PropertyHandle));
 for line in getLines(dataset) {
   var attrs = line.split(",");
   var qname = attrs[1];
@@ -92,6 +92,8 @@ vPropMap.flushGlobal();
 ePropMap.flushGlobal();
 forall (vHandle, eHandle) in handles {
   graph.addInclusion(vHandle.get(), eHandle.get());
+  delete vHandle;
+  delete eHandle;
 }
 graph.stopAggregation();
 graph.flushBuffers();
