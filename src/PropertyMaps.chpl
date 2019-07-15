@@ -109,7 +109,7 @@ module PropertyMaps {
     var setAggregator = UninitializedAggregator((propertyType, int));
     // Aggregation used to batch up potentially remote 'fetches' of properties.
     pragma "no doc"
-    var getAggregator = UninitializedAggregator((propertyType, shared PropertyHandle));
+    var getAggregator = UninitializedAggregator((propertyType, unmanaged PropertyHandle));
     pragma "no doc"
     var terminationDetector : TerminationDetector;
 
@@ -121,7 +121,7 @@ module PropertyMaps {
       this.mapper = mapper;
       this.complete();
       this.setAggregator = new Aggregator((propertyType, int));
-      this.getAggregator = new Aggregator((propertyType, shared PropertyHandle));
+      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle));
       this.terminationDetector = new TerminationDetector();
       this.pid = _newPrivatizedClass(this:unmanaged);
     }
@@ -256,15 +256,13 @@ module PropertyMaps {
             var arr = buf.getArray();
             buf.done();
             var _this = chpl_getPrivatizedCopy(this.type, _pid);
-            local {
-              if acquireLock then _this.lock.acquire();
-              for (prop, _id) in arr {
-                if _id == -1 then _this.keys += prop;
-                _this.values[prop] = _id;
-              }
-              if acquireLock then _this.lock.release();
-              _this.terminationDetector.finished(1);
+            if acquireLock then _this.lock.acquire();
+            for (prop, _id) in arr {
+              if _id == -1 then _this.keys += prop;
+              _this.values[prop] = _id;
             }
+            if acquireLock then _this.lock.release();
+            _this.terminationDetector.finished(1);
           }
         }
       } else {
@@ -286,7 +284,7 @@ module PropertyMaps {
       const arrSz = arr.size;
       var properties : [0..#arrSz] propertyType;
       var keys : [0..#arrSz] int;
-      var handles : [0..#arrSz] shared PropertyHandle;
+      var handles : [0..#arrSz] unmanaged PropertyHandle;
       forall ((prop, hndle), _prop, _hndle) in zip(arr, properties, handles) {
         _prop = prop;
         _hndle = hndle;
@@ -313,10 +311,10 @@ module PropertyMaps {
       }
     }
 
-    proc getPropertyAsync(property : propertyType, param acquireLock = true) : shared PropertyHandle {
+    proc getPropertyAsync(property : propertyType, param acquireLock = true) : unmanaged PropertyHandle {
       const loc = Locales[mapper(property, Locales)];
 
-      var handle = new shared PropertyHandle();
+      var handle = new unmanaged PropertyHandle();
 
       if loc == here {
         if acquireLock then this.lock.acquire();
@@ -398,6 +396,19 @@ module PropertyMaps {
     }
   }
 
+  /*
+    Represents an asynchronous result that will be computed once the
+    aggregation buffer for it gets flushed. Can be thought of as a
+    way to 'prefetch' data. 
+
+    .. note ::
+
+      Cannot be used as `shared` due to bug where assigning a tuple
+      involving a 'shared' object will result in the compiler stripping
+      the lifetime of the object and throwing a compiler error. It is
+      not known to me whether or not this would result in dangerous
+      deallocations or memory leakage.
+  */
   class PropertyHandle {
     var retVal : int;
     var ready : atomic bool;
@@ -410,7 +421,6 @@ module PropertyMaps {
     }
 
     proc get() : int {
-      ready.waitFor(true);
       return retVal;
     }
 
@@ -422,24 +432,5 @@ module PropertyMaps {
     proc isReady() {
       return ready.read();
     }
-  }
-
-  // Side-steps issue where tuple assignment discards lifetime (including the wrapper somehow)
-  // and results in a compiler error.
-  proc =(ref x : (?t, _shared(PropertyHandle)), y : (t, _shared(PropertyHandle))) {
-    x[1] = y[1];
-    x[2] = y[2];
-  }
-
-  proc =(ref x : (bool, 2 * _shared(PropertyHandle)), y : (bool, 2 * _shared(PropertyHandle))) {
-    x[1] = y[1];
-    x[2][1] = y[2][1];
-    x[2][2] = y[2][2];
-  }
-
-
-  proc =(ref x : (_shared(PropertyHandle), _shared(PropertyHandle)), y : (_shared(PropertyHandle), _shared(PropertyHandle))) {
-    x[1] = y[1];
-    x[2] = y[2];
   }
 }
