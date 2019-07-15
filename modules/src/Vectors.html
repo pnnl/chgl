@@ -168,18 +168,53 @@
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="Vectors.Vector._dummy">
-<em class="property">var </em><code class="descname">_dummy</code>: eltType<a class="headerlink" href="#Vectors.Vector._dummy" title="Permalink to this definition">¶</a></dt>
+<dt id="Vectors.Vector.growthRate">
+<em class="property">const </em><code class="descname">growthRate</code>: real<a class="headerlink" href="#Vectors.Vector.growthRate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Vectors.Vector.dom">
+<em class="property">var </em><code class="descname">dom</code> = {0..-1}<a class="headerlink" href="#Vectors.Vector.dom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Vectors.Vector.arr">
+<em class="property">var </em><code class="descname">arr</code>: [dom] eltType<a class="headerlink" href="#Vectors.Vector.arr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Vectors.Vector.sz">
+<em class="property">var </em><code class="descname">sz</code>: int<a class="headerlink" href="#Vectors.Vector.sz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Vectors.Vector.cap">
+<em class="property">var </em><code class="descname">cap</code>: int<a class="headerlink" href="#Vectors.Vector.cap" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="Vectors.Vector.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.Vector.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em>, <em>initialSize: integral = 0</em>, <em>growthRate = VectorGrowthRate</em><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.Vector.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>arr: [?D] ?eltType</em>, <em>growthRate = VectorGrowthRate</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="Vectors.Vector.append">
 <em class="property">proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>elt: eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.Vector.append" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Vectors.Vector.intersection">
+<em class="property">proc </em><code class="descname">intersection</code><span class="sig-paren">(</span><em>other: Vector(eltType)</em><span class="sig-paren">)</span>: Vector(eltType)<a class="headerlink" href="#Vectors.Vector.intersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Vectors.Vector.intersectionSize">
+<em class="property">proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>other: Vector(eltType)</em><span class="sig-paren">)</span>: int<a class="headerlink" href="#Vectors.Vector.intersectionSize" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -204,22 +239,17 @@
 
 <dl class="itermethod">
 <dt id="Vectors.Vector.these">
-<em class="property">iter </em><code class="descname">these</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span> ref: eltType<a class="headerlink" href="#Vectors.Vector.these" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.Vector.size">
-<em class="property">proc </em><code class="descname">size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.Vector.size" title="Permalink to this definition">¶</a></dt>
+<em class="property">iter </em><code class="descname">these</code><span class="sig-paren">(</span><span class="sig-paren">)</span> ref<a class="headerlink" href="#Vectors.Vector.these" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="itermethod">
 <dt>
-<em class="property">iter </em><code class="descname">these</code><span class="sig-paren">(</span><span class="sig-paren">)</span> ref: eltType</dt>
+<em class="property">iter </em><code class="descname">these</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="Vectors.Vector.getArray">
-<em class="property">proc </em><code class="descname">getArray</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.Vector.getArray" title="Permalink to this definition">¶</a></dt>
+<dt id="Vectors.Vector.size">
+<em class="property">proc </em><code class="descname">size</code><a class="headerlink" href="#Vectors.Vector.size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -228,113 +258,13 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="Vectors.Vector.intersection">
-<em class="property">proc </em><code class="descname">intersection</code><span class="sig-paren">(</span><em>other: Vector(eltType)</em><span class="sig-paren">)</span>: Vector(eltType)<a class="headerlink" href="#Vectors.Vector.intersection" title="Permalink to this definition">¶</a></dt>
+<dt id="Vectors.Vector.toArray">
+<em class="property">proc </em><code class="descname">toArray</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.Vector.toArray" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="Vectors.Vector.intersectionSize">
-<em class="property">proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>other: Vector(eltType)</em><span class="sig-paren">)</span>: int<a class="headerlink" href="#Vectors.Vector.intersectionSize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="Vectors.VectorImpl">
-<em class="property">class </em><code class="descname">VectorImpl</code>: Vector<a class="headerlink" href="#Vectors.VectorImpl" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="Vectors.VectorImpl.growthRate">
-<em class="property">const </em><code class="descname">growthRate</code><a class="headerlink" href="#Vectors.VectorImpl.growthRate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="Vectors.VectorImpl.dom">
-<em class="property">var </em><code class="descname">dom</code><a class="headerlink" href="#Vectors.VectorImpl.dom" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="Vectors.VectorImpl.arr">
-<em class="property">var </em><code class="descname">arr</code>: [dom] eltType<a class="headerlink" href="#Vectors.VectorImpl.arr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="Vectors.VectorImpl.sz">
-<em class="property">var </em><code class="descname">sz</code>: int<a class="headerlink" href="#Vectors.VectorImpl.sz" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="Vectors.VectorImpl.cap">
-<em class="property">var </em><code class="descname">cap</code>: int<a class="headerlink" href="#Vectors.VectorImpl.cap" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em>, <em>dom</em>, <em>growthRate = VectorGrowthRate</em><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.VectorImpl.init" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.append">
-<em class="property">override proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>elt: eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.VectorImpl.append" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.intersection">
-<em class="property">override proc </em><code class="descname">intersection</code><span class="sig-paren">(</span><em>other: Vector(eltType)</em><span class="sig-paren">)</span>: Vector(eltType)<a class="headerlink" href="#Vectors.VectorImpl.intersection" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.intersectionSize">
-<em class="property">override proc </em><code class="descname">intersectionSize</code><span class="sig-paren">(</span><em>other: Vector(eltType)</em><span class="sig-paren">)</span>: int<a class="headerlink" href="#Vectors.VectorImpl.intersectionSize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">override proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>elts: [] eltType</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">override proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>ir: _iteratorRecord</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.sort">
-<em class="property">override proc </em><code class="descname">sort</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.VectorImpl.sort" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.this">
-<em class="property">override proc </em><code class="descname">this</code><span class="sig-paren">(</span><em>idx: integral</em><span class="sig-paren">)</span> ref<a class="headerlink" href="#Vectors.VectorImpl.this" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="itermethod">
-<dt id="Vectors.VectorImpl.these">
-<em class="property">override iter </em><code class="descname">these</code><span class="sig-paren">(</span><span class="sig-paren">)</span> ref<a class="headerlink" href="#Vectors.VectorImpl.these" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="itermethod">
-<dt>
-<em class="property">override iter </em><code class="descname">these</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.size">
-<em class="property">override proc </em><code class="descname">size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.VectorImpl.size" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.clear">
-<em class="property">override proc </em><code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.VectorImpl.clear" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.getArray">
-<em class="property">override proc </em><code class="descname">getArray</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.VectorImpl.getArray" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Vectors.VectorImpl.readWriteThis">
-<em class="property">proc </em><code class="descname">readWriteThis</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.VectorImpl.readWriteThis" title="Permalink to this definition">¶</a></dt>
+<dt id="Vectors.Vector.readWriteThis">
+<em class="property">proc </em><code class="descname">readWriteThis</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#Vectors.Vector.readWriteThis" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

@@ -84,6 +84,10 @@ PropertyMaps
 
    .. method:: proc setProperty(property: propertyType, id: int, param aggregated = false, param acquireLock = true)
 
+   .. method:: proc _flushGetAggregatorBuffer(buf: Buffer, loc: locale, param acquireLock = true)
+
+   .. method:: proc getPropertyAsync(property: propertyType, param acquireLock = true): shared PropertyHandle
+
    .. method:: proc getProperty(property: propertyType, param acquireLock = true): int
 
    .. method:: proc numProperties(): int
@@ -105,4 +109,22 @@ PropertyMaps
       
       Obtains global property keys and values (parallel).
       
+
+.. class:: PropertyHandle
+
+   .. attribute:: var retVal: int
+
+   .. attribute:: var ready: atomicbool
+
+   .. method:: proc init()
+
+   .. method:: proc init(val: int)
+
+   .. method:: proc get(): int
+
+   .. method:: proc set(val: int)
+
+   .. method:: proc isReady()
+
+.. function:: proc =(ref x: (?t, shared PropertyHandle), y: (t, shared PropertyHandle))
 

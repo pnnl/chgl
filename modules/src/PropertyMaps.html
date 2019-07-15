@@ -305,6 +305,16 @@ the current value if &#8216;overwrite&#8217; policy is set.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="PropertyMaps.PropertyMapImpl._flushGetAggregatorBuffer">
+<em class="property">proc </em><code class="descname">_flushGetAggregatorBuffer</code><span class="sig-paren">(</span><em>buf: Buffer</em>, <em>loc: locale</em>, <em>param acquireLock = true</em><span class="sig-paren">)</span><a class="headerlink" href="#PropertyMaps.PropertyMapImpl._flushGetAggregatorBuffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PropertyMaps.PropertyMapImpl.getPropertyAsync">
+<em class="property">proc </em><code class="descname">getPropertyAsync</code><span class="sig-paren">(</span><em>property: propertyType</em>, <em>param acquireLock = true</em><span class="sig-paren">)</span>: shared PropertyHandle<a class="headerlink" href="#PropertyMaps.PropertyMapImpl.getPropertyAsync" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="PropertyMaps.PropertyMapImpl.getProperty">
 <em class="property">proc </em><code class="descname">getProperty</code><span class="sig-paren">(</span><em>property: propertyType</em>, <em>param acquireLock = true</em><span class="sig-paren">)</span>: int<a class="headerlink" href="#PropertyMaps.PropertyMapImpl.getProperty" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -342,6 +352,51 @@ the current value if &#8216;overwrite&#8217; policy is set.</p>
 </dd></dl>
 
 </dd></dl>
+
+<dl class="class">
+<dt id="PropertyMaps.PropertyHandle">
+<em class="property">class </em><code class="descname">PropertyHandle</code><a class="headerlink" href="#PropertyMaps.PropertyHandle" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="PropertyMaps.PropertyHandle.retVal">
+<em class="property">var </em><code class="descname">retVal</code>: int<a class="headerlink" href="#PropertyMaps.PropertyHandle.retVal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PropertyMaps.PropertyHandle.ready">
+<em class="property">var </em><code class="descname">ready</code>: atomicbool<a class="headerlink" href="#PropertyMaps.PropertyHandle.ready" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PropertyMaps.PropertyHandle.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PropertyMaps.PropertyHandle.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>val: int</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PropertyMaps.PropertyHandle.get">
+<em class="property">proc </em><code class="descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: int<a class="headerlink" href="#PropertyMaps.PropertyHandle.get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PropertyMaps.PropertyHandle.set">
+<em class="property">proc </em><code class="descname">set</code><span class="sig-paren">(</span><em>val: int</em><span class="sig-paren">)</span><a class="headerlink" href="#PropertyMaps.PropertyHandle.set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PropertyMaps.PropertyHandle.isReady">
+<em class="property">proc </em><code class="descname">isReady</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PropertyMaps.PropertyHandle.isReady" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="PropertyMaps.=">
+<em class="property">proc </em><code class="descname">=</code><span class="sig-paren">(</span><em>ref x: (?t</em>, <em>shared PropertyHandle)</em>, <em>y: (t</em>, <em>shared PropertyHandle)</em><span class="sig-paren">)</span><a class="headerlink" href="#PropertyMaps.=" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 
