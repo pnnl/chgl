@@ -302,7 +302,7 @@ module PropertyMaps {
 
         // Gather all keys (local)
         forall (prop, key) in zip(_properties, _keys) {
-          _keys = _this.values[prop];
+          key = _this.values[prop];
         }
         if acquireLock then _this.lock.release();
         // Remote bulk transfer (PUT)
@@ -427,6 +427,18 @@ module PropertyMaps {
   // Side-steps issue where tuple assignment discards lifetime (including the wrapper somehow)
   // and results in a compiler error.
   proc =(ref x : (?t, _shared(PropertyHandle)), y : (t, _shared(PropertyHandle))) {
+    x[1] = y[1];
+    x[2] = y[2];
+  }
+
+  proc =(ref x : (bool, 2 * _shared(PropertyHandle)), y : (bool, 2 * _shared(PropertyHandle))) {
+    x[1] = y[1];
+    x[2][1] = y[2][1];
+    x[2][2] = y[2][2];
+  }
+
+
+  proc =(ref x : (_shared(PropertyHandle), _shared(PropertyHandle)), y : (_shared(PropertyHandle), _shared(PropertyHandle))) {
     x[1] = y[1];
     x[2] = y[2];
   }
