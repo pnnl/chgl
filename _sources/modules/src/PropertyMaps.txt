@@ -128,3 +128,7 @@ PropertyMaps
 
 .. function:: proc =(ref x: (?t, shared PropertyHandle), y: (t, shared PropertyHandle))
 
+.. function:: proc =(ref x: (bool, 2*(shared PropertyHandle)), y: (bool, 2*(shared PropertyHandle)))
+
+.. function:: proc =(ref x: (shared PropertyHandle, shared PropertyHandle), y: (shared PropertyHandle, shared PropertyHandle))
+
