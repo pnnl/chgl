@@ -5,3 +5,4 @@ activeDNS.graph
 AdjListHyperGraphMicrobenchmark.graph
 WorkQueueMicrobenchmark.graph
 PropertyMapMicrobenchmark.graph
+AggregationBufferMicrobenchmark.graph

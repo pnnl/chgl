@@ -1,0 +1,13 @@
+Remote Atomics:
+dat/AggregationBufferMicrobenchmark.dat
+Aggregated Atomics (bufSz=2048):
+Aggregated Atomics (bufSz=4096):
+Aggregated Atomics (bufSz=8192):
+Aggregated Atomics (bufSz=16384):
+Aggregated Atomics (bufSz=32768):
+Aggregated Atomics (bufSz=65536):
+Aggregated Atomics (bufSz=131072):
+Aggregated Atomics (bufSz=262144):
+Aggregated Atomics (bufSz=524288):
+Aggregated Atomics (bufSz=1048576):
+Dynamic Aggregated:
