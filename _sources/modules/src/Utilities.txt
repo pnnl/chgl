@@ -119,6 +119,8 @@ Utilities
 
    .. method:: proc init(type X)
 
+.. function:: proc getLocaleIdx(dom, idx)
+
 .. function:: proc getLocale(dom, idx)
 
 .. function:: proc getLocale(arr: [], idx)
