@@ -1,5 +1,5 @@
 Remote Atomics:
-dat/AggregationBufferMicrobenchmark.dat
+Aggregated Atomics (bufSz=1024):
 Aggregated Atomics (bufSz=2048):
 Aggregated Atomics (bufSz=4096):
 Aggregated Atomics (bufSz=8192):
