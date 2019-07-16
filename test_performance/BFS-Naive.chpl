@@ -118,7 +118,7 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
     if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
-      forall neighbor in vertices[vertex].arr {
+      forall neighbor in vertices[vertex] {
         if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
           continue;
         }
@@ -137,6 +137,7 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   numPhases += 1;
 }
 
-writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", Completed BFS in ", timer.elapsed(), "s");
+writeln("|V| = ", numVertices, ", |E| = ", numEdges);
+writeln("BFS: ", timer.elapsed());
 endProfile(); 
 

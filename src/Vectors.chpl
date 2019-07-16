@@ -16,7 +16,8 @@ class Vector {
   proc init(type eltType, initialSize : integral = 0, growthRate = VectorGrowthRate) {
     this.eltType = eltType;
     this.growthRate = growthRate;
-    this.dom = {0..#initialSize};
+    // Right now 0..#initialSize is bugged if initialSize is 0, it becomes 1..0
+    this.dom = {0..initialSize - 1};
     this.complete();
     this.cap = dom.size;
   }
@@ -24,11 +25,11 @@ class Vector {
   proc init(arr : [?D] ?eltType, growthRate = VectorGrowthRate) {
     this.eltType = eltType;
     this.growthRate = growthRate;
-    this.dom = D;
+    this.dom = {0..#D.size};
     this.complete();
     this.arr = arr;
     this.cap = arr.size;
-    this.size = arr.size;
+    this.sz = arr.size;
   }
 
   proc append(elt : eltType) {
@@ -92,13 +93,13 @@ class Vector {
   proc size return sz;
 
   proc clear() {
-    this.sz = dom.low;
+    this.sz = 0;
   }
 
   // Returns a reference to the array
   pragma "no copy return"
   proc toArray() {
-    return arr[dom.low..#sz];
+    return arr[0..#sz];
   }
 
   proc readWriteThis(f) {

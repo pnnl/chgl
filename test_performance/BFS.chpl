@@ -9,27 +9,29 @@ use CommDiagnostics;
 use Utilities;
 
 config const dataset = "../data/karate.mtx_csr.bin";
+config const printTiming = false;
 
 beginProfile("BFS-profile");
+var globalTimer = new Timer();
+globalTimer.start();
 var timer = new Timer();
 timer.start();
 var graph = binToGraph(dataset);
 timer.stop();
-writeln("Graph generation for ", dataset, " took ", timer.elapsed(), "s");
+if printTiming then writeln("Graph Generation (2-Uniform): ", timer.elapsed());
 timer.clear();
-writeln("|V| = ", graph.numVertices, " and |E| = ", graph.numEdges);
 
 timer.start();
 graph.simplify();
 timer.stop();
-writeln("Simplified graph in ", timer.elapsed(), "s");
+if printTiming then writeln("Removed Duplicates (2-Uniform): ", timer.elapsed());
 timer.clear();
 
-timer.start();
+/*timer.start();
 graph.validateCache();
 timer.stop();
-writeln("Generated cache in ", timer.elapsed(), "s");
-timer.clear();
+writeln("Generated Cache (2-Uniform): ", timer.elapsed());
+timer.clear();*/
 
 var current = new WorkQueue(graph.vDescType, WorkQueueUnlimitedAggregation);
 var next = new WorkQueue(graph.vDescType, WorkQueueUnlimitedAggregation);
@@ -46,7 +48,7 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   forall vertex in doWorkLoop(current, currTD) {
     // Set as visited here...
     if CHPL_NETWORK_ATOMICS != "none" || visited[vertex.id].testAndSet() == false {
-      for neighbor in graph.neighbors(vertex) {
+      forall neighbor in graph.neighbors(vertex) {
         if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor.id].testAndSet() == true {
           continue;
         }
@@ -56,12 +58,14 @@ while !current.isEmpty() || !currTD.hasTerminated() {
     } 
     currTD.finished(1);
   }
+  next.flush();
   next <=> current;
   nextTD <=> currTD;
   var currTime = timer.elapsed();
-  writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
+  if printTiming then writeln("Phase #", numPhases, " (2-Uniform): ", currTime - lastTime);
   lastTime = currTime;
   numPhases += 1;
 }
-writeln("Completed BFS in ", timer.elapsed(), "s");
+if printTiming then writeln("BFS (2-Uniform): ", timer.elapsed());
+if printTiming then writeln("Total (2-Uniform): ", timer.elapsed());
 endProfile();
