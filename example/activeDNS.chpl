@@ -116,7 +116,7 @@ coforall loc in Locales do on loc {
 }
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(string, WorkQueueUnlimitedAggregation);
+var wq = new WorkQueue(string, 1024 * 1024);
 var td = new TerminationDetector();
 var blacklistIPAddresses : domain(string);
 var blacklistDNSNames : domain(string);
@@ -267,6 +267,10 @@ proc searchBlacklist(graph, prefix) {
 
 writeln("Constructing PropertyMap...");
 t.start();
+/*
+  TODO: DO NOT DO THIS! This results in hitting OOM extremely quickly!
+  Instead just go back to doling out files to evenly distributed locales
+*/
 // Fill work queue with files to load up
 var currLoc : int; 
 var nFiles : int;

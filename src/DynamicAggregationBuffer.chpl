@@ -90,7 +90,9 @@ module DynamicAggregationBuffer {
     }
 
     proc done() {
-      this.dom = {0..-1};
+      on this {
+        this.dom = {0..-1};
+      }
     }
 
     proc size return arr.size;

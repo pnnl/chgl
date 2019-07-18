@@ -135,7 +135,7 @@ while !current.isEmpty() || !currTD.hasTerminated() {
           continue;
         }
         nextTD.started(1);
-        const loc = distVerticesDom.dist.idxToLocale(neighbor);
+        const loc = distVertices[neighbor].locale;
         next.addWork(neighbor, loc);
       }
     } 
