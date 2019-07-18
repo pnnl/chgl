@@ -130,17 +130,16 @@ module Metrics {
     forall (vIdx, cid) in doWorkLoop(workQueue, terminationDetector) {
       if vIdx != -1 && cid != -1 && graph.degree(graph.toVertex(vIdx)) >= s {
         const cId = if cid == 0 then componentId.fetchAdd(1) else cid;
-
         // If the component id is not set for this edge, or if the component
         // id has a larger value, we can try to 'claim' this edge, and if successful
         // try to claim its neighbors, and so on and so forth. If the component
-        // id has a smaller or equal value, we do nothing. 
+        // id has a smaller or equal value, we do nothing.
         var shouldAddNeighbors = false;
         while true do local {
           var currId = components[vIdx].read();
-          if (currId == 0 || currId > cId) {
+          if (currId == 0 || currId >= cId) {
             // Claimed...
-            if components[vIdx].compareExchange(currId, cId) {
+            if currId == cId || components[vIdx].compareExchange(currId, cId) {
               shouldAddNeighbors = true;
               break;
             }
@@ -151,14 +150,29 @@ module Metrics {
         }
         if shouldAddNeighbors {
           forall neighbor in graph.walk(graph.toVertex(vIdx), s, isImmutable=true) {
-            terminationDetector.started(1);
-            workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+            if CHPL_NETWORK_ATOMICS != "none" {
+              // Claim vertex remotely
+              while true {
+                var neighborComponentId = components[neighbor.id].read();
+                if neighborComponentId == 0 || neighborComponentId > cId {
+                  if components[neighbor.id].compareExchange(neighborComponentId, cId) {
+                    terminationDetector.started(1);
+                    workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+                    break;
+                  }
+                } else {
+                  break;
+                }
+              }
+            } else {
+              terminationDetector.started(1);
+              workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+            }
           }
         }
+        terminationDetector.finished(1);
       }
-      terminationDetector.finished(1);
-    }
-    
+    }    
     terminationDetector.destroy();
     workQueue.destroy();
     return components.read();
@@ -199,9 +213,9 @@ module Metrics {
         var shouldAddNeighbors = false;
         while true do local {
           var currId = components[eIdx].read();
-          if (currId == 0 || currId > cId) {
+          if (currId == 0 || currId >= cId) {
             // Claimed...
-            if components[eIdx].compareExchange(currId, cId) {
+            if currId == cId || components[eIdx].compareExchange(currId, cId) {
               shouldAddNeighbors = true;
               break;
             }
@@ -212,8 +226,24 @@ module Metrics {
         }
         if shouldAddNeighbors {
           forall neighbor in graph.walk(graph.toEdge(eIdx), s, isImmutable=true) {
-            terminationDetector.started(1);
-            workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+            if CHPL_NETWORK_ATOMICS != "none" {
+              // Claim vertex remotely
+              while true {
+                var neighborComponentId = components[neighbor.id].read();
+                if neighborComponentId == 0 || neighborComponentId > cId {
+                  if components[neighbor.id].compareExchange(neighborComponentId, cId) {
+                    terminationDetector.started(1);
+                    workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+                    break;
+                  }
+                } else {
+                  break;
+                }
+              }
+            } else {
+              terminationDetector.started(1);
+              workQueue.addWork((neighbor.id, cId), graph.getLocale(neighbor));
+            }
           }
         }
       }

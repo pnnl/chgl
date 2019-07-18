@@ -64,6 +64,8 @@ config const postRemovalMetrics = true;
 config const postRemovalComponents = true;
 // Scan for blacklist after removing isolated components
 config const postRemovalBlacklist = true;
+// Perform toplex reduction.
+config const doToplexReduction = false;
 // Obtain metrics after reducing to toplex hyperedges.
 config const postToplexMetrics = true;
 // Obtain components after reducing to toplex hyperedges.
@@ -186,7 +188,7 @@ proc searchBlacklist(graph, prefix) {
       writeln("unable to create directory", outputDirectory + prefix);
     }
   }
-  forall v in graph.getVertices() {
+  forall v in graph.getVertices() with (in blacklistIPAddresses) {
     var ip = graph.getProperty(v);
     if blacklistIPAddresses.contains(ip) {
       var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
@@ -223,7 +225,7 @@ proc searchBlacklist(graph, prefix) {
       } 
     } 
   } writeln("Finished searching for blacklisted IPs...");
-  forall e in graph.getEdges() {
+  forall e in graph.getEdges() with (in blacklistDNSNames) {
     var dnsName = graph.getProperty(e);
     var isBadDNS = dnsName.matches(rcLocal(blacklistDNSNamesRegexp));
     if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
@@ -444,33 +446,34 @@ if postRemovalMetrics {
     t.clear();
 }
 
-writeln("Removing non-toplexes...");
-t.start();
-var toplexStats = graph.collapseSubsets();
-t.stop();
-writeln("Removed non-toplexes: ", t.elapsed());
-f.writeln("Distribution of Non-Toplex Edges:");
-for (deg, freq) in zip(toplexStats.domain, toplexStats) {
-    if freq != 0 then f.writeln("\t", deg, ",", freq);
-}
-t.clear();
+if doToplexReduction {
+  writeln("Removing non-toplexes...");
+  t.start();
+  var toplexStats = graph.collapseSubsets();
+  t.stop();
+  writeln("Removed non-toplexes: ", t.elapsed());
+  f.writeln("Distribution of Non-Toplex Edges:");
+  for (deg, freq) in zip(toplexStats.domain, toplexStats) {
+      if freq != 0 then f.writeln("\t", deg, ",", freq);
+  }
+  t.clear();
 
-if postToplexBlacklist {
-    t.start();
-    searchBlacklist(graph, "Post-Toplex");
-    t.stop();
-    writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
-    t.clear();
-}
+  if postToplexBlacklist {
+      t.start();
+      searchBlacklist(graph, "Post-Toplex");
+      t.stop();
+      writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
+      t.clear();
+  }
 
-if postToplexMetrics {
-    t.start();
-    getMetrics(graph, "Post-Toplex", postToplexComponents);
-    t.stop();
-    writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
-    t.clear();
+  if postToplexMetrics {
+      t.start();
+      getMetrics(graph, "Post-Toplex", postToplexComponents);
+      t.stop();
+      writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
+      t.clear();
+  }
 }
-
 
 writeln("Printing out collapsed toplex graph...");
 var ff = open(hypergraphOutput, iomode.cw).writer();
