@@ -17,7 +17,7 @@ class Vector {
     this.eltType = eltType;
     this.growthRate = growthRate;
     // Right now 0..#initialSize is bugged if initialSize is 0, it becomes 1..0
-    this.dom = {0..initialSize - 1};
+    this.dom = {0..initialSize : int - 1};
     this.complete();
     this.cap = dom.size;
   }

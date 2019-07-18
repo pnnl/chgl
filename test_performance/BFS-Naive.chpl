@@ -13,7 +13,9 @@ config const numEdgesPresent = true;
 var numVertices : uint(64);
 var numEdges : uint(64);
 
+var globalTimer = new Timer();
 var timer = new Timer();
+globalTimer.start();
 timer.start();
 
 // TODO: Perform two phases: First phase reads all offsets into task-local array,
@@ -95,14 +97,16 @@ record DistArray {
 var distVerticesDom = {0..#numVertices} dmapped Cyclic(startIdx=0);
 var distVertices : [distVerticesDom] DistArray;
 
-forall (vec, distArr) in zip(vertices, distVertices) {
+forall (distArr, vec) in zip(distVertices, vertices) {
   distArr = new DistArray(vec.toArray());
 }
+delete vertices;
 
 timer.stop();
 writeln("Initialization in ", timer.elapsed(), "s");
 timer.clear();
 
+beginProfile("BFS-Naive-Perf");
 var current = new WorkQueue(int, WorkQueueUnlimitedAggregation, new DuplicateCoalescer(int, -1));
 var next = new WorkQueue(int, WorkQueueUnlimitedAggregation, new DuplicateCoalescer(int, -1));
 var currTD = new TerminationDetector(1);
@@ -137,7 +141,10 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   numPhases += 1;
 }
 
+timer.stop();
+globalTimer.stop();
 writeln("|V| = ", numVertices, ", |E| = ", numEdges);
 writeln("BFS: ", timer.elapsed());
+writeln("Total: ", globalTimer.elapsed());
 endProfile(); 
 
