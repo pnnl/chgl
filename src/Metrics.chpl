@@ -170,8 +170,8 @@ module Metrics {
             }
           }
         }
-        terminationDetector.finished(1);
       }
+      terminationDetector.finished(1);
     }    
     terminationDetector.destroy();
     workQueue.destroy();

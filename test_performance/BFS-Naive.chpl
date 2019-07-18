@@ -92,6 +92,14 @@ record DistArray {
     this.complete();
     this.arr = arr;
   }
+
+  iter these() {
+    for a in arr do yield a;
+  }
+
+  iter these(param tag : iterKind) where tag == iterKind.standalone {
+    forall a in arr do yield a;
+  }
 }
 
 var distVerticesDom = {0..#numVertices} dmapped Cyclic(startIdx=0);
@@ -113,7 +121,7 @@ var currTD = new TerminationDetector(1);
 var nextTD = new TerminationDetector(0);
 current.addWork(0, vertices[0].locale);
 current.flush();
-var visited : [verticesDomain] atomic bool;
+var visited : [distVerticesDom] atomic bool;
 if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
 var numPhases = 1;
 var lastTime : real;
@@ -122,12 +130,13 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
     if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
-      forall neighbor in vertices[vertex] {
+      forall neighbor in distVertices[vertex] {
         if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
           continue;
         }
         nextTD.started(1);
-        next.addWork(neighbor, vertices[neighbor].locale);
+        const loc = distVerticesDom.dist.idxToLocale(neighbor);
+        next.addWork(neighbor, loc);
       }
     } 
     currTD.finished(1);
