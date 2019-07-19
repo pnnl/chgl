@@ -28,14 +28,14 @@ details).
 ====== ============== ======================================== ================= =============================
 Name   Version        Download Location                        Country of Origin Special Instructions
 ====== ============== ======================================== ================= =============================
-Chapel Release 1.19.0 `https://github.com/chapel-lang/chapel`_ USA               Tested with release `1.19.0`_
+Chapel Release 1.19.0 https://github.com/chapel-lang/chapel    USA               Tested with release 1.19.0
 ====== ============== ======================================== ================= =============================
 
 Distribution Files
 ------------------
 
 CHGL is released through a GitHub repository found at
-`https://github.com/pnnl/chgl`_. No additional files are required.
+https://github.com/pnnl/chgl. No additional files are required.
 
 Installation Instructions
 -------------------------
@@ -57,10 +57,10 @@ following git command after cloning the Chapel GitHub repository:
 
 With the correct Chapel version checked out, continue by folloing the
 Chapel installation documented at
-`https://chapel-lang.org/docs/usingchapel/QUICKSTART.html`_.
+https://chapel-lang.org/docs/usingchapel/QUICKSTART.html.
 
 Alternatively if a release is used, a Chapel Docker image found at
-`https://hub.docker.com/r/chapel/chapel/`_.
+https://hub.docker.com/r/chapel/chapel/.
 
 CHGL
 ~~~~
@@ -72,7 +72,7 @@ section below for running the unit tests.
 
 Also see the ``.travis.yml`` file for an example of our continuous
 integration build. Or view the current status at
-`https://travis-ci.org/pnnl/chgl`_.
+https://travis-ci.org/pnnl/chgl.
 
 **NOTE:** The COMPOPTS files in ``test/unit`` and ``test/performance``
 make use of ``--no-lifetime-checking --no-warnings`` for successful
