@@ -2,6 +2,7 @@ use CHGL;
 use Time;
 
 config const dataset = "DNS/tinyDNS.txt";
+config const printTiming = false;
 
 // We avoid using the PropertyMap here for two reasons...
 // 1. We want to only measure the performance of the hypergraph
@@ -55,7 +56,7 @@ for line in getLines(dataset) {
 timer.start();
 var graph = new AdjListHyperGraph(vIdx, eIdx, new unmanaged Cyclic(startIdx=0));
 timer.stop();
-writeln("Graph Creation: ", timer.elapsed());
+if printTiming then writeln("Graph Creation: ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -66,13 +67,13 @@ coforall loc in Locales do on loc {
   }
 }
 timer.stop();
-writeln("AddInclusion: ", timer.elapsed());
+if printTiming then writeln("AddInclusion: ", timer.elapsed());
 timer.clear();
 
 timer.start();
 graph.destroy();
 timer.stop();
-writeln("Graph Destroy: ", timer.elapsed());
+if printTiming then writeln("Graph Destroy: ", timer.elapsed());
 timer.clear();
 
 graph = new AdjListHyperGraph(vIdx, eIdx, new unmanaged Cyclic(startIdx=0));
@@ -85,13 +86,13 @@ coforall loc in Locales do on loc {
 }
 graph.flushBuffers();
 timer.stop();
-writeln("AddInclusionBuffered: ", timer.elapsed());
+if printTiming then writeln("AddInclusionBuffered: ", timer.elapsed());
 timer.clear();
 
 timer.start();
 graph.getInclusions();
 timer.stop();
-writeln("GetInclusions: ", timer.elapsed());
+if printTiming then writeln("GetInclusions: ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -101,7 +102,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   for ee in graph.walk(e, isImmutable=false) do totalNeighborID += ee.id;
 }
 timer.stop();
-writeln("Walk (s=1, serial, isImmutable=false): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; serial; isImmutable=false): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -110,7 +111,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   for ee in graph.walk(e, isImmutable=true) do totalNeighborID += ee.id;
 }
 timer.stop();
-writeln("Walk (s=1, serial, isImmutable=true): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; serial; isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -119,7 +120,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   forall ee in graph.walk(e, isImmutable=false) with (+ reduce totalNeighborID) do totalNeighborID += ee.id;
 }
 timer.stop();
-writeln("Walk (s=1, parallel, isImmutable=false): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; parallel; isImmutable=false): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -128,7 +129,7 @@ forall e in graph.getEdges() with (+ reduce totalNeighborID) {
   forall ee in graph.walk(e, isImmutable=true) with (+ reduce totalNeighborID) do totalNeighborID += ee.id;
 }
 timer.stop();
-writeln("Walk (s=1, parallel, isImmutable=true): ", timer.elapsed());
+if printTiming then writeln("Walk (s=1; parallel; isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 var totalTime : real;
@@ -143,7 +144,7 @@ forall e in graph.getEdges() with (max reduce totalTime) {
   }
   
 }
-writeln("Intersection Size(isImmutable=false): ", totalTime);
+if printTiming then writeln("Intersection Size(isImmutable=false): ", totalTime);
 timer.clear();
 
 totalTime = 0;
@@ -156,7 +157,7 @@ forall e in graph.getEdges() with (max reduce totalTime) {
     totalTime = max(totalTime, _timer.elapsed());
   }
 }
-writeln("Intersection Size (isImmutable=true): ", totalTime);
+if printTiming then writeln("Intersection Size (isImmutable=true): ", totalTime);
 timer.clear();
 
 timer.start();
@@ -164,7 +165,7 @@ forall e in graph.getEdges() {
   for v in graph.incidence(e, isImmutable=false) do ;
 }
 timer.stop();
-writeln("Incidence (isImmutable=false): ", timer.elapsed());
+if printTiming then writeln("Incidence (isImmutable=false): ", timer.elapsed());
 timer.clear();
 
 timer.start();
@@ -172,13 +173,13 @@ forall e in graph.getEdges() {
   for v in graph.incidence(e, isImmutable=true) do ;
 }
 timer.stop();
-writeln("Incidence (isImmutable=true): ", timer.elapsed());
+if printTiming then writeln("Incidence (isImmutable=true): ", timer.elapsed());
 timer.clear();
 
 timer.start();
 graph.removeDuplicates();
 timer.stop();
-writeln("removeDuplicates: ", timer.elapsed());
+if printTiming then writeln("removeDuplicates: ", timer.elapsed());
 timer.clear();
 
 graph.destroy();

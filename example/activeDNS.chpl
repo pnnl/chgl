@@ -64,6 +64,8 @@ config const postRemovalMetrics = true;
 config const postRemovalComponents = true;
 // Scan for blacklist after removing isolated components
 config const postRemovalBlacklist = true;
+// Perform toplex reduction.
+config const doToplexReduction = false;
 // Obtain metrics after reducing to toplex hyperedges.
 config const postToplexMetrics = true;
 // Obtain components after reducing to toplex hyperedges.
@@ -114,7 +116,7 @@ coforall loc in Locales do on loc {
 }
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(int, WorkQueueUnlimitedAggregation);
+var wq = new WorkQueue(string, 1024 * 1024);
 var td = new TerminationDetector();
 var blacklistIPAddresses : domain(string);
 var blacklistDNSNames : domain(string);
@@ -159,14 +161,13 @@ proc getMetrics(graph, prefix, doComponents) {
     // Compute component size distribution
     if doComponents then for s in 1..3 {
       var vComponentSizeDistribution = vertexComponentSizeDistribution(graph, s);
-      var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
-
       f.writeln("(", prefix, ") Vertex Connected Component Size Distribution (s = " + s + "):");
       for (sz, freq) in zip(vComponentSizeDistribution.domain, vComponentSizeDistribution) {
         if freq != 0 then f.writeln("\t" + sz + "," + freq);
       }
       f.flush();
 
+      var eComponentSizeDistribution = edgeComponentSizeDistribution(graph, s);
       f.writeln("(", prefix, ") Edge Connected Component Size Distribution (s = " + s + "):");
       for (sz, freq) in zip(eComponentSizeDistribution.domain, eComponentSizeDistribution) {
         if freq != 0 then f.writeln("\t" + sz + "," + freq);
@@ -187,7 +188,7 @@ proc searchBlacklist(graph, prefix) {
       writeln("unable to create directory", outputDirectory + prefix);
     }
   }
-  forall v in graph.getVertices() {
+  forall v in graph.getVertices() with (in blacklistIPAddresses) {
     var ip = graph.getProperty(v);
     if blacklistIPAddresses.contains(ip) {
       var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
@@ -224,7 +225,7 @@ proc searchBlacklist(graph, prefix) {
       } 
     } 
   } writeln("Finished searching for blacklisted IPs...");
-  forall e in graph.getEdges() {
+  forall e in graph.getEdges() with (in blacklistDNSNames) {
     var dnsName = graph.getProperty(e);
     var isBadDNS = dnsName.matches(rcLocal(blacklistDNSNamesRegexp));
     if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
@@ -266,6 +267,10 @@ proc searchBlacklist(graph, prefix) {
 
 writeln("Constructing PropertyMap...");
 t.start();
+/*
+  TODO: DO NOT DO THIS! This results in hitting OOM extremely quickly!
+  Instead just go back to doling out files to evenly distributed locales
+*/
 // Fill work queue with files to load up
 var currLoc : int; 
 var nFiles : int;
@@ -275,23 +280,27 @@ for fileName in listdir(datasetDirectory, dirs=false) {
     if nFiles == numMaxFiles then break;
     files.push_back(fileName);
     fileNames.push_back(datasetDirectory + fileName);
-    wq.addWork(nFiles, currLoc % numLocales);
     currLoc += 1;
     nFiles += 1;
 }
+
+// Spread out the work across multiple locales.
+forall fileName in fileNames with (var currLoc : int) {
+  for line in getLines(fileName) {
+    td.started(1);
+    wq.addWork(line, currLoc % numLocales);
+    currLoc += 1;
+  }
+}
 wq.flush();
-td.started(nFiles);
 
 // Initialize property maps; aggregation is used as properties can be remote to current locale.
-forall fileIdx in doWorkLoop(wq,td) { 
-  for line in getLines(fileNames[fileIdx]) {
-    var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
-
-    vPropMap.create(rdata.strip(), aggregated=true);
-    ePropMap.create(qname.strip(), aggregated=true);
-  }
+forall line in doWorkLoop(wq, td) {
+  var attrs = line.split(",");
+  var qname = attrs[1];
+  var rdata = attrs[2];
+  vPropMap.create(rdata.strip(), aggregated=true);
+  ePropMap.create(qname.strip(), aggregated=true);
   td.finished();  
 }
 vPropMap.flushGlobal();
@@ -313,28 +322,40 @@ t.stop();
 writeln("Constructed HyperGraph in ", t.elapsed(), "s");
 t.clear();
 writeln("Populating HyperGraph...");
-// Fill work queue with files to load up
-currLoc = 0;
-nFiles = 0;
-for fileName in files {    
-    wq.addWork(nFiles, currLoc % numLocales);
-    currLoc += 1;
-    nFiles += 1;
-}
-wq.flush();
-td.started(nFiles);
 
 t.start();
-graph.startAggregation();
-forall fileIdx in doWorkLoop(wq,td) { 
-  for line in getLines(fileNames[fileIdx]) {
-    var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
-    
-    graph.addInclusion(vPropMap.getProperty(rdata.strip()), ePropMap.getProperty(qname.strip()));
+// Spread out the work across multiple locales.
+forall fileName in fileNames with (var currLoc : int) {
+  for line in getLines(fileName) {
+    td.started(1);
+    wq.addWork(line, currLoc % numLocales);
+    currLoc += 1;
   }
-  td.finished();  
+}
+wq.flush();
+
+// Aggregate fetches to properties into another work queue; when we flush
+// each of the property maps, their individual PropertyHandle will be finished.
+var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle));
+var handleTD = new TerminationDetector();
+forall line in doWorkLoop(wq, td) {
+  var attrs = line.split(",");
+  var qname = attrs[1];
+  var rdata = attrs[2];
+  handleTD.started(1);
+  td.finished(1);
+  handleWQ.addWork((vPropMap.getPropertyAsync(rdata.strip()), ePropMap.getPropertyAsync(qname.strip())));
+}
+vPropMap.flushGlobal();
+ePropMap.flushGlobal();
+
+// Finally aggregate inclusions for the hypergraph.
+graph.startAggregation();
+forall (vHandle, eHandle) in doWorkLoop(handleWQ, handleTD) {
+  graph.addInclusion(vHandle.get(), eHandle.get());
+  delete vHandle;
+  delete eHandle;
+  handleTD.finished(1);
 }
 graph.stopAggregation();
 graph.flushBuffers();
@@ -429,33 +450,34 @@ if postRemovalMetrics {
     t.clear();
 }
 
-writeln("Removing non-toplexes...");
-t.start();
-var toplexStats = graph.collapseSubsets();
-t.stop();
-writeln("Removed non-toplexes: ", t.elapsed());
-f.writeln("Distribution of Non-Toplex Edges:");
-for (deg, freq) in zip(toplexStats.domain, toplexStats) {
-    if freq != 0 then f.writeln("\t", deg, ",", freq);
-}
-t.clear();
+if doToplexReduction {
+  writeln("Removing non-toplexes...");
+  t.start();
+  var toplexStats = graph.collapseSubsets();
+  t.stop();
+  writeln("Removed non-toplexes: ", t.elapsed());
+  f.writeln("Distribution of Non-Toplex Edges:");
+  for (deg, freq) in zip(toplexStats.domain, toplexStats) {
+      if freq != 0 then f.writeln("\t", deg, ",", freq);
+  }
+  t.clear();
 
-if postToplexBlacklist {
-    t.start();
-    searchBlacklist(graph, "Post-Toplex");
-    t.stop();
-    writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
-    t.clear();
-}
+  if postToplexBlacklist {
+      t.start();
+      searchBlacklist(graph, "Post-Toplex");
+      t.stop();
+      writeln("(Post-Collapse) Blacklist Scan: ", t.elapsed(), " seconds...");
+      t.clear();
+  }
 
-if postToplexMetrics {
-    t.start();
-    getMetrics(graph, "Post-Toplex", postToplexComponents);
-    t.stop();
-    writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
-    t.clear();
+  if postToplexMetrics {
+      t.start();
+      getMetrics(graph, "Post-Toplex", postToplexComponents);
+      t.stop();
+      writeln("(Post-Toplex) Collected Metrics: ", t.elapsed(), " seconds...");
+      t.clear();
+  }
 }
-
 
 writeln("Printing out collapsed toplex graph...");
 var ff = open(hypergraphOutput, iomode.cw).writer();

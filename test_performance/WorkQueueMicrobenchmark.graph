@@ -1,0 +1,5 @@
+perfkeys: Creation (No Aggregation):, Creation (Limited Aggregation):, Creation (Unlimited Aggregation):, Insertion (local):, Removal:, Insertion (remote; no aggregation):, Insertion (remote; limited aggregation):, Insertion (remote; unlimited aggregation):, doWorkLoop (no work):, doWorkLoop (work; no coalescing):, Destruction:, doWorkLoop (work; coalescing):
+files: dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat, dat/WorkQueueMicrobenchmark.dat
+graphkeys: Creation (No Aggregation), Creation (Limited Aggregation), Creation (Unlimited Aggregation), Insertion (local), Removal, Insertion (remote no aggregation), Insertion (remote limited aggregation), Insertion (remote unlimited aggregation), doWorkLoop (no work), doWorkLoop (work no coalescing), Destruction, doWorkLoop (work coalescing)
+graphtitle: WorkQueue Microbenchmark
+ylabel: Time (seconds)

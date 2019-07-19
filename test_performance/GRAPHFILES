@@ -1,2 +1,8 @@
-CHGL.graph
+ErdosRenyi.graph
+ChungLu.graph
+BTER.graph
 activeDNS.graph
+AdjListHyperGraphMicrobenchmark.graph
+WorkQueueMicrobenchmark.graph
+PropertyMapMicrobenchmark.graph
+AggregationBufferMicrobenchmark.graph

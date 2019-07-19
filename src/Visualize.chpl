@@ -1,7 +1,5 @@
-use AdjListHyperGraph;
-use Generation;
 use Sort;
-use Graph;
+use CHGL;
 
 proc visualize(graph : Graph, fileName = "out.dot") throws {
   var vertexVisited : [graph.verticesDomain] bool;

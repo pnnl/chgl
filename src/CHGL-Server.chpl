@@ -1,3 +1,11 @@
+/*
+  This is a server intended to be used with a python client connected
+  over ZMQ. This has been heavily inspired by Arkouda, the first project
+  to take this approach. This is a prototype and is intended as a brief
+  proof-of-concept; the hope is that CHGL will have integration with Arkouda
+  at a later date.
+*/
+
 use AdjListHyperGraph;
 use Graph;
 use BinReader;

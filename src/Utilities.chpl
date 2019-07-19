@@ -437,6 +437,12 @@ class Centralized {
   forwarding x;
 }
 
+inline proc getLocaleIdx(dom, idx) {
+  var loc = dom.dist.idxToLocale(idx);
+  var locID = chpl_nodeFromLocaleID(__primitive("_wide_get_locale", loc));
+  return locID;
+}
+
 inline proc getLocale(dom, idx) {
   var loc = dom.dist.idxToLocale(idx);
   var locID = chpl_nodeFromLocaleID(__primitive("_wide_get_locale", loc));

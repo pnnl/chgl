@@ -103,6 +103,8 @@ The unit tests are best run to verify the CHGL build. Performance tests were not
 run by a continuous integration environment and were written targeting particular hardware
 systems, leading them to be not as useful for verifying a CHGL build.
 
+**Performance Tracking can now be seen [here](https://pnnl.github.io/chgl-perf/?graphs=all).**
+
 User Guide
 ==========
 

@@ -1,16 +1,14 @@
 module Generation {
 
   use IO;
+  use CHGL;
   use Random;
   use BlockDist;
   use CyclicDist;
-  use Utilities;
-  use AdjListHyperGraph;
   use BlockDist;
   use Math;
   use Sort;
   use Search;
-  use Metrics;
 
   param GenerationSeedOffset = 0xDEADBEEF;
   config const GenerationUseAggregation = true;
@@ -192,11 +190,11 @@ module Generation {
     var inclusionsToAdd = round(numVertices * numEdges * newP) : int; 
     var workInfo = calculateWork(inclusionsToAdd, targetLocales);
     
-    sync coforall loc in targetLocales do on loc {
+    coforall loc in targetLocales do on loc {
       coforall tid in 1..here.maxTaskPar {
         var work = workInfo[here.id, tid];
         var rng = new owned RandomStream(int, seed=work.rngSeed);
-        if work.rngOffset != 0 then rng.skipToNth(work.rngOffset);
+        if work.rngOffset != 0 then try! rng.skipToNth(work.rngOffset);
         for 1..work.numOperations {
           var vertex = rng.getNext(0, vertSize - 1) * vertStride + vertLow;
           var edge = rng.getNext(0, edgeSize - 1) * edgeStride + edgeLow;
@@ -490,10 +488,15 @@ module Generation {
         edDom.size
         );
     var graph = new AdjListHyperGraph(vdDom.size, edDom.size, new unmanaged Cyclic(startIdx=0));
+    // Work Queue consists of range of vertices, range of edges, offset for RNG, and rho value
+    var workQueue = new WorkQueue((range, range, int, real), -1);
+    var td = new TerminationDetector();
 
     var blockID = 1;
     var expectedDuplicates : int;
-    graph.startAggregation();
+    var currLoc : int;
+    var rngOffset = 1;
+    var seed = randInt();
     while (idV <= numV && idE <= numE){
       var (dV, dE) = (vd[idV], ed[idE]);
       var (mV, mE) = (vmc[dV - 1], emc[dE - 1]);
@@ -531,33 +534,35 @@ module Generation {
           writeln("blockID = ", blockID);
           halt("Bad idx");
         }
-        const ref verticesDomain = graph.verticesDomain[idV..#nV_int];
-        const ref edgesDomain = graph.edgesDomain[idE..#nE_int];
-        expectedDuplicates += round((nV_int * nE_int * log(1/(1-rho))) - (nV_int * nE_int * rho)) : int;
-        // Compute affinity blocks
-        var rng = new owned RandomStream(int, parSafe=true);
-        forall v in verticesDomain {
-          for (e, p) in zip(edgesDomain, rng.iterate(edgesDomain)) {
-            if p > rho then graph.addInclusion(v,e);
-          }
-        }
-
+        workQueue.addWork((idV..#nV_int, idE..#nE_int, rngOffset, rho), currLoc % numLocales);
+        currLoc += 1;
+        rngOffset += nV_int * nE_int;
+        td.started(1);
+        
         idV += nV_int;
         idE += nE_int;
       } else {
         break;
       }
     }
-    graph.stopAggregation();
-    graph.removeDuplicates();
-    
+
+    forall (vertices, edges, rngOffset, rho) in doWorkLoop(workQueue, td) with (var rng = new RandomStream(real, parSafe=false, seed=seed))  {
+        try! rng.skipToNth(rngOffset);
+        // Compute affinity blocks
+        for v in vertices {
+          for e in edges {
+            if rng.getNext() < rho then graph.addInclusionBuffered(v,e);
+          }
+        }
+        td.finished(1);
+    }
+    graph.flushBuffers();
+        
     forall v in graph.getVertices() {
-      var oldDeg = vd[v.id];
-      vd[v.id] = max(0, oldDeg - graph.degree(v));
+      vd[v.id] = max(0, vd[v.id] - graph.degree(v));
     }
     forall e in graph.getEdges() {
-      var oldDeg = ed[e.id];
-      ed[e.id] = max(0, oldDeg - graph.degree(e));
+      ed[e.id] = max(0, ed[e.id] - graph.degree(e));
     }
     var nInclusions = _round(max(+ reduce vd, + reduce ed));
     generateChungLu(graph, vd, ed, nInclusions);
