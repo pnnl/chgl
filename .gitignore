@@ -15,8 +15,11 @@
 /test_performance/Logs/
 /test/Logs/
 
-# chpldoc generated content
-/docs/
+# Documentation generated content
+/docs/api/
+/docs/_build/
+
+# mason doc generated content
 /doc/
 
 # Mason lockfile
@@ -25,3 +28,6 @@ Mason.lock
 # chpldoc deploy key
 deploy_key
 *.swp
+
+# IDE settings
+/.vscode/
