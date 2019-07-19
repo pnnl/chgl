@@ -1,0 +1,498 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>activeDNS &mdash; CHGL  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="CHGL  documentation" href="../../../index.html"/>
+        <link rel="up" title="chpldoc documentation" href="../../index.html"/>
+        <link rel="next" title="graphs" href="graphs.html"/>
+        <link rel="prev" title="chpldoc documentation" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CHGL
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <p class="caption"><span class="caption-text">Compiling and Running Chapel</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart Instructions</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">CHGL Performance Results</a></li>
+</ul>
+<p class="caption"><span class="caption-text">CHGL API Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">chpldoc documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Example CHGL Applications</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">chpldoc documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../index.html">chpldoc documentation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">activeDNS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graphs.html">graphs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">CHGL</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">chpldoc documentation</a> &raquo;</li>
+      
+    <li>activeDNS</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../../_sources/example/modules/example/activeDNS.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-activeDNS"></span><div class="section" id="activedns">
+<h1>activeDNS<a class="headerlink" href="#activedns" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">activeDNS</span><span class="p">;</span>
+</pre></div>
+</div>
+<dl class="data">
+<dt id="activeDNS.blacklistIPRegex">
+<em class="property">config const </em><code class="descname">blacklistIPRegex</code> = &quot;^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$&quot;<a class="headerlink" href="#activeDNS.blacklistIPRegex" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Regular Expression used for searching for IP Addresses.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.datasetDirectory">
+<em class="property">config const </em><code class="descname">datasetDirectory</code> = &quot;../data/DNS/&quot;<a class="headerlink" href="#activeDNS.datasetDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Directory containing the DNS dataset in CSV format. Each file is parsed
+individually, in parallel, and distributed. This is liable to change to be
+more flexible, I.E to consider binary format (preprocessed), but for now
+it must be a directory containing files ending in &#8221;.csv&#8221;.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.blacklistIPs">
+<em class="property">config const </em><code class="descname">blacklistIPs</code> = &quot;../data/ip-most-wanted.txt&quot;<a class="headerlink" href="#activeDNS.blacklistIPs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data file containing a list of blacklisted ip addresses. Checked for after all segmentation
+is performed.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.blacklistDNS">
+<em class="property">config const </em><code class="descname">blacklistDNS</code> = &quot;../data/dns-most-wanted.txt&quot;<a class="headerlink" href="#activeDNS.blacklistDNS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data file containing a list of blacklisted dns names. Checked for after all segmentation
+is performed.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.outputDirectory">
+<em class="property">config const </em><code class="descname">outputDirectory</code> = &quot;tmp/&quot;<a class="headerlink" href="#activeDNS.outputDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output directory.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.metricsOutput">
+<em class="property">config const </em><code class="descname">metricsOutput</code> = outputDirectory+metrics.txt<a class="headerlink" href="#activeDNS.metricsOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of output file containing metrics.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.componentsDirectory">
+<em class="property">config const </em><code class="descname">componentsDirectory</code> = outputDirectory+components/<a class="headerlink" href="#activeDNS.componentsDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of output directory for components</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.hypergraphOutput">
+<em class="property">config const </em><code class="descname">hypergraphOutput</code> = outputDirectory+hypergraph.txt<a class="headerlink" href="#activeDNS.hypergraphOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of output file containing hypergraph list of hyperedges.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.blacklistDNSNamesRegex">
+<em class="property">config const </em><code class="descname">blacklistDNSNamesRegex</code> = &quot;^[a-zA-Z]{4,5}\.(pw|us|club|info|site|top)$&quot;<a class="headerlink" href="#activeDNS.blacklistDNSNamesRegex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Regular expression for blacklist of DNS names.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.preCollapseMetrics">
+<em class="property">config const </em><code class="descname">preCollapseMetrics</code> = true<a class="headerlink" href="#activeDNS.preCollapseMetrics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.preCollapseComponents">
+<em class="property">config const </em><code class="descname">preCollapseComponents</code> = true<a class="headerlink" href="#activeDNS.preCollapseComponents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.preCollapseBlacklist">
+<em class="property">config const </em><code class="descname">preCollapseBlacklist</code> = true<a class="headerlink" href="#activeDNS.preCollapseBlacklist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postCollapseMetrics">
+<em class="property">config const </em><code class="descname">postCollapseMetrics</code> = true<a class="headerlink" href="#activeDNS.postCollapseMetrics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postCollapseComponents">
+<em class="property">config const </em><code class="descname">postCollapseComponents</code> = true<a class="headerlink" href="#activeDNS.postCollapseComponents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postCollapseBlacklist">
+<em class="property">config const </em><code class="descname">postCollapseBlacklist</code> = true<a class="headerlink" href="#activeDNS.postCollapseBlacklist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postRemovalMetrics">
+<em class="property">config const </em><code class="descname">postRemovalMetrics</code> = true<a class="headerlink" href="#activeDNS.postRemovalMetrics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postRemovalComponents">
+<em class="property">config const </em><code class="descname">postRemovalComponents</code> = true<a class="headerlink" href="#activeDNS.postRemovalComponents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postRemovalBlacklist">
+<em class="property">config const </em><code class="descname">postRemovalBlacklist</code> = true<a class="headerlink" href="#activeDNS.postRemovalBlacklist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.doToplexReduction">
+<em class="property">config const </em><code class="descname">doToplexReduction</code> = false<a class="headerlink" href="#activeDNS.doToplexReduction" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postToplexMetrics">
+<em class="property">config const </em><code class="descname">postToplexMetrics</code> = true<a class="headerlink" href="#activeDNS.postToplexMetrics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postToplexComponents">
+<em class="property">config const </em><code class="descname">postToplexComponents</code> = true<a class="headerlink" href="#activeDNS.postToplexComponents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.postToplexBlacklist">
+<em class="property">config const </em><code class="descname">postToplexBlacklist</code> = true<a class="headerlink" href="#activeDNS.postToplexBlacklist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.numMaxFiles">
+<em class="property">config const </em><code class="descname">numMaxFiles</code> = max(int(64))<a class="headerlink" href="#activeDNS.numMaxFiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.doProfiling">
+<em class="property">config const </em><code class="descname">doProfiling</code> = false<a class="headerlink" href="#activeDNS.doProfiling" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.dnsNameIndex">
+<em class="property">config const </em><code class="descname">dnsNameIndex</code> = 1<a class="headerlink" href="#activeDNS.dnsNameIndex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.ipAddressIndex">
+<em class="property">config const </em><code class="descname">ipAddressIndex</code> = 2<a class="headerlink" href="#activeDNS.ipAddressIndex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.skipHeader">
+<em class="property">config const </em><code class="descname">skipHeader</code> = false<a class="headerlink" href="#activeDNS.skipHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.t">
+<em class="property">var </em><code class="descname">t</code> = new Timer()<a class="headerlink" href="#activeDNS.t" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.tt">
+<em class="property">var </em><code class="descname">tt</code> = new Timer()<a class="headerlink" href="#activeDNS.tt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.files">
+<em class="property">var </em><code class="descname">files</code>: [0..-1] string<a class="headerlink" href="#activeDNS.files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.f">
+<em class="property">var </em><code class="descname">f</code> = AppendExpr.Call08<a class="headerlink" href="#activeDNS.f" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.blacklistIPRegexp">
+<em class="property">var </em><code class="descname">blacklistIPRegexp</code>: [rcDomain] regexp<a class="headerlink" href="#activeDNS.blacklistIPRegexp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.blacklistDNSNamesRegexp">
+<em class="property">var </em><code class="descname">blacklistDNSNamesRegexp</code>: [rcDomain] regexp<a class="headerlink" href="#activeDNS.blacklistDNSNamesRegexp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.vPropMap">
+<em class="property">var </em><code class="descname">vPropMap</code> = new PropertyMap(string)<a class="headerlink" href="#activeDNS.vPropMap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.ePropMap">
+<em class="property">var </em><code class="descname">ePropMap</code> = new PropertyMap(string)<a class="headerlink" href="#activeDNS.ePropMap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.wq">
+<em class="property">var </em><code class="descname">wq</code> = new stringWorkQueue1024*1024<a class="headerlink" href="#activeDNS.wq" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.td">
+<em class="property">var </em><code class="descname">td</code> = new TerminationDetector()<a class="headerlink" href="#activeDNS.td" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.blacklistIPAddresses">
+<em class="property">var </em><code class="descname">blacklistIPAddresses</code>: domain(string)<a class="headerlink" href="#activeDNS.blacklistIPAddresses" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.blacklistDNSNames">
+<em class="property">var </em><code class="descname">blacklistDNSNames</code>: domain(string)<a class="headerlink" href="#activeDNS.blacklistDNSNames" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="activeDNS.printPropertyDistribution">
+<em class="property">proc </em><code class="descname">printPropertyDistribution</code><span class="sig-paren">(</span><em>propMap</em><span class="sig-paren">)</span>: void<a class="headerlink" href="#activeDNS.printPropertyDistribution" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="activeDNS.getMetrics">
+<em class="property">proc </em><code class="descname">getMetrics</code><span class="sig-paren">(</span><em>graph</em>, <em>prefix</em>, <em>doComponents</em><span class="sig-paren">)</span><a class="headerlink" href="#activeDNS.getMetrics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="activeDNS.searchBlacklist">
+<em class="property">proc </em><code class="descname">searchBlacklist</code><span class="sig-paren">(</span><em>graph</em>, <em>prefix</em><span class="sig-paren">)</span><a class="headerlink" href="#activeDNS.searchBlacklist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.currLoc">
+<em class="property">var </em><code class="descname">currLoc</code>: int<a class="headerlink" href="#activeDNS.currLoc" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO: DO NOT DO THIS! This results in hitting OOM extremely quickly!
+Instead just go back to doling out files to evenly distributed locales</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.nFiles">
+<em class="property">var </em><code class="descname">nFiles</code>: int<a class="headerlink" href="#activeDNS.nFiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.fileNames">
+<em class="property">var </em><code class="descname">fileNames</code>: [0..-1] string<a class="headerlink" href="#activeDNS.fileNames" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.graph">
+<em class="property">var </em><code class="descname">graph</code> = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx = 0))<a class="headerlink" href="#activeDNS.graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.handleWQ">
+<em class="property">var </em><code class="descname">handleWQ</code> = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle))<a class="headerlink" href="#activeDNS.handleWQ" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.handleTD">
+<em class="property">var </em><code class="descname">handleTD</code> = new TerminationDetector()<a class="headerlink" href="#activeDNS.handleTD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.vDupeHistogram">
+<em class="property">var </em><code class="descname">vDupeHistogram</code> = AppendExpr.Call08<a class="headerlink" href="#activeDNS.vDupeHistogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.eDupeHistogram">
+<em class="property">var </em><code class="descname">eDupeHistogram</code> = AppendExpr.Call08<a class="headerlink" href="#activeDNS.eDupeHistogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.numIsolatedComponents">
+<em class="property">var </em><code class="descname">numIsolatedComponents</code> = AppendExpr.Call08<a class="headerlink" href="#activeDNS.numIsolatedComponents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="activeDNS.ff">
+<em class="property">var </em><code class="descname">ff</code> = AppendExpr.Call08<a class="headerlink" href="#activeDNS.ff" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="graphs.html" class="btn btn-neutral float-right" title="graphs" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../../index.html" class="btn btn-neutral" title="chpldoc documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, PNNL.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

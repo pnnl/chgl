@@ -1,0 +1,152 @@
+.. default-domain:: chpl
+
+.. module:: activeDNS
+
+activeDNS
+=========
+**Usage**
+
+.. code-block:: chapel
+
+   use activeDNS;
+
+.. data:: config const blacklistIPRegex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+
+   
+   The Regular Expression used for searching for IP Addresses.
+
+.. data:: config const datasetDirectory = "../data/DNS/"
+
+   
+   Directory containing the DNS dataset in CSV format. Each file is parsed
+   individually, in parallel, and distributed. This is liable to change to be
+   more flexible, I.E to consider binary format (preprocessed), but for now
+   it must be a directory containing files ending in ".csv".
+
+.. data:: config const blacklistIPs = "../data/ip-most-wanted.txt"
+
+   
+   Data file containing a list of blacklisted ip addresses. Checked for after all segmentation
+   is performed.
+
+.. data:: config const blacklistDNS = "../data/dns-most-wanted.txt"
+
+   
+   Data file containing a list of blacklisted dns names. Checked for after all segmentation
+   is performed.
+
+.. data:: config const outputDirectory = "tmp/"
+
+   
+   Output directory.
+
+.. data:: config const metricsOutput = outputDirectory+metrics.txt
+
+   
+   Name of output file containing metrics.
+
+.. data:: config const componentsDirectory = outputDirectory+components/
+
+   
+   Name of output directory for components
+
+.. data:: config const hypergraphOutput = outputDirectory+hypergraph.txt
+
+   
+   Name of output file containing hypergraph list of hyperedges.
+
+.. data:: config const blacklistDNSNamesRegex = "^[a-zA-Z]{4,5}\\.(pw|us|club|info|site|top)$"
+
+   
+   Regular expression for blacklist of DNS names.
+
+.. data:: config const preCollapseMetrics = true
+
+.. data:: config const preCollapseComponents = true
+
+.. data:: config const preCollapseBlacklist = true
+
+.. data:: config const postCollapseMetrics = true
+
+.. data:: config const postCollapseComponents = true
+
+.. data:: config const postCollapseBlacklist = true
+
+.. data:: config const postRemovalMetrics = true
+
+.. data:: config const postRemovalComponents = true
+
+.. data:: config const postRemovalBlacklist = true
+
+.. data:: config const doToplexReduction = false
+
+.. data:: config const postToplexMetrics = true
+
+.. data:: config const postToplexComponents = true
+
+.. data:: config const postToplexBlacklist = true
+
+.. data:: config const numMaxFiles = max(int(64))
+
+.. data:: config const doProfiling = false
+
+.. data:: config const dnsNameIndex = 1
+
+.. data:: config const ipAddressIndex = 2
+
+.. data:: config const skipHeader = false
+
+.. data:: var t = new Timer()
+
+.. data:: var tt = new Timer()
+
+.. data:: var files: [0..-1] string
+
+.. data:: var f = AppendExpr.Call08
+
+.. data:: var blacklistIPRegexp: [rcDomain] regexp
+
+.. data:: var blacklistDNSNamesRegexp: [rcDomain] regexp
+
+.. data:: var vPropMap = new PropertyMap(string)
+
+.. data:: var ePropMap = new PropertyMap(string)
+
+.. data:: var wq = new stringWorkQueue1024*1024
+
+.. data:: var td = new TerminationDetector()
+
+.. data:: var blacklistIPAddresses: domain(string)
+
+.. data:: var blacklistDNSNames: domain(string)
+
+.. function:: proc printPropertyDistribution(propMap): void
+
+.. function:: proc getMetrics(graph, prefix, doComponents)
+
+.. function:: proc searchBlacklist(graph, prefix)
+
+.. data:: var currLoc: int
+
+   
+   TODO: DO NOT DO THIS! This results in hitting OOM extremely quickly!
+   Instead just go back to doling out files to evenly distributed locales
+
+.. data:: var nFiles: int
+
+.. data:: var fileNames: [0..-1] string
+
+.. data:: var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx = 0))
+
+.. data:: var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle))
+
+.. data:: var handleTD = new TerminationDetector()
+
+.. data:: var vDupeHistogram = AppendExpr.Call08
+
+.. data:: var eDupeHistogram = AppendExpr.Call08
+
+.. data:: var numIsolatedComponents = AppendExpr.Call08
+
+.. data:: var ff = AppendExpr.Call08
+

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>chpldoc documentation &mdash; chpldoc 0.0.1 documentation</title>
+  <title>CHGL Documentation &mdash; CHGL  documentation</title>
   
 
   
@@ -30,8 +30,8 @@
   
 
   
-    <link rel="top" title="chpldoc 0.0.1 documentation" href="#"/>
-        <link rel="next" title="AdjListHyperGraph" href="modules/src/AdjListHyperGraph.html"/> 
+    <link rel="top" title="CHGL  documentation" href="#"/>
+        <link rel="next" title="Quickstart Instructions" href="quickstart.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -49,7 +49,7 @@
           
 
           
-            <a href="#" class="icon icon-home"> chpldoc
+            <a href="#" class="icon icon-home"> CHGL
           
 
           
@@ -57,10 +57,6 @@
 
           
             
-            
-              <div class="version">
-                0.0.1
-              </div>
             
           
 
@@ -80,29 +76,20 @@
           
             
             
-                <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="">chpldoc documentation</a></li>
-</ul>
+                <p class="caption"><span class="caption-text">Compiling and Running Chapel</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/AdjListHyperGraph.html">AdjListHyperGraph</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/AggregationBuffer.html">AggregationBuffer</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/BinReader.html">BinReader</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Butterfly.html">Butterfly</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/CHGL.html">CHGL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/CHGL-Server.html">CHGL-Server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/EquivalenceClasses.html">EquivalenceClasses</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Generation.html">Generation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Graph.html">Graph</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Metrics.html">Metrics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/PropertyMaps.html">PropertyMaps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/TerminationDetection.html">TerminationDetection</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Traversal.html">Traversal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/UnrolledLinkedList.html">UnrolledLinkedList</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Utilities.html">Utilities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Vectors.html">Vectors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Visualize.html">Visualize</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/WorkQueue.html">WorkQueue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Instructions</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">CHGL Performance Results</a></li>
+</ul>
+<p class="caption"><span class="caption-text">CHGL API Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">chpldoc documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Example CHGL Applications</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example/index.html">chpldoc documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example/index.html#indices-and-tables">Indices and tables</a></li>
 </ul>
 
             
@@ -116,7 +103,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="#">chpldoc</a>
+        <a href="#">CHGL</a>
       </nav>
 
 
@@ -133,7 +120,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="#">Docs</a> &raquo;</li>
       
-    <li>chpldoc documentation</li>
+    <li>CHGL Documentation</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -147,42 +134,37 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="chpldoc-documentation">
-<h1>chpldoc documentation<a class="headerlink" href="#chpldoc-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Contents:</p>
-<div class="toctree-wrapper compound">
-</div>
-<div class="toctree-wrapper compound">
+  <div class="section" id="chgl-documentation">
+<h1>CHGL Documentation<a class="headerlink" href="#chgl-documentation" title="Permalink to this headline">¶</a></h1>
+<p><strong>C</strong>hapel <strong>H</strong>yper<strong>g</strong>raph <strong>L</strong>ibrary (CHGL), a library
+for hypergraph computation in the emerging Chapel language. Hypergraphs
+generalize graphs, where a hypergraph edge can connect any number of
+vertices. Thus, hypergraphs capture high-order, high-dimensional
+interactions between multiple entities that are not directly expressible
+in graphs. CHGL is designed to provide HPC-class computation with
+high-level abstractions and modern language support for parallel
+computing on shared memory and distributed memory systems.</p>
+<div class="toctree-wrapper compound" id="compiling-and-running-chapel">
+<p class="caption"><span class="caption-text">Compiling and Running Chapel</span><a class="headerlink" href="#compiling-and-running-chapel" title="Permalink to this toctree">¶</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/AdjListHyperGraph.html">AdjListHyperGraph</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/AggregationBuffer.html">AggregationBuffer</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/BinReader.html">BinReader</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Butterfly.html">Butterfly</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/CHGL.html">CHGL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/CHGL-Server.html">CHGL-Server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/EquivalenceClasses.html">EquivalenceClasses</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Generation.html">Generation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Graph.html">Graph</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Metrics.html">Metrics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/PropertyMaps.html">PropertyMaps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/TerminationDetection.html">TerminationDetection</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Traversal.html">Traversal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/UnrolledLinkedList.html">UnrolledLinkedList</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Utilities.html">Utilities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Vectors.html">Vectors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/Visualize.html">Visualize</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/src/WorkQueue.html">WorkQueue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Instructions</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">CHGL Performance Results</a></li>
 </ul>
 </div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
-<li><a class="reference internal" href="chpl-modindex.html"><em>Chapel Module Index</em></a></li>
-<li><a class="reference internal" href="search.html"><span>Search Page</span></a></li>
+<div class="toctree-wrapper compound" id="chgl-api-documentation">
+<p class="caption"><span class="caption-text">CHGL API Documentation</span><a class="headerlink" href="#chgl-api-documentation" title="Permalink to this toctree">¶</a></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">chpldoc documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html#indices-and-tables">Indices and tables</a></li>
 </ul>
+</div>
+<div class="toctree-wrapper compound" id="example-chgl-applications">
+<p class="caption"><span class="caption-text">Example CHGL Applications</span><a class="headerlink" href="#example-chgl-applications" title="Permalink to this toctree">¶</a></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example/index.html">chpldoc documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
 </div>
 
 
@@ -192,7 +174,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="modules/src/AdjListHyperGraph.html" class="btn btn-neutral float-right" title="AdjListHyperGraph" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="Quickstart Instructions" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>
@@ -202,7 +184,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, PNNL.
+        &copy; Copyright 2019, PNNL.
 
     </p>
   </div>
@@ -224,7 +206,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.1',
+            VERSION:'',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -233,7 +215,6 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 
@@ -249,10 +230,7 @@
           SphinxRtdTheme.StickyNav.enable();
       });
   </script>
-  
- 
-
-
+   
 
 </body>
 </html>

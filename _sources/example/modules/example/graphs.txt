@@ -1,0 +1,51 @@
+.. default-domain:: chpl
+
+.. module:: graphs
+
+graphs
+======
+**Usage**
+
+.. code-block:: chapel
+
+   use graphs;
+
+.. iterfunction:: iter distanceEdgeBFS(graph, e: graph._value.eDescType, s = 1): (graph._value.eDescType, int)
+
+.. data:: config const configFile = "graph_examples/bipartite"
+
+   
+   Configuration file ('configFile') must be of the following format...
+   
+   The first line, the header, must contain the number of vertices, followed
+   by a space, then the number of edges...
+   
+   [1-9]+ [1-9]+
+   
+   Followed by zero or more lines associating a vertex with an edge...
+   
+   [0-9]+ [0-9]+
+   
+   Example: 5 vertices, 5 edges...
+   
+   4 4
+   0 1
+   1 0
+   2 2
+   3 4
+   4 3
+
+.. data:: var f = AppendExpr.Call08
+
+.. data:: var tmp: string
+
+.. data:: var arr = AppendExpr.Call08
+
+.. data:: var numVerts = arr(1): int
+
+.. data:: var numEdges = arr(2): int
+
+.. data:: var graph = new numVertsAdjListHyperGraphnumEdges
+
+.. data:: var maxEccentricity: int
+
