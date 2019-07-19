@@ -24,9 +24,13 @@ computing on shared memory and distributed memory systems.
 
 
 .. toctree::
-   :caption: Writing CHGL Programs
+   :caption: CHGL API Documentation
    :maxdepth: 1
 
-   examples/index
    api/index
 
+.. toctree::
+   :caption: Example CHGL Applications
+   :maxdepth: 1
+
+   example/index
