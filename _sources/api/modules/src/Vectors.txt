@@ -46,7 +46,7 @@ Vectors
 
    .. itermethod:: iter these() ref
 
-   .. itermethod:: iter these(param tag: iterKind)
+   .. itermethod:: iter these(param tag: iterKind) ref
 
    .. method:: proc size
 

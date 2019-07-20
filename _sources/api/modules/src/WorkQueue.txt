@@ -149,6 +149,8 @@ WorkQueue
 
    .. method:: proc size
 
+   .. method:: proc addBulk(elts: [?D] eltType)
+
    .. method:: proc add(elt: eltType): bool
 
    .. method:: proc remove(): (bool, eltType)
