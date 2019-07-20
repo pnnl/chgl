@@ -279,7 +279,7 @@ class WorkQueueImpl {
             buffer.done();
             var _this = getPrivatizedInstance();
             _this.coalesceFn(arr);
-            _this.queue.add(arr);
+            _this.queue.addBulk(arr);
             _this.asyncTasks.finished(1);
           }
         }
@@ -314,7 +314,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        _this.queue.add(arr);
+        _this.queue.addBulk(arr);
       }
     } else if dynamicDestBuffer.isInitialized() && dynamicDestBuffer.size() > 0 {
       for (buf, loc) in dynamicDestBuffer.flushLocal() do on loc {
@@ -322,7 +322,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        _this.queue.add(arr);
+        _this.queue.addBulk(arr);
       }
     }
   }
@@ -334,7 +334,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        _this.queue.add(arr);
+        _this.queue.addBulk(arr);
       }
     } else if dynamicDestBuffer.isInitialized() {
       forall (buf, loc) in dynamicDestBuffer.flushGlobal() do on loc {
@@ -342,7 +342,7 @@ class WorkQueueImpl {
         var arr = buf.getArray();
         buf.done();
         _this.coalesceFn(arr);
-        _this.queue.add(arr);
+        _this.queue.addBulk(arr);
       }
     }
   }
@@ -426,6 +426,25 @@ class Bag {
       sz += segments[idx].nElems.read() : int;
     }
     return sz;
+  }
+
+  // Will claim all segments first to add bulk...
+  // TODO: Make it so that we can perform this on a remote array instead! Avoid extra copy!
+  proc addBulk(elts : [?D] eltType) {
+    // If there is less than or equal to 'here.maxTaskPar', add it in parallel
+    if elts.size <= here.maxTaskPar {
+      forall elt in elts do add(elt);
+    } else {
+      forall segmentIdx in maxParallelSegmentSpace {
+        const chunkSize = elts.size / here.maxTaskPar;
+        const lo = segmentIdx * chunkSize;
+        const sz = chunkSize + if segmentIdx == here.maxTaskPar - 1 then elts.size % here.maxTaskPar else 0;
+        ref eltsToAdd = elts[lo..#sz];
+        while !segments[segmentIdx].acquireWithStatus(STATUS_ADD) do chpl_task_yield();
+        segments[segmentIdx].addElementsPtr(c_ptrTo(eltsToAdd), sz);
+        segments[segmentIdx].releaseStatus();
+      }
+    }
   }
 
   proc add(elt : eltType) : bool {

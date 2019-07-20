@@ -86,7 +86,7 @@ class Vector {
     for a in this.arr[0..#sz] do yield a;
   }
 
-  iter these(param tag : iterKind) where tag == iterKind.standalone {
+  iter these(param tag : iterKind) ref where tag == iterKind.standalone {
     forall a in this.arr[0..#sz] do yield a;
   }
 

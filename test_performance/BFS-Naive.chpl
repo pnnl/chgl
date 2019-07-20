@@ -36,15 +36,15 @@ try! {
   f.close();
 }
 
-var verticesDomain = {0..#numVertices} dmapped Cyclic(startIdx=0);
-var vertices : [verticesDomain] unmanaged Vector(int);
+var verticesDom = {0..#numVertices} dmapped Cyclic(startIdx=0);
+var vertices : [verticesDom] unmanaged Vector(int);
 
 try! {
   // On each node, independently process the file and offsets...
   coforall loc in Locales do on loc {
     var f = open(dataset, iomode.r, style = new iostyle(binary=1));    
     // Obtain offset for indices that are local to each node...
-    var dom = verticesDomain.localSubdomain();
+    var dom = verticesDom.localSubdomain();
     coforall chunk in chunks(dom.low..dom.high by dom.stride, here.maxTaskPar) {
       var reader = f.reader(locking=false);
       for idx in chunk {
@@ -102,26 +102,18 @@ record DistArray {
   }
 }
 
-var distVerticesDom = {0..#numVertices} dmapped Cyclic(startIdx=0);
-var distVertices : [distVerticesDom] DistArray;
-
-forall (distArr, vec) in zip(distVertices, vertices) {
-  distArr = new DistArray(vec.toArray());
-}
-delete vertices;
-
 timer.stop();
 writeln("Initialization in ", timer.elapsed(), "s");
 timer.clear();
 
 beginProfile("BFS-Naive-Perf");
-var current = new WorkQueue(int, WorkQueueUnlimitedAggregation, new DuplicateCoalescer(int, -1));
-var next = new WorkQueue(int, WorkQueueUnlimitedAggregation, new DuplicateCoalescer(int, -1));
+var current = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+var next = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
 var currTD = new TerminationDetector(1);
 var nextTD = new TerminationDetector(0);
 current.addWork(0, vertices[0].locale);
 current.flush();
-var visited : [distVerticesDom] atomic bool;
+var visited : [verticesDom] atomic bool;
 if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
 var numPhases = 1;
 var lastTime : real;
@@ -130,12 +122,12 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD) {
     if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
-      forall neighbor in distVertices[vertex] {
+      for neighbor in vertices[vertex] {
         if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
           continue;
         }
         nextTD.started(1);
-        const loc = distVertices[neighbor].locale;
+        const loc = vertices[neighbor].locale;
         next.addWork(neighbor, loc);
       }
     } 
