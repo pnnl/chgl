@@ -136,6 +136,8 @@ activeDNS
 
 .. data:: var fileNames: [0..-1] string
 
+.. data:: var _currLoc: atomicint
+
 .. data:: var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx = 0))
 
 .. data:: var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle))

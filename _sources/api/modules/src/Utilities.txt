@@ -18,6 +18,8 @@ Utilities
 
 .. iterfunction:: iter forEachCorePerLocale(param tag: iterKind): int
 
+.. data:: config const printLocaleStatistics = false
+
 .. data:: config const printDebugInformation = false
 
 .. data:: config const profileCommDiagnostics = false
