@@ -16,6 +16,8 @@ WorkQueue
 
 .. data:: config const workQueueMinVelocityForFlush = 1
 
+.. data:: config const workQueueMinEligibleForSteal = 1024
+
 .. data:: config const workQueueMinDifferenceForSteal = 1024*1024
 
 .. data:: config const workQueueVerbose = false
