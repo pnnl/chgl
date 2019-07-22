@@ -16,15 +16,17 @@ WorkQueue
 
 .. data:: config const workQueueMinVelocityForFlush = 1
 
+.. data:: config const workQueueMinDifferenceForSteal = 1024*1024
+
 .. data:: config const workQueueVerbose = false
 
 .. data:: param WorkQueueUnlimitedAggregation = -1
 
 .. data:: param WorkQueueNoAggregation = 0
 
-.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector): workType
+.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, doWorkStealing = false): workType
 
-.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, param tag: iterKind): workType
+.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, doWorkStealing = false, param tag: iterKind): workType
 
 .. function:: proc <=>(ref wq1: WorkQueue, ref wq2: WorkQueue)
 
@@ -110,6 +112,8 @@ WorkQueue
 
    .. method:: proc getWork(): (bool, workType)
 
+   .. method:: proc getWorkBulk(n: integral)
+
    .. method:: proc isEmpty()
 
    .. method:: proc flushLocal()
@@ -152,6 +156,12 @@ WorkQueue
    .. method:: proc addBulk(elts: [?D] eltType)
 
    .. method:: proc add(elt: eltType): bool
+
+   .. method:: proc removeBulk(n: integral)
+
+      
+      Obtain work in bulk; returns an array with a size of at most 'n'.
+      
 
    .. method:: proc remove(): (bool, eltType)
 
