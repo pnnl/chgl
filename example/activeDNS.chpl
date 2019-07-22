@@ -199,7 +199,7 @@ proc searchBlacklist(graph, prefix) {
       f.writeln("(" + prefix + ") Blacklisted IP Address: ", ip);
       for s in 1..3 {
         f.writeln("\tLocal Neighborhood (s=", s, "):");
-        for neighbor in graph.walk(v, s) {
+        forall neighbor in graph.walk(v, s, isImmutable=true) {
           var str = "\t\t" + graph.getProperty(neighbor) + "\t";
           for n in graph.incidence(neighbor) {
             str += graph.getProperty(n) + ",";
@@ -213,7 +213,7 @@ proc searchBlacklist(graph, prefix) {
       // Print out its component
       for s in 1..3 {
         f.writeln("\tComponent (s=", s, "):");
-        for vv in vertexBFS(graph, v, s) {
+        forall vv in vertexBFS(graph, v, s) {
           var vvv = graph.toVertex(vv);
           var str = "\t\t" + graph.getProperty(vvv) + "\t";
           for n in graph.incidence(vvv) {
@@ -236,7 +236,7 @@ proc searchBlacklist(graph, prefix) {
       f.writeln("(" + prefix + ") Blacklisted DNS Name: ", dnsName);
       for s in 1..3 {
         f.writeln("\tLocal Neighborhood (s=", s, "):");
-        for neighbor in graph.walk(e, s) {
+        forall neighbor in graph.walk(e, s, isImmutable=true) {
           var str = "\t\t" + graph.getProperty(neighbor) + "\t";
           for n in graph.incidence(neighbor) {
             str += graph.getProperty(n) + ",";
@@ -250,7 +250,7 @@ proc searchBlacklist(graph, prefix) {
       // Print out its component
       for s in 1..3 {
         f.writeln("\tComponent (s=", s, "):");
-        for ee in edgeBFS(graph, e, s) {
+        forall ee in edgeBFS(graph, e, s) {
           var eee = graph.toEdge(ee);
           var str = "\t\t" + graph.getProperty(eee) + "\t";
           for n in graph.incidence(eee) {
@@ -285,22 +285,22 @@ for fileName in listdir(datasetDirectory, dirs=false) {
 }
 
 // Spread out the work across multiple locales.
-forall fileName in fileNames with (var currLoc : int) {
-  for line in getLines(fileName) {
-    td.started(1);
-    wq.addWork(line, currLoc % numLocales);
-    currLoc += 1;
-  }
+var _currLoc : atomic int;
+forall fileName in fileNames {
+  td.started(1);
+  wq.addWork(fileName, _currLoc.fetchAdd(1) % numLocales);
 }
 wq.flush();
 
 // Initialize property maps; aggregation is used as properties can be remote to current locale.
-forall line in doWorkLoop(wq, td) {
-  var attrs = line.split(",");
-  var qname = attrs[1];
-  var rdata = attrs[2];
-  vPropMap.create(rdata.strip(), aggregated=true);
-  ePropMap.create(qname.strip(), aggregated=true);
+forall fileName in doWorkLoop(wq, td) {
+  for line in getLines(fileName) {
+    var attrs = line.split(",");
+    var qname = attrs[1];
+    var rdata = attrs[2];
+    vPropMap.create(rdata.strip(), aggregated=true);
+    ePropMap.create(qname.strip(), aggregated=true);
+  }
   td.finished();  
 }
 vPropMap.flushGlobal();
@@ -325,12 +325,10 @@ writeln("Populating HyperGraph...");
 
 t.start();
 // Spread out the work across multiple locales.
-forall fileName in fileNames with (var currLoc : int) {
-  for line in getLines(fileName) {
-    td.started(1);
-    wq.addWork(line, currLoc % numLocales);
-    currLoc += 1;
-  }
+_currLoc.write(0);
+forall fileName in fileNames {
+  td.started(1);
+  wq.addWork(fileName, _currLoc.fetchAdd(1) % numLocales);
 }
 wq.flush();
 
@@ -338,13 +336,15 @@ wq.flush();
 // each of the property maps, their individual PropertyHandle will be finished.
 var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle));
 var handleTD = new TerminationDetector();
-forall line in doWorkLoop(wq, td) {
-  var attrs = line.split(",");
-  var qname = attrs[1];
-  var rdata = attrs[2];
-  handleTD.started(1);
-  td.finished(1);
-  handleWQ.addWork((vPropMap.getPropertyAsync(rdata.strip()), ePropMap.getPropertyAsync(qname.strip())));
+forall fileName in doWorkLoop(wq, td) {
+  for line in getLines(fileName) {
+    var attrs = line.split(",");
+    var qname = attrs[1];
+    var rdata = attrs[2];
+    handleTD.started(1);
+    handleWQ.addWork((vPropMap.getPropertyAsync(rdata.strip()), ePropMap.getPropertyAsync(qname.strip())));
+  }
+  td.finished();
 }
 vPropMap.flushGlobal();
 ePropMap.flushGlobal();

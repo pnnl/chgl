@@ -81,28 +81,6 @@ try! {
   }
 }
 
-// Redistribute again...
-record DistArray {
-  var dom = {0..0} dmapped Cyclic(startIdx=0);
-  var arr : [dom] int;
-
-  proc init() { this.dom = {0..0} dmapped Cyclic(startIdx=0); }
-
-  proc init(arr : [?D] int) {
-    this.dom = {0..#arr.size} dmapped Cyclic(startIdx=0);
-    this.complete();
-    this.arr = arr;
-  }
-
-  iter these() {
-    for a in arr do yield a;
-  }
-
-  iter these(param tag : iterKind) where tag == iterKind.standalone {
-    forall a in arr do yield a;
-  }
-}
-
 timer.stop();
 writeln("Initialization in ", timer.elapsed(), "s");
 timer.clear();

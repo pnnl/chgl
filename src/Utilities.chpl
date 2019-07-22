@@ -21,6 +21,18 @@ iter forEachCorePerLocale(param tag : iterKind) : int where tag == iterKind.stan
   }
 }
 
+config const printLocaleStatistics = false;
+if printLocaleStatistics {
+  var memory : [LocaleSpace] int;
+  var maxTaskPar : [LocaleSpace] int;
+  coforall loc in Locales do on loc {
+    memory[here.id] = here.physicalMemory();
+    maxTaskPar[here.id] = here.maxTaskPar;
+  }
+  writeln("Memory Availalbe: ", memory);
+  writeln("Cores Available: ", maxTaskPar);
+}
+
 pragma "no doc"
 pragma "default intent is ref"
 record Lock {
