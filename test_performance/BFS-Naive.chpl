@@ -9,6 +9,7 @@ use DynamicAggregationBuffer;
 
 config const dataset = "../data/karate.mtx_csr.bin";
 config const numEdgesPresent = true;
+config const doWorkStealing = true;
 
 var numVertices : uint(64);
 var numEdges : uint(64);
@@ -120,7 +121,7 @@ var lastTime : real;
 timer.start();
 while !current.isEmpty() || !currTD.hasTerminated() {
   writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
-  forall vertex in doWorkLoop(current, currTD) {
+  forall vertex in doWorkLoop(current, currTD, doWorkStealing=doWorkStealing) {
     if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
       for neighbor in vertices[vertex] {
         if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {

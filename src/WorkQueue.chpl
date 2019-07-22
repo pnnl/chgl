@@ -10,12 +10,13 @@ use ReplicatedVar;
 config const workQueueMinTightSpinCount = 8;
 config const workQueueMaxTightSpinCount = 1024;
 config const workQueueMinVelocityForFlush = 1;
+config const workQueueMinDifferenceForSteal = 1024 * 1024;
 config const workQueueVerbose = false;
 
 param WorkQueueUnlimitedAggregation = -1;
 param WorkQueueNoAggregation = 0;
 
-iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType {
+iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkStealing = false) : workType {
   while !wq.isShutdown() {
     var (hasWork, workItem) = wq.getWork();
     if !hasWork {
@@ -27,7 +28,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector) : workType 
   }
 }
 
-iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag : iterKind) : workType where tag == iterKind.standalone {
+iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkStealing = false, param tag : iterKind) : workType where tag == iterKind.standalone {
   var termination : [rcDomain] atomic bool;
   // Background task in charge of automatically flushing the buffers. It has a
   // fairly straight-forward heuristic for determining when to flush the buffer
@@ -51,7 +52,15 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
       }
 
       var currSize : int;
-      for loc in Locales do on loc { currSize += wq.size; }
+      var minLocSize : (int, int);
+      var maxLocSize : (int, int);
+      for loc in Locales do on loc { 
+        const sz = wq.size;
+        currSize += sz;
+        minLocSize = min(minLocSize, (sz, here.id));
+        maxLocSize = max(maxLocSize, (sz, here.id));
+      }
+
       var delta = currSize - lastSize;
       var velocity = delta / time.elapsed(TimeUnits.milliseconds);
       time.clear();
@@ -61,6 +70,18 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, param tag :
         sleepTime = 0;
       } else {
         sleepTime = max(1, min(1024, sleepTime * 2));
+        
+        // Correct load imbalance if we did not need to flush...
+        if doWorkStealing && maxLocSize[1] - minLocSize[1] >= workQueueMinDifferenceForSteal {
+          on Locales[maxLocSize[2]] {
+            var arr = wq.getWorkBulk(round((maxLocSize[1] - minLocSize[1]) / 2) : int);
+            on Locales[minLocSize[2]] {
+              const _dom = arr.domain;
+              const _arr : [_dom] arr.eltType = arr;
+              wq.queue.addBulk(_arr);
+            }
+          }
+        }
       }
       sleep(t=sleepTime, unit=TimeUnits.microseconds);
     }
@@ -305,6 +326,10 @@ class WorkQueueImpl {
     return retval;
   }
 
+  pragma "no copy return"
+  proc getWorkBulk(n : integral) {
+    return queue.removeBulk(n);
+  }
   proc isEmpty() return this.size == 0;
 
   proc flushLocal() {
@@ -499,6 +524,24 @@ class Bag {
       }
     }
     halt("0xDEADC0DE");
+  }
+  
+  /*
+    Obtain work in bulk; returns an array with a size of at most 'n'.
+  */
+  proc removeBulk(n : integral) {
+    var eltsPerSegment = floor(n / here.maxTaskPar) : int;
+    var arr : [0..#n] eltType;
+    var offset : int;
+    for segment in segments {
+      while !segment.acquireWithStatus(STATUS_REMOVE) do chpl_task_yield();
+      var eltsToTake = min(eltsPerSegment, segment.nElems.read():int);
+      segment.transferElements(c_ptrTo(arr[offset]), eltsToTake);
+      offset += eltsToTake;
+      segment.releaseStatus();
+    }
+
+    return arr[0..#offset];
   }
 
   proc remove() : (bool, eltType) {
@@ -728,7 +771,7 @@ record BagSegment {
     status.write(STATUS_UNLOCKED);
   }
 
-  inline proc transferElements(destPtr, n, locId = here.id) {
+  inline proc transferElements(destPtr, n : integral, locId = here.id) {
     var destOffset = 0;
     var srcOffset = 0;
     while destOffset < n {
