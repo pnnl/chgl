@@ -10,6 +10,7 @@ use ReplicatedVar;
 config const workQueueMinTightSpinCount = 8;
 config const workQueueMaxTightSpinCount = 1024;
 config const workQueueMinVelocityForFlush = 1;
+config const workQueueMinEligibleForSteal = 1024;
 config const workQueueMinDifferenceForSteal = 1024 * 1024;
 config const workQueueVerbose = false;
 
@@ -39,46 +40,72 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkSteal
   // as little computational resources as possible, hence no 'coforall' when
   // migrating to different locales.
   begin {
-    var lastSize = 0;
+    var lastPendingWork = 0;
     var sleepTime = 0;
     var time = new Timer();
     time.start();
     while true {
-      if wq.asyncTasks.hasTerminated() && td.hasTerminated() {
+      if td.hasTerminated() {
+        if workQueueVerbose {
+          writeln("Terminating!");
+        }
         for loc in Locales do on loc do rcLocal(termination).write(true);
         break;
       } else if workQueueVerbose {
-        writeln("Background Task: ", td.getStatistics(), ", ", wq.asyncTasks.getStatistics(), ", ", wq.globalSize, ", ", wq.workPending);
+        var tdStats = td.getStatistics();
+        var str = "Termination Detection: { started = " + tdStats[1]:string + ", finished = " + tdStats[2]:string + " }\n";
+        var totalSz : int;
+        var totalWorkPending : int;
+        var localSizes : [LocaleSpace] int;
+        var localWorkPending : [LocaleSpace] int;
+        for loc in Locales do on loc {
+          const sz = wq.size;
+          const workPending = wq.workPending;
+          totalSz += sz;
+          totalWorkPending += workPending;
+          localSizes[here.id] = sz;
+          localWorkPending[here.id] = workPending;
+        }
+        str += "Total Size: " + totalSz:string + "; Local Sizes: " + localSizes:string + "\n";
+        str += "Total Work Pending: " + totalWorkPending:string + "; Local Work Pending: " + localWorkPending:string + "\n";
+        writeln(str);
       }
 
-      var currSize : int;
-      var minLocSize : (int, int);
+      var pendingWork : int;
+      var minLocSize : (int, int) = (max(int), max(int));
       var maxLocSize : (int, int);
       for loc in Locales do on loc { 
         const sz = wq.size;
-        currSize += sz;
+        pendingWork += wq.workPending;
         minLocSize = min(minLocSize, (sz, here.id));
         maxLocSize = max(maxLocSize, (sz, here.id));
       }
 
-      var delta = currSize - lastSize;
-      var velocity = delta / time.elapsed(TimeUnits.milliseconds);
+      var delta = abs(pendingWork - lastPendingWork);
+      var velocity = delta / time.elapsed(TimeUnits.microseconds);
       time.clear();
-      lastSize = currSize;
-      if velocity < workQueueMinVelocityForFlush {
+      lastPendingWork = pendingWork;
+      if pendingWork != 0 && velocity < workQueueMinVelocityForFlush {
         wq.flush();
+        if workQueueVerbose {
+          writeln("Flushed with delta ", delta, " and velocity ", velocity);
+        }
         sleepTime = 0;
       } else {
         sleepTime = max(1, min(1024, sleepTime * 2));
         
         // Correct load imbalance if we did not need to flush...
-        if doWorkStealing && maxLocSize[1] - minLocSize[1] >= workQueueMinDifferenceForSteal {
+        if doWorkStealing && minLocSize[1] <= workQueueMinEligibleForSteal && maxLocSize[2] != minLocSize[2] && maxLocSize[1] - minLocSize[1] >= workQueueMinDifferenceForSteal {
           on Locales[maxLocSize[2]] {
-            var arr = wq.getWorkBulk(round((maxLocSize[1] - minLocSize[1]) / 2) : int);
+            var toSteal = round((maxLocSize[1] - minLocSize[1]) / 4) : int;
+            var arr = wq.getWorkBulk(toSteal);
             on Locales[minLocSize[2]] {
               const _dom = arr.domain;
               const _arr : [_dom] arr.eltType = arr;
               wq.queue.addBulk(_arr);
+            }
+            if workQueueVerbose {
+              writeln("Transferred ", toSteal, " elements from ", Locales[maxLocSize[2]], " to ", Locales[minLocSize[2]]);
             }
           }
         }
@@ -114,6 +141,12 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkSteal
           timer.stop();
         }
         yield workItem;
+
+        // This is necessary as sometimes, based on the computation, the task may never yield,
+        // meaning that the background task is never able to poll for information (I.E if the
+        // background thread attempts to do a 'coforall loc in Locales', its possible that
+        // the locale task may never run, despite being a very small task.)
+        chpl_task_yield(); 
       }
        if workQueueVerbose then writeln("Task#", here.id, "-", tid, " spent ", timer.elapsed(TimeUnits.milliseconds), "ms waiting!");
     }
