@@ -73,7 +73,7 @@ if printTiming then writeln("Constructed Property Map: ", t.elapsed());
 t.clear();
 
 t.start();
-var graph = new AdjListHyperGraph(vPropMap, ePropMap, new Cyclic(startIdx=0));
+var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx=0));
 t.stop();
 if printTiming then writeln("Constructed HyperGraph: ", t.elapsed());
 t.clear();

@@ -137,12 +137,15 @@ module Metrics {
         var shouldAddNeighbors = false;
         while true do local {
           var currId = components[vIdx].read();
-          if (currId == 0 || currId >= cId) {
+          if (currId == 0 || currId > cId) {
             // Claimed...
-            if currId == cId || components[vIdx].compareExchange(currId, cId) {
+            if components[vIdx].compareExchange(currId, cId) {
               shouldAddNeighbors = true;
               break;
             }
+          } else if CHPL_NETWORK_ATOMICS != "none" && currId == cId {
+            shouldAddNeighbors = true;
+            break;
           } else {
             // Edge is already claimed by an equal or lower component id. Do nothing.
             break;
@@ -213,12 +216,15 @@ module Metrics {
         var shouldAddNeighbors = false;
         while true do local {
           var currId = components[eIdx].read();
-          if (currId == 0 || currId >= cId) {
+          if currId == 0 || currId > cId {
             // Claimed...
-            if currId == cId || components[eIdx].compareExchange(currId, cId) {
+            if components[eIdx].compareExchange(currId, cId) {
               shouldAddNeighbors = true;
               break;
             }
+          } else if CHPL_NETWORK_ATOMICS != "none" && currId == cId {
+            shouldAddNeighbors = true;
+            break;
           } else {
             // Edge is already claimed by an equal or lower component id. Do nothing.
             break;
