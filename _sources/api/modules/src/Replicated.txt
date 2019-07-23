@@ -1,0 +1,58 @@
+.. default-domain:: chpl
+
+.. module:: Replicated
+
+Replicated
+==========
+**Usage**
+
+.. code-block:: chapel
+
+   use Replicated;
+
+.. record:: ReplicatedVar
+
+   .. attribute:: type varType
+
+   .. attribute:: var instance: unmanaged ReplicatedVarImpl(varType)
+
+   .. attribute:: var pid: int
+
+   .. method:: proc init(type varType)
+
+   .. method:: proc destroy()
+
+   .. method:: proc _value
+
+   .. method:: proc readWriteThis(f)
+
+.. class:: ReplicatedVarImpl
+
+   .. attribute:: type varType
+
+   .. attribute:: var dom = LocaleSpace dmapped Cyclic(startIdx = 0)
+
+   .. attribute:: var arr: [dom] varType
+
+   .. attribute:: var pid: int
+
+   .. attribute:: var arrPid = arr._pid
+
+   .. attribute:: var arrInstance = arr._value
+
+   .. attribute:: var privatizedArr = _newArray(arrInstance)
+
+   .. method:: proc init(type varType)
+
+   .. method:: proc init(type varType, other, privatizedData)
+
+   .. method:: proc dsiPrivatize(privatizedData)
+
+   .. method:: proc dsiGetPrivatizeData()
+
+   .. method:: proc readWriteThis(f)
+
+   .. method:: proc broadcast
+
+.. data:: var keepAlive = new ReplicatedVar(atomicbool)
+
