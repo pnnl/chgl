@@ -6,6 +6,33 @@ use CommDiagnostics;
 use VisualDebug;
 use Memory;
 
+// Iterators for getting around issue with reduction on explicit 'coforall'
+iter forEachLocale() : int { halt("Serial iterator not implemented!"); }
+iter forEachLocale(param tag : iterKind) : int where tag == iterKind.standalone {
+  coforall loc in Locales do on loc do yield here.id;
+}
+
+iter forEachCorePerLocale() : int { halt("Serial iterator not implemented!"); }
+iter forEachCorePerLocale(param tag : iterKind) : int where tag == iterKind.standalone {
+  coforall loc in Locales do on loc {
+    coforall tid in 0..#here.maxTaskPar {
+      yield (here.id, tid);
+    }
+  }
+}
+
+config const printLocaleStatistics = false;
+if printLocaleStatistics {
+  var memory : [LocaleSpace] int;
+  var maxTaskPar : [LocaleSpace] int;
+  coforall loc in Locales do on loc {
+    memory[here.id] = here.physicalMemory();
+    maxTaskPar[here.id] = here.maxTaskPar;
+  }
+  writeln("Memory Availalbe: ", memory);
+  writeln("Cores Available: ", maxTaskPar);
+}
+
 pragma "no doc"
 pragma "default intent is ref"
 record Lock {
@@ -420,6 +447,12 @@ class Centralized {
   }
 
   forwarding x;
+}
+
+inline proc getLocaleIdx(dom, idx) {
+  var loc = dom.dist.idxToLocale(idx);
+  var locID = chpl_nodeFromLocaleID(__primitive("_wide_get_locale", loc));
+  return locID;
 }
 
 inline proc getLocale(dom, idx) {

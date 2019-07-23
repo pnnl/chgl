@@ -1,0 +1,5 @@
+perfkeys: Time:
+files: dat/ErdosRenyi.dat
+graphkeys: Erdos Renyi
+graphtitle: Erdos Renyi Hypergraph Generation (32K Vertices, 64K Edges, 200M Inclusions)
+ylabel: Time (seconds)

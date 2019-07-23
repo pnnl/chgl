@@ -90,7 +90,9 @@ module DynamicAggregationBuffer {
     }
 
     proc done() {
-      this.dom = {0..-1};
+      on this {
+        this.dom = {0..-1};
+      }
     }
 
     proc size return arr.size;
@@ -100,7 +102,7 @@ module DynamicAggregationBuffer {
     type msgType;
     var pid : int;
     var agg = UninitializedAggregator(msgType);
-    var dynamicDestBuffers : [LocaleSpace] owned DynamicBuffer(msgType);
+    var dynamicDestBuffers : [LocaleSpace] unmanaged DynamicBuffer(msgType);
 
     proc init(type msgType) {
       this.msgType = msgType;
@@ -109,7 +111,7 @@ module DynamicAggregationBuffer {
 
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
       forall buf in dynamicDestBuffers { 
-        buf = new owned DynamicBuffer(msgType);
+        buf = new unmanaged DynamicBuffer(msgType);
       }
     }
 
@@ -120,12 +122,13 @@ module DynamicAggregationBuffer {
       complete();
 
       forall buf in dynamicDestBuffers { 
-        buf = new owned DynamicBuffer(msgType);
+        buf = new unmanaged DynamicBuffer(msgType);
       }
     }
 
     proc deinit() {
       if here.id == 0 then agg.destroy();
+      delete dynamicDestBuffers;
     }
     
     proc dsiPrivatize(pid) {
@@ -138,6 +141,18 @@ module DynamicAggregationBuffer {
 
     inline proc getPrivatizedInstance() {
       return chpl_getPrivatizedCopy(this.type, pid);
+    }
+
+    // Obtain amount of pending work
+    proc size() {
+      var sz : int;
+      forall buf in dynamicDestBuffers with (+ reduce sz) {
+        buf.acquire();
+        sz += buf.size;
+        buf.release();
+      }
+
+      return sz + agg.size();
     }
 
     proc aggregate(msg : msgType, loc : locale) : void {

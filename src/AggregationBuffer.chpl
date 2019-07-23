@@ -336,6 +336,11 @@ module AggregationBuffer {
       return chpl_getPrivatizedCopy(this.type, pid);
     }
 
+    // Obtains the amount of work still pending.
+    proc size() {
+      return + reduce [buf in destinationBuffers] buf._claimed.read();
+    }
+
     proc aggregate(msg : msgType, loc : locale) : unmanaged Buffer(msgType) {
       return aggregate(msg, loc.id);
     }

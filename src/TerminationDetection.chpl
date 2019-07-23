@@ -54,7 +54,7 @@ module TerminationDetection {
 
     proc _value {
       if boundsChecking && pid == -1 then halt("TerminationDetector is uninitialized...");
-      return chpl_getPrivatizedCopy(instance.type, pid);
+      return chpl_getPrivatizedCopy(unmanaged TerminationDetectorImpl, pid);
     }
 
     proc destroy() {
@@ -71,8 +71,8 @@ module TerminationDetection {
   }
   
   class TerminationDetectorImpl {
-    var tasksStarted : atomic int;
-    var tasksFinished : atomic int;
+    var tasksStarted : chpl__processorAtomicType(int);
+    var tasksFinished : chpl__processorAtomicType(int);
     var pid = -1;
 
     proc init(n = 0) {
@@ -107,10 +107,11 @@ module TerminationDetection {
     }
 
     proc hasTerminated() : bool {
+      const _pid = pid; // Ensures remote value forwarding
       var started = 0;
       var finished = 0;
-      coforall loc in Locales with (+ reduce started, + reduce finished) do on loc {
-        const _this = getPrivatizedInstance();
+      forall loc in forEachLocale() with (+ reduce started, + reduce finished) do on loc {
+        const _this = chpl_getPrivatizedCopy(this.type, _pid);
         started += _this.tasksStarted.read();
         finished += _this.tasksFinished.read();
       }
@@ -122,8 +123,8 @@ module TerminationDetection {
       }
       var newStarted = 0;
       var newFinished = 0;
-      for loc in Locales do on loc {
-        const _this = getPrivatizedInstance();
+      forall loc in forEachLocale() with (+ reduce newStarted, + reduce newFinished) do on loc {
+        const _this = chpl_getPrivatizedCopy(this.type, _pid);
         newStarted += _this.tasksStarted.read();
         newFinished += _this.tasksFinished.read();
       }
@@ -145,6 +146,7 @@ module TerminationDetection {
       var started = 0;
       var finished = 0;
       var backoff = minBackoff;
+      const _pid = pid;
 
       while true {
         select state {
@@ -152,8 +154,8 @@ module TerminationDetection {
           when 0 {
             started = 0;
             finished = 0;
-            for loc in Locales  do on loc {
-              const _this = getPrivatizedInstance();
+            forall loc in forEachLocale() with (+ reduce started, + reduce finished) do on loc {
+              const _this = chpl_getPrivatizedCopy(this.type, _pid);
               started += _this.tasksStarted.read();
               finished += _this.tasksFinished.read();
             }
@@ -169,8 +171,8 @@ module TerminationDetection {
           when 1 {
             var newStarted = 0;
             var newFinished = 0;
-            for loc in Locales do on loc {
-              const _this = getPrivatizedInstance();
+            forall loc in forEachLocale() with (+ reduce newStarted, + reduce newFinished) do on loc {
+              const _this = chpl_getPrivatizedCopy(this.type, _pid);
               newStarted += _this.tasksStarted.read();
               newFinished += _this.tasksFinished.read();
             }

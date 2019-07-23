@@ -1130,11 +1130,12 @@ module AdjListHyperGraph {
       another edge e' if the size of the intersection of both e and e' is at least s.
 
       :arg eDesc: The edge to s-walk from.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    iter walk(eDesc : eDescType, s = 1) : eDescType {
-      for v in incidence(eDesc) {
-        for e in incidence(v) {
-          if eDesc != e && (s == 1 || isConnected(eDesc, e, s)) {
+    iter walk(eDesc : eDescType, s = 1, param isImmutable = false) : eDescType {
+      for v in incidence(eDesc, isImmutable) {
+        for e in incidence(v, isImmutable) {
+          if eDesc != e && (s == 1 || isConnected(eDesc, e, s, isImmutable)) {
             yield e;
           }
         }
@@ -1142,11 +1143,57 @@ module AdjListHyperGraph {
     }
     
     
-    iter walk(eDesc : eDescType, s = 1, param tag : iterKind) : eDescType where tag == iterKind.standalone {
-      forall v in incidence(eDesc) {
-        for e in incidence(v) {
-          if eDesc != e && (s == 1 || isConnected(eDesc, e, s)) {
-            yield e;
+    // TODO: Marcin made an interesting suggestion on how to optimize cases where
+    // s > 1, and that is to count the number of times that an edge has been queried;
+    // if it has been queried at least s times, then technically it must have an intersection
+    // size at least the size of s, as it was reachable from at least s distinct vertices.
+    // This annihilates the need to perform any intersections.
+    iter walk(eDesc : eDescType, s = 1, param isImmutable = false, param tag : iterKind) : eDescType where tag == iterKind.standalone {
+      const _pid = pid;
+      // When we have one locale, just run the normal work loop.
+      if numLocales == 1 {
+        forall v in incidence(eDesc, isImmutable) {
+          for e in incidence(v, isImmutable) {
+            if eDesc != e && (s == 1 || isConnected(eDesc, e, s, isImmutable)) {
+              yield e;
+            }
+          }
+        } 
+      } else {
+        // Since its possible that we have multiple locales, its possible
+        // that the incidence list is remote. To prevent having to make multiple
+        // remote gets, we instead 'push' work to the locales.
+        
+        // Phase 1: Group work by target locales
+        var localeWork : [LocaleSpace] unmanaged Vector(int);
+        for v in incidence(eDesc, isImmutable) {
+          const locid = getLocale(v).id;
+          if localeWork[locid] == nil then localeWork[locid] = new unmanaged Vector(int, 1);
+          localeWork[locid].append(v.id);
+        }
+        //Phase 2: Scatter work to respective locales.
+        coforall loc in Locales do if localeWork[loc.id] != nil then on loc {
+          // If the vector is local to the current locale already,
+          // do not make a copy.
+          if localeWork[here.id].locale == here {
+            ref vec = localeWork[here.id];
+            forall v in vec.toArray() {
+              for e in incidence(toVertex(v), isImmutable) do if eDesc != e {
+                // if s == 1, no intersection needed
+                if s == 1 || isConnected(eDesc, e, s, isImmutable) then yield e;
+              }
+            }
+          } else {
+            const sz = localeWork[here.id].size;
+            var dom = {0..#sz};
+            var arr : [dom] int = localeWork[here.id].toArray();
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
+            forall v in arr {
+              for e in _this.incidence(_this.toVertex(v), isImmutable) do if eDesc != e {
+                // if s == 1, no intersection needed
+                if s == 1 || _this.isConnected(eDesc, e, s, isImmutable) then yield e;
+              }
+            } 
           }
         }
       }
@@ -1157,22 +1204,64 @@ module AdjListHyperGraph {
       another vertex v' if the size of the intersection of both v and v' is at least s.
 
       :arg vDesc: The vertex to s-walk from.
+      :arg isImmutable: Contract that graph will not change while iterating.
     */
-    iter walk(vDesc : vDescType, s = 1) : vDescType {
-      for e in incidence(vDesc) {
-        for v in incidence(e) {
-          if vDesc != v && (s == 1 || isConnected(vDesc, v, s)) {
+    iter walk(vDesc : vDescType, s = 1, param isImmutable = false) : vDescType {
+      for e in incidence(vDesc, isImmutable) {
+        for v in incidence(e, isImmutable) {
+          if vDesc != v && (s == 1 || isConnected(vDesc, v, s, isImmutable)) {
             yield v;
           }
         }
       }
     }
 
-    iter walk(vDesc : vDescType, s = 1, param tag : iterKind) : vDescType where tag == iterKind.standalone {
-      forall e in incidence(vDesc) {
-        for v in incidence(e) {
-          if vDesc != v && (s == 1 || isConnected(vDesc, v, s)) {
-            yield v;
+    iter walk(vDesc : vDescType, s = 1, param tag : iterKind, param isImmutable = false) : vDescType where tag == iterKind.standalone {
+      const _pid = pid;
+      // When we have one locale, just run the normal work loop.
+      if numLocales == 1 {
+        forall e in incidence(vDesc, isImmutable) {
+          for v in incidence(e, isImmutable) {
+            if vDesc != v && (s == 1 || isConnected(vDesc, v, s, isImmutable)) {
+              yield v;
+            }
+          }
+        }
+      } else {
+        // Since its possible that we have multiple locales, its possible
+        // that the incidence list is remote. To prevent having to make multiple
+        // remote gets, we instead 'push' work to the locales.
+        
+        // Phase 1: Group work by target locales
+        var localeWork : [LocaleSpace] unmanaged Vector(int);
+        for e in incidence(vDesc, isImmutable) {
+          const locid = getLocale(e).id;
+          if localeWork[locid] == nil then localeWork[locid] = new unmanaged Vector(int, 0);
+          localeWork[locid].append(e.id);
+        }
+        //Phase 2: Scatter work to respective locales.
+        coforall loc in Locales do if localeWork[loc.id] != nil then on loc {
+          // If the vector is local to the current locale already,
+          // do not make a copy.
+          if localeWork[here.id].locale == here {
+            ref vec = localeWork[here.id];
+            forall e in vec {
+              for v in incidence(toEdge(e), isImmutable) do if vDesc != v {
+                // if s == 1, no intersection needed
+                if s == 1 || isConnected(vDesc, v, s, isImmutable) then yield v;
+              }
+            }
+          } else {
+            const sz = localeWork[here.id].size;
+            var dom = {0..#sz};
+            var arr : [dom] int = localeWork[here.id].toArray();
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
+            forall e in arr {
+              for v in _this.incidence(_this.toEdge(e), isImmutable) do if vDesc != v {
+                // if s == 1, no intersection needed
+                if s == 1 || _this.isConnected(vDesc, v, s, isImmutable) then yield v;
+              }
+            } 
           }
         }
       }
@@ -1182,14 +1271,16 @@ module AdjListHyperGraph {
       Yield toplex hyperedges in the graph. A hyperedge e is a toplex if there exists no other
       hyperedge e' such that e' is a superset of e; that is, e is a hyperedge that is not a subset
       of any other edge.
+
+      :arg isImmutable: Contract that graph will not change while iterating.
     */
-    iter getToplexes() {
+    iter getToplexes(param isImmutable = false) {
       var notToplex : [edgesDomain] bool;
       for e in getEdges() {
         var n = degree(e);
         if notToplex[e.id] then continue;
-        for ee in walk(e, n) {
-          if degree(ee) == n && isConnected(e, ee, n) {
+        for ee in walk(e, n, isImmutable) {
+          if degree(ee) == n && isConnected(e, ee, n, isImmutable) {
             notToplex[ee.id] = true;
           } else {
             notToplex[e.id] = true;
@@ -1200,13 +1291,13 @@ module AdjListHyperGraph {
       }
     }
 
-    iter getToplexes(param tag : iterKind) where tag == iterKind.standalone {
+    iter getToplexes(param tag : iterKind, param isImmutable = false) where tag == iterKind.standalone {
       var notToplex : [edgesDomain] bool;
       forall e in getEdges() {
         var n = degree(e);
         if notToplex[e.id] then continue;
-        for ee in walk(e, n) {
-          if degree(ee) == n && isConnected(e, ee, n) {
+        for ee in walk(e, n, isImmutable) {
+          if degree(ee) == n && isConnected(e, ee, n, isImmutable) {
             notToplex[ee.id] = true;
           } else {
             notToplex[e.id] = true;
@@ -2069,11 +2160,11 @@ module AdjListHyperGraph {
       return numIsolatedComponents;
     }
 
-    iter getToplexes(param tag : iterKind) : eDescType where tag == iterKind.standalone  {
+    iter getToplexes(param tag : iterKind, param isImmutable = false) : eDescType where tag == iterKind.standalone  {
       forall e in getEdges() {
         var isToplex = true;
         for ee in getEdges() {
-          if ee != e && !isConnected(e, ee, s=1) {
+          if ee != e && !isConnected(e, ee, s=1, isImmutable) {
             isToplex = false;
             break;
           }
@@ -2087,9 +2178,10 @@ module AdjListHyperGraph {
 
       :arg v1: Source vertex.
       :arg v2: Sink vertex.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    proc isConnected(v1 : vDescType, v2 : vDescType, s) {
-      return getVertex(v1).canWalk(getVertex(v2), s);
+    proc isConnected(v1 : vDescType, v2 : vDescType, s, param isImmutable = false) {
+      return getVertex(v1).canWalk(getVertex(v2), s, acquireLock = !isImmutable);
     }
 
     /*
@@ -2097,9 +2189,10 @@ module AdjListHyperGraph {
 
       :arg e1: Source edge.
       :arg e2: Sink edge.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    proc isConnected(e1 : eDescType, e2 : eDescType, s) {
-      return getEdge(e1).canWalk(getEdge(e2), s);
+    proc isConnected(e1 : eDescType, e2 : eDescType, s, param isImmutable = false) {
+      return getEdge(e1).canWalk(getEdge(e2), s, acquireLock = !isImmutable);
     }
     
     /*
@@ -2207,6 +2300,7 @@ module AdjListHyperGraph {
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of edges can be increased or decreased
     proc resizeEdges(size) {
+      compilerWarning("Not actually implemented...");
       edges.setIndices({0..(size-1)});
     }
 
@@ -2215,6 +2309,7 @@ module AdjListHyperGraph {
     // This is not parallel safe AFAIK.
     // No checks are performed, and the number of vertices can be increased or decreased
     proc resizeVertices(size) {
+      compilerWarning("Not actually implemented...");
       vertices.setIndices({0..(size-1)});
     }
   
@@ -2349,29 +2444,29 @@ module AdjListHyperGraph {
       :arg v: Vertex.
       :arg e: Edge.
     */ 
-    proc hasInclusion(v : vIndexType, e : eIndexType) {
+    proc hasInclusion(v : vIndexType, e : eIndexType, param isImmutable = false) {
       const vDesc = toVertex(v);
       const eDesc = toEdge(e);
 
-      return getVertex(vDesc).hasNeighbor(eDesc);
+      return getVertex(vDesc).hasNeighbor(eDesc, acquireLock = !isImmutable);
     }
     
-    proc hasInclusion(vDesc : vDescType, e : eIndexType) {
+    proc hasInclusion(vDesc : vDescType, e : eIndexType, param isImmutable = false) {
       const eDesc = toEdge(e);
-      return getVertex(vDesc).hasNeighbor(eDesc);
+      return getVertex(vDesc).hasNeighbor(eDesc, acquireLock = !isImmutable);
     }
 
-    proc hasInclusion(v : vIndexType, eDesc : eDescType) {
+    proc hasInclusion(v : vIndexType, eDesc : eDescType, param isImmutable = false) {
       const vDesc = toVertex(v);
-      return getVertex(vDesc).hasNeighbor(eDesc);
+      return getVertex(vDesc).hasNeighbor(eDesc, acquireLock = !isImmutable);
     }
 
-    proc hasInclusion(vDesc : vDescType, eDesc : eDescType) {
-      return getVertex(vDesc).hasNeighbor(eDesc);     
+    proc hasInclusion(vDesc : vDescType, eDesc : eDescType, param isImmutable = false) {
+      return getVertex(vDesc).hasNeighbor(eDesc, acquireLock = !isImmutable);     
     }
 
     pragma "no doc"
-    proc hasInclusion(v, e) {
+    proc hasInclusion(v, e, param isImmutable = false) {
       Debug.badArgs((v, e), ((vIndexType, eIndexType), (vDescType, eDescType), (vIndexType, eDescType), (vDescType, eIndexType)));
     }
 
@@ -2496,9 +2591,10 @@ module AdjListHyperGraph {
 
       :arg e1: Hyperedge.
       :arg e2: Hyperedge.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    proc intersectionSize(e1 : eDescType, e2 : eDescType) {
-      return getEdge(e1).intersectionSize(getEdge(e2));
+    proc intersectionSize(e1 : eDescType, e2 : eDescType, param isImmutable = false) {
+      return getEdge(e1).intersectionSize(getEdge(e2), acquireLock = !isImmutable);
     }
     
     /*
@@ -2506,9 +2602,10 @@ module AdjListHyperGraph {
 
       :arg v1: Vertex.
       :arg v2: Vertex.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    proc intersectionSize(v1 : vDescType, v2 : vDescType) {
-      return getVertex(v1).intersectionSize(getVertex(v2));
+    proc intersectionSize(v1 : vDescType, v2 : vDescType, param isImmutable = false) {
+      return getVertex(v1).intersectionSize(getVertex(v2), acquireLock = !isImmutable);
     }
 
     /*
@@ -2516,28 +2613,30 @@ module AdjListHyperGraph {
       
       :arg e1: Hyperedge.
       :arg e2: Hyperedge.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    iter intersection(e1 : eDescType, e2 : eDescType) {
-      for n in getEdge(e1).neighborIntersection(getEdge(e2)) do yield n; 
+    iter intersection(e1 : eDescType, e2 : eDescType, param isImmutable = false) {
+      for n in getEdge(e1).neighborIntersection(getEdge(e2), acquireLock = !isImmutable) do yield n; 
     }
 
-    iter intersection(e1 : eDescType, e2 : eDescType, param tag : iterKind) where tag == iterKind.standalone {
-      for n in getEdge(e1).neighborIntersection(getEdge(e2)) do yield n; 
+    iter intersection(e1 : eDescType, e2 : eDescType, param isImmutable = false, param tag : iterKind) where tag == iterKind.standalone {
+      for n in getEdge(e1).neighborIntersection(getEdge(e2), acquireLock = !isImmutable) do yield n; 
     }
 
-    iter intersection(v1 : vDescType, v2 : vDescType) {
-      for n in getVertex(v1).neighborIntersection(getVertex(v2)) do yield n;
+    iter intersection(v1 : vDescType, v2 : vDescType, param isImmutable = false) {
+      for n in getVertex(v1).neighborIntersection(getVertex(v2), acquireLock = !isImmutable) do yield n;
     }
 
-    iter intersection(v1 : vDescType, v2 : vDescType, param tag : iterKind) where tag == iterKind.standalone {
-      forall n in getVertex(v1).neighborIntersection(getVertex(v2)) do yield n;
+    iter intersection(v1 : vDescType, v2 : vDescType, param isImmutable = false, param tag : iterKind) where tag == iterKind.standalone {
+      forall n in getVertex(v1).neighborIntersection(getVertex(v2), acquireLock = !isImmutable) do yield n;
     }
     
     pragma "no doc"
     inline proc _snapshot(v : vDescType) {
       ref vertex = getVertex(v);
       vertex.lock.acquire();
-      var snapshot = vertex.incident[0..#vertex.degree];
+      var snapshotDom = {0..#vertex.degree};
+      var snapshot : [snapshotDom] int = vertex.incident[0..#vertex.degree];
       vertex.lock.release();
 
       return snapshot;
@@ -2558,35 +2657,37 @@ module AdjListHyperGraph {
       Obtains the vertices incident in this hyperedge.
 
       :arg e: Hyperedge descriptor.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    iter incidence(e : eDescType) {
-      for v in _snapshot(e) do yield toVertex(v);
+    iter incidence(e : eDescType, param isImmutable = false) {
+      for v in (if isImmutable then getEdge(e) else _snapshot(e)) do yield toVertex(v);
     }
 
-    iter incidence(e : eDescType, param tag : iterKind) ref where tag == iterKind.standalone {
-      forall v in _snapshot(e) do yield toVertex(v);
+    iter incidence(e : eDescType, param isImmutable = false, param tag : iterKind) ref where tag == iterKind.standalone {
+      forall v in (if isImmutable then getEdge(e) else _snapshot(e)) do yield toVertex(v);
     }
     
     /*
       Obtains the hyperedges this vertex is incident in.
 
       :arg v: Vertex descriptor.
+      :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
-    iter incidence(v : vDescType) ref {
-      for e in _snapshot(v) do yield toEdge(e);
+    iter incidence(v : vDescType, param isImmutable = false) ref {
+      for e in (if isImmutable then getVertex(v) else _snapshot(v)) do yield toEdge(e);
     }
 
-    iter incidence(v : vDescType, param tag : iterKind) ref where tag == iterKind.standalone {
-      forall e in _snapshot(v) do yield toEdge(e);
+    iter incidence(v : vDescType, param isImmutable = false, param tag : iterKind) ref where tag == iterKind.standalone {
+      forall e in (if isImmutable then getVertex(v) else _snapshot(v)) do yield toEdge(e);
     }
 
     pragma "no doc"
-    iter incidence(arg) {
+    iter incidence(arg, param isImmutable = false) {
       Debug.badArgs(arg, (vDescType, eDescType));
     }
 
     pragma "no doc"
-    iter incidence(arg, param tag : iterKind) where tag == iterKind.standalone {
+    iter incidence(arg, param isImmutable = false, param tag : iterKind) where tag == iterKind.standalone {
       Debug.badArgs(arg, (vDescType, eDescType));
     }
 
@@ -2594,17 +2695,17 @@ module AdjListHyperGraph {
     /*
       Iterate through pairs vertices along with the edges they are incident in.
     */
-    iter these() : (vDescType, eDescType) {
+    iter these(param isImmutable = false) : (vDescType, eDescType) {
       for v in getVertices() {
-        for e in incidence(v) {
+        for e in incidence(v, isImmutable) {
           yield (v, e);
         }
       }
     }
 
-    iter these(param tag : iterKind) : (vDescType, eDescType) where tag == iterKind.standalone {
+    iter these(param isImmutable = false, param tag : iterKind) : (vDescType, eDescType) where tag == iterKind.standalone {
       forall v in getVertices() {
-        for e in incidence(v) {
+        for e in incidence(v, isImmutable) {
           yield (v, e);
         }
       }

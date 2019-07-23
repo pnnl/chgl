@@ -1,6 +1,6 @@
 use RangeChunk;
 use WorkQueue;
-use BlockDist;
+use CyclicDist;
 use Vectors;
 use Utilities;
 use Barriers;
@@ -9,16 +9,24 @@ use DynamicAggregationBuffer;
 
 config const dataset = "../data/karate.mtx_csr.bin";
 config const numEdgesPresent = true;
+config const doWorkStealing = true;
 
+var numVertices : uint(64);
+var numEdges : uint(64);
+
+var globalTimer = new Timer();
+var timer = new Timer();
+globalTimer.start();
+timer.start();
+
+// TODO: Perform two phases: First phase reads all offsets into task-local array,
+// next one reads from those offsets with a single reader (monotonically increasing order of offsets)
 try! {
-  var time = new Timer();
-  time.start();
   var f = open(dataset, iomode.r, style = new iostyle(binary=1));   
   var reader = f.reader();
   
   // Read in |V| and |E|
-  var numVertices : uint(64);
-  var numEdges : uint(64);
+  
   reader.read(numVertices);
   debug("|V| = " + numVertices);
   if numEdgesPresent {
@@ -27,16 +35,17 @@ try! {
   }
   reader.close();
   f.close();
-  
-  
-  var D = {0..#numVertices} dmapped Block(boundingBox={0..#numVertices});
-  var A : [D] unmanaged Vector(int);
-  
-// On each node, independently process the file and offsets...
+}
+
+var verticesDom = {0..#numVertices} dmapped Cyclic(startIdx=0);
+var vertices : [verticesDom] unmanaged Vector(int);
+
+try! {
+  // On each node, independently process the file and offsets...
   coforall loc in Locales do on loc {
     var f = open(dataset, iomode.r, style = new iostyle(binary=1));    
     // Obtain offset for indices that are local to each node...
-    var dom = D.localSubdomain();
+    var dom = verticesDom.localSubdomain();
     coforall chunk in chunks(dom.low..dom.high by dom.stride, here.maxTaskPar) {
       var reader = f.reader(locking=false);
       for idx in chunk {
@@ -60,68 +69,62 @@ try! {
 
 
         // Pre-allocate buffer for vector and read directly into it
-        var vec = new unmanaged VectorImpl(int, {0..#(endOffset - beginOffset + 1)});
+        var vec = new unmanaged Vector(int, endOffset - beginOffset + 1);
         reader.readBytes(c_ptrTo(vec.arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
         vec.sz = (endOffset - beginOffset + 1) : int;
         vec.sort();
-        A[idx] = vec;
+        vertices[idx] = vec;
         reader.revert();
       }
     }
+    f.close();
   }
-    
-  time.stop();
-  writeln("Initialization in ", time.elapsed(), "s");
-  time.clear();
-  
-  allLocalesBarrier.reset(here.maxTaskPar);
+}
 
-  var current = new WorkQueue(int, WorkQueueUnlimitedAggregation);
-  var next = new WorkQueue(int, WorkQueueUnlimitedAggregation);
-  current.addWork(0, A[0].locale);
-  current.flush();
-  var visited : [D] atomic bool;
-  if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
-  var lastTime : real;
-  time.start();
-  var keepAlive : atomic bool;
-  keepAlive.write(true);
-  coforall loc in Locales do on loc {
-    coforall tid in 0..#here.maxTaskPar {
-      var numPhases = 0;
-      var localCurrent = current;
-      var localNext = next;
-      while true {
-        var (hasVertex, vertex) = localCurrent.getWork();
-        if !hasVertex {
-          allLocalesBarrier.barrier();
-          if here.id == 0 && tid == 0 {
-            localNext.flush();
-            var elemsLeft = localNext.globalSize;
-            writeln("Level #", numPhases, " has ", elemsLeft, " elements...");
-            if elemsLeft == 0 then keepAlive.write(false);
-          }
-          allLocalesBarrier.barrier();
-          if keepAlive.read() == false then break;
-          numPhases += 1;
-          localCurrent.pid <=> localNext.pid;
-          localCurrent.instance <=> localNext.instance;
+timer.stop();
+writeln("Initialization in ", timer.elapsed(), "s");
+timer.clear();
+
+beginProfile("BFS-Naive-Perf");
+var current = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+var next = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+var currTD = new TerminationDetector(1);
+var nextTD = new TerminationDetector(0);
+current.addWork(0, vertices[0].locale);
+current.flush();
+var visited : [verticesDom] atomic bool;
+if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
+var numPhases = 1;
+var lastTime : real;
+timer.start();
+while !current.isEmpty() || !currTD.hasTerminated() {
+  writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
+  forall vertex in doWorkLoop(current, currTD, doWorkStealing=doWorkStealing) {
+    if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
+      for neighbor in vertices[vertex] {
+        if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
           continue;
         }
-
-        // Set as visited here...
-        if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
-          for neighbor in A[vertex] {
-            if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
-              continue;
-            }
-            localNext.addWork(neighbor, A[neighbor].locale);
-          }
-        } 
+        nextTD.started(1);
+        const loc = vertices[neighbor].locale;
+        next.addWork(neighbor, loc);
       }
-    }
+    } 
+    currTD.finished(1);
   }
-  writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", Completed BFS in ", time.elapsed(), "s");
-  f.close();
+  next.flush();
+  next <=> current;
+  nextTD <=> currTD;
+  var currTime = timer.elapsed();
+  writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
+  lastTime = currTime;
+  numPhases += 1;
 }
+
+timer.stop();
+globalTimer.stop();
+writeln("|V| = ", numVertices, ", |E| = ", numEdges);
+writeln("BFS: ", timer.elapsed());
+writeln("Total: ", globalTimer.elapsed());
+endProfile(); 
 

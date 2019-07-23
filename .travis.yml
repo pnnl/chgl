@@ -13,15 +13,16 @@ jobs:
         pushd $CHPL_HOME
         . util/setchplenv.sh
         popd
-        chpldoc src/*.chpl --author=PNNL
-        touch docs/.nojekyll
+        pushd docs
+        ./build.sh
+        popd
         cd test
         chpl --version
         start_test -junit-xml -numlocales 4'
 
 deploy:
     provider: pages
-    local_dir: ${TRAVIS_BUILD_DIR}/docs
+    local_dir: ${TRAVIS_BUILD_DIR}/docs/_build
     target_branch: gh-pages
     skip_cleanup: true
     github_token: $GITHUB_TOKEN  # Set as a Travis-CI env variable
