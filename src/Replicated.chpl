@@ -2,14 +2,14 @@ use CyclicDist;
 use Time;
 
 pragma "always RVF"
-record ReplicatedVar {
+record Replicated {
   type varType;
-  var instance : unmanaged ReplicatedVarImpl(varType);
+  var instance : unmanaged ReplicatedImpl(varType);
   var pid : int;
 
   proc init(type varType) {
     this.varType = varType;
-    this.instance = new unmanaged ReplicatedVarImpl(varType);
+    this.instance = new unmanaged ReplicatedImpl(varType);
     this.pid = this.instance.pid;
   }
 
@@ -28,7 +28,7 @@ record ReplicatedVar {
   forwarding _value;
 }
 
-class ReplicatedVarImpl {
+class ReplicatedImpl {
   type varType;
   var dom = LocaleSpace dmapped Cyclic(startIdx=0);
   var arr : [dom] varType;
@@ -65,7 +65,7 @@ class ReplicatedVarImpl {
     this.pid = privatizedData[2]; 
   }
   
-  proc dsiPrivatize(privatizedData) { return new unmanaged ReplicatedVarImpl(varType, this, privatizedData); }
+  proc dsiPrivatize(privatizedData) { return new unmanaged ReplicatedImpl(varType, this, privatizedData); }
   proc dsiGetPrivatizeData() { return (this.arr._pid, pid); }
   proc readWriteThis(f) { f <~> privatizedArr[here.id]; }
 
@@ -75,37 +75,13 @@ class ReplicatedVarImpl {
     return privatizedArr[0..#numLocales];
   }
 
+  proc onLocale(loc : locale) ref {
+    return onLocale(loc.id);
+  }
+
+  proc onLocale(locid : int) ref {
+    return privatizedArr[locid];
+  }
+
   forwarding privatizedArr[here.id];
 }
-
-var keepAlive = new ReplicatedVar(atomic bool);
-
-// Writes are local
-keepAlive.write(true);
-
-// Reads are local
-writeln(keepAlive);
-
-// Global writes via promotion
-keepAlive.broadcast.write(true);
-coforall loc in Locales do on loc {
-  writeln(here, ": ", keepAlive.read());
-}
-
-// Gather all replicated variables
-writeln(keepAlive.broadcast.read());
-
-begin {
-  sleep(5, TimeUnits.seconds);
-  writeln("Background task woke up...");
-  keepAlive.broadcast.write(false);
-  writeln("Background task has exited...");
-}
-
-coforall loc in Locales do on loc {
-  while keepAlive.read() {
-    chpl_task_yield();
-  }
-  writeln(here, " has exited...");
-}
-
