@@ -1,20 +1,20 @@
 .. default-domain:: chpl
 
-.. module:: Replicated
+.. module:: Privatization
 
-Replicated
-==========
+Privatization
+=============
 **Usage**
 
 .. code-block:: chapel
 
-   use Replicated;
+   use Privatization;
 
-.. record:: ReplicatedVar
+.. record:: Privatized
 
    .. attribute:: type varType
 
-   .. attribute:: var instance: unmanaged ReplicatedVarImpl(varType)
+   .. attribute:: var instance: unmanaged PrivatizedImpl(varType)
 
    .. attribute:: var pid: int
 
@@ -26,7 +26,21 @@ Replicated
 
    .. method:: proc readWriteThis(f)
 
-.. class:: ReplicatedVarImpl
+.. function:: proc =(x: Privatized(?eltType), y: eltType)
+
+.. function:: proc +(x: Privatized(?eltType), y: eltType)
+
+.. function:: proc -(x: Privatized(?eltType), y: eltType)
+
+.. function:: proc +=(x: Privatized(?eltType), y: eltType)
+
+.. function:: proc -=(x: Privatized(?eltType), y: eltType)
+
+.. function:: proc *(x: Privatized(?eltType), y: eltType)
+
+.. function:: proc *=(x: Privatized(?eltType), y: eltType)
+
+.. class:: PrivatizedImpl
 
    .. attribute:: type varType
 
@@ -40,7 +54,7 @@ Replicated
 
    .. attribute:: var arrInstance = arr._value
 
-   .. attribute:: var privatizedArr = _newArray(arrInstance)
+   .. attribute:: var broadcast = _newArray(arrInstance)
 
    .. method:: proc init(type varType)
 
@@ -52,7 +66,7 @@ Replicated
 
    .. method:: proc readWriteThis(f)
 
-   .. method:: proc broadcast
+   .. method:: proc onLocale(loc: locale) ref
 
-.. data:: var keepAlive = new ReplicatedVar(atomicbool)
+   .. method:: proc onLocale(locid: int) ref
 
