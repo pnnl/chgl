@@ -35,3 +35,4 @@ keepAlive.onLocale(numLocales - 1).write(true);
 coforall loc in Locales do on loc {
     writeln(keepAlive.broadcast);
 }
+keepAlive.destroy();

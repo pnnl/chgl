@@ -30,7 +30,7 @@ coforall loc in Locales do on loc {
     }
 }
 timer.stop();
-writeln("Privatized Local Atomic: ", timer.elapsed());
+writeln("Privatized Local Integer: ", timer.elapsed());
 timer.clear();
 
 timer.start();

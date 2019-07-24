@@ -1,4 +1,4 @@
-use CyclicDist;
+use BlockDist;
 use Time;
 
 pragma "always RVF"
@@ -56,20 +56,22 @@ proc *=(x : Privatized(?eltType), y : eltType) {
   x._value.broadcast[here.id] *= y;
 }
 
+class PrivatizedArray {
+  type varType;
+  var dom = LocaleSpace dmapped Block(boundingBox=LocaleSpace);
+  var arr : [dom] varType;
+}
+
 class PrivatizedImpl {
   type varType;
-  var dom = LocaleSpace dmapped Cyclic(startIdx=0);
-  var arr : [dom] varType;
   var pid : int;
-  var arrPid = arr._pid;
-  var arrInstance = arr._value;
-  pragma "no copy"
-  var broadcast = _newArray(arrInstance);
+  var privatizedArray : unmanaged PrivatizedArray(varType);
+  var broadcast = _newArray(privatizedArray.arr._value);
 
   // Master instance creates a cyclic array over locale space, ensuring that each locale has its own variable.
   proc init(type varType) {
     this.varType = varType;
-    this.dom = LocaleSpace dmapped Cyclic(startIdx=0);
+    this.privatizedArray = new unmanaged PrivatizedArray(varType);
     this.complete();
     this.broadcast._unowned = true;
     this.pid = _newPrivatizedClass(this);
@@ -78,23 +80,14 @@ class PrivatizedImpl {
   // Initialize the 'clone' slave instance
   proc init(type varType, other, privatizedData) { 
     this.varType = varType; 
-    // Need to clear cyclic domain so that it does not attempt to create a distributed array.
-    var dom = other.dom;
-    dom.clear();
-    this.dom = dom;
-
-    // Get a reference to the master instance's distributed array
-    this.arrPid = privatizedData[1];
-    this.arrInstance = chpl_getPrivatizedCopy(arr._instance.type, this.arrPid);
-    
-    // Privatize
+    this.privatizedArray = privatizedData[1];
     this.complete();
     this.broadcast._unowned = true;
     this.pid = privatizedData[2]; 
   }
   
   proc dsiPrivatize(privatizedData) { return new unmanaged PrivatizedImpl(varType, this, privatizedData); }
-  proc dsiGetPrivatizeData() { return (this.arr._pid, pid); }
+  proc dsiGetPrivatizeData() { return (this.privatizedArray, this.pid); }
   proc readWriteThis(f) { f <~> broadcast[here.id]; }
 
   proc onLocale(loc : locale) ref {
@@ -103,6 +96,12 @@ class PrivatizedImpl {
 
   proc onLocale(locid : int) ref {
     return broadcast[locid];
+  }
+
+  proc deinit() {
+    if privatizedArray.locale == here {
+      delete privatizedArray;
+    }
   }
 
   forwarding broadcast[here.id];
