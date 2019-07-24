@@ -407,8 +407,8 @@ proc get_nb(ref r1 : ?t1) : Future((t1,)) {
 
 
 // Random Number Generator utilities...
-var _globalIntRandomStream = makeRandomStream(int);
-var _globalRealRandomStream = makeRandomStream(real);
+var _globalIntRandomStream = makeRandomStream(int, parSafe=true);
+var _globalRealRandomStream = makeRandomStream(real, parSafe=true);
 
 proc randInt(low, high) {
   return _globalIntRandomStream.getNext(low, high);
@@ -432,6 +432,23 @@ proc randReal(high) {
 
 proc randReal() {
   return randReal(0, 1);
+}
+
+// Obtain random element from an associative domain
+proc getRandomAssociative(dom : domain, ref elt : dom.eltType) : bool {
+  if dom.size == 0 then return false;
+	// Get random index...
+	var idx = randInt(0, dom.table.size - 1);
+	while true {
+		if dom.table[idx].status == chpl__hash_status.empty {
+			idx += 1;
+			idx = idx % dom.table.size;
+			continue;
+		}
+		elt = dom.table[idx].idx;
+    return true;
+	}
+	return false;
 }
 
 // Utilize the fact that a 'class' in Chapel is a heap-allocated object, and all

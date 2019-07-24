@@ -82,6 +82,9 @@ config const dnsNameIndex = 1;
 config const ipAddressIndex = 2;
 // Skips first line of header file.
 config const skipHeader = false;
+// Print out used memory after constructing property map and after
+// constructing hypergraph, then quit.
+config const memTestOnly = false;
 
 //Need to create outputDirectory prior to opening files
 if !exists(outputDirectory) {
@@ -315,6 +318,19 @@ writeln("Vertex Property Map");
 printPropertyDistribution(vPropMap);
 writeln("Edge Property Map");
 printPropertyDistribution(ePropMap);
+
+if memTestOnly {
+  // (memUsed, physMem)
+  var localeMemStats : [LocaleSpace] (int, int);
+  coforall loc in Locales do on loc {
+    localeMemStats[here.id] = (memoryUsed():int, here.physicalMemory(MemUnits.GB));
+  }
+
+  for (locIdx, (memUsed, physMem)) in zip(LocaleSpace, localeMemStats) {
+    writeln(Locales[locIdx], ": ", ((memUsed / 1024):real / 1024) / 1024, "GB / ", physMem, "GB");
+  }
+}
+
 writeln("Constructing HyperGraph...");
 t.start();
 var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx=0));
@@ -366,6 +382,19 @@ t.clear();
 writeln("Number of Inclusions: ", graph.getInclusions());
 writeln("Deleting Duplicate edges: ", graph.removeDuplicates());
 writeln("Number of Inclusions: ", graph.getInclusions());
+
+if memTestOnly {
+  // (memUsed, physMem)
+  var localeMemStats : [LocaleSpace] (int, int);
+  coforall loc in Locales do on loc {
+    localeMemStats[here.id] = (memoryUsed():int, here.physicalMemory(MemUnits.GB));
+  }
+
+  for (locIdx, (memUsed, physMem)) in zip(LocaleSpace, localeMemStats) {
+    writeln(Locales[locIdx], ": ", ((memUsed / 1024):real / 1024) / 1024, "GB / ", physMem, "GB");
+  }
+  exit();
+}
 
 if preCollapseBlacklist {
     t.start();
