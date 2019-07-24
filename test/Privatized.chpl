@@ -1,6 +1,6 @@
 use CHGL;
 
-var keepAlive = new Replicated(atomic bool);
+var keepAlive = new Privatized(atomic bool);
 
 // Writes are local
 keepAlive.write(true);

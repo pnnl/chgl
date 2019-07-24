@@ -12,4 +12,4 @@ use WorkQueue;
 use AggregationBuffer;
 use DynamicAggregationBuffer;
 use UnrolledLinkedList;
-use Replicated;
+use Privatization;
