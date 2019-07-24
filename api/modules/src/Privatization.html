@@ -243,6 +243,26 @@
 <dd></dd></dl>
 
 <dl class="class">
+<dt id="Privatization.PrivatizedArray">
+<em class="property">class </em><code class="descname">PrivatizedArray</code><a class="headerlink" href="#Privatization.PrivatizedArray" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="Privatization.PrivatizedArray.varType">
+<em class="property">type </em><code class="descname">varType</code><a class="headerlink" href="#Privatization.PrivatizedArray.varType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Privatization.PrivatizedArray.dom">
+<em class="property">var </em><code class="descname">dom</code> = LocaleSpace dmapped Block(boundingBox = LocaleSpace)<a class="headerlink" href="#Privatization.PrivatizedArray.dom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Privatization.PrivatizedArray.arr">
+<em class="property">var </em><code class="descname">arr</code>: [dom] varType<a class="headerlink" href="#Privatization.PrivatizedArray.arr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="Privatization.PrivatizedImpl">
 <em class="property">class </em><code class="descname">PrivatizedImpl</code><a class="headerlink" href="#Privatization.PrivatizedImpl" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
@@ -251,33 +271,18 @@
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="Privatization.PrivatizedImpl.dom">
-<em class="property">var </em><code class="descname">dom</code> = LocaleSpace dmapped Cyclic(startIdx = 0)<a class="headerlink" href="#Privatization.PrivatizedImpl.dom" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="Privatization.PrivatizedImpl.arr">
-<em class="property">var </em><code class="descname">arr</code>: [dom] varType<a class="headerlink" href="#Privatization.PrivatizedImpl.arr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
 <dt id="Privatization.PrivatizedImpl.pid">
 <em class="property">var </em><code class="descname">pid</code>: int<a class="headerlink" href="#Privatization.PrivatizedImpl.pid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="Privatization.PrivatizedImpl.arrPid">
-<em class="property">var </em><code class="descname">arrPid</code> = arr._pid<a class="headerlink" href="#Privatization.PrivatizedImpl.arrPid" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="Privatization.PrivatizedImpl.arrInstance">
-<em class="property">var </em><code class="descname">arrInstance</code> = arr._value<a class="headerlink" href="#Privatization.PrivatizedImpl.arrInstance" title="Permalink to this definition">¶</a></dt>
+<dt id="Privatization.PrivatizedImpl.privatizedArray">
+<em class="property">var </em><code class="descname">privatizedArray</code>: unmanaged PrivatizedArray(varType)<a class="headerlink" href="#Privatization.PrivatizedImpl.privatizedArray" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="Privatization.PrivatizedImpl.broadcast">
-<em class="property">var </em><code class="descname">broadcast</code> = _newArray(arrInstance)<a class="headerlink" href="#Privatization.PrivatizedImpl.broadcast" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">broadcast</code> = _newArray(privatizedArray.arr._value)<a class="headerlink" href="#Privatization.PrivatizedImpl.broadcast" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -313,6 +318,11 @@
 <dl class="method">
 <dt>
 <em class="property">proc </em><code class="descname">onLocale</code><span class="sig-paren">(</span><em>locid: int</em><span class="sig-paren">)</span> ref</dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Privatization.PrivatizedImpl.deinit">
+<em class="property">proc </em><code class="descname">deinit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Privatization.PrivatizedImpl.deinit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

@@ -40,21 +40,23 @@ Privatization
 
 .. function:: proc *=(x: Privatized(?eltType), y: eltType)
 
+.. class:: PrivatizedArray
+
+   .. attribute:: type varType
+
+   .. attribute:: var dom = LocaleSpace dmapped Block(boundingBox = LocaleSpace)
+
+   .. attribute:: var arr: [dom] varType
+
 .. class:: PrivatizedImpl
 
    .. attribute:: type varType
 
-   .. attribute:: var dom = LocaleSpace dmapped Cyclic(startIdx = 0)
-
-   .. attribute:: var arr: [dom] varType
-
    .. attribute:: var pid: int
 
-   .. attribute:: var arrPid = arr._pid
+   .. attribute:: var privatizedArray: unmanaged PrivatizedArray(varType)
 
-   .. attribute:: var arrInstance = arr._value
-
-   .. attribute:: var broadcast = _newArray(arrInstance)
+   .. attribute:: var broadcast = _newArray(privatizedArray.arr._value)
 
    .. method:: proc init(type varType)
 
@@ -69,4 +71,6 @@ Privatization
    .. method:: proc onLocale(loc: locale) ref
 
    .. method:: proc onLocale(locid: int) ref
+
+   .. method:: proc deinit()
 
