@@ -97,9 +97,9 @@ Utilities
 
 .. function:: proc get_nb(ref r1: ?t1): Future((t1))
 
-.. data:: var _globalIntRandomStream = makeRandomStream(int)
+.. data:: var _globalIntRandomStream = intmakeRandomStreamparSafe = true
 
-.. data:: var _globalRealRandomStream = makeRandomStream(real)
+.. data:: var _globalRealRandomStream = realmakeRandomStreamparSafe = true
 
 .. function:: proc randInt(low, high)
 
@@ -112,6 +112,8 @@ Utilities
 .. function:: proc randReal(high)
 
 .. function:: proc randReal()
+
+.. function:: proc getRandomAssociative(dom: domain, ref elt: dom.eltType): bool
 
 .. class:: Centralized
 

@@ -332,12 +332,12 @@ the user creates an implicit copy).</p>
 
 <dl class="data">
 <dt id="Utilities._globalIntRandomStream">
-<em class="property">var </em><code class="descname">_globalIntRandomStream</code> = makeRandomStream(int)<a class="headerlink" href="#Utilities._globalIntRandomStream" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">_globalIntRandomStream</code> = intmakeRandomStreamparSafe = true<a class="headerlink" href="#Utilities._globalIntRandomStream" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="Utilities._globalRealRandomStream">
-<em class="property">var </em><code class="descname">_globalRealRandomStream</code> = makeRandomStream(real)<a class="headerlink" href="#Utilities._globalRealRandomStream" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">_globalRealRandomStream</code> = realmakeRandomStreamparSafe = true<a class="headerlink" href="#Utilities._globalRealRandomStream" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -368,6 +368,11 @@ the user creates an implicit copy).</p>
 <dl class="function">
 <dt>
 <em class="property">proc </em><code class="descname">randReal</code><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Utilities.getRandomAssociative">
+<em class="property">proc </em><code class="descname">getRandomAssociative</code><span class="sig-paren">(</span><em>dom: domain</em>, <em>ref elt: dom.eltType</em><span class="sig-paren">)</span>: bool<a class="headerlink" href="#Utilities.getRandomAssociative" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="class">

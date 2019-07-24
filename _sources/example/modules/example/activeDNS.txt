@@ -96,6 +96,8 @@ activeDNS
 
 .. data:: config const skipHeader = false
 
+.. data:: config const memTestOnly = false
+
 .. data:: var t = new Timer()
 
 .. data:: var tt = new Timer()
