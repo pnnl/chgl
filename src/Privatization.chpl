@@ -90,11 +90,11 @@ class PrivatizedImpl {
   proc dsiGetPrivatizeData() { return (this.privatizedArray, this.pid); }
   proc readWriteThis(f) { f <~> broadcast[here.id]; }
 
-  proc onLocale(loc : locale) ref {
-    return onLocale(loc.id);
+  proc get(loc : locale = here) ref {
+    return get(loc.id);
   }
 
-  proc onLocale(locid : int) ref {
+  proc get(locid : int) ref {
     return broadcast[locid];
   }
 

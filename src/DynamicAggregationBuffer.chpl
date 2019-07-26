@@ -106,7 +106,7 @@ module DynamicAggregationBuffer {
 
     proc init(type msgType) {
       this.msgType = msgType;
-      this.agg = new Aggregator(msgType);
+      this.agg = new Aggregator(msgType, 8 * 1024);
       complete();
 
       this.pid = _newPrivatizedClass(_to_unmanaged(this));

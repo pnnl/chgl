@@ -1,9 +1,7 @@
 use CHGL;
 use Time;
 use Regexp;
-use ReplicatedDist;
 use FileSystem;
-use ReplicatedVar;
 
 /*
   The Regular Expression used for searching for IP Addresses.
@@ -111,15 +109,15 @@ var t = new Timer();
 var tt = new Timer();
 var files : [0..-1] string;
 var f = open(metricsOutput, iomode.cw).writer();
-var blacklistIPRegexp : [rcDomain] regexp;
-var blacklistDNSNamesRegexp : [rcDomain] regexp; 
-coforall loc in Locales do on loc {
-  rcLocal(blacklistIPRegexp) = compile(blacklistDNSNamesRegex);
-  rcLocal(blacklistDNSNamesRegexp) = compile(blacklistIPRegex);
+var blacklistIPRegexp = new Privatized(regexp);
+var blacklistDNSNamesRegexp = new Privatized(regexp); 
+forall (ipRegexp, dnsRegexp) in zip(blacklistIPRegexp.broadcast, blacklistDNSNamesRegexp.broadcast) {
+  ipRegexp = compile(blacklistDNSNamesRegex);
+  dnsRegexp = compile(blacklistIPRegex);
 }
-var vPropMap = new PropertyMap(string);
-var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(string, 1024 * 1024);
+var vPropMap = new PropertyMap(String);
+var ePropMap = new PropertyMap(String);
+var wq = new WorkQueue(string, 1024);
 var td = new TerminationDetector();
 var blacklistIPAddresses : domain(string);
 var blacklistDNSNames : domain(string);
@@ -192,7 +190,7 @@ proc searchBlacklist(graph, prefix) {
     }
   }
   forall v in graph.getVertices() with (in blacklistIPAddresses) {
-    var ip = graph.getProperty(v);
+    var ip = graph.getProperty(v).toString();
     if blacklistIPAddresses.contains(ip) {
       var f = open(outputDirectory +"/"+ prefix + "/" + ip,iomode.cw).writer();
       f.writeln("Blacklisted ip address ", ip);
@@ -229,8 +227,8 @@ proc searchBlacklist(graph, prefix) {
     } 
   } writeln("Finished searching for blacklisted IPs...");
   forall e in graph.getEdges() with (in blacklistDNSNames) {
-    var dnsName = graph.getProperty(e);
-    var isBadDNS = dnsName.matches(rcLocal(blacklistDNSNamesRegexp));
+    var dnsName = graph.getProperty(e).toString();
+    var isBadDNS = dnsName.matches(blacklistDNSNamesRegexp.get());
     if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
       var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
       writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
@@ -299,10 +297,11 @@ wq.flush();
 forall fileName in doWorkLoop(wq, td) {
   for line in getLines(fileName) {
     var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
-    vPropMap.create(rdata.strip(), aggregated=true);
-    ePropMap.create(qname.strip(), aggregated=true);
+    var qname = new String(attrs[1].strip());
+    var rdata = new String(attrs[2].strip());
+
+    vPropMap.create(rdata, aggregated=true);
+    ePropMap.create(qname, aggregated=true);
   }
   td.finished();  
 }
@@ -324,6 +323,7 @@ if memTestOnly {
   var localeMemStats : [LocaleSpace] (int, int);
   coforall loc in Locales do on loc {
     localeMemStats[here.id] = (memoryUsed():int, here.physicalMemory(MemUnits.GB));
+    printMemAllocs();
   }
 
   for (locIdx, (memUsed, physMem)) in zip(LocaleSpace, localeMemStats) {
@@ -350,15 +350,16 @@ wq.flush();
 
 // Aggregate fetches to properties into another work queue; when we flush
 // each of the property maps, their individual PropertyHandle will be finished.
-var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle));
+// Also send the 'String' so that it can be reclaimed.
+var handleWQ = new WorkQueue((String, unmanaged PropertyHandle, String, unmanaged PropertyHandle), 64 * 1024);
 var handleTD = new TerminationDetector();
 forall fileName in doWorkLoop(wq, td) {
   for line in getLines(fileName) {
     var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
+    var qname = new String(attrs[1].strip());
+    var rdata = new String(attrs[2].strip());
     handleTD.started(1);
-    handleWQ.addWork((vPropMap.getPropertyAsync(rdata.strip()), ePropMap.getPropertyAsync(qname.strip())));
+    handleWQ.addWork((rdata, vPropMap.getPropertyAsync(rdata), qname, ePropMap.getPropertyAsync(qname)));
   }
   td.finished();
 }
@@ -367,10 +368,12 @@ ePropMap.flushGlobal();
 
 // Finally aggregate inclusions for the hypergraph.
 graph.startAggregation();
-forall (vHandle, eHandle) in doWorkLoop(handleWQ, handleTD) {
+forall (vStr, vHandle, eStr, eHandle) in doWorkLoop(handleWQ, handleTD) {
   graph.addInclusion(vHandle.get(), eHandle.get());
   delete vHandle;
   delete eHandle;
+  vStr.destroy();
+  eStr.destroy();
   handleTD.finished(1);
 }
 graph.stopAggregation();

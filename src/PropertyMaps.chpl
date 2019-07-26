@@ -120,8 +120,8 @@ module PropertyMaps {
       this.propertyType = propertyType;
       this.mapper = mapper;
       this.complete();
-      this.setAggregator = new Aggregator((propertyType, int));
-      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle));
+      this.setAggregator = new Aggregator((propertyType, int), 8 * 1024);
+      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle), 8 * 1024);
       this.terminationDetector = new TerminationDetector();
       this.pid = _newPrivatizedClass(this:unmanaged);
     }
@@ -130,7 +130,8 @@ module PropertyMaps {
       this.propertyType = propertyType;
       this.mapper = other.mapper;
       this.complete();
-      this.setAggregator = new setAggregator((propertyType, int));
+      this.setAggregator = new Aggregator((propertyType, int), 8 * 1024);
+      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle), 8 * 1024);
       this.terminationDetector = new TerminationDetector();
 
       this.pid = _newPrivatizedClass(this:unmanaged);
@@ -189,23 +190,21 @@ module PropertyMaps {
       coforall loc in Locales do on loc {
         var _this = chpl_getPrivatizedCopy(this.type, _pid);
         var _other = chpl_getPrivatizedCopy(other.type, _pid);
-        
-        local {
-          if acquireLock then acquireLocks(_this.lock, _other.lock);
+      
+        if acquireLock then acquireLocks(_this.lock, _other.lock);
 
-          _this.keys += _other.keys;
-          if overwrite { 
-            _this.values = _other.values;
-          } else {
-            forall key in _other.keys {
-              if !_this.keys.contains(key) {
-                _this.values[key] = _other.values[key];
-              }
+        _this.keys += _other.keys;
+        if overwrite { 
+          _this.values = _other.values;
+        } else {
+          forall key in _other.keys {
+            if !_this.keys.contains(key) {
+              _this.values[key] = _other.values[key];
             }
           }
-
-          if acquireLock then releaseLocks(_this.lock, _other.lock);
         }
+
+        if acquireLock then releaseLocks(_this.lock, _other.lock);
       }
     }
 
@@ -221,14 +220,12 @@ module PropertyMaps {
         var arr = buf.getArray();
         buf.done();
         var _this = chpl_getPrivatizedCopy(this.type, _pid);
-        local {
-          if acquireLock then _this.lock.acquire();
-          for (prop, id) in arr {
-            if id == -1 then _this.keys += prop;
-            _this.values[prop] = id;
-          }
-          if acquireLock then _this.lock.release();
+        if acquireLock then _this.lock.acquire();
+        for (prop, id) in arr {
+          if id == -1 then _this.keys += prop;
+          _this.values[prop] = id;
         }
+        if acquireLock then _this.lock.release();
       }
 
       forall (buf, loc) in getAggregator.flushLocal() {
@@ -236,9 +233,23 @@ module PropertyMaps {
       }
     }
     proc flushGlobal(param acquireLock = true) {
+      // Flush aggregation buffer 'setAggregator' first so any written
+      // values are seen. Then flush 'getAggregator'.
       const _pid = pid;
-      coforall loc in Locales do on loc {
-        chpl_getPrivatizedCopy(this.type, _pid).flushLocal(acquireLock);
+      forall (buf, loc) in setAggregator.flushGlobal() do on loc {
+        var arr = buf.getArray();
+        buf.done();
+        var _this = chpl_getPrivatizedCopy(this.type, _pid);
+        if acquireLock then _this.lock.acquire();
+        for (prop, id) in arr {
+          if id == -1 then _this.keys += prop;
+          _this.values[prop] = id;
+        }
+        if acquireLock then _this.lock.release();
+      }
+
+      forall (buf, loc) in getAggregator.flushGlobal() {
+        _flushGetAggregatorBuffer(buf, loc, acquireLock = acquireLock);
       }
       // Wait for any asynchronous tasks to finish
       terminationDetector.awaitTermination();
@@ -318,6 +329,20 @@ module PropertyMaps {
 
       if loc == here {
         if acquireLock then this.lock.acquire();
+        if !this.keys.contains(property) {
+          writeln("SetAggregator Global Size: ", setAggregator.sizeGlobal());
+          coforall loc in Locales do on loc {
+            var _this = getPrivatizedInstance();
+            if _this.keys.contains(property) {
+              writeln(here, " contains ", property);
+            } else {
+              writeln(here, " does not contain ", property);
+            }
+          }
+          if this.keys.contains(property) {
+            writeln("Key is there now...");
+          }
+        }
         handle.set(this.values[property]);
         if acquireLock then this.lock.release();
       } else {

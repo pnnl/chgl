@@ -25,7 +25,7 @@ iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType 
 iter vertexBFS(graph, v : graph._value.vDescType, s=1, param tag : iterKind) : graph._value.vDescType where tag == iterKind.standalone {
   var visited : [graph.verticesDomain] atomic bool;
   var td = new TerminationDetector(1);
-  var wq = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+  var wq = new WorkQueue(int, 1024, new DuplicateCoalescer(int, -1));
   wq.addWork(v.id, graph.getLocale(v));
   forall v in doWorkLoop(wq, td) {
     if v != -1 && visited[v].testAndSet() == false {
@@ -59,7 +59,7 @@ iter edgeBFS(graph, e : graph._value.eDescType, s=1) : graph._value.eDescType {
 iter edgeBFS(graph, e : graph._value.eDescType, s=1, param tag : iterKind) : graph._value.eDescType where tag == iterKind.standalone {  
   var visited : [graph.edgesDomain] atomic bool;
   var td = new TerminationDetector(1);
-  var wq = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+  var wq = new WorkQueue(int, 1024, new DuplicateCoalescer(int, -1));
   wq.addWork(e.id, graph.getLocale(e));
   forall e in doWorkLoop(wq, td) {
     if e != -1 && visited[e].testAndSet() == false {

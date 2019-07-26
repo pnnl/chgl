@@ -94,7 +94,7 @@ module Graph {
       edgeCounter = new unmanaged Centralized(atomic int);
       this.vDescType = hg.vDescType;
       if CHPL_NETWORK_ATOMICS == "none" {
-        insertAggregator = new Aggregator((hg.vDescType, hg.vDescType, int));
+        insertAggregator = new Aggregator((hg.vDescType, hg.vDescType, int), 64 * 1024);
       }
       this.cachedNeighborListDom = hg.verticesDomain;
       complete();
