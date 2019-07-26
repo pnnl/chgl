@@ -1,9 +1,5 @@
-use Utilities;
-use AggregationBuffer;
-use DynamicAggregationBuffer;
-use TerminationDetection;
+use CHGL;
 use Time;
-use ReplicatedVar;
 
 // TODO: Add a bulk insertion method so aggregation can be much faster!
 
@@ -17,7 +13,7 @@ config const workQueueVerbose = false;
 param WorkQueueUnlimitedAggregation = -1;
 param WorkQueueNoAggregation = 0;
 
-iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkStealing = false) : workType {
+iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkStealing = false, locales = Locales, tasks = 1..here.maxTaskPar) : workType {
   while !wq.isShutdown() {
     var (hasWork, workItem) = wq.getWork();
     if !hasWork {
@@ -29,8 +25,8 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkSteal
   }
 }
 
-iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkStealing = false, param tag : iterKind) : workType where tag == iterKind.standalone {
-  var termination : [rcDomain] atomic bool;
+iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkStealing = false, locales = Locales, tasks = 1..here.maxTaskPar, param tag : iterKind) : workType where tag == iterKind.standalone {
+  var termination = new Privatized(atomic bool);
   // Background task in charge of automatically flushing the buffers. It has a
   // fairly straight-forward heuristic for determining when to flush the buffer
   // based on changes in the size of the work queue over time. If the work queue
@@ -49,7 +45,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkSteal
         if workQueueVerbose {
           writeln("Terminating!");
         }
-        for loc in Locales do on loc do rcLocal(termination).write(true);
+        termination.broadcast.write(true);
         break;
       } else if workQueueVerbose {
         var tdStats = td.getStatistics();
@@ -74,7 +70,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkSteal
       var pendingWork : int;
       var minLocSize : (int, int) = (max(int), max(int));
       var maxLocSize : (int, int);
-      for loc in Locales do on loc { 
+      for loc in locales do on loc { 
         const sz = wq.size;
         pendingWork += wq.workPending;
         minLocSize = min(minLocSize, (sz, here.id));
@@ -114,12 +110,12 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkSteal
     }
   }
 
-  coforall loc in Locales do on loc {
-    coforall tid in 1..here.maxTaskPar {
+  coforall loc in locales do on loc {
+    coforall tid in tasks {
       var timer = new Timer();
       var timerRunning = false;
       var hasReported = false;
-      label loop while !rcLocal(termination).read() {
+      label loop while !termination.read() {
         var (hasWork, workItem) = wq.getWork();
         if !hasWork {
           if !timerRunning {
@@ -151,6 +147,7 @@ iter doWorkLoop(wq : WorkQueue(?workType), td : TerminationDetector, doWorkSteal
        if workQueueVerbose then writeln("Task#", here.id, "-", tid, " spent ", timer.elapsed(TimeUnits.milliseconds), "ms waiting!");
     }
   }
+  termination.destroy();
 }
 
 // Swap will only swap the privatization ids, so it only applies to this instance.
