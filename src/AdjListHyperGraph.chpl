@@ -891,7 +891,7 @@ module AdjListHyperGraph {
       
       this._vPropType = vPropType;
       this._ePropType = ePropType;
-      this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType));
+      this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType), 64 * 1024);
       this._vPropMap = vPropMap;
       this._ePropMap = ePropMap;
 

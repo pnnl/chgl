@@ -61,7 +61,7 @@ timer.start();
 coforall loc in Locales do on loc {
     coforall tid in 1..here.maxTaskPar {
         for i in 1..N {
-            privatizedAtomic.onLocale(i % numLocales).add(1);
+            privatizedAtomic.get(i % numLocales).add(1);
         }
     }
 }
@@ -73,7 +73,7 @@ timer.start();
 coforall loc in Locales do on loc {
     coforall tid in 1..here.maxTaskPar {
         for i in 1..N {
-            privatizedInteger.onLocale(i % numLocales) = 1;
+            privatizedInteger.get(i % numLocales) = 1;
         }
     }
 }

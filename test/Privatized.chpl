@@ -31,7 +31,7 @@ coforall loc in Locales do on loc {
 }
 
 keepAlive.write(true);
-keepAlive.onLocale(numLocales - 1).write(true);
+keepAlive.get(numLocales - 1).write(true);
 coforall loc in Locales do on loc {
     writeln(keepAlive.broadcast);
 }

@@ -25,9 +25,10 @@ iter vertexBFS(graph, v : graph._value.vDescType, s=1) : graph._value.vDescType 
 iter vertexBFS(graph, v : graph._value.vDescType, s=1, param tag : iterKind) : graph._value.vDescType where tag == iterKind.standalone {
   var visited : [graph.verticesDomain] atomic bool;
   var td = new TerminationDetector(1);
-  var wq = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+  var wq = new WorkQueue(int, 1024, new DuplicateCoalescer(int, -1));
   wq.addWork(v.id, graph.getLocale(v));
-  forall v in doWorkLoop(wq, td) {
+  // Heuristic: If the vertex has a _massive_ number of neighbors, 
+  forall v in doWorkLoop(wq, td, tasks=1..1) {
     if v != -1 && visited[v].testAndSet() == false {
       yield graph.toVertex(v);
       forall vv in graph.walk(graph.toVertex(v), s=1, isImmutable=true) {
@@ -41,7 +42,7 @@ iter vertexBFS(graph, v : graph._value.vDescType, s=1, param tag : iterKind) : g
   wq.destroy();
 }
 
-iter edgeBFS(graph, e : graph._value.eDescType, s=1) : graph._value.eDescType {
+iter edgeBFS(graph, e : graph._value.eDescType, s=1, useMaximumParallelism = false) : graph._value.eDescType {
   var explored : domain(int);
   var queue = new UnrolledLinkedList(int, 1024);
   queue.append(e.id);
@@ -56,12 +57,12 @@ iter edgeBFS(graph, e : graph._value.eDescType, s=1) : graph._value.eDescType {
   }
 }
 
-iter edgeBFS(graph, e : graph._value.eDescType, s=1, param tag : iterKind) : graph._value.eDescType where tag == iterKind.standalone {  
+iter edgeBFS(graph, e : graph._value.eDescType, s=1, useMaximumParallelism = false, param tag : iterKind) : graph._value.eDescType where tag == iterKind.standalone {  
   var visited : [graph.edgesDomain] atomic bool;
   var td = new TerminationDetector(1);
-  var wq = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+  var wq = new WorkQueue(int, if useMaximumParallelism then 64 * 1024 else 1024, new DuplicateCoalescer(int, -1));
   wq.addWork(e.id, graph.getLocale(e));
-  forall e in doWorkLoop(wq, td) {
+  forall e in doWorkLoop(wq, td, tasks= if useMaximumParallelism then 1..here.maxTaskPar else 1..1) {
     if e != -1 && visited[e].testAndSet() == false {
       yield graph.toEdge(e);
       forall ee in graph.walk(graph.toEdge(e), s=1, isImmutable=true) {

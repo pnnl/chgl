@@ -113,7 +113,7 @@ module Metrics {
   proc getVertexComponentMappings(graph, s = 1) {
     var components : [graph.verticesDomain] atomic int;
     var componentId : atomic int;
-    var workQueue = new WorkQueue((int,int), 1024 * 1024, new ComponentCoalescer());
+    var workQueue = new WorkQueue((int,int), 8 * 1024, new ComponentCoalescer());
     var terminationDetector = new TerminationDetector();
 
     // Begin at 1 so 0 becomes 'not visited' sentinel value
@@ -191,7 +191,7 @@ module Metrics {
   proc getEdgeComponentMappings(graph, s = 1) {
     var components : [graph.edgesDomain] atomic int;
     var componentId : atomic int;
-    var workQueue = new WorkQueue((int,int), 1024 * 1024, new ComponentCoalescer());
+    var workQueue = new WorkQueue((int,int), 8 * 1024, new ComponentCoalescer());
     var terminationDetector = new TerminationDetector();
 
     // Begin at 1 so 0 becomes 'not visited' sentinel value

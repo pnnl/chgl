@@ -8,7 +8,7 @@ module AggregationBuffer {
   use Random;
 
   config const AggregatorMaxBuffers = -1;
-  config const AggregatorBufferSize = 1024 * 1024;
+  config const AggregatorBufferSize = 64 * 1024;
   config param AggregatorDebug = false;
 
   proc debug(args...?nArgs) where AggregatorDebug {
@@ -221,7 +221,14 @@ module AggregationBuffer {
        method is subject to undefined behavior.
     */
     proc done() {
-      on this do this._bufferPool.recycleBuffer(_to_unmanaged(this));
+      on this {
+        if msgType == string || isSharedClass(msgType) {
+          var dom = _bufDom;
+          _bufDom = {0..-1};
+          _bufDom = dom;
+        }
+        this._bufferPool.recycleBuffer(_to_unmanaged(this));
+      }
     }
 
     /*
@@ -339,6 +346,15 @@ module AggregationBuffer {
     // Obtains the amount of work still pending.
     proc size() {
       return + reduce [buf in destinationBuffers] buf._claimed.read();
+    }
+
+    proc sizeGlobal() {
+      var sz : int;
+      coforall loc in Locales with (+ reduce sz) do on loc {
+        var _this = getPrivatizedInstance();
+        sz += _this.size();
+      }
+      return sz;
     }
 
     proc aggregate(msg : msgType, loc : locale) : unmanaged Buffer(msgType) {

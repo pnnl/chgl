@@ -1,9 +1,7 @@
 use CHGL;
 use Time;
 use Regexp;
-use ReplicatedDist;
 use FileSystem;
-use ReplicatedVar;
 
 /*
   The Regular Expression used for searching for IP Addresses.
@@ -111,15 +109,15 @@ var t = new Timer();
 var tt = new Timer();
 var files : [0..-1] string;
 var f = open(metricsOutput, iomode.cw).writer();
-var blacklistIPRegexp : [rcDomain] regexp;
-var blacklistDNSNamesRegexp : [rcDomain] regexp; 
-coforall loc in Locales do on loc {
-  rcLocal(blacklistIPRegexp) = compile(blacklistDNSNamesRegex);
-  rcLocal(blacklistDNSNamesRegexp) = compile(blacklistIPRegex);
+var blacklistIPRegexp = new Privatized(regexp);
+var blacklistDNSNamesRegexp = new Privatized(regexp); 
+forall (ipRegexp, dnsRegexp) in zip(blacklistIPRegexp.broadcast, blacklistDNSNamesRegexp.broadcast) {
+  ipRegexp = compile(blacklistDNSNamesRegex);
+  dnsRegexp = compile(blacklistIPRegex);
 }
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
-var wq = new WorkQueue(string, 1024 * 1024);
+var wq = new WorkQueue(string, 1024);
 var td = new TerminationDetector();
 var blacklistIPAddresses : domain(string);
 var blacklistDNSNames : domain(string);
@@ -229,40 +227,67 @@ proc searchBlacklist(graph, prefix) {
     } 
   } writeln("Finished searching for blacklisted IPs...");
   forall e in graph.getEdges() with (in blacklistDNSNames) {
+    chpl_task_yield();
+    var monsterEdge : bool;
     var dnsName = graph.getProperty(e);
-    var isBadDNS = dnsName.matches(rcLocal(blacklistDNSNamesRegexp));
+    var isBadDNS = dnsName.matches(blacklistDNSNamesRegexp.get());
     if blacklistDNSNames.contains(dnsName) || isBadDNS.size != 0 {
       var f = open(outputDirectory + prefix + "/" + dnsName, iomode.cw).writer();
       writeln("(" + prefix + ") Found blacklisted DNS Name ", dnsName);
 
       // Print out its local neighbors...
       f.writeln("(" + prefix + ") Blacklisted DNS Name: ", dnsName);
+      var timer = new Timer();
+      var globalTimer = new Timer();
+      globalTimer.start();
       for s in 1..3 {
+        timer.start();
         f.writeln("\tLocal Neighborhood (s=", s, "):");
-        forall neighbor in graph.walk(e, s, isImmutable=true) {
+        var numInclusions : int;
+        forall neighbor in graph.walk(e, s, isImmutable=true) with (+ reduce numInclusions) {
           var str = "\t\t" + graph.getProperty(neighbor) + "\t";
           for n in graph.incidence(neighbor) {
             str += graph.getProperty(n) + ",";
           }
           f.writeln(str[..str.size - 1]);
           f.flush();
+          chpl_task_yield();
+          numInclusions += graph.degree(neighbor);
+        }
+        if numInclusions > 100000 {
+          writeln(dnsName, " is a monster edge for (s=", s, ") with ", numInclusions, " inclusions.");
+          monsterEdge = true;
         }
         f.flush();
+        timer.stop();
+        writeln("Neighbors of ", dnsName, " (s=", s, "): ", timer.elapsed());
+        timer.clear();
       }
+      globalTimer.stop();
+      writeln("Neighbors of ", dnsName, " in total: ", globalTimer.elapsed());
+      globalTimer.clear();
 
       // Print out its component
+      globalTimer.start();
       for s in 1..3 {
+        chpl_task_yield();
+        timer.start();
         f.writeln("\tComponent (s=", s, "):");
-        forall ee in edgeBFS(graph, e, s) {
+        forall ee in edgeBFS(graph, e, s, useMaximumParallelism=monsterEdge) {
           var eee = graph.toEdge(ee);
           var str = "\t\t" + graph.getProperty(eee) + "\t";
           for n in graph.incidence(eee) {
             str += graph.getProperty(n) + ",";
           }
           f.writeln(str[..str.size - 1]);
+          chpl_task_yield();
           f.flush();
         }
+        timer.stop();
+        writeln("Component of ", dnsName, " (s=", s, "): ", timer.elapsed());
       }
+      globalTimer.stop();
+      writeln("Component of ", dnsName, " in total: ", globalTimer.elapsed());
     }
   }
   writeln("Finished searching for blacklisted DNSs...");
@@ -299,10 +324,11 @@ wq.flush();
 forall fileName in doWorkLoop(wq, td) {
   for line in getLines(fileName) {
     var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
-    vPropMap.create(rdata.strip(), aggregated=true);
-    ePropMap.create(qname.strip(), aggregated=true);
+    var qname = attrs[1].strip();
+    var rdata = attrs[2].strip();
+
+    vPropMap.create(rdata, aggregated=true);
+    ePropMap.create(qname, aggregated=true);
   }
   td.finished();  
 }
@@ -324,6 +350,7 @@ if memTestOnly {
   var localeMemStats : [LocaleSpace] (int, int);
   coforall loc in Locales do on loc {
     localeMemStats[here.id] = (memoryUsed():int, here.physicalMemory(MemUnits.GB));
+    printMemAllocs();
   }
 
   for (locIdx, (memUsed, physMem)) in zip(LocaleSpace, localeMemStats) {
@@ -350,15 +377,16 @@ wq.flush();
 
 // Aggregate fetches to properties into another work queue; when we flush
 // each of the property maps, their individual PropertyHandle will be finished.
-var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle));
+// Also send the 'String' so that it can be reclaimed.
+var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle), 64 * 1024);
 var handleTD = new TerminationDetector();
 forall fileName in doWorkLoop(wq, td) {
   for line in getLines(fileName) {
     var attrs = line.split(",");
-    var qname = attrs[1];
-    var rdata = attrs[2];
+    var qname = attrs[1].strip();
+    var rdata = attrs[2].strip();
     handleTD.started(1);
-    handleWQ.addWork((vPropMap.getPropertyAsync(rdata.strip()), ePropMap.getPropertyAsync(qname.strip())));
+    handleWQ.addWork((vPropMap.getPropertyAsync(rdata), ePropMap.getPropertyAsync(qname)));
   }
   td.finished();
 }

@@ -86,8 +86,8 @@ writeln("Initialization in ", timer.elapsed(), "s");
 timer.clear();
 
 beginProfile("BFS-Naive-Perf");
-var current = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
-var next = new WorkQueue(int, 1024 * 1024, new DuplicateCoalescer(int, -1));
+var current = new WorkQueue(int, 64 * 1024, new DuplicateCoalescer(int, -1));
+var next = new WorkQueue(int, 64 * 1024, new DuplicateCoalescer(int, -1));
 var currTD = new TerminationDetector(1);
 var nextTD = new TerminationDetector(0);
 current.addWork(0, vertices[0].locale);
