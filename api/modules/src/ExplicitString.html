@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>UnrolledLinkedList &mdash; CHGL  documentation</title>
+  <title>ExplicitString &mdash; CHGL  documentation</title>
   
 
   
@@ -32,8 +32,8 @@
   
     <link rel="top" title="CHGL  documentation" href="../../../index.html"/>
         <link rel="up" title="chpldoc documentation" href="../../index.html"/>
-        <link rel="next" title="Utilities" href="Utilities.html"/>
-        <link rel="prev" title="Traversal" href="Traversal.html"/> 
+        <link rel="next" title="Generation" href="Generation.html"/>
+        <link rel="prev" title="EquivalenceClasses" href="EquivalenceClasses.html"/> 
 
   
   <script src="../../../_static/js/modernizr.min.js"></script>
@@ -95,7 +95,7 @@
 <li class="toctree-l2"><a class="reference internal" href="CHGL-Server.html">CHGL-Server</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EquivalenceClasses.html">EquivalenceClasses</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ExplicitString.html">ExplicitString</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">ExplicitString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Generation.html">Generation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Graph.html">Graph</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Metrics.html">Metrics</a></li>
@@ -103,7 +103,7 @@
 <li class="toctree-l2"><a class="reference internal" href="PropertyMaps.html">PropertyMaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="TerminationDetection.html">TerminationDetection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Traversal.html">Traversal</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">UnrolledLinkedList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UnrolledLinkedList.html">UnrolledLinkedList</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Utilities.html">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Vectors.html">Vectors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Visualize.html">Visualize</a></li>
@@ -148,11 +148,11 @@
       
           <li><a href="../../index.html">chpldoc documentation</a> &raquo;</li>
       
-    <li>UnrolledLinkedList</li>
+    <li>ExplicitString</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="../../../_sources/api/modules/src/UnrolledLinkedList.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/api/modules/src/ExplicitString.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -162,105 +162,98 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <span class="target" id="module-UnrolledLinkedList"></span><div class="section" id="unrolledlinkedlist">
-<h1>UnrolledLinkedList<a class="headerlink" href="#unrolledlinkedlist" title="Permalink to this headline">¶</a></h1>
+  <span class="target" id="module-ExplicitString"></span><div class="section" id="explicitstring">
+<h1>ExplicitString<a class="headerlink" href="#explicitstring" title="Permalink to this headline">¶</a></h1>
 <p><strong>Usage</strong></p>
-<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">UnrolledLinkedList</span><span class="p">;</span>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">ExplicitString</span><span class="p">;</span>
 </pre></div>
 </div>
-<dl class="class">
-<dt id="UnrolledLinkedList.UnrollBlock">
-<em class="property">class </em><code class="descname">UnrollBlock</code><a class="headerlink" href="#UnrolledLinkedList.UnrollBlock" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="UnrolledLinkedList.UnrollBlock.eltType">
-<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#UnrolledLinkedList.UnrollBlock.eltType" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="UnrolledLinkedList.UnrollBlock.cap">
-<em class="property">param </em><code class="descname">cap</code>: int<a class="headerlink" href="#UnrolledLinkedList.UnrollBlock.cap" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="UnrolledLinkedList.UnrollBlock.end">
-<em class="property">var </em><code class="descname">end</code>: int<a class="headerlink" href="#UnrolledLinkedList.UnrollBlock.end" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="UnrolledLinkedList.UnrollBlock.start">
-<em class="property">var </em><code class="descname">start</code>: int<a class="headerlink" href="#UnrolledLinkedList.UnrollBlock.start" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="UnrolledLinkedList.UnrollBlock.data">
-<em class="property">var </em><code class="descname">data</code>: eltTypec_arraycap<a class="headerlink" href="#UnrolledLinkedList.UnrollBlock.data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="UnrolledLinkedList.UnrollBlock.next">
-<em class="property">var </em><code class="descname">next</code>: unmanaged eltTypeUnrollBlockcap<a class="headerlink" href="#UnrolledLinkedList.UnrollBlock.next" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 <dl class="record">
-<dt id="UnrolledLinkedList.UnrolledLinkedList">
-<em class="property">record </em><code class="descname">UnrolledLinkedList</code><a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.eltType">
-<em class="property">type </em><code class="descname">eltType</code><a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.eltType" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.String">
+<em class="property">record </em><code class="descname">String</code><a class="headerlink" href="#ExplicitString.String" title="Permalink to this definition">¶</a></dt>
+<dd><p>Due to behavior of <cite>_string</cite> (Chapel&#8217;s native string type) that:</p>
+<blockquote>
+<div><ol class="arabic">
+<li><dl class="first docutils">
+<dt>Creates a full on copy of the string on assignment even if it is not needed.</dt>
+<dd><p class="first last"><a class="reference external" href="https://github.com/chapel-lang/chapel/blob/e6b8fd15b54e2c1f04d4dbf5bc8bff523551842a/modules/internal/String.chpl#L2018-L2029">https://github.com/chapel-lang/chapel/blob/e6b8fd15b54e2c1f04d4dbf5bc8bff523551842a/modules/internal/String.chpl#L2018-L2029</a></p>
+</dd>
+</dl>
+</li>
+<li><p class="first">Leaks the implicit string copy if stored in a Chapel array that never shrinks</p>
+</li>
+<li><p class="first">Naively rehashes the string and does not cache the hash, hence resulting in excess implicit copies and remote transfers</p>
+</li>
+</ol>
+</div></blockquote>
+<p>These issues have also been confirmed by Michael Ferguson (&#64;mppf); hence to get around this, this module features
+a new &#8216;String&#8217; type that does not create any implicit copies. This is necessary not only for performance but also
+space overhead.</p>
+<dl class="attribute">
+<dt id="ExplicitString.String.data">
+<em class="property">var </em><code class="descname">data</code>: _ddata(uint(8))<a class="headerlink" href="#ExplicitString.String.data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.unrollBlockSize">
-<em class="property">param </em><code class="descname">unrollBlockSize</code>: int<a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.unrollBlockSize" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.String.dataLen">
+<em class="property">var </em><code class="descname">dataLen</code>: int(64)<a class="headerlink" href="#ExplicitString.String.dataLen" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.sz">
-<em class="property">var </em><code class="descname">sz</code>: int<a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.sz" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.head">
-<em class="property">var </em><code class="descname">head</code>: unmanaged eltTypeUnrollBlockunrollBlockSize<a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.head" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.String.hash">
+<em class="property">var </em><code class="descname">hash</code>: uint(64)<a class="headerlink" href="#ExplicitString.String.hash" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type eltType</em>, <em>param unrollBlockSize: int</em><span class="sig-paren">)</span><a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.init" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.String.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ExplicitString.String.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.append">
-<em class="property">proc </em><code class="descname">append</code><span class="sig-paren">(</span><em>elt: eltType</em><span class="sig-paren">)</span><a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.append" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.String.init=">
+<em class="property">proc </em><code class="descname">init=</code><span class="sig-paren">(</span><em>other: String</em><span class="sig-paren">)</span><a class="headerlink" href="#ExplicitString.String.init=" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.size">
-<em class="property">proc </em><code class="descname">size</code><a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.size" title="Permalink to this definition">¶</a></dt>
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>str: string</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.remove">
-<em class="property">proc </em><code class="descname">remove</code><span class="sig-paren">(</span><em>ref elt: ?eltType</em><span class="sig-paren">)</span>: bool<a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.remove" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="itermethod">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.these">
-<em class="property">iter </em><code class="descname">these</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: eltType<a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.these" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.String.toString">
+<em class="property">proc </em><code class="descname">toString</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ExplicitString.String.toString" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="UnrolledLinkedList.UnrolledLinkedList.deinit">
-<em class="property">proc </em><code class="descname">deinit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#UnrolledLinkedList.UnrolledLinkedList.deinit" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.String.readWriteThis">
+<em class="property">proc </em><code class="descname">readWriteThis</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#ExplicitString.String.readWriteThis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ExplicitString.String.destroy">
+<em class="property">proc </em><code class="descname">destroy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ExplicitString.String.destroy" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="function">
-<dt id="UnrolledLinkedList.main">
-<em class="property">proc </em><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#UnrolledLinkedList.main" title="Permalink to this definition">¶</a></dt>
+<dt id="ExplicitString.+">
+<em class="property">proc </em><code class="descname">+</code><span class="sig-paren">(</span><em>str1: string</em>, <em>str2: String</em><span class="sig-paren">)</span>: string<a class="headerlink" href="#ExplicitString.+" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt>
+<em class="property">proc </em><code class="descname">+</code><span class="sig-paren">(</span><em>str1: String</em>, <em>str2: String</em><span class="sig-paren">)</span>: string</dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt>
+<em class="property">proc </em><code class="descname">+</code><span class="sig-paren">(</span><em>str1: String</em>, <em>str2: string</em><span class="sig-paren">)</span>: string</dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="ExplicitString.==">
+<em class="property">proc </em><code class="descname">==</code><span class="sig-paren">(</span><em>str1: String</em>, <em>str2: String</em><span class="sig-paren">)</span>: bool<a class="headerlink" href="#ExplicitString.==" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -272,10 +265,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Utilities.html" class="btn btn-neutral float-right" title="Utilities" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Generation.html" class="btn btn-neutral float-right" title="Generation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Traversal.html" class="btn btn-neutral" title="Traversal" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="EquivalenceClasses.html" class="btn btn-neutral" title="EquivalenceClasses" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

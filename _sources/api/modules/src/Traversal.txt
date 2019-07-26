@@ -18,7 +18,7 @@ Traversal
 
 .. iterfunction:: iter vertexBFS(graph, v: graph._value.vDescType, s = 1, param tag: iterKind): graph._value.vDescType
 
-.. iterfunction:: iter edgeBFS(graph, e: graph._value.eDescType, s = 1): graph._value.eDescType
+.. iterfunction:: iter edgeBFS(graph, e: graph._value.eDescType, s = 1, useMaximumParallelism = false): graph._value.eDescType
 
-.. iterfunction:: iter edgeBFS(graph, e: graph._value.eDescType, s = 1, param tag: iterKind): graph._value.eDescType
+.. iterfunction:: iter edgeBFS(graph, e: graph._value.eDescType, s = 1, useMaximumParallelism = false, param tag: iterKind): graph._value.eDescType
 

@@ -95,6 +95,7 @@
 <li class="toctree-l2"><a class="reference internal" href="CHGL-Server.html">CHGL-Server</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EquivalenceClasses.html">EquivalenceClasses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ExplicitString.html">ExplicitString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Generation.html">Generation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Graph.html">Graph</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Metrics.html">Metrics</a></li>
@@ -175,7 +176,7 @@
 
 <dl class="data">
 <dt id="AggregationBuffer.AggregatorBufferSize">
-<em class="property">config const </em><code class="descname">AggregatorBufferSize</code> = 1024*1024<a class="headerlink" href="#AggregationBuffer.AggregatorBufferSize" title="Permalink to this definition">¶</a></dt>
+<em class="property">config const </em><code class="descname">AggregatorBufferSize</code> = 64*1024<a class="headerlink" href="#AggregationBuffer.AggregatorBufferSize" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
@@ -367,6 +368,11 @@ method is subject to undefined behavior.</p>
 <dl class="method">
 <dt id="AggregationBuffer.AggregatorImpl.size">
 <em class="property">proc </em><code class="descname">size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.AggregatorImpl.size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="AggregationBuffer.AggregatorImpl.sizeGlobal">
+<em class="property">proc </em><code class="descname">sizeGlobal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#AggregationBuffer.AggregatorImpl.sizeGlobal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

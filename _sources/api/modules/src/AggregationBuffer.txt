@@ -16,7 +16,7 @@ TODO: Experiment with expanding buffer sizes
 
 .. data:: config const AggregatorMaxBuffers = -1
 
-.. data:: config const AggregatorBufferSize = 1024*1024
+.. data:: config const AggregatorBufferSize = 64*1024
 
 .. data:: config param AggregatorDebug = false
 
@@ -115,6 +115,8 @@ TODO: Experiment with expanding buffer sizes
    .. method:: proc getPrivatizedInstance()
 
    .. method:: proc size()
+
+   .. method:: proc sizeGlobal()
 
    .. method:: proc aggregate(msg: msgType, loc: locale): unmanaged Buffer(msgType)
 

@@ -1,0 +1,53 @@
+.. default-domain:: chpl
+
+.. module:: ExplicitString
+
+ExplicitString
+==============
+**Usage**
+
+.. code-block:: chapel
+
+   use ExplicitString;
+
+.. record:: String
+
+   
+   Due to behavior of `_string` (Chapel's native string type) that:
+   
+       1) Creates a full on copy of the string on assignment even if it is not needed.
+           https://github.com/chapel-lang/chapel/blob/e6b8fd15b54e2c1f04d4dbf5bc8bff523551842a/modules/internal/String.chpl#L2018-L2029
+       2) Leaks the implicit string copy if stored in a Chapel array that never shrinks
+       3) Naively rehashes the string and does not cache the hash, hence resulting in excess implicit copies and remote transfers
+   
+   These issues have also been confirmed by Michael Ferguson (@mppf); hence to get around this, this module features
+   a new 'String' type that does not create any implicit copies. This is necessary not only for performance but also
+   space overhead.
+
+
+   .. attribute:: var data: _ddata(uint(8))
+
+   .. attribute:: var dataLen: int(64)
+
+   .. attribute:: var hash: uint(64)
+
+   .. method:: proc init()
+
+   .. method:: proc init=(other: String)
+
+   .. method:: proc init(str: string)
+
+   .. method:: proc toString()
+
+   .. method:: proc readWriteThis(f)
+
+   .. method:: proc destroy()
+
+.. function:: proc +(str1: string, str2: String): string
+
+.. function:: proc +(str1: String, str2: String): string
+
+.. function:: proc +(str1: String, str2: string): string
+
+.. function:: proc ==(str1: String, str2: String): bool
+

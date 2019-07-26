@@ -26,9 +26,9 @@ WorkQueue
 
 .. data:: param WorkQueueNoAggregation = 0
 
-.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, doWorkStealing = false): workType
+.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, doWorkStealing = false, locales = Locales, tasks = 1..here.maxTaskPar): workType
 
-.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, doWorkStealing = false, param tag: iterKind): workType
+.. iterfunction:: iter doWorkLoop(wq: WorkQueue(?workType), td: TerminationDetector, doWorkStealing = false, locales = Locales, tasks = 1..here.maxTaskPar, param tag: iterKind): workType
 
 .. function:: proc <=>(ref wq1: WorkQueue, ref wq2: WorkQueue)
 

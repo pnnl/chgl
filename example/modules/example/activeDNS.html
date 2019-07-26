@@ -325,12 +325,12 @@ is performed.</p>
 
 <dl class="data">
 <dt id="activeDNS.blacklistIPRegexp">
-<em class="property">var </em><code class="descname">blacklistIPRegexp</code>: [rcDomain] regexp<a class="headerlink" href="#activeDNS.blacklistIPRegexp" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">blacklistIPRegexp</code> = new Privatized(regexp)<a class="headerlink" href="#activeDNS.blacklistIPRegexp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="activeDNS.blacklistDNSNamesRegexp">
-<em class="property">var </em><code class="descname">blacklistDNSNamesRegexp</code>: [rcDomain] regexp<a class="headerlink" href="#activeDNS.blacklistDNSNamesRegexp" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">blacklistDNSNamesRegexp</code> = new Privatized(regexp)<a class="headerlink" href="#activeDNS.blacklistDNSNamesRegexp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
@@ -345,7 +345,7 @@ is performed.</p>
 
 <dl class="data">
 <dt id="activeDNS.wq">
-<em class="property">var </em><code class="descname">wq</code> = new stringWorkQueue1024*1024<a class="headerlink" href="#activeDNS.wq" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">wq</code> = new stringWorkQueue1024<a class="headerlink" href="#activeDNS.wq" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
@@ -407,7 +407,7 @@ Instead just go back to doling out files to evenly distributed locales</p>
 
 <dl class="data">
 <dt id="activeDNS.handleWQ">
-<em class="property">var </em><code class="descname">handleWQ</code> = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle))<a class="headerlink" href="#activeDNS.handleWQ" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">handleWQ</code> = new (unmanaged PropertyHandle, unmanaged PropertyHandle)WorkQueue64*1024<a class="headerlink" href="#activeDNS.handleWQ" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">

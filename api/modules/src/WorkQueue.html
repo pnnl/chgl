@@ -95,6 +95,7 @@
 <li class="toctree-l2"><a class="reference internal" href="CHGL-Server.html">CHGL-Server</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EquivalenceClasses.html">EquivalenceClasses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ExplicitString.html">ExplicitString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Generation.html">Generation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Graph.html">Graph</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Metrics.html">Metrics</a></li>
@@ -209,12 +210,12 @@
 
 <dl class="iterfunction">
 <dt id="WorkQueue.doWorkLoop">
-<em class="property">iter </em><code class="descname">doWorkLoop</code><span class="sig-paren">(</span><em>wq: WorkQueue(?workType)</em>, <em>td: TerminationDetector</em>, <em>doWorkStealing = false</em><span class="sig-paren">)</span>: workType<a class="headerlink" href="#WorkQueue.doWorkLoop" title="Permalink to this definition">¶</a></dt>
+<em class="property">iter </em><code class="descname">doWorkLoop</code><span class="sig-paren">(</span><em>wq: WorkQueue(?workType)</em>, <em>td: TerminationDetector</em>, <em>doWorkStealing = false</em>, <em>locales = Locales</em>, <em>tasks = 1..here.maxTaskPar</em><span class="sig-paren">)</span>: workType<a class="headerlink" href="#WorkQueue.doWorkLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="iterfunction">
 <dt>
-<em class="property">iter </em><code class="descname">doWorkLoop</code><span class="sig-paren">(</span><em>wq: WorkQueue(?workType)</em>, <em>td: TerminationDetector</em>, <em>doWorkStealing = false</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span>: workType</dt>
+<em class="property">iter </em><code class="descname">doWorkLoop</code><span class="sig-paren">(</span><em>wq: WorkQueue(?workType)</em>, <em>td: TerminationDetector</em>, <em>doWorkStealing = false</em>, <em>locales = Locales</em>, <em>tasks = 1..here.maxTaskPar</em>, <em>param tag: iterKind</em><span class="sig-paren">)</span>: workType</dt>
 <dd></dd></dl>
 
 <dl class="function">

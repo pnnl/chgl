@@ -106,15 +106,15 @@ activeDNS
 
 .. data:: var f = AppendExpr.Call08
 
-.. data:: var blacklistIPRegexp: [rcDomain] regexp
+.. data:: var blacklistIPRegexp = new Privatized(regexp)
 
-.. data:: var blacklistDNSNamesRegexp: [rcDomain] regexp
+.. data:: var blacklistDNSNamesRegexp = new Privatized(regexp)
 
 .. data:: var vPropMap = new PropertyMap(string)
 
 .. data:: var ePropMap = new PropertyMap(string)
 
-.. data:: var wq = new stringWorkQueue1024*1024
+.. data:: var wq = new stringWorkQueue1024
 
 .. data:: var td = new TerminationDetector()
 
@@ -142,7 +142,7 @@ activeDNS
 
 .. data:: var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx = 0))
 
-.. data:: var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle))
+.. data:: var handleWQ = new (unmanaged PropertyHandle, unmanaged PropertyHandle)WorkQueue64*1024
 
 .. data:: var handleTD = new TerminationDetector()
 

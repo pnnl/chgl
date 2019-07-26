@@ -68,9 +68,9 @@ Privatization
 
    .. method:: proc readWriteThis(f)
 
-   .. method:: proc onLocale(loc: locale) ref
+   .. method:: proc get(loc: locale = here) ref
 
-   .. method:: proc onLocale(locid: int) ref
+   .. method:: proc get(locid: int) ref
 
    .. method:: proc deinit()
 
