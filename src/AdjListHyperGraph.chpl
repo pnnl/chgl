@@ -687,23 +687,52 @@ module AdjListHyperGraph {
     }
   }
   
+  // Bitmap representation of an incidence list. It will take the integer descriptors
+  // in the incidence list, sorted in ascending order, and then compress them so that
+  // comparison can be done significantly faster. In the best case, if a vertex is incident
+  // in mostly low index edges, a _lot_ of indices will be compressed into a single word.
+  // In the average case, this will be able to compress two integer descriptors as most graphs
+  // have less than 2^32 - 1 edges and vertices.
   pragma "no doc"
-  record ArrayWrapper {
-    type eltType;
+  record Bitmap {
     var dom = {0..-1};
-    var arr : [dom] eltType;
-    var hash : uint;
+    var arr : [dom] int(64);
+    var hash : uint(64);
 
-    proc init(type eltType) {
-      this.eltType = eltType;
-    }
+    proc init() {}
 
-    proc init(arr : [?dom] ?eltType) {
-      this.eltType = eltType;
-      this.dom = dom;
-      this.arr = arr;
+    // The array should be sorted in ascending order.
+    proc init(arr : [?dom] int) {
       this.complete();
-      for (ix, a) in zip(1.., arr) {
+      if dom.size != 0 {
+        var arrIdx : int;
+        var offset : int;
+        this.dom = {0..0};
+        for descr in arr {
+          // Use '+1' so vertex or edge #0 can be recorded appropriately.
+          const _descr = descr + 1;
+          var bitLength = log2(_descr + 1);
+          if offset + bitLength >= 64 {
+            this.arr[arrIdx] |= (_descr << offset);
+            arrIdx += 1;
+            this.dom = {0..arrIdx};
+            // Leftover bits to write: Length of bits was shifted to left by current offset
+            // This truncates the top most bits; these top-most bis are what is written to
+            // the next allocated portion of the bitmap. As 64 - offset bits were written
+            // already, we set the offset equal to the leftover bits plus one so as to not
+            // overwrite what has already been written.
+            const bitsWritten = 64 - offset;
+            const leftoverBits = bitLength - bitsWritten; 
+            this.arr[arrIdx] = (_descr >> leftoverBits);
+            offset = leftoverBits + 1;
+          } else {
+            this.arr[arrIdx] |= (_descr << offset);
+            offset += bitLength;
+          }
+        }
+      }
+      
+      for (ix, a) in zip(1.., this.arr) {
         // chpl__defaultHashCombine passed '17 + fieldnum' so we can only go up to 64 - 17 = 47
         this.hash = chpl__defaultHashCombine(chpl__defaultHash(a), this.hash, ix % 47);
       }
@@ -711,21 +740,23 @@ module AdjListHyperGraph {
   }
 
   pragma "no doc"
-  proc ==(a: ArrayWrapper, b: ArrayWrapper) {
+  proc ==(a: Bitmap, b: Bitmap) {
     if a.arr.size != b.arr.size then return false;
-    for (_a, _b) in zip(a.arr,b.arr) do if _a != _b then return false;
+    if a.hash != b.hash then return false;
+    for idx in a.dom do if a.arr[idx] != b.arr[idx] then return false;
     return true;
   }
 
   pragma "no doc"
-  proc !=(a: ArrayWrapper, b: ArrayWrapper) {
+  proc !=(a: Bitmap, b: Bitmap) {
     if a.arr.size != b.arr.size then return true;
-    for (_a, _b) in zip(a.arr,b.arr) do if _a != _b then return true;
+    if a.hash != b.hash then return true;
+    for idx in a.dom do if a.arr[idx] != b.arr[idx] then return true;
     return false;
   }
 
   pragma "no doc"
-  inline proc chpl__defaultHash(r : ArrayWrapper): uint {
+  inline proc chpl__defaultHash(r : Bitmap): uint {
     return r.hash;
   }
 
@@ -1369,23 +1400,23 @@ module AdjListHyperGraph {
         // Step 3: Take pairs of locales and handle merging their equivalent classes into a single
         // equivalence class. Then count the number of unique vertices.
         
-        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, ArrayWrapper(int));
+        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, Bitmap);
         coforall loc in Locales  do on loc {
           var _this = getPrivatizedInstance();
           var reduxLock : Lock;
-          var localeqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+          var localeqclass = new unmanaged Equivalence(int, Bitmap);
           forall v in _verticesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
             var _v = _this.toVertex(v);
-            var tmp = [e in _this.incidence(_v)] e.id;
-            sort(tmp);
-            var wrapper = new ArrayWrapper(tmp);
+            var vertex = _this.getVertex(_v);
+            vertex.sortIncidence();
+            var wrapper = new Bitmap(vertex.incident[0..#vertex.degree]);
             reduxLock.acquire();
             localeqclass.add(v, wrapper);
             reduxLock.release();
           }
           eqclasses[here.id] = localeqclass;
         }
-        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+        var eqclass = new unmanaged Equivalence(int, Bitmap);
         for localeqclass in eqclasses {
           eqclass.add(localeqclass);
         }
@@ -1571,23 +1602,23 @@ module AdjListHyperGraph {
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
         //writeln("Marking and Deleting Edges...");
-        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, ArrayWrapper(int));
+        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, Bitmap);
         coforall loc in Locales  do on loc {
           var _this = getPrivatizedInstance();
           var reduxLock : Lock;
-          var localeqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+          var localeqclass = new unmanaged Equivalence(int, Bitmap);
           forall e in _edgesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
             var _e = _this.toEdge(e);
-            var tmp = [v in _this.incidence(_e)] v.id;
-            sort(tmp);
-            var wrapper = new ArrayWrapper(tmp);
+            var edge = _this.getEdge(_e);
+            edge.sortIncidence();
+            var wrapper = new Bitmap(edge.incident[0..#edge.degree]);
             reduxLock.acquire();
             localeqclass.add(e, wrapper);
             reduxLock.release();
           }
           eqclasses[here.id] = localeqclass;
         }
-        var eqclass = new unmanaged Equivalence(int, ArrayWrapper(int));
+        var eqclass = new unmanaged Equivalence(int, Bitmap);
         for localeqclass in eqclasses {
           eqclass.add(localeqclass);
         }
