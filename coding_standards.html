@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Coding Standards &mdash; CHGL  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="CHGL  documentation" href="index.html"/>
+        <link rel="next" title="Contributors" href="contributors.html"/>
+        <link rel="prev" title="WorkQueue" href="api/modules/src/WorkQueue.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> CHGL
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <p class="caption"><span class="caption-text">Compiling and Running CHGL</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Instructions</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">Performance Results</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Developer Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Documentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Coding Standards</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#single-namespace">Single Namespace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#camelcase">CamelCase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#private-vs-public">Private vs Public</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#method-names-and-part-of-speech">Method Names and Part-of-Speech</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-naming-vs-type-naming">Module Naming vs Type Naming</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#whitespace">Whitespace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#records-vs-classes">Records vs Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributors.html">Contributors</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Example CHGL Applications</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example/index.html">Example Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">CHGL</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Coding Standards</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/coding_standards.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="coding-standards">
+<span id="id1"></span><h1>Coding Standards<a class="headerlink" href="#coding-standards" title="Permalink to this headline">¶</a></h1>
+<p>The following coding standards are in place to assist in shared development of the Chapel Hypergraph Library (CHGL). Following these standards will ease code readability and maintenance. While modifications and suggestions are welcome, please consult the development team to get concurrence prior to making changes.</p>
+<div class="section" id="single-namespace">
+<h2>Single Namespace<a class="headerlink" href="#single-namespace" title="Permalink to this headline">¶</a></h2>
+<p>As the Chapel language itself is within a single namespace, CHGL can also be used as a single namespace via <code class="docutils literal"><span class="pre">use</span> <span class="pre">CHGL;</span></code>. However, sub-modules can be used individually when only portions of the library are required. E.g., <code class="docutils literal"><span class="pre">use</span> <span class="pre">CHGL.Components;</span></code></p>
+</div>
+<div class="section" id="camelcase">
+<h2>CamelCase<a class="headerlink" href="#camelcase" title="Permalink to this headline">¶</a></h2>
+<p>Generally, use CamelCase or camelCase instead of separating_with_underscores. Specific rules follow below:</p>
+<ul class="simple">
+<li>Modules, records, classes, and types are UpperCamelCase</li>
+<li>Methods and variables are lowerCamelCase</li>
+</ul>
+</div>
+<div class="section" id="private-vs-public">
+<h2>Private vs Public<a class="headerlink" href="#private-vs-public" title="Permalink to this headline">¶</a></h2>
+<p>As Chapel currently does not have access modifiers, by convention CHGL prefixes private members with an underscore. Direct use of prefixed members will result in undefined behavior. For example <code class="docutils literal"><span class="pre">publicMethod()</span></code> vs <code class="docutils literal"><span class="pre">_privateMethod()</span></code>.</p>
+</div>
+<div class="section" id="method-names-and-part-of-speech">
+<h2>Method Names and Part-of-Speech<a class="headerlink" href="#method-names-and-part-of-speech" title="Permalink to this headline">¶</a></h2>
+<p>One of the nice things about a well-designed method names is that it&#8217;s easy to mentally translate from a method call into a sentence. For example, myNode.accept(someThing) can be translated into &#8220;myNode, please accept someThing&#8221;. In order for this to work, method names that represent an action should generally be a verb.</p>
+<p>Module, record, class, type, variable and parameter names are nouns. Accessor methods can be named using a noun. E.g., student.height() fits into that category.</p>
+</div>
+<div class="section" id="module-naming-vs-type-naming">
+<h2>Module Naming vs Type Naming<a class="headerlink" href="#module-naming-vs-type-naming" title="Permalink to this headline">¶</a></h2>
+<p>Names should use the convention of making the module name a more specific/spelled out version of the type names, in particular when the module contains only one type.  Examples:</p>
+<ul class="simple">
+<li>class Block is in module BlockDist</li>
+<li>class BigInt can be in module BigInteger</li>
+<li>class Barrier can be in module TaskBarrier</li>
+</ul>
+</div>
+<div class="section" id="whitespace">
+<h2>Whitespace<a class="headerlink" href="#whitespace" title="Permalink to this headline">¶</a></h2>
+<p>The following whitespace rules apply:</p>
+<ul class="simple">
+<li>Use tabs instead of spaces for code block indentation, allowing developers to set their own IDE&#8217;s preferred tab width.</li>
+<li>No line length requirements outside of requesting lines be a length that generally remains easily readable.</li>
+<li>Newlines should use the Unix/Linux <code class="docutils literal"><span class="pre">\n</span></code> character instead of Windows <code class="docutils literal"><span class="pre">\r\n</span></code></li>
+</ul>
+</div>
+<div class="section" id="records-vs-classes">
+<h2>Records vs Classes<a class="headerlink" href="#records-vs-classes" title="Permalink to this headline">¶</a></h2>
+<p>Generally follow the guidance from Chapel developers where records are used for local memory allocations and pass-by-value semmantics. Classes have a single instnace shared across all localities, and therefore are also passed by reference. See <a class="reference external" href="https://stackoverflow.com/a/48332847">https://stackoverflow.com/a/48332847</a> for more information.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="contributors.html" class="btn btn-neutral float-right" title="Contributors" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="api/modules/src/WorkQueue.html" class="btn btn-neutral" title="WorkQueue" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, PNNL.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

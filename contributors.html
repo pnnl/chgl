@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>CHGL Documentation &mdash; CHGL  documentation</title>
+  <title>Contributors &mdash; CHGL  documentation</title>
   
 
   
@@ -30,8 +30,9 @@
   
 
   
-    <link rel="top" title="CHGL  documentation" href="#"/>
-        <link rel="next" title="Quickstart Instructions" href="quickstart.html"/> 
+    <link rel="top" title="CHGL  documentation" href="index.html"/>
+        <link rel="next" title="Example Documentation" href="example/index.html"/>
+        <link rel="prev" title="Coding Standards" href="coding_standards.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -49,7 +50,7 @@
           
 
           
-            <a href="#" class="icon icon-home"> CHGL
+            <a href="index.html" class="icon icon-home"> CHGL
           
 
           
@@ -82,10 +83,10 @@
 <li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">Performance Results</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Developer Documentation</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API Documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="coding_standards.html">Coding Standards</a></li>
-<li class="toctree-l1"><a class="reference internal" href="contributors.html">Contributors</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Contributors</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Example CHGL Applications</span></p>
 <ul>
@@ -103,7 +104,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="#">CHGL</a>
+        <a href="index.html">CHGL</a>
       </nav>
 
 
@@ -118,13 +119,13 @@
 
 <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="#">Docs</a> &raquo;</li>
+    <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>CHGL Documentation</li>
+    <li>Contributors</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/index.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/contributors.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -134,38 +135,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="chgl-documentation">
-<h1>CHGL Documentation<a class="headerlink" href="#chgl-documentation" title="Permalink to this headline">¶</a></h1>
-<p>The <strong>C</strong>hapel <strong>H</strong>yper<strong>g</strong>raph <strong>L</strong>ibrary (CHGL) is a library
-for hypergraph computation in the emerging Chapel language. Hypergraphs
-generalize graphs, where a hypergraph edge can connect any number of
-vertices. Thus, hypergraphs capture high-order, high-dimensional
-interactions between multiple entities that are not directly expressible
-in graphs. CHGL is designed to provide HPC-class computation with
-high-level abstractions and modern language support for parallel
-computing on shared memory and distributed memory systems.</p>
-<div class="toctree-wrapper compound" id="compiling-and-running-chgl">
-<p class="caption"><span class="caption-text">Compiling and Running CHGL</span><a class="headerlink" href="#compiling-and-running-chgl" title="Permalink to this toctree">¶</a></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Instructions</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">Performance Results</a></li>
+  <div class="section" id="contributors">
+<h1>Contributors<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h1>
+<p>The following core team has contributed to the implementation of CHGL (alphabetically by last name):</p>
+<ul class="simple">
+<li>Sinan Aksoy, <a class="reference external" href="https://www.pnnl.gov/">Pacific Northwest National Laboratory</a></li>
+<li>Sarah Harun, <a class="reference external" href="https://www.msstate.edu/">Mississippi State University</a></li>
+<li>Louis Jenkins, <a class="reference external" href="https://www.pnnl.gov/">Pacific Northwest National Laboratory</a> and <a class="reference external" href="https://www.rochester.edu/">University of Rochester</a></li>
+<li>Cliff Joslyn, <a class="reference external" href="https://www.pnnl.gov/">Pacific Northwest National Laboratory</a></li>
+<li>Christopher Lightsey, <a class="reference external" href="https://www.msstate.edu/">Mississippi State University</a></li>
+<li>Hugh Medal, <a class="reference external" href="https://www.utk.edu/">The University of Tennessee, Knoxville</a></li>
+<li>David Mentgen, <a class="reference external" href="https://www.msstate.edu/">Mississippi State University</a></li>
+<li>Tim Stavenger, <a class="reference external" href="https://www.pnnl.gov/">Pacific Northwest National Laboratory</a></li>
+<li>Tanveer Bhuiyan, <a class="reference external" href="https://www.msstate.edu/">Mississippi State University</a></li>
+<li>Marcin Zalewski, <a class="reference external" href="https://www.pnnl.gov/">Pacific Northwest National Laboratory</a></li>
 </ul>
-</div>
-<div class="toctree-wrapper compound" id="developer-documentation">
-<p class="caption"><span class="caption-text">Developer Documentation</span><a class="headerlink" href="#developer-documentation" title="Permalink to this toctree">¶</a></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="coding_standards.html">Coding Standards</a></li>
-<li class="toctree-l1"><a class="reference internal" href="contributors.html">Contributors</a></li>
-</ul>
-</div>
-<div class="toctree-wrapper compound" id="example-chgl-applications">
-<p class="caption"><span class="caption-text">Example CHGL Applications</span><a class="headerlink" href="#example-chgl-applications" title="Permalink to this toctree">¶</a></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="example/index.html">Example Documentation</a></li>
-</ul>
-</div>
-<p>CHGL is developed under the <a class="reference external" href="https://raw.githubusercontent.com/pnnl/chgl/master/LICENSE">MIT License</a> and PNNL <a class="reference external" href="https://raw.githubusercontent.com/pnnl/chgl/master/DISCLAIMER">disclaimer</a>.</p>
+<p>GitHub <a class="reference external" href="https://github.com/pnnl/chgl/graphs/contributors">contributions</a> include those listed above and others from the community providing pull requests.</p>
 </div>
 
 
@@ -175,8 +160,10 @@ computing on shared memory and distributed memory systems.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="quickstart.html" class="btn btn-neutral float-right" title="Quickstart Instructions" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="example/index.html" class="btn btn-neutral float-right" title="Example Documentation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
+      
+        <a href="coding_standards.html" class="btn btn-neutral" title="Coding Standards" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -6,7 +6,7 @@
 CHGL Documentation
 ==================
 
-**C**\ hapel **H**\ yper\ **g**\ raph **L**\ ibrary (CHGL), a library
+The **C**\ hapel **H**\ yper\ **g**\ raph **L**\ ibrary (CHGL) is a library
 for hypergraph computation in the emerging Chapel language. Hypergraphs
 generalize graphs, where a hypergraph edge can connect any number of
 vertices. Thus, hypergraphs capture high-order, high-dimensional
@@ -16,21 +16,27 @@ high-level abstractions and modern language support for parallel
 computing on shared memory and distributed memory systems.
 
 .. toctree::
-   :caption: Compiling and Running Chapel
+   :caption: Compiling and Running CHGL
    :maxdepth: 1
 
    Quickstart Instructions <quickstart>
-   CHGL Performance Results <https://pnnl.github.io/chgl-perf/>
+   Performance Results <https://pnnl.github.io/chgl-perf/>
 
 
 .. toctree::
-   :caption: CHGL API Documentation
+   :caption: Developer Documentation
    :maxdepth: 1
 
    api/index
+   coding_standards
+   contributors
+
+
 
 .. toctree::
    :caption: Example CHGL Applications
    :maxdepth: 1
 
    example/index
+
+CHGL is developed under the `MIT License <https://raw.githubusercontent.com/pnnl/chgl/master/LICENSE>`_ and PNNL `disclaimer <https://raw.githubusercontent.com/pnnl/chgl/master/DISCLAIMER>`_.

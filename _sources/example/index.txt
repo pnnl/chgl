@@ -1,4 +1,4 @@
-chpldoc documentation
+Example Documentation
 =====================
 
 Contents:
@@ -16,7 +16,7 @@ Contents:
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :chpl:chplref:`chplmodindex`

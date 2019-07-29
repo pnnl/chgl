@@ -31,7 +31,7 @@
 
   
     <link rel="top" title="CHGL  documentation" href="index.html"/>
-        <link rel="next" title="chpldoc documentation" href="api/index.html"/>
+        <link rel="next" title="API Documentation" href="api/index.html"/>
         <link rel="prev" title="CHGL Documentation" href="index.html"/> 
 
   
@@ -77,7 +77,7 @@
           
             
             
-                <p class="caption"><span class="caption-text">Compiling and Running Chapel</span></p>
+                <p class="caption"><span class="caption-text">Compiling and Running CHGL</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="">Quickstart Instructions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#environment-requirements">Environment Requirements</a></li>
@@ -91,17 +91,17 @@
 <li class="toctree-l2"><a class="reference internal" href="#test-cases">Test Cases</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">CHGL Performance Results</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">Performance Results</a></li>
 </ul>
-<p class="caption"><span class="caption-text">CHGL API Documentation</span></p>
+<p class="caption"><span class="caption-text">Developer Documentation</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="api/index.html">chpldoc documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/index.html#indices-and-tables">Indices and tables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coding_standards.html">Coding Standards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributors.html">Contributors</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Example CHGL Applications</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="example/index.html">chpldoc documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="example/index.html#indices-and-tables">Indices and tables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example/index.html">Example Documentation</a></li>
 </ul>
 
             
@@ -166,18 +166,16 @@ Chapel&#8217;s Docker container (see included <code class="docutils literal"><sp
 details).</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="6%" />
-<col width="13%" />
-<col width="38%" />
-<col width="16%" />
-<col width="27%" />
+<col width="8%" />
+<col width="18%" />
+<col width="52%" />
+<col width="22%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Name</th>
 <th class="head">Version</th>
 <th class="head">Download Location</th>
 <th class="head">Country of Origin</th>
-<th class="head">Special Instructions</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -185,7 +183,6 @@ details).</p>
 <td>Release 1.19.0</td>
 <td><a class="reference external" href="https://github.com/chapel-lang/chapel">https://github.com/chapel-lang/chapel</a></td>
 <td>USA</td>
-<td>Tested with release 1.19.0</td>
 </tr>
 </tbody>
 </table>
@@ -222,8 +219,8 @@ The code is compiled and tested simultaneously &#8211; see the Test Cases
 section below for running the unit tests.</p>
 <p>Also see the <code class="docutils literal"><span class="pre">.travis.yml</span></code> file for an example of our continuous
 integration build. Or view the current status at
-<a class="reference external" href="https://travis-ci.org/pnnl/chgl">https://travis-ci.org/pnnl/chgl</a>.</p>
-<p><strong>NOTE:</strong> The COMPOPTS files in <code class="docutils literal"><span class="pre">test/unit</span></code> and <code class="docutils literal"><span class="pre">test/performance</span></code>
+<a class="reference external" href="https://travis-ci.com/pnnl/chgl">https://travis-ci.com/pnnl/chgl</a>.</p>
+<p><strong>NOTE:</strong> The COMPOPTS files in <code class="docutils literal"><span class="pre">test</span></code> and <code class="docutils literal"><span class="pre">test_performance</span></code>
 make use of <code class="docutils literal"><span class="pre">--no-lifetime-checking</span> <span class="pre">--no-warnings</span></code> for successful
 compilation. If you are compiling independent code that uses CHGL, be
 sure to use these options as well.</p>
@@ -232,9 +229,9 @@ sure to use these options as well.</p>
 <div class="section" id="test-cases">
 <h2>Test Cases<a class="headerlink" href="#test-cases" title="Permalink to this headline">¶</a></h2>
 <p>CHGL includes both unit &amp; performance tests utilizing the <code class="docutils literal"><span class="pre">start_test</span></code>
-Python script supplied by Chapel. Change directories into <code class="docutils literal"><span class="pre">test/unit</span></code>
-or <code class="docutils literal"><span class="pre">test/performance</span></code> and execute <code class="docutils literal"><span class="pre">start_test</span></code> to run the tests.
-View the <a class="reference external" href="test/unit/README.md">unit test README</a> or <a class="reference external" href="test/performance/README.md">perfomrance test README</a> for more
+Python script supplied by Chapel. Change directories into <code class="docutils literal"><span class="pre">test</span></code>
+or <code class="docutils literal"><span class="pre">test_performance</span></code> and execute <code class="docutils literal"><span class="pre">start_test</span></code> to run the tests.
+View the <a class="reference external" href="test/README.md">unit test README</a> or <a class="reference external" href="test_performance/README.md">perfomrance test README</a> for more
 information.</p>
 <p>The unit tests are best run to verify the CHGL build. Performance tests
 were not routinely run by a continuous integration environment and were
@@ -250,7 +247,7 @@ useful for verifying a CHGL build.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="api/index.html" class="btn btn-neutral float-right" title="chpldoc documentation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="api/index.html" class="btn btn-neutral float-right" title="API Documentation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral" title="CHGL Documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>

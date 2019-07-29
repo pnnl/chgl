@@ -25,11 +25,11 @@ Unit tests were run on the Travis CI continuous integration system using
 Chapel's Docker container (see included ``.travis.yml`` file for
 details).
 
-====== ============== ======================================== ================= =============================
-Name   Version        Download Location                        Country of Origin Special Instructions
-====== ============== ======================================== ================= =============================
-Chapel Release 1.19.0 https://github.com/chapel-lang/chapel    USA               Tested with release 1.19.0
-====== ============== ======================================== ================= =============================
+====== ============== ======================================== =================
+Name   Version        Download Location                        Country of Origin
+====== ============== ======================================== =================
+Chapel Release 1.19.0 https://github.com/chapel-lang/chapel    USA              
+====== ============== ======================================== =================
 
 Distribution Files
 ------------------
@@ -72,9 +72,9 @@ section below for running the unit tests.
 
 Also see the ``.travis.yml`` file for an example of our continuous
 integration build. Or view the current status at
-https://travis-ci.org/pnnl/chgl.
+https://travis-ci.com/pnnl/chgl.
 
-**NOTE:** The COMPOPTS files in ``test/unit`` and ``test/performance``
+**NOTE:** The COMPOPTS files in ``test`` and ``test_performance``
 make use of ``--no-lifetime-checking --no-warnings`` for successful
 compilation. If you are compiling independent code that uses CHGL, be
 sure to use these options as well.
@@ -83,8 +83,8 @@ Test Cases
 ----------
 
 CHGL includes both unit & performance tests utilizing the ``start_test``
-Python script supplied by Chapel. Change directories into ``test/unit``
-or ``test/performance`` and execute ``start_test`` to run the tests.
+Python script supplied by Chapel. Change directories into ``test``
+or ``test_performance`` and execute ``start_test`` to run the tests.
 View the `unit test README`_ or `perfomrance test README`_ for more
 information.
 
@@ -93,5 +93,5 @@ were not routinely run by a continuous integration environment and were
 written targeting particular hardware systems, leading them to be not as
 useful for verifying a CHGL build.
 
-.. _unit test README: test/unit/README.md
-.. _perfomrance test README: test/performance/README.md
+.. _unit test README: test/README.md
+.. _perfomrance test README: test_performance/README.md
