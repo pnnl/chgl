@@ -23,6 +23,6 @@ cd $WORKSPACE/test_performance
 rm -rf Logs
 start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test_performance/Logs/chapel-perf-tests.xml -numlocales 4
 
-# Generated HTML does not work locally or in Jenkins due to https://wiki.jenkins.io/display/JENKINS/Configuring+Content+Security+Policy. Copy files that use local resources instead.
-# disable as we're using GitHub pages
-#cp -r $WORKSPACE/test_performance/html $WORKSPACE/test_performance/dat
+# Replace Chapel titles with CHGL
+sed -i 's/Chapel Performance Graphs/CHGL Performance Graphs/g' $CHPL_TEST_PERF_DIR/index.html
+sed -i 's/Chapel Performance Graphs/CHGL Performance Graphs/g' $CHPL_TEST_PERF_DIR/graphdata.js
