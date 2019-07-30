@@ -82,7 +82,8 @@ module DynamicAggregationBuffer {
       arr.push_back(buf);
       release();
     }
-
+  
+    pragma "no copy return"
     proc getArray() {
       const _dom = dom;
       var _arr : [_dom] msgType = arr;

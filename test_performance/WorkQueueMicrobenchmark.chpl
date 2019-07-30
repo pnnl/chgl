@@ -61,7 +61,7 @@ timer.clear();
 
 timer.start();
 var td = new TerminationDetector(cyclicDom.size);
-forall work in doWorkLoop(wqUnlimitedAgg, td) {
+forall work in doWorkLoop(wqLimitedAgg, td) {
     td.finished(1);
 }
 timer.stop();
@@ -70,11 +70,13 @@ timer.clear();
 
 timer.start();
 td.started(1);
-wqUnlimitedAgg.addWork(0);
-forall work in doWorkLoop(wqUnlimitedAgg, td) {
+wqLimitedAgg.addWork(0);
+forall work in doWorkLoop(wqLimitedAgg, td) {
     if work < logN(N, numLocales) {
-        td.started(numLocales);
-        wqUnlimitedAgg.addWork(work + 1, Locales.id);
+        for loc in Locales {
+            td.started(1);
+            wqLimitedAgg.addWork(work + 1, loc);
+        }
     }
     td.finished(1);
 }
@@ -98,8 +100,10 @@ td.started(1);
 wqCoalesced.addWork(0);
 forall work in doWorkLoop(wqCoalesced, td) {
     if work != -1 && work < logN(N, numLocales) {
-        td.started(numLocales);
-        wqCoalesced.addWork(work + 1, Locales.id);
+        for loc in Locales {
+            td.started(1);
+            wqCoalesced.addWork(work + 1, loc);
+        }
     }
     td.finished(1);
 }
