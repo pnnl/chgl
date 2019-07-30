@@ -23,6 +23,7 @@ cd $WORKSPACE/test_performance
 rm -rf Logs
 start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test_performance/Logs/chapel-perf-tests.xml -numlocales 4
 
-# Replace Chapel titles with CHGL
+# Replace Chapel references with CHGL
 sed -i 's/Chapel Performance Graphs/CHGL Performance Graphs/g' $CHPL_TEST_PERF_DIR/html/index.html
 sed -i 's/Chapel Performance Graphs/CHGL Performance Graphs/g' $CHPL_TEST_PERF_DIR/html/graphdata.js
+sed -i 's|http://chapel-lang.org/perf/|https://pnnl.github.io/chgl/|g' $CHPL_TEST_PERF_DIR/html/index.html
