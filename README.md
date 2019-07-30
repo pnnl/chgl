@@ -10,4 +10,4 @@ systems.
 
 - Travis CI Build Status: [![Build Status](https://travis-ci.com/pnnl/chgl.svg?branch=master)](https://travis-ci.com/pnnl/chgl)
 - [Full CHGL Documentation](https://pnnl.github.io/chgl/)
-- [Quickstart Installation Instructions](https://pnnl.github.io/chgl/quickstart.html)
+- [Installation Guide](https://pnnl.github.io/chgl/installation_guide.html)

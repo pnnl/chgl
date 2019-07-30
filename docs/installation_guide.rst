@@ -1,7 +1,5 @@
-.. _chgl-quickstart:
-
-Quickstart Instructions
-=======================
+Installation Guide
+==================
 
 Follow the instructions below to get Chapel and CHGL compiled in your
 environment.
