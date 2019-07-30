@@ -19,7 +19,7 @@ computing on shared memory and distributed memory systems.
    :caption: Compiling and Running CHGL
    :maxdepth: 1
 
-   Quickstart Instructions <quickstart>
+   installation_guide
    Performance Results <https://pnnl.github.io/chgl-perf/>
 
 
