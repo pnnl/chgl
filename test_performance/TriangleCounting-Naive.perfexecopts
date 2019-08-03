@@ -1,1 +1,1 @@
---printTiming --dataset ../data/graph500-scale20.bin
+--printTiming --dataset /lustre/jenk639/graph500-scale20.bin
