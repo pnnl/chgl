@@ -11,14 +11,6 @@ module AggregationBuffer {
   config const AggregatorBufferSize = 64 * 1024;
   config param AggregatorDebug = false;
 
-  proc debug(args...?nArgs) where AggregatorDebug {
-    writeln(args);
-  }
-
-  proc debug(args...?nArgs) where !AggregatorDebug {
-    // NOP
-  }
-
   proc UninitializedAggregator(type msgType) return new Aggregator(msgType, instance=nil, pid=-1);
 
   pragma "always RVF"

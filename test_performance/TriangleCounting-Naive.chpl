@@ -7,6 +7,20 @@ config const dataset = "../data/ca-GrQc.mtx_csr.bin";
 config const numEdgesPresent = true;
 config const printTiming = true;
 
+iter roundRobin(dom) {
+
+}
+
+iter roundRobin(dom, param tag : iterKind) ref where tag == iterKind.standalone {
+  coforall loc in Locales do on loc {
+    coforall tid in 0..#here.maxTaskPar {
+      const localSubdomain = dom.localSubdomain();
+      var _dom = localSubdomain by here.maxTaskPar align (localSubdomain.stride * tid + localSubdomain.alignment);
+      for v in _dom do yield v;
+    }
+  }
+}
+
 proc isLocalArray(A : []) : bool {
   return A.locale == here && A._value.dom.locale == here;
 }
@@ -65,6 +79,16 @@ record Array {
   type eltType;
   var dom = {0..-1};
   var arr : [dom] eltType;
+
+  pragma "fn returns iterator"
+  proc these() {
+    return arr.these();
+  }
+
+  pragma "fn returns iterator"
+  proc these(param tag : iterKind) {
+    return arr.these(tag);
+  }
 }
 
 try! {
@@ -123,23 +147,17 @@ try! {
     }
   }
   timer.stop();
-  writeln("Initialized Graph in ", timer.elapsed(), "s");
+  if printTiming then writeln("Initialized: ", timer.elapsed());
   timer.clear();
   timer.start();
   var numTriangles : int;
-  coforall loc in Locales with (+ reduce numTriangles) do on loc {
-    coforall tid in 0..#here.maxTaskPar with (+ reduce numTriangles) {
-      const localSubdomain = A.localSubdomain();
-      var _dom = localSubdomain by here.maxTaskPar align (localSubdomain.stride * tid + localSubdomain.alignment);
-      for v in _dom  {
-        for u in A[v].arr do if v < u {
-          numTriangles += intersectionSize(A[v].arr, A[u].arr);
-        }
-      }
+  forall v in roundRobin(A) with (+ reduce numTriangles) {
+    for u in A[v] do if v < u {
+      numTriangles += intersectionSize(A[v].arr, A[u].arr);
     }
   }
   timer.stop();
   writeln("|V| = ", numVertices, ", |E| = ", numEdges, ", numTriangles = ", numTriangles / 3);
-  writeln("Time: ", timer.elapsed());
+  if printTiming then writeln("Time: ", timer.elapsed());
   f.close();
 }

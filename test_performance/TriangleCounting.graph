@@ -1,0 +1,5 @@
+perfkeys: Time: 
+files: dat/TriangleCounting-Naive.dat
+graphkeys: Triangle Counting (Minimal)
+graphtitle: Triangle Counting (650K Vertices, 32M Edges)
+ylabel: Time (seconds)

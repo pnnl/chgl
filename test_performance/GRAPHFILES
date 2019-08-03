@@ -6,3 +6,5 @@ AdjListHyperGraphMicrobenchmark.graph
 WorkQueueMicrobenchmark.graph
 PropertyMapMicrobenchmark.graph
 AggregationBufferMicrobenchmark.graph
+BFS.graph
+TriangleCounting.graph

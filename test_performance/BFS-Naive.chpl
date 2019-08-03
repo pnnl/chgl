@@ -10,6 +10,8 @@ use DynamicAggregationBuffer;
 config const dataset = "../data/karate.mtx_csr.bin";
 config const numEdgesPresent = true;
 config const doWorkStealing = true;
+config const printTiming = false;
+config const debugBFS = false;
 
 var numVertices : uint(64);
 var numEdges : uint(64);
@@ -82,7 +84,7 @@ try! {
 }
 
 timer.stop();
-writeln("Initialization in ", timer.elapsed(), "s");
+if printTiming then writeln("Initialization: ", timer.elapsed());
 timer.clear();
 
 beginProfile("BFS-Naive-Perf");
@@ -98,7 +100,7 @@ var numPhases = 1;
 var lastTime : real;
 timer.start();
 while !current.isEmpty() || !currTD.hasTerminated() {
-  writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
+  if debugBFS then writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
   forall vertex in doWorkLoop(current, currTD, doWorkStealing=doWorkStealing) {
     if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
       for neighbor in vertices[vertex] {
@@ -116,15 +118,15 @@ while !current.isEmpty() || !currTD.hasTerminated() {
   next <=> current;
   nextTD <=> currTD;
   var currTime = timer.elapsed();
-  writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
+  if debugBFS then writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
   lastTime = currTime;
   numPhases += 1;
 }
 
 timer.stop();
 globalTimer.stop();
-writeln("|V| = ", numVertices, ", |E| = ", numEdges);
-writeln("BFS: ", timer.elapsed());
-writeln("Total: ", globalTimer.elapsed());
+if debugBFS then writeln("|V| = ", numVertices, ", |E| = ", numEdges);
+if printTiming then writeln("BFS: ", timer.elapsed());
+if printTiming then writeln("Total: ", globalTimer.elapsed());
 endProfile(); 
 

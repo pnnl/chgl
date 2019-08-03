@@ -1,0 +1,2 @@
+--printTiming --dataset ../data/graph500-scale20.bin
+--printTiming --doWorkStealing --dataset ../data/graph500-scale20.bin

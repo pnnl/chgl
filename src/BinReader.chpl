@@ -12,14 +12,6 @@ use RangeChunk;
 config param DEBUG_BIN_READER = false;
 config const numEdgesPresent = true;
 
-// Print debug messages
-proc debug(args...?nArgs) where DEBUG_BIN_READER {
-  writeln(args);
-}
-
-// NOP
-proc debug(args...?nArgs) where !DEBUG_BIN_READER {}
-
 // Reads a binary file into a graph
 proc binToHypergraph(dataset : string) throws {
   try! {
