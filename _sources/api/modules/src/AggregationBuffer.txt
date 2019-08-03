@@ -20,10 +20,6 @@ TODO: Experiment with expanding buffer sizes
 
 .. data:: config param AggregatorDebug = false
 
-.. function:: proc debug(args ...?nArgs)
-
-.. function:: proc debug(args ...?nArgs)
-
 .. function:: proc UninitializedAggregator(type msgType)
 
 .. record:: Aggregator

@@ -14,10 +14,6 @@ BinReader
 
 .. data:: config const numEdgesPresent = true
 
-.. function:: proc debug(args ...?nArgs)
-
-.. function:: proc debug(args ...?nArgs)
-
 .. function:: proc binToHypergraph(dataset: string) throws
 
 .. function:: proc binToGraph(dataset: string)

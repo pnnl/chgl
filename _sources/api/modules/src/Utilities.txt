@@ -20,7 +20,7 @@ Utilities
 
 .. data:: config const printLocaleStatistics = false
 
-.. data:: config const printDebugInformation = false
+.. data:: config param debugMode = false
 
 .. data:: config const profileCommDiagnostics = false
 
@@ -33,6 +33,8 @@ Utilities
    
    Only prints if `printDebugInformation` is enabled; warning: Chapel still evaluates arguments
    so side-effects will still occur!
+
+.. function:: proc debug(args ...)
 
 .. function:: proc beginProfile(vdebugName = "vdebug")
 
