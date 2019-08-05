@@ -41,7 +41,6 @@ record Array {
         this.dom = {0..#cap};
       }
     }
-    // TODO: To verify this is a bulk copy, compare to a `chpl_comm_array_get`...
     this.arr[sz..#otherSz] = other.arr[0..#otherSz];
     sz += otherSz;
   }
@@ -203,19 +202,21 @@ while true {
     // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
     // then uses a simple insertion sort that just moves non-duplicates up.
     if CHPL_NETWORK_ATOMICS == "none" {
-      sort(workQueue.arr[0..#workQueue.size]);
-      var lastValue = workQueue.arr[0];
-      var leftIdx = 1;
-      var rightIdx = 1;
-      while rightIdx < workQueue.size {
-        if workQueue.arr[rightIdx] != lastValue {
-          lastValue = workQueue.arr[rightIdx];
-          workQueue.arr[leftIdx] = lastValue;
-          leftIdx += 1;
+      local {
+        sort(workQueue.arr[0..#workQueue.size]);
+        var lastValue = workQueue.arr[0];
+        var leftIdx = 1;
+        var rightIdx = 1;
+        while rightIdx < workQueue.size {
+          if workQueue.arr[rightIdx] != lastValue {
+            lastValue = workQueue.arr[rightIdx];
+            workQueue.arr[leftIdx] = lastValue;
+            leftIdx += 1;
+          }
+          rightIdx += 1;
         }
-        rightIdx += 1;
+        workQueue.sz = leftIdx;
       }
-      workQueue.sz = leftIdx;
     }
     // Chunk up the work queue such that each task gets its own chunk
     coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) do if chunk.size != 0 {
@@ -226,23 +227,21 @@ while true {
         // If not RDMA atomics, check if current vertex has been visited.
         if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
           for neighbor in A[vertex] {
-            if neighbor > numVertices {
-              halt("Came across neighbor of ", vertex, " with id ", neighbor, " > ", numVertices);
-            }
             // If RDMA atomics, attempt to mark neighboring vertex.
             if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
               continue;
             }
-            // TODO: Profile overhead of querying locality...
-            localWork[A[neighbor].locale.id].append(neighbor);
+            localWork[D.dist.idxToLocale(neighbor).id].append(neighbor);
           }
         }
       }
       // Perform a local reduction first.
       for (lock, _localeWork, _localWork) in zip(localeLock, localeWork, localWork) {
-        lock.acquire();
-        _localeWork.append(_localWork);
-        lock.release();
+        local {
+          lock.acquire();
+          _localeWork.append(_localWork);
+          lock.release();
+        }
       }
     }
 
