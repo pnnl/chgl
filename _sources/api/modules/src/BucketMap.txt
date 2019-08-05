@@ -1,0 +1,80 @@
+.. default-domain:: chpl
+
+.. module:: BucketMap
+
+BucketMap
+=========
+**Usage**
+
+.. code-block:: chapel
+
+   use BucketMap;
+
+.. data:: config const BucketMapInitialBucketSize = 8
+
+   
+   A map intended to be used for computing equivalence classes. We create a fixed number
+   of buckets per locale and use modulus division to determine where the objects are sent to.
+   The more buckets, the higher the potential for concurrency. Each bucket is a resizing vector
+   with its own lock; this can be seen as a way to dynamically redistribute data based on the hash.
+
+.. record:: BucketMap
+
+   .. attribute:: type keyType
+
+   .. attribute:: type valueType
+
+   .. attribute:: var pid: int
+
+   .. method:: proc init(type keyType, type valueType, numBucketsPerLocale = 1024)
+
+.. class:: Bucket
+
+   .. attribute:: type keyType
+
+   .. attribute:: type valueType
+
+   .. attribute:: var lock: Lock
+
+   .. attribute:: var keySlots: owned Vector(keyType)
+
+   .. attribute:: var valueSlots: owned Vector(valueType)
+
+   .. method:: proc init(type keyType, type valueType)
+
+.. class:: Buckets
+
+   .. attribute:: type keyType
+
+   .. attribute:: type valueType
+
+   .. attribute:: const numBucketsPerLocale: int
+
+   .. attribute:: var bucketsDom = {0..#numLocales*numBucketsPerLocale} dmapped Cyclic(startIdx = 0)
+
+   .. attribute:: var buckets: [bucketsDom] unmanaged keyTypeBucketvalueType
+
+   .. method:: proc init(type keyType, type valueType, numBucketsPerLocale)
+
+.. class:: BucketMapImpl
+
+   .. attribute:: type keyType
+
+   .. attribute:: type valueType
+
+   .. attribute:: var pid: int
+
+   .. attribute:: var buckets: unmanaged keyTypeBucketsvalueType
+
+   .. attribute:: var bucketsRef = _newArray(buckets.buckets._value)
+
+   .. method:: proc init(type keyType, type valueType, numBucketsPerLocale: int)
+
+   .. method:: proc init(other: unmanaged ?keyTypeBucket?valueType, privatizedData)
+
+   .. method:: proc dsiPrivatize(privatizedData)
+
+   .. method:: proc dsiGetPrivatizeData()
+
+   .. method:: proc getPrivatizedInstance()
+

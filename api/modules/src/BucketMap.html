@@ -1,0 +1,402 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>BucketMap &mdash; CHGL  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="CHGL  documentation" href="../../../index.html"/>
+        <link rel="up" title="API Documentation" href="../../index.html"/>
+        <link rel="next" title="Butterfly" href="Butterfly.html"/>
+        <link rel="prev" title="BinReader" href="BinReader.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CHGL
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <p class="caption"><span class="caption-text">Compiling and Running CHGL</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation_guide.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">Performance Results</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Developer Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../index.html">API Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AdjListHyperGraph.html">AdjListHyperGraph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AggregationBuffer.html">AggregationBuffer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BinReader.html">BinReader</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">BucketMap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Butterfly.html">Butterfly</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CHGL.html">CHGL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CHGL-Server.html">CHGL-Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DynamicAggregationBuffer.html">DynamicAggregationBuffer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="EquivalenceClasses.html">EquivalenceClasses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ExplicitString.html">ExplicitString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generation.html">Generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Graph.html">Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Metrics.html">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Privatization.html">Privatization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PropertyMaps.html">PropertyMaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TerminationDetection.html">TerminationDetection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Traversal.html">Traversal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UnrolledLinkedList.html">UnrolledLinkedList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Utilities.html">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Vectors.html">Vectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Visualize.html">Visualize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="WorkQueue.html">WorkQueue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coding_standards.html">Coding Standards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Example CHGL Applications</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../example/index.html">Example Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">CHGL</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">API Documentation</a> &raquo;</li>
+      
+    <li>BucketMap</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../../_sources/api/modules/src/BucketMap.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-BucketMap"></span><div class="section" id="bucketmap">
+<h1>BucketMap<a class="headerlink" href="#bucketmap" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">BucketMap</span><span class="p">;</span>
+</pre></div>
+</div>
+<dl class="data">
+<dt id="BucketMap.BucketMapInitialBucketSize">
+<em class="property">config const </em><code class="descname">BucketMapInitialBucketSize</code> = 8<a class="headerlink" href="#BucketMap.BucketMapInitialBucketSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>A map intended to be used for computing equivalence classes. We create a fixed number
+of buckets per locale and use modulus division to determine where the objects are sent to.
+The more buckets, the higher the potential for concurrency. Each bucket is a resizing vector
+with its own lock; this can be seen as a way to dynamically redistribute data based on the hash.</p>
+</dd></dl>
+
+<dl class="record">
+<dt id="BucketMap.BucketMap">
+<em class="property">record </em><code class="descname">BucketMap</code><a class="headerlink" href="#BucketMap.BucketMap" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="BucketMap.BucketMap.keyType">
+<em class="property">type </em><code class="descname">keyType</code><a class="headerlink" href="#BucketMap.BucketMap.keyType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.BucketMap.valueType">
+<em class="property">type </em><code class="descname">valueType</code><a class="headerlink" href="#BucketMap.BucketMap.valueType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.BucketMap.pid">
+<em class="property">var </em><code class="descname">pid</code>: int<a class="headerlink" href="#BucketMap.BucketMap.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="BucketMap.BucketMap.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type keyType</em>, <em>type valueType</em>, <em>numBucketsPerLocale = 1024</em><span class="sig-paren">)</span><a class="headerlink" href="#BucketMap.BucketMap.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="BucketMap.Bucket">
+<em class="property">class </em><code class="descname">Bucket</code><a class="headerlink" href="#BucketMap.Bucket" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="BucketMap.Bucket.keyType">
+<em class="property">type </em><code class="descname">keyType</code><a class="headerlink" href="#BucketMap.Bucket.keyType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Bucket.valueType">
+<em class="property">type </em><code class="descname">valueType</code><a class="headerlink" href="#BucketMap.Bucket.valueType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Bucket.lock">
+<em class="property">var </em><code class="descname">lock</code>: Lock<a class="headerlink" href="#BucketMap.Bucket.lock" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Bucket.keySlots">
+<em class="property">var </em><code class="descname">keySlots</code>: owned Vector(keyType)<a class="headerlink" href="#BucketMap.Bucket.keySlots" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Bucket.valueSlots">
+<em class="property">var </em><code class="descname">valueSlots</code>: owned Vector(valueType)<a class="headerlink" href="#BucketMap.Bucket.valueSlots" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="BucketMap.Bucket.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type keyType</em>, <em>type valueType</em><span class="sig-paren">)</span><a class="headerlink" href="#BucketMap.Bucket.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="BucketMap.Buckets">
+<em class="property">class </em><code class="descname">Buckets</code><a class="headerlink" href="#BucketMap.Buckets" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="BucketMap.Buckets.keyType">
+<em class="property">type </em><code class="descname">keyType</code><a class="headerlink" href="#BucketMap.Buckets.keyType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Buckets.valueType">
+<em class="property">type </em><code class="descname">valueType</code><a class="headerlink" href="#BucketMap.Buckets.valueType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Buckets.numBucketsPerLocale">
+<em class="property">const </em><code class="descname">numBucketsPerLocale</code>: int<a class="headerlink" href="#BucketMap.Buckets.numBucketsPerLocale" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Buckets.bucketsDom">
+<em class="property">var </em><code class="descname">bucketsDom</code> = {0..#numLocales*numBucketsPerLocale} dmapped Cyclic(startIdx = 0)<a class="headerlink" href="#BucketMap.Buckets.bucketsDom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.Buckets.buckets">
+<em class="property">var </em><code class="descname">buckets</code>: [bucketsDom] unmanaged keyTypeBucketvalueType<a class="headerlink" href="#BucketMap.Buckets.buckets" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="BucketMap.Buckets.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type keyType</em>, <em>type valueType</em>, <em>numBucketsPerLocale</em><span class="sig-paren">)</span><a class="headerlink" href="#BucketMap.Buckets.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="BucketMap.BucketMapImpl">
+<em class="property">class </em><code class="descname">BucketMapImpl</code><a class="headerlink" href="#BucketMap.BucketMapImpl" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="BucketMap.BucketMapImpl.keyType">
+<em class="property">type </em><code class="descname">keyType</code><a class="headerlink" href="#BucketMap.BucketMapImpl.keyType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.BucketMapImpl.valueType">
+<em class="property">type </em><code class="descname">valueType</code><a class="headerlink" href="#BucketMap.BucketMapImpl.valueType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.BucketMapImpl.pid">
+<em class="property">var </em><code class="descname">pid</code>: int<a class="headerlink" href="#BucketMap.BucketMapImpl.pid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.BucketMapImpl.buckets">
+<em class="property">var </em><code class="descname">buckets</code>: unmanaged keyTypeBucketsvalueType<a class="headerlink" href="#BucketMap.BucketMapImpl.buckets" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="BucketMap.BucketMapImpl.bucketsRef">
+<em class="property">var </em><code class="descname">bucketsRef</code> = _newArray(buckets.buckets._value)<a class="headerlink" href="#BucketMap.BucketMapImpl.bucketsRef" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="BucketMap.BucketMapImpl.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type keyType</em>, <em>type valueType</em>, <em>numBucketsPerLocale: int</em><span class="sig-paren">)</span><a class="headerlink" href="#BucketMap.BucketMapImpl.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other: unmanaged ?keyTypeBucket?valueType</em>, <em>privatizedData</em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="BucketMap.BucketMapImpl.dsiPrivatize">
+<em class="property">proc </em><code class="descname">dsiPrivatize</code><span class="sig-paren">(</span><em>privatizedData</em><span class="sig-paren">)</span><a class="headerlink" href="#BucketMap.BucketMapImpl.dsiPrivatize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="BucketMap.BucketMapImpl.dsiGetPrivatizeData">
+<em class="property">proc </em><code class="descname">dsiGetPrivatizeData</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#BucketMap.BucketMapImpl.dsiGetPrivatizeData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="BucketMap.BucketMapImpl.getPrivatizedInstance">
+<em class="property">proc </em><code class="descname">getPrivatizedInstance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#BucketMap.BucketMapImpl.getPrivatizedInstance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Butterfly.html" class="btn btn-neutral float-right" title="Butterfly" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="BinReader.html" class="btn btn-neutral" title="BinReader" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, PNNL.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
