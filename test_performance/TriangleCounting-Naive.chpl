@@ -150,6 +150,9 @@ try! {
   if printTiming then writeln("Initialized: ", timer.elapsed());
   timer.clear();
   timer.start();
+  // TODO: Have a more complex and aggregated version that sends the array as well as
+  // requested indices to the locales it needs to communicate with to avoid the need
+  // to copy.
   var numTriangles : int;
   forall v in roundRobin(A) with (+ reduce numTriangles) {
     for u in A[v] do if v < u {

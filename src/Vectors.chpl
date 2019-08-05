@@ -5,6 +5,18 @@ use Utilities;
 
 config param VectorGrowthRate : real = 1.5;
 
+// Implements comparator so it can be used in radix sort; this is when you want to sort an array of vectors
+record VectorComparator {
+  proc keyPart(vec : Vector(?eltType), idx : integral) {
+    if (idx - 1) >= vec.sz {
+      var elt : eltType;
+      return (-1, elt);
+    } else {
+      return (0, vec.arr[idx - 1]);
+    }
+  }
+}
+
 class Vector {
   type eltType;
   const growthRate : real;

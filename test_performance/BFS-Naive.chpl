@@ -1,17 +1,100 @@
-use RangeChunk;
-use WorkQueue;
 use CyclicDist;
-use Vectors;
-use Utilities;
-use Barriers;
-use AllLocalesBarriers;
-use DynamicAggregationBuffer;
+use ReplicatedDist;
+use Time;
+use Sort;
 
 config const dataset = "../data/karate.mtx_csr.bin";
 config const numEdgesPresent = true;
 config const doWorkStealing = true;
 config const printTiming = false;
+config const arrayGrowthRate = 1.5;
 config const debugBFS = false;
+
+pragma "default intent is ref"
+record Array {
+  type eltType;
+  var dom = {0..0};
+  var arr : [dom] eltType;
+  var sz : int;
+  var cap : int = 1;
+
+  iter these() {
+    if sz != 0 then
+      for a in arr[0..#sz] {
+        yield a;
+      }
+  }
+
+  iter these(param tag : iterKind) where tag == iterKind.standalone {
+    if sz != 0 then
+      forall a in arr[0..#sz] {
+        yield a;
+      }
+  }
+  
+  proc append(ref other : this.type) {
+    const otherSz = other.sz;
+    if otherSz == 0 then return;
+    local { 
+      if sz + otherSz > cap {
+        this.cap = sz + otherSz;
+        this.dom = {0..#cap};
+      }
+    }
+    // TODO: To verify this is a bulk copy, compare to a `chpl_comm_array_get`...
+    this.arr[sz..#otherSz] = other.arr[0..#otherSz];
+    sz += otherSz;
+  }
+
+  proc append(elt : int) {
+    local {
+      if sz == cap {
+        var oldCap = cap;
+        cap = round(cap * arrayGrowthRate) : int;
+        if oldCap == cap then cap += 1;
+        this.dom = {0..#cap};
+      }
+    
+      this.arr[sz] = elt;
+      sz += 1;
+    }
+  }
+
+  proc this(idx) return arr[idx];
+
+  proc clear() {
+    local do this.sz = 0;
+  }
+
+  proc size return sz;
+}
+
+proc <=>(a1 : Array, a2 : Array) {
+  a1.sz <=> a2.sz;
+  a1.cap <=> a2.sz;
+  a1.dom._instance <=> a2.dom._instance;
+  a1.arr._instance <=> a2.arr._instance;
+}
+
+pragma "no doc"
+pragma "default intent is ref"
+record Lock {
+  var _lock : chpl__processorAtomicType(bool);
+
+  inline proc acquire() {
+    on this do local {
+      if _lock.testAndSet() == true { 
+        while _lock.read() == true || _lock.testAndSet() == true {
+          chpl_task_yield();
+        }
+      }
+    }
+  }
+
+  inline proc release() {
+    on this do local do _lock.clear();
+  }
+}
 
 var numVertices : uint(64);
 var numEdges : uint(64);
@@ -30,24 +113,24 @@ try! {
   // Read in |V| and |E|
   
   reader.read(numVertices);
-  debug("|V| = " + numVertices);
+  if debugBFS then writeln("|V| = " + numVertices);
   if numEdgesPresent {
     reader.read(numEdges);
-    debug("|E| = " + numEdges);
+    if debugBFS then writeln("|E| = " + numEdges);
   }
   reader.close();
   f.close();
 }
 
-var verticesDom = {0..#numVertices} dmapped Cyclic(startIdx=0);
-var vertices : [verticesDom] unmanaged Vector(int);
+var D = {0..#numVertices} dmapped Cyclic(startIdx=0);
+var A : [D] Array(int);
 
 try! {
   // On each node, independently process the file and offsets...
   coforall loc in Locales do on loc {
     var f = open(dataset, iomode.r, style = new iostyle(binary=1));    
     // Obtain offset for indices that are local to each node...
-    var dom = verticesDom.localSubdomain();
+    var dom = D.localSubdomain();
     coforall chunk in chunks(dom.low..dom.high by dom.stride, here.maxTaskPar) {
       var reader = f.reader(locking=false);
       for idx in chunk {
@@ -71,11 +154,11 @@ try! {
 
 
         // Pre-allocate buffer for vector and read directly into it
-        var vec = new unmanaged Vector(int, endOffset - beginOffset + 1);
-        reader.readBytes(c_ptrTo(vec.arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
-        vec.sz = (endOffset - beginOffset + 1) : int;
-        vec.sort();
-        vertices[idx] = vec;
+        A[idx].dom = {0..#(endOffset - beginOffset + 1)};
+        reader.readBytes(c_ptrTo(A[idx].arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+        A[idx].sz = A[idx].dom.size;
+        A[idx].cap = A[idx].dom.size;
+        sort(A[idx].arr);
         reader.revert();
       }
     }
@@ -87,40 +170,99 @@ timer.stop();
 if printTiming then writeln("Initialization: ", timer.elapsed());
 timer.clear();
 
-beginProfile("BFS-Naive-Perf");
-var current = new WorkQueue(int, 64 * 1024, new DuplicateCoalescer(int, -1));
-var next = new WorkQueue(int, 64 * 1024, new DuplicateCoalescer(int, -1));
-var currTD = new TerminationDetector(1);
-var nextTD = new TerminationDetector(0);
-current.addWork(0, vertices[0].locale);
-current.flush();
-var visited : [verticesDom] atomic bool;
+// Replicate two work queues on each locale.
+var globalWorkDom = {0..1} dmapped Replicated();
+var globalLocks : [globalWorkDom] Lock;
+var globalWork : [globalWorkDom] Array(int);
+// Index of our current work queue
+var globalWorkIdx : int;
+// Push root vertex on queue.
+on A[0] do globalWork[globalWorkIdx].append(0);
+// Keep track of which vertices we have already visited.
+var visited : [D] atomic bool;
+// If RDMA atomics, mark first, else visit first.
 if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
 var numPhases = 1;
 var lastTime : real;
 timer.start();
-while !current.isEmpty() || !currTD.hasTerminated() {
-  if debugBFS then writeln("Level #", numPhases, " has ", current.globalSize, " elements...");
-  forall vertex in doWorkLoop(current, currTD, doWorkStealing=doWorkStealing) {
-    if vertex != -1 && (CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false) {
-      for neighbor in vertices[vertex] {
-        if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
-          continue;
-        }
-        nextTD.started(1);
-        const loc = vertices[neighbor].locale;
-        next.addWork(neighbor, loc);
-      }
-    } 
-    currTD.finished(1);
+while true {
+  if debugBFS {
+    var globalSize : int;
+    coforall loc in Locales with (+ reduce globalSize) do on loc {
+      globalSize += globalWork[globalWorkIdx].size;
+    }
+    writeln("Level #", numPhases, " has ", globalSize, " elements...");
   }
-  next.flush();
-  next <=> current;
-  nextTD <=> currTD;
+  // Spawn one task per locale; then consume all work from the work queue in parallel.
+  coforall loc in Locales do on loc {
+    // Aggregate outgoing work...
+    var localeLock : [LocaleSpace] Lock;
+    var localeWork : [LocaleSpace] Array(int);
+    ref workQueue = globalWork[globalWorkIdx];
+
+    // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
+    // then uses a simple insertion sort that just moves non-duplicates up.
+    if CHPL_NETWORK_ATOMICS == "none" {
+      sort(workQueue.arr[0..#workQueue.size]);
+      var lastValue = workQueue.arr[0];
+      var leftIdx = 1;
+      var rightIdx = 1;
+      while rightIdx < workQueue.size {
+        if workQueue.arr[rightIdx] != lastValue {
+          lastValue = workQueue.arr[rightIdx];
+          workQueue.arr[leftIdx] = lastValue;
+          leftIdx += 1;
+        }
+        rightIdx += 1;
+      }
+      workQueue.sz = leftIdx;
+    }
+    // Chunk up the work queue such that each task gets its own chunk
+    coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) do if chunk.size != 0 {
+      // Aggregate outgoing work...
+      var localWork : [LocaleSpace] Array(int);
+      for idx in chunk {
+        const vertex = workQueue[idx];
+        // If not RDMA atomics, check if current vertex has been visited.
+        if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
+          for neighbor in A[vertex] {
+            if neighbor > numVertices {
+              halt("Came across neighbor of ", vertex, " with id ", neighbor, " > ", numVertices);
+            }
+            // If RDMA atomics, attempt to mark neighboring vertex.
+            if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
+              continue;
+            }
+            // TODO: Profile overhead of querying locality...
+            localWork[A[neighbor].locale.id].append(neighbor);
+          }
+        }
+      }
+      // Perform a local reduction first.
+      for (lock, _localeWork, _localWork) in zip(localeLock, localeWork, localWork) {
+        lock.acquire();
+        _localeWork.append(_localWork);
+        lock.release();
+      }
+    }
+
+    // Perform a global, all-to-all reduction.
+    coforall loc in Locales do on loc {
+      globalWork[(globalWorkIdx + 1) % 2].append(localeWork[here.id]);
+    }
+    globalWork[globalWorkIdx].clear();
+  }
+  globalWorkIdx = (globalWorkIdx + 1) % 2;
   var currTime = timer.elapsed();
   if debugBFS then writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
   lastTime = currTime;
   numPhases += 1;
+
+  var globalSize : int;
+  coforall loc in Locales with (+ reduce globalSize) do on loc {
+    globalSize += globalWork[globalWorkIdx].size;
+  }
+  if globalSize == 0 then break;
 }
 
 timer.stop();
@@ -128,5 +270,4 @@ globalTimer.stop();
 if debugBFS then writeln("|V| = ", numVertices, ", |E| = ", numEdges);
 if printTiming then writeln("BFS: ", timer.elapsed());
 if printTiming then writeln("Total: ", globalTimer.elapsed());
-endProfile(); 
 
