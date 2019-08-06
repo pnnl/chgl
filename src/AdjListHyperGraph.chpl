@@ -411,17 +411,6 @@ module AdjListHyperGraph {
     return graph;
   }
   
-  pragma "no doc"
-  record NodeDataComparator {
-    proc keyPart(data : (NodeData, int), idx : integral) {
-      if (idx - 1) >= data[1].degree {
-        return (-1, (0,0));
-      } else {
-        return (0, (data[1].incidence[idx], data[2]));
-      }
-    }
-  }
-
   /*
     NodeData: stores the neighbor list of a node.
 
@@ -1381,7 +1370,7 @@ module AdjListHyperGraph {
       to vertices to point to the new candidate. This is an inplace operation. Must
       be called from Locale #0. Returns a histogram of duplicates.
     */
-    proc collapseVertices(numBucketsPerLocale=1024) {
+    proc collapseVertices() {
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
         halt("Collapse must be performed on master locale #0");
@@ -1401,39 +1390,32 @@ module AdjListHyperGraph {
       // as we can follow v'.id's duplicate to find v''.id's duplicate to find the distinct vertex v.
       {
         //writeln("Marking and Deleting Vertices...");
-
-        // Create a fixed number of buckets on each locale.
-        var bucketsDom = {0..#(numLocales * numBuckets)} dmapped Cyclic(startIdx=0);
-
-        // Create a copy of the array to perform a radix sort over... we only copy the
-        // pointer to the NodeData so its cheap to do so.
-        var sortedVertices : [verticesDomain] (NodeData(eDescType, _vPropType), int);
-        forall (idx, vertex, sortedVertex) in zip(verticesDomain, vertices, sortedVertices) {
-          vertices.sortIncidence();
-          sortedVertex = (vertex, idx);
-        }
-
-        var globalEQClasses : [LocaleSpace] unmanaged Vector((int, unmanaged Vector(int)));
-        coforall loc in Locales do on loc {
+        // TODO: Optimize!
+        // Step 1: Optimize for Locality first! Spawn one task per core per locale, and
+        // on each task, have them create equivalence classes for the matching vertices
+        // and edges.
+        // Step 2: Take pairs of tasks and handle merging their equivalent classes into a single
+        // into a single equivalence class. This should be performed across each locale and in
+        // parallel across multiple cores if possible. 
+        // Step 3: Take pairs of locales and handle merging their equivalent classes into a single
+        // equivalence class. Then count the number of unique vertices.
+        
+        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, Bitmap);
+        coforall loc in Locales  do on loc {
           var _this = getPrivatizedInstance();
-          sort(sortedVertices[sortedVertices.localSubdomain()], new NodeDataComparator());
-          var eqclasses = new unmanaged Vector(int, unmanaged Vector(int)); // (candidate, [non-candidates])
-          for (sortedVertex, idx) in sortedVertices[sorted.localSubdomain()] {
-            if eqclasses.size == 0 || eqclasses[eqclasses.size - 1][2] != sortedVertex {
-              eqclasses.append((idx, new unmanaged Vector(int)));
-            } else {
-              eqclasses[eqclasses.size - 1][2].append(idx);
-            }
+          var reduxLock : Lock;
+          var localeqclass = new unmanaged Equivalence(int, Bitmap);
+          forall v in _verticesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
+            var _v = _this.toVertex(v);
+            var vertex = _this.getVertex(_v);
+            vertex.sortIncidence();
+            var wrapper = new Bitmap(vertex.incident[0..#vertex.degree]);
+            reduxLock.acquire();
+            localeqclass.add(v, wrapper);
+            reduxLock.release();
           }
-          globalEQClasses[here.id] = eqclasses;
+          eqclasses[here.id] = localeqclass;
         }
-        
-        // TODO: Handle merging by collapsing into locale's vector which has lowest index;
-        // We must not make local copies of this as it will result in OOM on larger graphs.
-        var finalEQClass = globalEQClasses[here.id];
-
-        
-
         var eqclass = new unmanaged Equivalence(int, Bitmap);
         for localeqclass in eqclasses {
           eqclass.add(localeqclass);
