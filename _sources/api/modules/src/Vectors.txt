@@ -12,6 +12,10 @@ Vectors
 
 .. data:: config param VectorGrowthRate: real = 1.5
 
+.. record:: VectorComparator
+
+   .. method:: proc keyPart(vec: Vector(?eltType), idx: integral)
+
 .. class:: Vector
 
    .. attribute:: type eltType
