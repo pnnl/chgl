@@ -2,10 +2,14 @@ use RangeChunk;
 use CyclicDist;
 use Time;
 use Sort;
+use CommDiagnostics;
 
 config const dataset = "../data/ca-GrQc.mtx_csr.bin";
 config const numEdgesPresent = true;
 config const printTiming = true;
+config const isOptimized = false;
+config const arrayGrowthRate = 1.5;
+config const aggregationThreshold = 64 * 1024;
 
 iter roundRobin(dom) {
 
@@ -75,20 +79,76 @@ proc _intersectionSize(A : [] ?t, B : [] t) {
   return match;
 }
 
+pragma "default intent is ref"
 record Array {
   type eltType;
-  var dom = {0..-1};
+  var dom = {0..0};
   var arr : [dom] eltType;
+  var sz : int;
+  var cap : int = 1;
 
-  pragma "fn returns iterator"
-  proc these() {
-    return arr.these();
+  iter these() {
+    if sz != 0 {
+      if this.locale != here {
+        var _dom = {0..#sz};
+        var _arr : [_dom] eltType = arr;
+        for a in arr[0..#sz] do yield a;
+      } else {
+        for a in arr[0..#sz] do yield a;
+      }
+    }
   }
 
-  pragma "fn returns iterator"
-  proc these(param tag : iterKind) {
-    return arr.these(tag);
+  iter these(param tag : iterKind) where tag == iterKind.standalone {
+    if sz != 0 then
+      if this.locale != here {
+        var _dom = {0..#sz};
+        var _arr : [_dom] eltType = arr;
+        forall a in arr[0..#sz] do yield a;
+      } else {
+        forall a in arr[0..#sz] do yield a;
+      }
   }
+  
+  proc append(ref other : this.type) {
+    const otherSz = other.sz;
+    if otherSz == 0 then return;
+    local { 
+      if sz + otherSz > cap {
+        this.cap = sz + otherSz;
+        this.dom = {0..#cap};
+      }
+    }
+    this.arr[sz..#otherSz] = other.arr[0..#otherSz];
+    sz += otherSz;
+  }
+
+  proc append(elt : int) {
+    local {
+      if sz == cap {
+        var oldCap = cap;
+        cap = round(cap * arrayGrowthRate) : int;
+        if oldCap == cap then cap += 1;
+        this.dom = {0..#cap};
+      }
+    
+      this.arr[sz] = elt;
+      sz += 1;
+    }
+  }
+
+  proc this(idx) return arr[idx];
+
+  pragma "no copy return"
+  proc getArray() {
+    return arr[0..#sz];
+  }
+
+  proc clear() {
+    local do this.sz = 0;
+  }
+
+  proc size return sz;
 }
 
 try! {
@@ -141,6 +201,8 @@ try! {
         // Pre-allocate buffer for vector and read directly into it
         A[idx].dom = {0..#(endOffset - beginOffset + 1)};
         reader.readBytes(c_ptrTo(A[idx].arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+        A[idx].sz = A[idx].dom.size;
+        A[idx].cap = A[idx].dom.size;
         sort(A[idx].arr);
         reader.revert();
       }
@@ -149,14 +211,41 @@ try! {
   timer.stop();
   if printTiming then writeln("Initialized: ", timer.elapsed());
   timer.clear();
+
   timer.start();
   // TODO: Have a more complex and aggregated version that sends the array as well as
   // requested indices to the locales it needs to communicate with to avoid the need
   // to copy.
   var numTriangles : int;
-  forall v in roundRobin(A) with (+ reduce numTriangles) {
-    for u in A[v] do if v < u {
-      numTriangles += intersectionSize(A[v].arr, A[u].arr);
+  if !isOptimized {
+    forall v in roundRobin(A) with (+ reduce numTriangles) {
+      for u in A[v] do if v < u {
+        numTriangles += intersectionSize(A[v].arr, A[u].arr);
+      }
+    }
+  } else {
+    forall v in roundRobin(A) with (+ reduce numTriangles) {
+      if A[v].size < aggregationThreshold || numLocales == 1 {
+        for u in A[v] do if v < u {
+          numTriangles += intersectionSize(A[v].arr, A[u].arr);
+        }
+      } else {
+        // Aggregate outgoing neighbor intersections
+        var work : [LocaleSpace] Array(int);
+        for u in A[v] do if v < u {
+          work[D.dist.idxToLocale(u).id].append(u);
+        }
+        coforall loc in Locales with (+ reduce numTriangles) do on loc {
+          var ourWork = work[here.id];
+          if ourWork.size != 0 {
+            var dom = {0..#A[v].size};
+            var arr : [dom] int = A[v].getArray();
+            for u in ourWork {
+              numTriangles += intersectionSize(arr, A[u].arr);
+            }
+          }
+        }
+      }
     }
   }
   timer.stop();
