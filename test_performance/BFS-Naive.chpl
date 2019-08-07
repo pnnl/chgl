@@ -9,6 +9,7 @@ config const doWorkStealing = true;
 config const printTiming = false;
 config const arrayGrowthRate = 1.5;
 config const debugBFS = false;
+config const isOptimized = false;
 
 pragma "default intent is ref"
 record Array {
@@ -17,6 +18,13 @@ record Array {
   var arr : [dom] eltType;
   var sz : int;
   var cap : int = 1;
+
+  proc preallocate(sz : int) {
+    if cap < sz {
+      this.cap = sz;
+      this.dom = {0..#this.cap};
+    }
+  }
 
   iter these() {
     if sz != 0 {
@@ -68,7 +76,7 @@ record Array {
     }
   }
 
-  proc this(idx) return arr[idx];
+  inline proc this(idx) return arr[idx];
 
   pragma "no copy return"
   proc getArray() {
@@ -80,6 +88,30 @@ record Array {
   }
 
   proc size return sz;
+}
+
+
+class CommunicationBuffer {
+  var buf : c_ptr(int);
+  var sz : int;
+  var cap : int;
+
+  proc write(otherBuf : c_ptr(int), otherSz : int) {
+    if otherSz == 0 then return;
+    if this.buf == nil {
+      this.buf = c_malloc(int, otherSz);
+      this.sz = otherSz;
+      this.cap = otherSz;
+    } else if otherSz > this.cap {
+      c_free(buf);
+      this.buf = c_malloc(int, otherSz);
+      this.sz = otherSz;
+      this.cap = otherSz;
+    }
+    
+    c_memcpy(this.buf, otherBuf, otherSz * 8);
+    this.sz = otherSz;
+  }
 }
 
 pragma "no doc"
@@ -176,100 +208,210 @@ timer.stop();
 if printTiming then writeln("Initialization: ", timer.elapsed());
 timer.clear();
 
-// Replicate two work queues on each locale.
-var globalWorkDom = {0..1} dmapped Replicated();
-var globalLocks : [globalWorkDom] Lock;
-var globalWork : [globalWorkDom] Array(int);
-// Index of our current work queue
-var globalWorkIdx : int;
-// Push root vertex on queue.
-on A[0] do globalWork[globalWorkIdx].append(0);
-// Keep track of which vertices we have already visited.
-var visited : [D] atomic bool;
-// If RDMA atomics, mark first, else visit first.
-if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
-var numPhases = 1;
-var lastTime : real;
-timer.start();
-while true {
-  if debugBFS {
+// Use aggregation to send via active message then fetch via GET
+if !isOptimized {
+  // Replicate two work queues on each locale.
+  var globalWorkDom = {0..1} dmapped Replicated();
+  var globalLocks : [globalWorkDom] Lock;
+  var globalWork : [globalWorkDom] Array(int);
+  // Index of our current work queue
+  var globalWorkIdx : int;
+  // Push root vertex on queue.
+  on A[0] do globalWork[globalWorkIdx].append(0);
+  // Keep track of which vertices we have already visited.
+  var visited : [D] atomic bool;
+  // If RDMA atomics, mark first, else visit first.
+  if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
+  var numPhases = 1;
+  var lastTime : real;
+  timer.start();
+  while true {
+    if debugBFS {
+      var globalSize : int;
+      coforall loc in Locales with (+ reduce globalSize) do on loc {
+        globalSize += globalWork[globalWorkIdx].size;
+      }
+      writeln("Level #", numPhases, " has ", globalSize, " elements...");
+    }
+    // Spawn one task per locale; then consume all work from the work queue in parallel.
+    coforall loc in Locales do on loc {
+      // Aggregate outgoing work...
+      var localeLock : [LocaleSpace] Lock;
+      var localeWork : [LocaleSpace] Array(int);
+      ref workQueue = globalWork[globalWorkIdx];
+
+      // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
+      // then uses a simple insertion sort that just moves non-duplicates up.
+      if CHPL_NETWORK_ATOMICS == "none" {
+        local {
+          sort(workQueue.arr[0..#workQueue.size]);
+          var lastValue = workQueue.arr[0];
+          var leftIdx = 1;
+          var rightIdx = 1;
+          while rightIdx < workQueue.size {
+            if workQueue.arr[rightIdx] != lastValue {
+              lastValue = workQueue.arr[rightIdx];
+              workQueue.arr[leftIdx] = lastValue;
+              leftIdx += 1;
+            }
+            rightIdx += 1;
+          }
+          workQueue.sz = leftIdx;
+        }
+      }
+      // Chunk up the work queue such that each task gets its own chunk
+      coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) {
+        // Aggregate outgoing work...
+        var localWork : [LocaleSpace] Array(int);
+        for idx in chunk {
+          const vertex = workQueue[idx];
+          // If not RDMA atomics, check if current vertex has been visited.
+          if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
+            for neighbor in A[vertex] {
+              // If RDMA atomics, attempt to mark neighboring vertex.
+              if CHPL_NETWORK_ATOMICS == "none" || visited[neighbor].testAndSet() == false {
+                local do localWork[neighbor % numLocales].append(neighbor);
+              }
+            }
+          }
+        }
+        // Perform a local reduction first.
+        for (lock, _localeWork, _localWork) in zip(localeLock, localeWork, localWork) {
+          local {
+            lock.acquire();
+            _localeWork.append(_localWork);
+            lock.release();
+          }
+        }
+      }
+
+      // Perform a global, all-to-all reduction.
+      coforall loc in Locales do on loc {
+        globalLocks[globalWorkIdx].acquire();
+        globalWork[(globalWorkIdx + 1) % 2].append(localeWork[here.id]);
+        globalLocks[globalWorkIdx].release();
+      }
+      globalWork[globalWorkIdx].clear();
+    }
+    globalWorkIdx = (globalWorkIdx + 1) % 2;
+    var currTime = timer.elapsed();
+    if debugBFS then writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
+    lastTime = currTime;
+    numPhases += 1;
+
     var globalSize : int;
     coforall loc in Locales with (+ reduce globalSize) do on loc {
       globalSize += globalWork[globalWorkIdx].size;
     }
-    writeln("Level #", numPhases, " has ", globalSize, " elements...");
+    if globalSize == 0 then break;
   }
-  // Spawn one task per locale; then consume all work from the work queue in parallel.
-  coforall loc in Locales do on loc {
-    // Aggregate outgoing work...
-    var localeLock : [LocaleSpace] Lock;
-    var localeWork : [LocaleSpace] Array(int);
-    ref workQueue = globalWork[globalWorkIdx];
+} else {
+  // Use aggregation via pre-allocated communication buffer to fetch purely via GET, no active message
+  // globalCommMatrix[i,j]: CommunicationBuffer from i to j; i -> j
+  var globalCommMatrix : [0..#numLocales, 0..#numLocales] unmanaged CommunicationBuffer;
+  forall (i,j) in globalCommMatrix.domain do on Locales[i] {
+    globalCommMatrix[i,j] = new unmanaged CommunicationBuffer();
+  }
+  // Replicate a work queue on each locale.
+  var globalWorkDom = {0..0} dmapped Replicated();
+  var globalWork : [globalWorkDom] Array(int);
+  // Push root vertex on queue.
+  on A[0] do globalWork[0].append(0);
+  // Keep track of which vertices we have already visited.
+  var visited : [D] atomic bool;
+  // If RDMA atomics, mark first, else visit first.
+  if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
+  var numPhases = 1;
+  var lastTime : real;
+  timer.start();
+  while true {
+    var globalSize : int;
 
-    // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
-    // then uses a simple insertion sort that just moves non-duplicates up.
-    if CHPL_NETWORK_ATOMICS == "none" {
-      local {
-        sort(workQueue.arr[0..#workQueue.size]);
-        var lastValue = workQueue.arr[0];
-        var leftIdx = 1;
-        var rightIdx = 1;
-        while rightIdx < workQueue.size {
-          if workQueue.arr[rightIdx] != lastValue {
-            lastValue = workQueue.arr[rightIdx];
-            workQueue.arr[leftIdx] = lastValue;
-            leftIdx += 1;
+    // Spawn one task per locale; then consume all work from the work queue in parallel.
+    coforall loc in Locales with (+ reduce globalSize) do on loc {
+      var localCommMatrix : [0..#numLocales, 0..#numLocales] unmanaged CommunicationBuffer = globalCommMatrix;
+      var localeLock : [LocaleSpace] Lock;
+      var localeWork : [LocaleSpace] Array(int);
+      ref workQueue = globalWork[0];
+
+      // Fetch pending data from other locales.
+      var sz = + reduce localCommMatrix[0..#numLocales, here.id].sz;
+      if sz != 0 {
+        workQueue.preallocate(sz);
+        var offset : int;
+        sync for buf in localCommMatrix[0..#numLocales, here.id] {
+          var sz = buf.sz;
+          if sz == 0 then continue;
+          var ourOffset = offset;
+          offset += sz;
+          begin with (in buf) {
+            __primitive("chpl_comm_array_get", c_ptrTo(workQueue.arr[ourOffset])[0], buf.locale.id, buf.buf[0], sz);
           }
-          rightIdx += 1;
         }
-        workQueue.sz = leftIdx;
+        workQueue.sz = sz;
       }
-    }
-    // Chunk up the work queue such that each task gets its own chunk
-    coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) {
-      // Aggregate outgoing work...
-      var localWork : [LocaleSpace] Array(int);
-      for idx in chunk {
-        const vertex = workQueue[idx];
-        // If not RDMA atomics, check if current vertex has been visited.
-        if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
-          for neighbor in A[vertex] {
-            // If RDMA atomics, attempt to mark neighboring vertex.
-            if CHPL_NETWORK_ATOMICS == "none" || visited[neighbor].testAndSet() == false {
-              local do localWork[neighbor % numLocales].append(neighbor);
+
+      // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
+      // then uses a simple insertion sort that just moves non-duplicates up.
+      if CHPL_NETWORK_ATOMICS == "none" {
+        local {
+          sort(workQueue.arr[0..#workQueue.size]);
+          var lastValue = workQueue.arr[0];
+          var leftIdx = 1;
+          var rightIdx = 1;
+          while rightIdx < workQueue.size {
+            if workQueue.arr[rightIdx] != lastValue {
+              lastValue = workQueue.arr[rightIdx];
+              workQueue.arr[leftIdx] = lastValue;
+              leftIdx += 1;
+            }
+            rightIdx += 1;
+          }
+          workQueue.sz = leftIdx;
+        }
+      }
+      // Chunk up the work queue such that each task gets its own chunk
+      coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) {
+        // Aggregate outgoing work...
+        var localWork : [LocaleSpace] Array(int);
+        for idx in chunk {
+          const vertex = workQueue[idx];
+          assert(A[vertex].locale == here);
+          // If not RDMA atomics, check if current vertex has been visited.
+          if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
+            for neighbor in A[vertex] {
+              // If RDMA atomics, attempt to mark neighboring vertex.
+              if CHPL_NETWORK_ATOMICS == "none" || visited[neighbor].testAndSet() == false {
+                localWork[neighbor % numLocales].append(neighbor);
+              }
             }
           }
         }
-      }
-      // Perform a local reduction first.
-      for (lock, _localeWork, _localWork) in zip(localeLock, localeWork, localWork) {
-        local {
-          lock.acquire();
-          _localeWork.append(_localWork);
-          lock.release();
+        // Perform a local reduction first.
+        for (lock, _localeWork, _localWork) in zip(localeLock, localeWork, localWork) {
+          local {
+            lock.acquire();
+            _localeWork.append(_localWork);
+            lock.release();
+          }
         }
       }
+
+      // Prepare data to be sent.
+      forall locidx in LocaleSpace with (+ reduce globalSize) {
+        globalSize += localeWork[locidx].size;
+        localCommMatrix[here.id, locidx].write(c_ptrTo(localeWork[locidx].arr[0]), localeWork[locidx].size);
+      }
+      workQueue.clear();
     }
 
-    // Perform a global, all-to-all reduction.
-    coforall loc in Locales do on loc {
-      globalLocks[globalWorkIdx].acquire();
-      globalWork[(globalWorkIdx + 1) % 2].append(localeWork[here.id]);
-      globalLocks[globalWorkIdx].release();
-    }
-    globalWork[globalWorkIdx].clear();
+    if globalSize == 0 then break;
+    if debugBFS then writeln("Level #", numPhases + 1, " has ", globalSize, " elements...");
+    var currTime = timer.elapsed();
+    if debugBFS then writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
+    lastTime = currTime;
+    numPhases += 1;
   }
-  globalWorkIdx = (globalWorkIdx + 1) % 2;
-  var currTime = timer.elapsed();
-  if debugBFS then writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
-  lastTime = currTime;
-  numPhases += 1;
-
-  var globalSize : int;
-  coforall loc in Locales with (+ reduce globalSize) do on loc {
-    globalSize += globalWork[globalWorkIdx].size;
-  }
-  if globalSize == 0 then break;
 }
 
 timer.stop();
@@ -277,4 +419,3 @@ globalTimer.stop();
 if debugBFS then writeln("|V| = ", numVertices, ", |E| = ", numEdges);
 if printTiming then writeln("BFS: ", timer.elapsed());
 if printTiming then writeln("Total: ", globalTimer.elapsed());
-
