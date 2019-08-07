@@ -19,16 +19,25 @@ record Array {
   var cap : int = 1;
 
   iter these() {
-    if sz != 0 then
-      for a in arr[0..#sz] {
-        yield a;
+    if sz != 0 {
+      if this.locale != here {
+        var _dom = {0..#sz};
+        var _arr : [_dom] eltType = arr;
+        for a in arr[0..#sz] do yield a;
+      } else {
+        for a in arr[0..#sz] do yield a;
       }
+    }
   }
 
   iter these(param tag : iterKind) where tag == iterKind.standalone {
     if sz != 0 then
-      forall a in arr[0..#sz] {
-        yield a;
+      if this.locale != here {
+        var _dom = {0..#sz};
+        var _arr : [_dom] eltType = arr;
+        forall a in arr[0..#sz] do yield a;
+      } else {
+        forall a in arr[0..#sz] do yield a;
       }
   }
   
@@ -61,18 +70,16 @@ record Array {
 
   proc this(idx) return arr[idx];
 
+  pragma "no copy return"
+  proc getArray() {
+    return arr[0..#sz];
+  }
+
   proc clear() {
     local do this.sz = 0;
   }
 
   proc size return sz;
-}
-
-proc <=>(a1 : Array, a2 : Array) {
-  a1.sz <=> a2.sz;
-  a1.cap <=> a2.sz;
-  a1.dom._instance <=> a2.dom._instance;
-  a1.arr._instance <=> a2.arr._instance;
 }
 
 pragma "no doc"
@@ -219,7 +226,7 @@ while true {
       }
     }
     // Chunk up the work queue such that each task gets its own chunk
-    coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) do if chunk.size != 0 {
+    coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) {
       // Aggregate outgoing work...
       var localWork : [LocaleSpace] Array(int);
       for idx in chunk {
@@ -228,10 +235,9 @@ while true {
         if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
           for neighbor in A[vertex] {
             // If RDMA atomics, attempt to mark neighboring vertex.
-            if CHPL_NETWORK_ATOMICS != "none" && visited[neighbor].testAndSet() == true {
-              continue;
+            if CHPL_NETWORK_ATOMICS == "none" || visited[neighbor].testAndSet() == false {
+              local do localWork[neighbor % numLocales].append(neighbor);
             }
-            localWork[D.dist.idxToLocale(neighbor).id].append(neighbor);
           }
         }
       }
