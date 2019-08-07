@@ -253,7 +253,9 @@ while true {
 
     // Perform a global, all-to-all reduction.
     coforall loc in Locales do on loc {
+      globalLocks[globalWorkIdx].acquire();
       globalWork[(globalWorkIdx + 1) % 2].append(localeWork[here.id]);
+      globalLocks[globalWorkIdx].release();
     }
     globalWork[globalWorkIdx].clear();
   }
