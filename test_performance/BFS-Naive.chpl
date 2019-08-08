@@ -19,9 +19,9 @@ record Array {
   var sz : int;
   var cap : int = 1;
 
-  proc preallocate(sz : int) {
-    if cap < sz {
-      this.cap = sz;
+  proc preallocate(length : int) {
+    if cap < length {
+      this.cap = length;
       this.dom = {0..#this.cap};
     }
   }
@@ -353,7 +353,7 @@ if !isOptimized {
 
       // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
       // then uses a simple insertion sort that just moves non-duplicates up.
-      if CHPL_NETWORK_ATOMICS == "none" {
+      if CHPL_NETWORK_ATOMICS == "none" && workQueue.size != 0 {
         local {
           sort(workQueue.arr[0..#workQueue.size]);
           var lastValue = workQueue.arr[0];
@@ -376,7 +376,7 @@ if !isOptimized {
         var localWork : [LocaleSpace] Array(int);
         for idx in chunk {
           const vertex = workQueue[idx];
-          assert(A[vertex].locale == here);
+          assert(A[vertex].locale == here, "Bad Vertrex: ", vertex, " on ", A[vertex].locale, " but expected ", here, " with domain ", workQueue.dom);
           // If not RDMA atomics, check if current vertex has been visited.
           if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
             for neighbor in A[vertex] {
