@@ -294,10 +294,7 @@ if !isOptimized {
     lastTime = currTime;
     numPhases += 1;
 
-    var globalSize : int;
-    coforall loc in Locales with (+ reduce globalSize) do on loc {
-      globalSize += globalWork[globalWorkIdx].size;
-    }
+    var globalSize = + reduce globalWork.replicand(Locales)[globalWorkIdx].size;
     if globalSize == 0 then break;
   }
 } else {
@@ -331,13 +328,11 @@ if !isOptimized {
       var sz = + reduce localCommMatrix[0..#numLocales, here.id].sz;
       if sz != 0 {
         workQueue.preallocate(sz);
-        var offset : int;
-        sync for buf in localCommMatrix[0..#numLocales, here.id] {
+        var offset : atomic int;
+        forall buf in localCommMatrix[0..#numLocales, here.id] {
           var sz = buf.sz;
-          if sz == 0 then continue;
-          var ourOffset = offset;
-          offset += sz;
-          begin with (in buf) {
+          if sz != 0 {
+            var ourOffset = offset.fetchAdd(sz);
             __primitive("chpl_comm_array_get", c_ptrTo(workQueue.arr[ourOffset])[0], buf.locale.id, buf.buf[0], sz);
           }
         }
