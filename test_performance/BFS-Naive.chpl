@@ -169,7 +169,7 @@ try! {
     var f = open(dataset, iomode.r, style = new iostyle(binary=1));    
     // Obtain offset for indices that are local to each node...
     var dom = D.localSubdomain();
-    coforall chunk in chunks(dom.low..dom.high by dom.stride, here.maxTaskPar) {
+    coforall chunk in chunks(dom.low..dom.high by dom.stride align dom.alignment, here.maxTaskPar) {
       var reader = f.reader(locking=false);
       for idx in chunk {
         reader.mark();
@@ -193,7 +193,7 @@ try! {
 
         // Pre-allocate buffer for vector and read directly into it
         A[idx].dom = {0..#(endOffset - beginOffset + 1)};
-        reader.readBytes(c_ptrTo(A[idx].arr[0]), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+        reader.readBytes(c_ptrTo(A[idx].arr), ((endOffset - beginOffset + 1) * 8) : ssize_t);
         A[idx].sz = A[idx].dom.size;
         A[idx].cap = A[idx].dom.size;
         sort(A[idx].arr);
@@ -220,8 +220,6 @@ if !isOptimized {
   on A[0] do globalWork[globalWorkIdx].append(0);
   // Keep track of which vertices we have already visited.
   var visited : [D] atomic bool;
-  // If RDMA atomics, mark first, else visit first.
-  if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
   var numPhases = 1;
   var lastTime : real;
   timer.start();
@@ -242,7 +240,7 @@ if !isOptimized {
 
       // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
       // then uses a simple insertion sort that just moves non-duplicates up.
-      if CHPL_NETWORK_ATOMICS == "none" {
+      if workQueue.size != 0 {
         local {
           sort(workQueue.arr[0..#workQueue.size]);
           var lastValue = workQueue.arr[0];
@@ -265,13 +263,10 @@ if !isOptimized {
         var localWork : [LocaleSpace] Array(int);
         for idx in chunk {
           const vertex = workQueue[idx];
-          // If not RDMA atomics, check if current vertex has been visited.
-          if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
+          // Check if current vertex has been visited.
+          if visited[vertex].testAndSet() == false {
             for neighbor in A[vertex] {
-              // If RDMA atomics, attempt to mark neighboring vertex.
-              if CHPL_NETWORK_ATOMICS == "none" || visited[neighbor].testAndSet() == false {
-                local do localWork[neighbor % numLocales].append(neighbor);
-              }
+              localWork[neighbor % numLocales].append(neighbor);
             }
           }
         }
@@ -319,8 +314,6 @@ if !isOptimized {
   on A[0] do globalWork[0].append(0);
   // Keep track of which vertices we have already visited.
   var visited : [D] atomic bool;
-  // If RDMA atomics, mark first, else visit first.
-  if CHPL_NETWORK_ATOMICS != "none" then visited[0].write(true);
   var numPhases = 1;
   var lastTime : real;
   timer.start();
@@ -353,7 +346,7 @@ if !isOptimized {
 
       // Coalesce duplicates if not using RDMA atomics; uses parallel radix sort (O(N))
       // then uses a simple insertion sort that just moves non-duplicates up.
-      if CHPL_NETWORK_ATOMICS == "none" && workQueue.size != 0 {
+      if workQueue.size != 0 {
         local {
           sort(workQueue.arr[0..#workQueue.size]);
           var lastValue = workQueue.arr[0];
@@ -376,14 +369,10 @@ if !isOptimized {
         var localWork : [LocaleSpace] Array(int);
         for idx in chunk {
           const vertex = workQueue[idx];
-          assert(A[vertex].locale == here, "Bad Vertrex: ", vertex, " on ", A[vertex].locale, " but expected ", here, " with domain ", workQueue.dom);
-          // If not RDMA atomics, check if current vertex has been visited.
-          if CHPL_NETWORK_ATOMICS != "none" || visited[vertex].testAndSet() == false {
+          // Check if current vertex has been visited.
+          if visited[vertex].testAndSet() == false {
             for neighbor in A[vertex] {
-              // If RDMA atomics, attempt to mark neighboring vertex.
-              if CHPL_NETWORK_ATOMICS == "none" || visited[neighbor].testAndSet() == false {
-                localWork[neighbor % numLocales].append(neighbor);
-              }
+              localWork[neighbor % numLocales].append(neighbor);
             }
           }
         }
