@@ -9,7 +9,7 @@ config const numEdgesPresent = true;
 config const printTiming = true;
 config const isOptimized = false;
 config const arrayGrowthRate = 1.5;
-config const aggregationThreshold = 64 * 1024;
+config const aggregationThreshold = 1024;
 
 iter roundRobin(dom) {
 
