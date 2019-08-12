@@ -142,6 +142,8 @@ var timer = new Timer();
 globalTimer.start();
 timer.start();
 
+// TODO: Perform two phases: First phase reads all offsets into task-local array,
+// next one reads from those offsets with a single reader (monotonically increasing order of offsets)
 try! {
   var f = open(dataset, iomode.r, style = new iostyle(binary=1));   
   var reader = f.reader();
@@ -169,57 +171,33 @@ try! {
     var dom = D.localSubdomain();
     coforall chunk in chunks(dom.low..dom.high by dom.stride align dom.alignment, here.maxTaskPar) {
       var reader = f.reader(locking=false);
-      // Open file again and skip to portion of file we want...
-      const headerOffset = if numEdgesPresent then 16 else 8;
-      var currentOffset = 0;
-      var offsets : [0..-1] (int, int, int);
-      var lastEndOffset : int;
       for idx in chunk {
-        const newOffset = headerOffset + idx * 8;
-        const oldOffset = currentOffset;
-        if newOffset > oldOffset {
-          reader.advance((headerOffset + idx * 8) - currentOffset);
-          currentOffset = headerOffset + idx * 8;
-        }
-        
+        reader.mark();
+        // Open file again and skip to portion of file we want...
+        const headerOffset = if numEdgesPresent then 16 else 8;
+        reader.advance(headerOffset + idx * 8);
+
         // Read our beginning and ending offset... since the ending is the next
         // offset minus one, we can just read it from the file and avoid
         // unnecessary communication with other nodes.
-        var beginOffset : int(64);
-        var endOffset : int(64);
-        if newOffset > oldOffset {
-          reader.read(beginOffset);
-        } else {
-          beginOffset = lastEndOffset + 1;
-        }
-
+        var beginOffset : uint(64);
+        var endOffset : uint(64);
+        reader.read(beginOffset);
         reader.read(endOffset);
         endOffset -= 1;
-        offsets.push_back((idx, beginOffset, endOffset));
-        currentOffset += 16;
-        lastEndOffset = endOffset;
-      }
 
-      const baseOffset = headerOffset + (numVertices:int + 1) * 8;
-      for (idx, start, end) in offsets {
         // Advance to current idx's offset...
-        var skip = (baseOffset + start * 8) - currentOffset;
-        assert(skip >= 0, "baseOffset=", baseOffset, " skip=", skip, ", start=", start, ", end=", end, ", currentOffset=", currentOffset);
-        reader.advance(skip);
-        currentOffset = baseOffset + start * 8;
-        const N = end - start + 1;
-        const NBytes = N * 8;
-        assert(N > 0, "N=", N, ", baseOffset=", baseOffset, " idx= ", idx, ", end=", end, ", start=", start);
+        var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
+        reader.advance(skip:int);
+
 
         // Pre-allocate buffer for vector and read directly into it
-        ref arr = A[idx];
-        arr.dom = {0..#N};
-        var ptr = c_ptrTo(arr.arr[0]);
-        reader.readBytes(ptr, NBytes : ssize_t);
-        arr.sz = arr.dom.size;
-        arr.cap = arr.dom.size;
-        sort(arr.arr);
-        currentOffset += NBytes;
+        A[idx].dom = {0..#(endOffset - beginOffset + 1)};
+        reader.readBytes(c_ptrTo(A[idx].arr), ((endOffset - beginOffset + 1) * 8) : ssize_t);
+        A[idx].sz = A[idx].dom.size;
+        A[idx].cap = A[idx].dom.size;
+        sort(A[idx].arr);
+        reader.revert();
       }
     }
     f.close();
@@ -241,7 +219,7 @@ if !isOptimized {
   // Push root vertex on queue.
   on A[0] do globalWork[globalWorkIdx].append(0);
   // Keep track of which vertices we have already visited.
-  var visited : [D] chpl__processorAtomicType(bool);
+  var visited : [D] atomic bool;
   var numPhases = 1;
   var lastTime : real;
   timer.start();
@@ -332,7 +310,7 @@ if !isOptimized {
   // Push root vertex on queue.
   on A[0] do globalWork[0].append(0);
   // Keep track of which vertices we have already visited.
-  var visited : [D] chpl__processorAtomicType(bool);
+  var visited : [D] atomic bool;
   var numPhases = 1;
   var lastTime : real;
   timer.start();
@@ -350,7 +328,7 @@ if !isOptimized {
       var sz = + reduce localCommMatrix[0..#numLocales, here.id].sz;
       if sz != 0 {
         workQueue.preallocate(sz);
-        var offset : chpl__processorAtomicType(int);
+        var offset : atomic int;
         forall buf in localCommMatrix[0..#numLocales, here.id] {
           var sz = buf.sz;
           if sz != 0 {
