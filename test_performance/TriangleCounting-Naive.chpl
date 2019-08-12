@@ -3,13 +3,33 @@ use CyclicDist;
 use Time;
 use Sort;
 use CommDiagnostics;
+use ReplicatedDist;
 
 config const dataset = "../data/ca-GrQc.mtx_csr.bin";
 config const numEdgesPresent = true;
 config const printTiming = true;
 config const isOptimized = false;
 config const arrayGrowthRate = 1.5;
-config const aggregationThreshold = 1024;
+
+pragma "no doc"
+pragma "default intent is ref"
+record Lock {
+  var _lock : chpl__processorAtomicType(bool);
+
+  inline proc acquire() {
+    on this do local {
+      if _lock.testAndSet() == true { 
+        while _lock.read() == true || _lock.testAndSet() == true {
+          chpl_task_yield();
+        }
+      }
+    }
+  }
+
+  inline proc release() {
+    on this do local do _lock.clear();
+  }
+}
 
 iter roundRobin(dom) {
 
@@ -79,6 +99,18 @@ proc _intersectionSize(A : [] ?t, B : [] t) {
   return match;
 }
 
+// A 'push-bashed' approach to triangle counting
+// Sends the source vertex as well as variable-length
+// buffer containing sink vertices. The goal is for
+// the destination to 'fetch' the sinks buffer,
+// get the source neighbor list (remote), 
+record WorkBuffer {
+  var source : int;
+  var sinks : c_ptr(int);
+  var numSinks : int;
+  var srcLocIdx : int;
+}
+
 pragma "default intent is ref"
 record Array {
   type eltType;
@@ -123,7 +155,7 @@ record Array {
     sz += otherSz;
   }
 
-  proc append(elt : int) {
+  proc append(elt : eltType) {
     local {
       if sz == cap {
         var oldCap = cap;
@@ -224,27 +256,65 @@ try! {
       }
     }
   } else {
-    forall v in roundRobin(A) with (+ reduce numTriangles) {
-      if A[v].size < aggregationThreshold || numLocales == 1 {
-        for u in A[v] do if v < u {
-          numTriangles += intersectionSize(A[v].arr, A[u].arr);
-        }
-      } else {
-        // Aggregate outgoing neighbor intersections
-        var work : [LocaleSpace] Array(int);
-        for u in A[v] do if v < u {
-          work[D.dist.idxToLocale(u).id].append(u);
-        }
-        coforall loc in Locales with (+ reduce numTriangles) do on loc {
-          var ourWork = work[here.id];
-          if ourWork.size != 0 {
-            var dom = {0..#A[v].size};
-            var arr : [dom] int = A[v].getArray();
-            for u in ourWork {
-              numTriangles += intersectionSize(arr, A[u].arr);
+    writeln("Beginning phase 1");
+    // Phase 1: Gather all work intended to be processed on each locale
+    var globalWorkDom = {0..0} dmapped Replicated();
+    var globalWork : [globalWorkDom] Array(WorkBuffer);
+    var globalWorkLock : [globalWorkDom] Lock;
+    coforall loc in Locales do on loc {
+      var localeLocks : [LocaleSpace] Lock;
+      var localeWork : [LocaleSpace] Array(WorkBuffer);
+      coforall chunk in chunks(D.low..D.high by D.stride align D.alignment, here.maxTaskPar) {
+        var localWork : [LocaleSpace] Array(WorkBuffer);
+        var scatterWork : [LocaleSpace] Array(int);
+        for v in chunk {
+          var _timer = new Timer();
+          _timer.start();
+          for u in A[v] do if v < u {
+            scatterWork[A[u].locale.id].append(u);
+          }
+          for (locidx, work) in zip(LocaleSpace, scatterWork) {
+            if work.size != 0 {
+              var workBuf = new WorkBuffer();
+              workBuf.source = v;
+              workBuf.srcLocIdx = here.id;
+              workBuf.numSinks = work.size;
+              workBuf.sinks = c_malloc(int, work.size);
+              c_memcpy(workBuf.sinks, c_ptrTo(work.arr[0]), work.size * 8);
+              localWork[locidx].append(workBuf);
             }
           }
+          for work in scatterWork do work.clear();
+          _timer.stop();
+          writeln("Spent ", _timer.elapsed(), " processing ", A[v].size, " neighbors");
+          _timer.clear();
         }
+        writeln("Finished chunk ", chunk);
+        for (_localWork, _localeWork, localeLock) in zip(localWork, localeWork, localeLocks) {
+          localeLock.acquire();
+          _localeWork.append(_localWork);
+          localeLock.release();
+        }
+      }
+      coforall loc in Locales do on loc {
+        writeln(here, " received ", localeWork[here.id].size, " units of work from ", localeWork.locale);
+        globalWorkLock[0].acquire();
+        globalWork[0].append(localeWork[here.id]);
+        globalWorkLock[0].release();
+      }
+    }
+    
+    writeln("Beginning phase 2 at ", timer.elapsed(), " seconds");
+    // Phase 2: Perform Triangle Count...
+    forall workBuf in globalWork[0] with (+ reduce numTriangles) {
+      const v = workBuf.source;
+      const sourceNeighborListSz = A[v].size;
+      var neighborListDom = {0..#sourceNeighborListSz};
+      var neighborList : [neighborListDom] int = A[v].arr;
+      var sinkList : [0..#workBuf.numSinks] int;
+      __primitive("chpl_comm_array_get", c_ptrTo(sinkList[0])[0], workBuf.srcLocIdx, workBuf.sinks[0], workBuf.numSinks);
+      for u in sinkList {
+        numTriangles += intersectionSize(neighborList, A[u].arr);
       }
     }
   }

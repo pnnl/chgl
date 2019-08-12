@@ -190,7 +190,6 @@ try! {
         var skip = ((numVertices - idx:uint - 1:uint) + beginOffset) * 8;
         reader.advance(skip:int);
 
-
         // Pre-allocate buffer for vector and read directly into it
         A[idx].dom = {0..#(endOffset - beginOffset + 1)};
         reader.readBytes(c_ptrTo(A[idx].arr), ((endOffset - beginOffset + 1) * 8) : ssize_t);
