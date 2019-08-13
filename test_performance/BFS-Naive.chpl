@@ -224,15 +224,9 @@ if !isOptimized {
   var lastTime : real;
   timer.start();
   while true {
-    if debugBFS {
-      var globalSize : int;
-      coforall loc in Locales with (+ reduce globalSize) do on loc {
-        globalSize += globalWork[globalWorkIdx].size;
-      }
-      writeln("Level #", numPhases, " has ", globalSize, " elements...");
-    }
+    var pendingWork : bool;
     // Spawn one task per locale; then consume all work from the work queue in parallel.
-    coforall loc in Locales do on loc {
+    coforall loc in Locales with (|| reduce pendingWork) do on loc {
       // Aggregate outgoing work...
       var localeLock : [LocaleSpace] Lock;
       var localeWork : [LocaleSpace] Array(int);
@@ -258,14 +252,14 @@ if !isOptimized {
         }
       }
       // Chunk up the work queue such that each task gets its own chunk
-      coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) {
+      coforall chunk in chunks(0..#workQueue.size, numChunks=here.maxTaskPar) with (|| reduce pendingWork) {
         // Aggregate outgoing work...
         var localWork : [LocaleSpace] Array(int);
-        for idx in chunk {
-          const vertex = workQueue[idx];
+        for v in workQueue[chunk] {
           // Check if current vertex has been visited.
-          if visited[vertex].testAndSet() == false {
-            for neighbor in A[vertex] {
+          if visited[v].testAndSet() == false {
+            pendingWork = true;
+            for neighbor in A[v] {
               localWork[neighbor % numLocales].append(neighbor);
             }
           }
@@ -289,13 +283,7 @@ if !isOptimized {
       globalWork[globalWorkIdx].clear();
     }
     globalWorkIdx = (globalWorkIdx + 1) % 2;
-    var currTime = timer.elapsed();
-    if debugBFS then writeln("Finished phase #", numPhases, " in ", currTime - lastTime, "s");
-    lastTime = currTime;
-    numPhases += 1;
-
-    var globalSize = + reduce globalWork.replicand(Locales)[globalWorkIdx].size;
-    if globalSize == 0 then break;
+    if !pendingWork then break;
   }
 } else {
   // Use aggregation via pre-allocated communication buffer to fetch purely via GET, no active message
