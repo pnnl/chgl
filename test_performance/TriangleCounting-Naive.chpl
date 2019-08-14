@@ -10,6 +10,9 @@ config const printTiming = true;
 config const isOptimized = false;
 config const arrayGrowthRate = 1.5;
 config const aggregationThreshold = 1024;
+config const parGranularity = 64;
+config const maxInnerTasks = here.maxTaskPar;
+config const ignoreRunning = true;
 
 iter roundRobin(dom) {
 
@@ -219,7 +222,7 @@ try! {
   var numTriangles : int;
   if !isOptimized {
     forall v in roundRobin(A) with (+ reduce numTriangles) {
-      for u in A[v] do if v < u {
+      forall u in A[v].arr.these(tasksPerLocale=maxInnerTasks, ignoreRunning=ignoreRunning, minIndicesPerTask=maxInnerTasks) with (+ reduce numTriangles) do if v < u {
         numTriangles += intersectionSize(A[v].arr, A[u].arr);
       }
     }
