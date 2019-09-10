@@ -29,11 +29,6 @@ pipeline {
                     sh 'ssh puma.pnl.gov "chmod 755 $CHGL_WORKSPACE/jenkins-build.sh"'
                     sh 'ssh puma.pnl.gov "bash -l -c $CHGL_WORKSPACE/jenkins-build.sh"'
                 }
-                sshagent (['250e32c1-122e-43f7-953d-46324a8501b9']) {
-                    // Get results back from puma.pnl.gov
-                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/Logs $WORKSPACE/test_performance'
-                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/dat $WORKSPACE/test_performance'
-                }
                 withCredentials([usernamePassword(credentialsId: 'bf9770c1-5df7-4d37-a800-10aff86fe0e0', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                     // Push CHGL performance graphs to gh-pages
                     sh '''
@@ -54,6 +49,11 @@ pipeline {
                         cd ../..
                         rm -rf tmp
                     '''
+                }
+                sshagent (['250e32c1-122e-43f7-953d-46324a8501b9']) {
+                    // Get results back from puma.pnl.gov
+                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/Logs $WORKSPACE/test_performance'
+                    sh 'scp -r puma.pnl.gov:$CHGL_WORKSPACE/test_performance/dat $WORKSPACE/test_performance'
                 }
             }
             post {
