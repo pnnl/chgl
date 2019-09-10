@@ -23,6 +23,7 @@ pipeline {
                         cd chgl-perf
                         cp *.dat $WORKSPACE/test_performance/dat/
                     '''
+                }
                 sshagent (['250e32c1-122e-43f7-953d-46324a8501b9']) {
                     // SSH to puma.pnl.gov and execute jenkins-build.sh
                     sh 'ssh puma.pnl.gov "chmod 755 $CHGL_WORKSPACE/jenkins-build.sh"'
