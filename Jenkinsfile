@@ -20,7 +20,7 @@ pipeline {
                         mkdir -p tmp
                         cd tmp
                         git clone -b dat-files https://github.com/pnnl/chgl-perf.git
-                        cd chgl-perf
+                        cd chgl-perf/dat-files
                         cp *.dat $WORKSPACE/test_performance/dat/
                     '''
                 }
@@ -40,11 +40,12 @@ pipeline {
                         #!/bin/sh -e
                         cd $WORKSPACE/test_performance/dat
                         cd tmp
-                        cd chgl-perf
+                        cd chgl-perf/dat-files
                         cp $WORKSPACE/test_performance/dat/*.dat .
                         git add -u
                         git commit -m "Dat files update"
                         git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/pnnl/chgl-perf.git
+                        cd ..
                         git checkout gh-pages
                         cp -ar $WORKSPACE/test_performance/dat/html/. .
                         git add .
