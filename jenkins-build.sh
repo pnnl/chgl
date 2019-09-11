@@ -21,7 +21,7 @@ export GASNET_BACKTRACE=1
 export CHPL_TEST_PERF_DIR=$WORKSPACE/test_performance/dat
 cd $WORKSPACE/test_performance
 rm -rf Logs
-start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test_performance/Logs/chapel-perf-tests.xml --test-root=$WORKSPACE/test_performance/ -numlocales 4
+start_test --performance -junit-xml -junit-xml-file $WORKSPACE/test_performance/Logs/chapel-perf-tests.xml -numlocales 4
 
 # Replace Chapel references with CHGL
 sed -i 's/Chapel Performance Graphs/CHGL Performance Graphs/g' $CHPL_TEST_PERF_DIR/html/index.html
