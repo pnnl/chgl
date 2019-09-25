@@ -1,0 +1,25 @@
+.. default-domain:: chpl
+
+.. module:: demo
+
+demo
+====
+**Usage**
+
+.. code-block:: chapel
+
+   use demo;
+
+.. data:: config const numVertices = 1024*1024
+
+   
+   Part 1: Global-View Distributed Data Structures
+
+.. data:: config const numEdges = 1024*1024*64
+
+.. data:: config const edgeProbability = 0.01
+
+.. data:: var hypergraph = new AdjListHyperGraph(numVertices, numEdges, new unmanaged Cyclic(startIdx = 0))
+
+.. data:: var timer = new Timer()
+

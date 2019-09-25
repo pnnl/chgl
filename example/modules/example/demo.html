@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>graphs &mdash; CHGL  documentation</title>
+  <title>demo &mdash; CHGL  documentation</title>
   
 
   
@@ -32,7 +32,8 @@
   
     <link rel="top" title="CHGL  documentation" href="../../../index.html"/>
         <link rel="up" title="Example Documentation" href="../../index.html"/>
-        <link rel="prev" title="demo" href="demo.html"/> 
+        <link rel="next" title="graphs" href="graphs.html"/>
+        <link rel="prev" title="activeDNS" href="activeDNS.html"/> 
 
   
   <script src="../../../_static/js/modernizr.min.js"></script>
@@ -93,8 +94,8 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Example Documentation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../../index.html">Example Documentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="activeDNS.html">activeDNS</a></li>
-<li class="toctree-l2"><a class="reference internal" href="demo.html">demo</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">graphs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">demo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graphs.html">graphs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../index.html#indices-and-tables">Indices and tables</a></li>
 </ul>
 </li>
@@ -130,11 +131,11 @@
       
           <li><a href="../../index.html">Example Documentation</a> &raquo;</li>
       
-    <li>graphs</li>
+    <li>demo</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="../../../_sources/example/modules/example/graphs.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/example/modules/example/demo.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -144,68 +145,36 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <span class="target" id="module-graphs"></span><div class="section" id="graphs">
-<h1>graphs<a class="headerlink" href="#graphs" title="Permalink to this headline">¶</a></h1>
+  <span class="target" id="module-demo"></span><div class="section" id="demo">
+<h1>demo<a class="headerlink" href="#demo" title="Permalink to this headline">¶</a></h1>
 <p><strong>Usage</strong></p>
-<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">graphs</span><span class="p">;</span>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">demo</span><span class="p">;</span>
 </pre></div>
 </div>
-<dl class="iterfunction">
-<dt id="graphs.distanceEdgeBFS">
-<em class="property">iter </em><code class="descname">distanceEdgeBFS</code><span class="sig-paren">(</span><em>graph</em>, <em>e: graph._value.eDescType</em>, <em>s = 1</em><span class="sig-paren">)</span>: (graph._value.eDescType, int)<a class="headerlink" href="#graphs.distanceEdgeBFS" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="data">
-<dt id="graphs.configFile">
-<em class="property">config const </em><code class="descname">configFile</code> = &quot;graph_examples/bipartite&quot;<a class="headerlink" href="#graphs.configFile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Configuration file (&#8216;configFile&#8217;) must be of the following format...</p>
-<p>The first line, the header, must contain the number of vertices, followed
-by a space, then the number of edges...</p>
-<p>[1-9]+ [1-9]+</p>
-<p>Followed by zero or more lines associating a vertex with an edge...</p>
-<p>[0-9]+ [0-9]+</p>
-<p>Example: 5 vertices, 5 edges...</p>
-<p>4 4
-0 1
-1 0
-2 2
-3 4
-4 3</p>
+<dt id="demo.numVertices">
+<em class="property">config const </em><code class="descname">numVertices</code> = 1024*1024<a class="headerlink" href="#demo.numVertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Part 1: Global-View Distributed Data Structures</p>
 </dd></dl>
 
 <dl class="data">
-<dt id="graphs.f">
-<em class="property">var </em><code class="descname">f</code> = AppendExpr.Call08<a class="headerlink" href="#graphs.f" title="Permalink to this definition">¶</a></dt>
+<dt id="demo.numEdges">
+<em class="property">config const </em><code class="descname">numEdges</code> = 1024*1024*64<a class="headerlink" href="#demo.numEdges" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
-<dt id="graphs.tmp">
-<em class="property">var </em><code class="descname">tmp</code>: string<a class="headerlink" href="#graphs.tmp" title="Permalink to this definition">¶</a></dt>
+<dt id="demo.edgeProbability">
+<em class="property">config const </em><code class="descname">edgeProbability</code> = 0.01<a class="headerlink" href="#demo.edgeProbability" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
-<dt id="graphs.arr">
-<em class="property">var </em><code class="descname">arr</code> = AppendExpr.Call08<a class="headerlink" href="#graphs.arr" title="Permalink to this definition">¶</a></dt>
+<dt id="demo.hypergraph">
+<em class="property">var </em><code class="descname">hypergraph</code> = new AdjListHyperGraph(numVertices, numEdges, new unmanaged Cyclic(startIdx = 0))<a class="headerlink" href="#demo.hypergraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
-<dt id="graphs.numVerts">
-<em class="property">var </em><code class="descname">numVerts</code> = arr(1): int<a class="headerlink" href="#graphs.numVerts" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="data">
-<dt id="graphs.numEdges">
-<em class="property">var </em><code class="descname">numEdges</code> = arr(2): int<a class="headerlink" href="#graphs.numEdges" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="data">
-<dt id="graphs.graph">
-<em class="property">var </em><code class="descname">graph</code> = new numVertsAdjListHyperGraphnumEdges<a class="headerlink" href="#graphs.graph" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="data">
-<dt id="graphs.maxEccentricity">
-<em class="property">var </em><code class="descname">maxEccentricity</code>: int<a class="headerlink" href="#graphs.maxEccentricity" title="Permalink to this definition">¶</a></dt>
+<dt id="demo.timer">
+<em class="property">var </em><code class="descname">timer</code> = new Timer()<a class="headerlink" href="#demo.timer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -217,8 +186,10 @@ by a space, then the number of edges...</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="graphs.html" class="btn btn-neutral float-right" title="graphs" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-        <a href="demo.html" class="btn btn-neutral" title="demo" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+        <a href="activeDNS.html" class="btn btn-neutral" title="activeDNS" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
