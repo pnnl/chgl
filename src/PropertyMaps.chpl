@@ -330,17 +330,8 @@ module PropertyMaps {
       if loc == here {
         if acquireLock then this.lock.acquire();
         if !this.keys.contains(property) {
-          writeln("SetAggregator Global Size: ", setAggregator.sizeGlobal());
           coforall loc in Locales do on loc {
             var _this = getPrivatizedInstance();
-            if _this.keys.contains(property) {
-              writeln(here, " contains ", property);
-            } else {
-              writeln(here, " does not contain ", property);
-            }
-          }
-          if this.keys.contains(property) {
-            writeln("Key is there now...");
           }
         }
         handle.set(this.values[property]);
