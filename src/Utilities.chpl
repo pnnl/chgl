@@ -408,8 +408,8 @@ proc get_nb(ref r1 : ?t1) : Future((t1,)) {
 
 
 // Random Number Generator utilities...
-var _globalIntRandomStream = makeRandomStream(int, parSafe=true);
-var _globalRealRandomStream = makeRandomStream(real, parSafe=true);
+var _globalIntRandomStream = createRandomStream(int, parSafe=true);
+var _globalRealRandomStream = createRandomStream(real, parSafe=true);
 
 proc randInt(low, high) {
   return _globalIntRandomStream.getNext(low, high);

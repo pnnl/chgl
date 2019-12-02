@@ -2,9 +2,10 @@
 /*
   TODO: Experiment with expanding buffer sizes
 */
-module AggregationBuffer {
+prototype module AggregationBuffer {
 
   use Time;
+  use IO;
   use Random;
 
   config const AggregatorMaxBuffers = -1;
@@ -16,7 +17,7 @@ module AggregationBuffer {
   pragma "always RVF"
   record Aggregator {
     type msgType;
-    var instance : unmanaged AggregatorImpl(msgType);
+    var instance : unmanaged AggregatorImpl(msgType)?;
     var pid = -1;
 
     proc init(type msgType, aggregatorBufferSize : int = AggregatorBufferSize, aggregatorMaxBuffers : int = AggregatorMaxBuffers) {
@@ -25,7 +26,7 @@ module AggregationBuffer {
       this.pid = this.instance.pid;
     }
 
-    proc init(type msgType, instance : unmanaged AggregatorImpl(msgType), pid : int) {
+    proc init(type msgType, instance : unmanaged AggregatorImpl(msgType)?, pid : int) {
       this.msgType = msgType;
       this.instance = instance;
       this.pid = pid;
@@ -65,9 +66,9 @@ module AggregationBuffer {
     type msgType;
     var lock$ : sync bool;
     // Head of list of all buffers that can be recycled.
-    var freeBufferList : unmanaged Buffer(msgType);
+    var freeBufferList : unmanaged Buffer(msgType)?;
     // Head of list of all allocated buffers.
-    var allocatedBufferList : unmanaged Buffer(msgType);
+    var allocatedBufferList : unmanaged Buffer(msgType)?;
     // Number of buffers that are available to be recycled...
     var numFreeBuffers : chpl__processorAtomicType(int);
     // Number of buffers that are currently allocated

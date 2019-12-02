@@ -750,8 +750,9 @@ record BagSegment {
   // Used as a test-and-test-and-set spinlock.
   var status : chpl__processorAtomicType(uint);
 
-  var headBlock : unmanaged BagSegmentBlock(eltType);
-  var tailBlock : unmanaged BagSegmentBlock(eltType);
+  // Both can be 'nil'
+  var headBlock : unmanaged BagSegmentBlock(eltType)?;
+  var tailBlock : unmanaged BagSegmentBlock(eltType)?;
 
   var nElems : chpl__processorAtomicType(uint);
 
@@ -951,6 +952,8 @@ record BagSegment {
     for elt in elts do addElements(elt);
   }
 }
+
+use VisualDebug;
 
 proc main() {
   startVdebug("WorkQueueVisual");
