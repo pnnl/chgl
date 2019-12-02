@@ -5,6 +5,7 @@ use Futures;
 use CommDiagnostics;
 use VisualDebug;
 use Memory;
+use IO;
 
 // Iterators for getting around issue with reduction on explicit 'coforall'
 iter forEachLocale() : int { halt("Serial iterator not implemented!"); }

@@ -3,6 +3,8 @@ use Time;
 use Regexp;
 use FileSystem;
 
+writeln("Hello World");
+
 /*
   The Regular Expression used for searching for IP Addresses.
 */
