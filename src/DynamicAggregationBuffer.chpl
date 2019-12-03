@@ -5,7 +5,7 @@
   called, data never gets sent, but it opens the possibility of the user creating
   their own background progress task.
 */
-module DynamicAggregationBuffer {
+prototype module DynamicAggregationBuffer {
   use AggregationBuffer;
 
   proc UninitializedDynamicAggregator(type msgType) return new DynamicAggregator(msgType, instance=nil, pid=-1);
@@ -14,7 +14,7 @@ module DynamicAggregationBuffer {
   record DynamicAggregator {
     type msgType;
     var pid = -1;
-    var instance : unmanaged DynamicAggregatorImpl(msgType);
+    var instance : unmanaged DynamicAggregatorImpl(msgType)?;
 
     proc init(type msgType) {
       this.msgType = msgType;
@@ -23,13 +23,13 @@ module DynamicAggregationBuffer {
       this.instance = instance;
     }
 
-    proc init(type msgType, instance : unmanaged DynamicAggregatorImpl(msgType), pid : int) {
+    proc init(type msgType, instance : unmanaged DynamicAggregatorImpl(msgType)?, pid : int) {
       this.msgType = msgType;
       this.pid = pid;
       this.instance = instance;
     }
 
-    proc init(other) {
+    proc init=(other) {
       this.msgType = other.msgType;
       this.pid = other.pid;
       this.instance = other.instance;
@@ -168,7 +168,7 @@ module DynamicAggregationBuffer {
       }
     }
 
-    iter flushLocal() : (DynamicBuffer(msgType), locale) {
+    iter flushLocal() : (unmanaged DynamicBuffer(msgType), locale) {
      for (buf, loc) in agg.flushLocal() {
         dynamicDestBuffers[loc.id].append(buf.getArray());
         buf.done();
@@ -190,11 +190,11 @@ module DynamicAggregationBuffer {
       }
     }
 
-    iter flushGlobal() : (DynamicBuffer(msgType), locale) {
+    iter flushGlobal() : (unmanaged DynamicBuffer(msgType), locale) {
       halt("Serial 'flush' not implemented, use 'forall'...");
     }
      
-    iter flushGlobal(param tag : iterKind) : (DynamicBuffer(msgType), locale) where tag == iterKind.standalone {
+    iter flushGlobal(param tag : iterKind) : (unmanaged DynamicBuffer(msgType), locale) where tag == iterKind.standalone {
       // Flush aggregator first...
       forall (buf, loc) in agg.flushGlobal() {
         getPrivatizedInstance().dynamicDestBuffers[loc.id].append(buf.getArray());
