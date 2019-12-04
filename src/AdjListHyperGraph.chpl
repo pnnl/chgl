@@ -35,7 +35,7 @@
     var graph = new AdjListHyperGraph(propertyMap, new Cyclic(startIdx=0));
  
 */
-module AdjListHyperGraph {
+prototype module AdjListHyperGraph {
   use IO;
   use CyclicDist;
   use LinkedLists;
@@ -2288,7 +2288,7 @@ module AdjListHyperGraph {
     // but is currently being processed remotely (maybe have a counter
     // determining how many tasks are still processing the buffer), so
     // that user knows when all operations have finished/termination detection.
-    inline proc emptyBuffer(buffer : unmanaged Buffer, loc : locale) {
+    inline proc emptyBuffer(buffer : unmanaged Buffer?, loc : locale) {
       on loc {
         var buf = buffer.getArray();
         buffer.done();

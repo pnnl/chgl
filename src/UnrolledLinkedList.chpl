@@ -4,14 +4,14 @@ class UnrollBlock {
 	var end : int;
 	var start : int;
 	var data : c_array(eltType, cap);
-	var next : unmanaged UnrollBlock(eltType, cap);
+	var next : unmanaged UnrollBlock(eltType, cap)?;
 }
 
 record UnrolledLinkedList {
 	type eltType;
 	param unrollBlockSize : int;
-    var sz : int;
-	var head : unmanaged UnrollBlock(eltType, unrollBlockSize);
+    	var sz : int;
+	var head : unmanaged UnrollBlock(eltType, unrollBlockSize)?;
 	proc init(type eltType, param unrollBlockSize : int) {
 		this.eltType = eltType;
 		this.unrollBlockSize = unrollBlockSize;

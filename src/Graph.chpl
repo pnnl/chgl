@@ -4,7 +4,7 @@
  support simple 'addEdge(v1,v2)' and 'forall (v1, v2) in graph.getEdges()'; everything else
  should be forwarded to the underlying Hypergraph.
 */
-module Graph {
+prototype module Graph {
   use AdjListHyperGraph;
   use Utilities;
   use AggregationBuffer;

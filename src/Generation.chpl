@@ -1,4 +1,4 @@
-module Generation {
+prototype module Generation {
 
   use IO;
   use AdjListHyperGraph;
@@ -7,6 +7,7 @@ module Generation {
   use CyclicDist;
   use BlockDist;
   use Math;
+  use WorkQueue;
   use Sort;
   use Search;
 

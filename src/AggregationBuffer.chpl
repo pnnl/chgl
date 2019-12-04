@@ -349,7 +349,7 @@ prototype module AggregationBuffer {
       return sz;
     }
 
-    proc aggregate(msg : msgType, loc : locale) : unmanaged Buffer(msgType) {
+    proc aggregate(msg : msgType, loc : locale) : unmanaged Buffer(msgType)? {
       return aggregate(msg, loc.id);
     }
     
