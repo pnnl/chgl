@@ -177,13 +177,14 @@ prototype module AdjListHyperGraph {
       return chpl_getPrivatizedCopy(instance.type, pid);
     }
 
+
     /*
       Create a new hypergraph with the desired number of vertices and edges. 
       Uses the 'DefaultDist', which is normally the shared-memory 'DefaultRectangularDist'.
     */
-    proc init(numVertices : integral, numEdges : integral) {
+    proc init(numVertices : integral, numEdges : integral, param distributeVertices : bool = true, param distributeEdges : bool = true) {
       var dist = new unmanaged DefaultDist();
-      init(numVertices, numEdges, dist, dist);
+      init(numVertices, numEdges, dist, dist, distributeVertices, distributeEdges);
     }
 
     /*
@@ -259,12 +260,14 @@ prototype module AdjListHyperGraph {
       // Number of edges
       numEdges : integral,
       // Distribution of vertices
-      verticesMappings, 
+      verticesMappings,
       // Distribution of edges
-      edgesMappings
+      edgesMappings,
+      param distributeVertices : bool = true,
+      param distributeEdges : bool = true
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
-        numVertices, numEdges, verticesMappings, edgesMappings
+        numVertices, numEdges, verticesMappings, edgesMappings, distributeVertices, distributeEdges
       );
       pid = instance.pid;
     }
@@ -906,7 +909,8 @@ prototype module AdjListHyperGraph {
     /*
       The main initializer; all other initializers should call this after filling out the appropriate parameters.
     */
-    proc init(numVertices : int, vPropMap : PropertyMap(?vPropType), vertexMappings, numEdges : int,  ePropMap : PropertyMap(?ePropType), edgeMappings) {
+    proc init(numVertices : int, vPropMap : PropertyMap(?vPropType), vertexMappings, numEdges : int,  ePropMap : PropertyMap(?ePropType), edgeMappings,
+      param distributeVertices: bool = true, param distributeEdges: bool = true) {
       // Ensure that arguments are non-negative
       if numVertices < 0 { 
         halt("numVertices must be between 0..", max(int(64)), " but got ", numVertices);
@@ -917,9 +921,16 @@ prototype module AdjListHyperGraph {
       
       // Initialize vertices and edges domain; once `this.complete()` is invoked, the
       // array itself will also be initialized.
-      this._verticesDomain = {0..#numVertices} dmapped new dmap(vertexMappings);
-      this._edgesDomain = {0..#numEdges} dmapped new dmap(edgeMappings);
-      
+       if (distributeVertices) {
+      	 this._verticesDomain = newCyclicDom({0..#numVertices});
+      } else {
+      	this._verticesDomain = {0..#numVertices};
+      }
+      if (distributeEdges) {
+      	 this._edgesDomain = newCyclicDom({0..#numEdges});
+      } else {
+         this._edgesDomain = {0..#numEdges};
+      }
       this._vPropType = vPropType;
       this._ePropType = ePropType;
       this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType), 64 * 1024);
@@ -947,11 +958,11 @@ prototype module AdjListHyperGraph {
 
 
     pragma "no doc"
-    proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings) {
+    proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings, param distributeVertices: bool = true, param distributeEdges: bool = true) {
       const pmap = UninitializedPropertyMap(bool);
-      init(numVertices, pmap, vertexMappings, numEdges, pmap, edgeMappings);
+      init(numVertices, pmap, vertexMappings, numEdges, pmap, edgeMappings, distributeVertices, distributeEdges);
     }
-
+    
     pragma "no doc"
     proc init(vPropertyMap : PropertyMap(?vPropType), vertexMappings, numEdges = 0, edgeMappings) {
       const pmap = UninitializedPropertyMap(bool);
