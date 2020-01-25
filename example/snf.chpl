@@ -117,34 +117,39 @@ proc add_to_column(M,i,j,ci = 1, cj = 1, mod = 2) {
   return N;
 }
 
-proc matmultmod (M, N, mod =2) {
+proc matmultmod2 (M, N, mod = 2) {
   var nr = M.domain.high(1);
   var nc = N.domain.high(2);
   var m  = M.domain.high(2); 
-  var C = [1..nr, 1..nc] int;
+  var C : [1..nr, 1..nc] atomic int;
 
   forall i in 1..nr {
     for j in 1..nc {
-      C[i,j] = (+ reduce A[i, 1..m] * B[1..m, j]) % 2 ;
+      C[i,j].write((+ reduce M[i, 1..m] * N[1..m, j]) % 2) ;
     }
   }
-
+  return C.read();
 }
 
-proc matmultmod2 (M, N, mod =2) {
-  var C : [M.dim(1), N.dim(2)] int;
+proc matmultmod3 (M, N, mod = 2) {
+  var C : [M.domain.dim(1), N.domain.dim(2)] atomic int;
   forall (i,j) in C.domain {
-    C[i,j] = (+ reduce A[i, M.dim(2)] * B[M.dim(2), j]) % 2 ;
+    C[i,j].write((+ reduce M[i, M.domain.dim(2)] * N[M.domain.dim(2), j]) % 2);
   }
+  return C.read();
 }
 
-/*proc modmult(M, N, mod =2 ) {
- return matmultmod(M, N, mod);
- }*/
+proc matmultmod (M, N, mod =2) {
+  var C : [M.domain.dim(1), N.domain.dim(2)] int;
+  forall (i,j) in C.domain {
+    C[i,j] = (+ reduce (M[i, M.domain.dim(2)] * N[M.domain.dim(2), j])) % 2;
+  }
+  return C;
+}
 
 type listType = list(unmanaged Matrix2D?, true);
 proc matmulreduce(arr : listType, reverse = false, mod = 2) {
-  var P = arr(0);
+  var P = arr(0)._arr;
   if (reverse) {
     for i in arr.size..1 by -1 {
       P = matmultmod(P, arr(i)._arr);
@@ -220,6 +225,6 @@ for s in 1..minDim {
     Linv.append(RM);
   }
 
-  Linv = matmulreduce(Linv,mod=mod);
-  Rinv = matmulreduce(Rinv,reverse=True,mod=mod);
+  var LinvF = matmulreduce(Linv);
+  var RinvF = matmulreduce(Rinv, true, 2);
 }
