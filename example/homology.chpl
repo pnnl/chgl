@@ -382,6 +382,8 @@ proc IdentityMatrix(n) {
 
 proc swap_rows(M, i, j) { M[i, ..] <=> M[j, ..]; }
 proc swap_cols(M, i, j) { M[.., i] <=> M[.., j]; }
+proc add_to_row(M,x,k,s) {M[x, ..] += k * M[s, ..]; M[x, ..] = M[x, ..] % 2; }
+proc add_to_column(M,x,k,s){M[.., x] += k * M[.., s]; M[.., x] = M[.., x] % 2;}
 
 proc change_sign_row(M) { M[x, ..] = -M[x, ..]; }
 proc change_sign_col(M) {M[.., x] = -M[.., x];}

@@ -132,13 +132,15 @@ proc matmultmod (M, N, mod =2) {
 
 type listType = list(unmanaged Matrix2D?, true);
 proc matmulreduce(arr : listType, reverse = false, mod = 2) {
-  var P = arr(1)._arr;
+  var P : [arr(1)._arr._dom] int;
   if (reverse) {
-    for i in arr.size..1 by -1 {
+    P = arr(arr.size)._arr;
+    for i in 1..#arr.size - 1 by -1 {
       P = matmultmod(P, arr(i)._arr);
     }
   } else {
-    for i in 1..arr.size {
+    P = arr(1)._arr;
+    for i in 2..arr.size {
       P = matmultmod(P, arr(i)._arr);
     }
   }
