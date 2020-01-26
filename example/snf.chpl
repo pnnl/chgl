@@ -1,4 +1,4 @@
-var b: [1..6, 1..11] int;
+var b: [1..7, 1..11] int;
 b(1,1) = 1;
 b(1,2) = 1;
 b(1,3) = 1;
@@ -13,13 +13,14 @@ b[4,3] = 1;
 b[4,7] = 1;
 b[4,8] = 1;
 b[4,9] = 1;
-b[5,4] = 1;
-b[5,8] = 1;
 b[5,10] = 1;
-b[5, 11] = 1;
-b[6,5] = 1;
-b[6,9] = 1;
+b[6,4] = 1;
+b[6,8] = 1;
+b[6,10] = 1;
 b[6,11] = 1;
+b[7,5] = 1;
+b[7,9] = 1;
+b[7,11] = 1;
 /*var b1 = 
       [[1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
        [1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
@@ -29,18 +30,21 @@ b[6,11] = 1;
        [0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1],
        [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1]];*/
 
-compilerWarning(b.type :string);
+// compilerWarning(b.type :string);
 
-
-for i in {1..6} {
-  for j in {1..11} {
-    write(b(i,j):string + " ");
+proc printmatrix(M) {
+  for i in {1..M.domain.high(1)} {
+    for j in {1..M.domain.high(2)} {
+      write(M(i,j):string + " ");
+    }
+    writeln();
   }
-  writeln();
 }
 
+
 proc IdentityMatrix(n) {
-  var A : [1..n, 1..n] int = 1;
+  var A : [1..n, 1..n] int;
+  [i in A.domain.dim(1)] A[i,i] = 1;
   return A;
 }
 
@@ -69,27 +73,6 @@ proc _get_next_pivot(M,s) {
   return (-1,-1); // TODO: return
 }
 
-var dims = b.domain.high;
-var dimL = dims(1);
-var dimR = dims(2);
-var minDim = if dimL <= dimR then dimL else dimR;
- 
-writeln(dimL : string ); // dims give me the index set but I need the max value of the index set
-writeln(minDim);
-
-
-var S  = b;
-var IL = IdentityMatrix(dimL);
-var IR = IdentityMatrix(dimR);
-
-var Linv = new list(unmanaged Matrix2D?, true); // listOfMatrixTransformation
-var Rinv = new list(unmanaged Matrix2D?, true); // listOfMatrixTransformation
-
-var L = IL;
-var R = IR;
-
-var rc = _get_next_pivot(b, 3);
-writeln(rc : string);
 
 proc swap_rows(i, j, M) {  
   var N = M;
@@ -104,16 +87,16 @@ proc swap_columns(i, j, M) {
 }
 
 // Replaces row i (of M) with sum ri multiple of ith row and rj multiple of jth row
-proc add_to_row(M,i,j,ri = 1, rj = 1, mod = 2) {
+proc add_to_row(M, i, j, ri = 1, rj = 1, mod = 2) {
   var N = M;
-  N[i, ..]  = (ri * N[i, ..] + rj * N[j, ..]) % 2;
+  N[i, ..]  = (ri * N[i, ..] + rj * N[j, ..]) % mod;
   return N;
 }
 
 
-proc add_to_column(M,i,j,ci = 1, cj = 1, mod = 2) {
+proc add_to_column(M, i, j, ci = 1, cj = 1, mod = 2) {
   var N = M;
-  N[.., i]  = (ci * N[.., i] + cj * N[..,j]) % 2;
+  N[.., i]  = (ci * N[.., i] + cj * N[..,j]) % mod;
   return N;
 }
 
@@ -149,7 +132,7 @@ proc matmultmod (M, N, mod =2) {
 
 type listType = list(unmanaged Matrix2D?, true);
 proc matmulreduce(arr : listType, reverse = false, mod = 2) {
-  var P = arr(0)._arr;
+  var P = arr(1)._arr;
   if (reverse) {
     for i in arr.size..1 by -1 {
       P = matmultmod(P, arr(i)._arr);
@@ -161,11 +144,49 @@ proc matmulreduce(arr : listType, reverse = false, mod = 2) {
   }
   return P;
 
-} 
+}
+
+printmatrix(b);
+
+var dims = b.domain.high;
+var dimL = dims(1);
+var dimR = dims(2);
+var minDim = if dimL <= dimR then dimL else dimR;
+ 
+// writeln(dimL : string ); // dims give me the index set but I need the max value of the index set
+// writeln(minDim);
+
+var S  = b;
+var IL = IdentityMatrix(dimL);
+var IR = IdentityMatrix(dimR);
+
+var Linv = new list(unmanaged Matrix2D?, true); // listOfMatrixTransformation
+var Rinv = new list(unmanaged Matrix2D?, true); // listOfMatrixTransformation
+
+var Linit = new unmanaged Matrix2D(IL.domain.high(1), IL.domain.high(2));
+Linit._arr = IL;
+Linv.append(Linit);
+var Rinit = new unmanaged Matrix2D(IR.domain.high(1), IR.domain.high(2));
+Rinit._arr = IR;
+Rinv.append(Rinit);
+
+var L = IL;
+var R = IR;
+
+/* writeln("###############"); */
+/* writeln("L:"); */
+/* printmatrix(L); */
+/* writeln("###############"); */
+/* writeln("R:"); */
+/* printmatrix(R); */
+
+// var rc = _get_next_pivot(b, 3);
+// writeln(rc : string);
+
 
 writeln("########");
 for s in 1..minDim {
-  writeln(s : string);
+  writeln("Iteration: " +  s : string);
   var pivot = _get_next_pivot(S,s);
   var rdx : int, cdx : int;
   if (pivot(1) == -1 && pivot(2) == -1) {
@@ -190,7 +211,7 @@ for s in 1..minDim {
     var tmp = swap_columns(s, cdx, IR);
     var RM = new unmanaged Matrix2D(tmp.domain.high(1), tmp.domain.high(2));
     RM._arr = tmp;
-    Linv.append(RM); 
+    Rinv.append(RM); 
   }
 
   // add sth row to every nonzero row & sth column to every nonzero column
@@ -217,14 +238,31 @@ for s in 1..minDim {
  
   for (jdx,cdx) in zip(1..,column_indices) {// TODO: check
     // writeln("rdx: " + rdx : string);
-    S = add_to_row(S, cdx, s);
-    R = add_to_row(R, cdx, s);
+    S = add_to_column(S, cdx, s);
+    R = add_to_column(R, cdx, s);
     var tmp = add_to_column(IR, cdx, s);
     var RM = new unmanaged Matrix2D(tmp.domain.high(1), tmp.domain.high(2));
     RM._arr = tmp;
-    Linv.append(RM);
+    Rinv.append(RM);
   }
-
-  var LinvF = matmulreduce(Linv);
-  var RinvF = matmulreduce(Rinv, true, 2);
 }
+
+writeln("###############");
+writeln("L:");
+printmatrix(L);
+writeln("###############");
+writeln("R:");
+printmatrix(R);
+writeln("###############");
+writeln("S:");
+printmatrix(S);
+
+var LinvF = matmulreduce(Linv);
+var RinvF = matmulreduce(Rinv, true, 2);
+writeln("###############");
+writeln("Linv:");
+printmatrix(LinvF);
+writeln("###############");
+writeln("Rinv:");
+printmatrix(RinvF);
+
