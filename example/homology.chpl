@@ -266,7 +266,7 @@ for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
 	j = j + 1;
 	if (st == Sk_1Cell) {
 	  writeln(st :string + "matches");
-	  boundaryMap[i, j] = 1;
+	  boundaryMap.matrix[i, j] = 1;
 	  break;
 	}
       }
