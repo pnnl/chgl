@@ -266,46 +266,27 @@ for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
 	j = j + 1;
 	if (st == Sk_1Cell) {
 	  writeln(st :string + "matches");
-	  boundaryMap.matrix[i, j] = 1;
+	  boundaryMap.matrix[j, i] = 1;
 	  break;
 	}
       }
     }
-    /* for c in _setContent do */
-    /*   writeln(c); */
-    /* for Sk_1Cell in arrayOfK_1Cells { */
-    /*   var k_1Cell = Sk_1Cell.split(" "); */
-    /*   for c in _setContent { */
-    /*   	for k_1 in k_1Cell { */
-    /* 	  if (k_1 == c) { */
-    /* 	    boundaryMap[] */
-    /* 	  } */
-    /* 	} */
-    /*   } */
-    /* } */
-      // doProcessVertices()
-    /* for kk in kCell { */
-    /*   compilerWarning(kk.type :string); */
-    /*    writeln("kk:" + kk :string); */
-    /* } */
-    /* compilerWarning(kCell.type : string); */
-    /* for Sk_1Cell in arrayOfK_1Cells { */
-    /*   var k_1Cell = Sk_1Cell.split(" "); */
-    /*   for kk in k_1Cell { */
-    /* 	var (found, Pos) = binarySearch(kCell, kk, comparator=absComparator); */
-    /* 	if (found) { */
-    /* 	  writeln(kk : string + " was found in: " + kCell); */
-    /* 	} */
-    /*   } */
-    /*   writeln("Considering combination: " , kCell : string + " and "  + k_1Cell :string); */
-    /*   /\* var position = kCell.find(k_1Cell); *\/ */
-    /*   /\* if (position != 0) { *\/ */
-    /*   /\* 	writeln(k_1Cell: string + " Occurs at position: " + position : string); *\/ */
-    /*   /\* } *\/ */
-    /* } */
   }
   writeln("$$$$$$$$$$$");
 }
 
+proc printBoundaryMap(boundaryMap) {
+  var row : int = boundaryMap.matrix.domain.high(1);
+  var col : int = boundaryMap.matrix.domain.high(2);
+  for i in 1..row {
+    for j in 1..col {
+      write(boundaryMap.matrix[i, j] : string + " ");
+    }
+    writeln();
+  }
+}
 
-
+for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
+  writeln("Printing boundary map for: " : string + dimension_k_1 : string + " " :string + dimension_k : string);
+  printBoundaryMap(boundaryMap);
+}
