@@ -25,6 +25,8 @@ use Search;
 /* writeln("Removing duplicates: ", hypergraph.removeDuplicates()); */
 /* hypergraph.removeDuplicates(); */
 
+/*TODO: move all constants to the top of your file and all declarations of types as well. */
+
 var hypergraph = new AdjListHyperGraph(4, 1, new unmanaged Cyclic(startIdx=0));
 for v in hypergraph.getVertices() do hypergraph.addInclusion(v, 0);
 
@@ -55,7 +57,7 @@ proc doProcessVertices (verticesSet) {
     return;
   } else if (verticesSet.size == 1) {
     var verticesStr = stringify(verticesSet);
-    if !_vtxSubsetSet.contains(verticesStr) {
+    if !_vtxSubsetSet.contains(verticesStr) { // TODO: redundant?
       _vtxSubsetSet.add(verticesStr);
     }
   } else {
@@ -106,6 +108,11 @@ class kCellsArray{
   proc init(_N: int) {
     numKCells = _N;
   }
+  proc findCellIndex(s :string) {
+    for k in A {
+      
+    }
+  }
 }
 
 var numBins = kCellMap.size - 1;
@@ -131,6 +138,12 @@ var absComparator: Comparator;
 
 
 // sort(Array, comparator=absComparator);
+/*TODO: change the following loop as follows:*/
+/*forall k in 0..K {
+  kCellsArrayMap[k] = new owned kCellsArray(k + 1);
+  kCellsArrayMap[k].A = kCellMap[k + 1].toArray(); 
+  sort(kCellsArrayMap[k].A, comparator=absComparator);
+}*/
 
 writeln("%%%%%%%%%%%%%");
 // Leader-follower iterator
@@ -148,8 +161,17 @@ for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
 }
 writeln("%%%%%%%%%%%%%");
 
+// TODO: change the following:
+/*
+for (_kCellsArray, idx) in (kCellsArrayMap, 1..K) {
+  writeln((_kCellsArray.A, idx) : string);
+}
+*/
 writeln("Printing after sorting");
 writeln("^^^^^^^^^^^^^^^^^^^^^^^");
+/* for (_kCellsArray, idx) in zip(kCellsArrayMap, 1..numBins) { */
+/*   writeln((_kCellsArray.A, idx) : string); */
+/* } */
 for _kCellsArray in kCellsArrayMap {
   writeln(_kCellsArray.A : string);
 }
@@ -220,32 +242,47 @@ writeln("####");
 for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
   var arrayOfKCells  = kCellsArrayMap[dimension_k].A; // Arrays of strings, each string being 1 kcell
   var arrayOfK_1Cells = kCellsArrayMap[dimension_k_1].A;
+  compilerWarning(arrayOfK_1Cells.type : string);
   writeln("$$$$$$$$$$$");
   writeln(arrayOfKCells);
   writeln(arrayOfK_1Cells);
   writeln("$$$$$$$$$$$");
+  var i : int = 0;
+  var j : int = 0;
   for SkCell in arrayOfKCells { // iterate through all the k-cells
+    i = i + 1;
     /* Generate permutation of the current k-Cell*/
-    compilerWarning(SkCell.type : string);
+    // compilerWarning(SkCell.type : string);
     var kCell = SkCell.split(" ") : int;
-    compilerWarning(kCell.type : string);
+    // compilerWarning(kCell.type : string);
     writeln("#kcell: " + kCell :string);
-    vs.clear();
-    doProcessVertices2(kCell);
-    var _setContent = vs.toArray();
-    writeln("Combinations generated ": string);
-    for c in _setContent do
-      writeln(c);
-    for Sk_1Cell in arrayOfK_1Cells {
-      var k_1Cell = Sk_1Cell.split(" ");
-      for c in _setContent {
-      	for k_1 in k_1Cell {
-	  if (k_1 == c) {
-	    
-	  }
+    /* writeln("Combinations generated ": string); */
+    for sc in processVtxSubset(kCell) {
+      compilerWarning(sc.type : string);
+      writeln(sc);
+      var st = stringify(sc);
+      j = 0;
+      for Sk_1Cell in arrayOfK_1Cells {
+	j = j + 1;
+	if (st == Sk_1Cell) {
+	  writeln(st :string + "matches");
+	  boundaryMap[i, j] = 1;
+	  break;
 	}
       }
     }
+    /* for c in _setContent do */
+    /*   writeln(c); */
+    /* for Sk_1Cell in arrayOfK_1Cells { */
+    /*   var k_1Cell = Sk_1Cell.split(" "); */
+    /*   for c in _setContent { */
+    /*   	for k_1 in k_1Cell { */
+    /* 	  if (k_1 == c) { */
+    /* 	    boundaryMap[] */
+    /* 	  } */
+    /* 	} */
+    /*   } */
+    /* } */
       // doProcessVertices()
     /* for kk in kCell { */
     /*   compilerWarning(kk.type :string); */
