@@ -8,7 +8,7 @@ services:
 jobs:
   include:
     - script: |
-        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git chapel/chapel:1.20.0 /bin/bash -c '
+        docker run -it -v ${TRAVIS_BUILD_DIR}:/repo.git -w /repo.git chapel/chapel-gasnet:1.20.0 /bin/bash -c '
         pushd $CHPL_HOME
         . util/setchplenv.sh
         popd
