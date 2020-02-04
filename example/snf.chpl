@@ -152,20 +152,29 @@ proc matmultmod (M, N, mod =2) {
 
 type listType = list(unmanaged Matrix2D?, true);
 proc matmulreduce(arr : listType, reverse = false, mod = 2) {
-  var P : [arr(1)._arr._dom] int;
+  var PD: domain(2) = {1..arr(1)._arr.domain.high(1), 1..arr(1)._arr.domain.high(2)}; 
+  var P : [PD] int;
   if (reverse) {
+    PD = {1..arr(arr.size)._arr.domain.high(1), 1..arr(arr.size)._arr.domain.high(2)};
     P = arr(arr.size)._arr;
     for i in 1..#arr.size - 1 by -1 {
-      P = matmultmod(P, arr(i)._arr);
+      var tempD : domain(2) = {1..P.domain.high(1), 1..arr(i)._arr.domain.high(2)};
+      var temp : [tempD] int;
+      temp = matmultmod(P, arr(i)._arr);
+      PD = tempD;
+      P = temp;
     }
   } else {
     P = arr(1)._arr;
     for i in 2..arr.size {
-      P = matmultmod(P, arr(i)._arr);
+      var tempD : domain(2) = {1..P.domain.high(1), 1..arr(i)._arr.domain.high(2)};
+      var temp : [tempD] int; 
+      temp = matmultmod(P, arr(i)._arr);
+      PD = tempD;
+      P = temp;
     }
   }
   return P;
-
 }
 
 // rank calculation:
@@ -316,6 +325,10 @@ writeln("###############");
 writeln("ker1:");
 printmatrix(ker1);
 
+writeln("###############");
+writeln("L2:");
+printmatrix(L2);
+
 var LKernel = new list(unmanaged Matrix2D?, true);
 
 var _L2 = new unmanaged Matrix2D(L2.domain.high(1), L2.domain.high(2));
@@ -325,6 +338,9 @@ LKernel.append(_L2);
 var _ker1 = new unmanaged Matrix2D(ker1.domain.high(1), ker1.domain.high(2));
 _ker1._arr = ker1;
 LKernel.append(_ker1);
+
+writeln("L2 dimension: " + L2.domain.high(1) :string + "X" + L2.domain.high(2):string);
+writeln("ker1 dimension: " + ker1.domain.high(1) :string + "X" + ker1.domain.high(2):string);
 
 var result =  matmulreduce(LKernel);
 writeln("###############");
