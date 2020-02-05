@@ -254,18 +254,19 @@ prototype module Graph {
           for u in vec do yield (hg.toVertex(v),u);
         }
       } else {
-        forall e in hg.getEdges() {
-          var sz = hg.getEdge(e).size.read();
+      	 forall e in hg.getEdges() {
+          var __this = getPrivatizedInstance();
+          var sz = __this.hg.getEdge(e).size.read();
           if sz > 2 {
-            halt("Edge ", e, " is has more than two vertices: ", hg.getEdge(e).incident);
+            halt("Edge ", e, " is has more than two vertices: ", __this.hg.getEdge(e).incident);
           }
           if sz == 0 {
             continue;
           }
 
-          yield (hg.toVertex(hg.getEdge(e).incident[0]), hg.toVertex(hg.getEdge(e).incident[1]));
+          yield (__this.hg.toVertex(__this.hg.getEdge(e).incident[0]), __this.hg.toVertex(__this.hg.getEdge(e).incident[1]));
         }
-      }    
+      }
     }
 
     // Return neighbors of a vertex 'v'

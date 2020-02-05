@@ -44,16 +44,16 @@ module Butterfly {
     :rtype: array of int(64)
   
     */
-  proc AdjListHyperGraphImpl.getVertexButterflies() {
-    var butterfliesDom = verticesDomain;
+  proc getVertexButterflies(graph: AdjListHyperGraph) {
+    var butterfliesDom = graph.verticesDomain;
     var butterflies : [butterfliesDom] atomic int(64);
 
     // Look for the pattern (v -> u -> w)
-    forall v in getVertices() {
+    forall v in graph.getVertices() {
       // A two-hop neighbor of v would be w iff (v -> u -> w)
-      var twoHopNeighbors : [verticesDomain] atomic int(64);
-      forall u in incidence(v) {
-        forall w in incidence(u) {
+      var twoHopNeighbors : [graph.verticesDomain] atomic int(64);
+      forall u in graph.incidence(v) {
+        forall w in graph.incidence(u) {
           if w.id != v.id {
             twoHopNeighbors[w.id].fetchAdd(1);
           }
@@ -319,14 +319,14 @@ module Butterfly {
   :returns: An array of range 0..N where N is the highest edge ID int the AdjListHyperGraph object
   :rtype: array of int(64)
   */
-  proc AdjListHyperGraphImpl.getEdgeButterflies() {
-    var butterflies : [edgesDomain] atomic int(64);
+  proc getEdgeButterflies(graph: AdjListHyperGraph) {
+    var butterflies : [graph.edgesDomain] atomic int(64);
     
     // Look for pattern (e -> u -> w)
-    forall e in getEdges() {
-      var twoHopNeighbors : [edgesDomain] atomic int(64);
-      forall u in incidence(e) {
-        forall w in incidence(u) {    
+    forall e in graph.getEdges() {
+      var twoHopNeighbors : [graph.edgesDomain] atomic int(64);
+      forall u in graph.incidence(e) {
+        forall w in graph.incidence(u) {    
           if w.id != e.id {
             twoHopNeighbors[w.id].fetchAdd(1);
           }
@@ -351,14 +351,14 @@ module Butterfly {
   :returns: An array of range 0..n where n is the highest ID of all vertices in the AdjListHyperGraph object
   :rtype: array of int(64)
   */
-  proc AdjListHyperGraphImpl.getVertexCaterpillars() {
-    var caterpillarsDomain = verticesDomain;
+  proc getVertexCaterpillars(graph: AdjListHyperGraph) {
+    var caterpillarsDomain = graph.verticesDomain;
     var caterpillars : [caterpillarsDomain] int(64);
-    forall v in getVertices() {
-      var twoHopNeighbors : [verticesDomain] atomic int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
+    forall v in graph.getVertices() {
+      var twoHopNeighbors : [graph.verticesDomain] atomic int(64); //this is C[w] in the paper, which is the number of distinct distance-two paths that connect v and w
       //C[w] is equivalent to the number of edges that v and w are both connected to
-      forall u in incidence(v) {
-        forall w in incidence(u) {
+      forall u in graph.incidence(v) {
+        forall w in graph.incidence(u) {
           if w.id != v.id {
             twoHopNeighbors[w.id].fetchAdd(1);
             twoHopNeighbors[v.id].fetchAdd(1); //if this is added then all caterpillars including this vertex will be included in the count
@@ -380,18 +380,18 @@ module Butterfly {
     return  caterpillars;
   }
 
-  /* Calcuates the number of 3-cycles that include each edge
+  /* Calculates the number of 3-cycles that include each edge
   
   :returns: An array of range 0..n where n is the highest ID of all edges in the AdjListHyperGraph object
   :rtype: array of int(64)
   */
-  proc AdjListHyperGraphImpl.getEdgeCaterpillars() {
-    var caterpillars : [edgesDomain] int(64);
+  proc getEdgeCaterpillars(graph : AdjListHyperGraph) {
+    var caterpillars : [graph.edgesDomain] int(64);
     
-    forall e in getEdges() {
-      var twoHopNeighbors : [edgesDomain] atomic int(64); 
-      forall u in incidence(e) {
-        forall w in incidence(u) {
+    forall e in graph.getEdges() {
+      var twoHopNeighbors : [graph.edgesDomain] atomic int(64); 
+      forall u in graph.incidence(e) {
+        forall w in graph.incidence(u) {
           if w.id != e.id {
             twoHopNeighbors[w.id].fetchAdd(1);
             twoHopNeighbors[e.id].fetchAdd(1); //if this is added then all caterpillars including this edge will be included in the count
