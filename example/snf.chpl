@@ -295,35 +295,52 @@ proc smithNormalForm(b) {
 
 var computedMatrices = smithNormalForm(b);
 var computedMatrices2 = smithNormalForm(c);
+var L1 = computedMatrices(1);
+var R1 = computedMatrices(2);
+var S1 = computedMatrices(3);
+var L1invF = computedMatrices(4);
+var R1invF = computedMatrices(5);
 var L2 = computedMatrices2(1);
-var L = computedMatrices(1);
-var R = computedMatrices(2);
-var S = computedMatrices(3);
-var LinvF = computedMatrices(4);
-var RinvF = computedMatrices(5);
+var R2 = computedMatrices2(2);
+var S2 = computedMatrices2(3);
+var L2invF = computedMatrices2(4);
+var R2invF = computedMatrices2(5);
 writeln("###############");
-writeln("L:");
-printmatrix(L);
+writeln("L1:");
+printmatrix(L1);
 writeln("###############");
-writeln("R:");
-printmatrix(R);
+writeln("R1:");
+printmatrix(R1);
 writeln("###############");
-writeln("S:");
-printmatrix(S);
+writeln("S1:");
+printmatrix(S1);
 writeln("###############");
-writeln("Linv:");
-printmatrix(LinvF);
+writeln("L1inv:");
+printmatrix(L1invF);
 writeln("###############");
-writeln("Rinv:");
-printmatrix(RinvF);
+writeln("R1inv:");
+printmatrix(R1invF);
 
-var r = calculateRank(S);
-writeln("Rank of S: " + r  : string);
-var nr = R.domain.high(2) - r;
-var ker1 :[1..R.domain.high(1), 1..nr] int = R[..,r+1..];
+var rank1 = calculateRank(S1);
+writeln("Rank of S1: " + rank1  : string);
+var rank2 = calculateRank(S2);
+writeln("Rank of S2: " + rank2  : string);
+var nullity1 = S1.domain.high(2) - rank1;
+var betti1 = S1.domain.high(2) - rank1 - rank2;
+var cokernel2_dim = S1.domain.high(2) - rank2;
+
+var nr1 = R1.domain.high(2) - rank1;
+var ker1 : [1..R1.domain.high(1), 1..nr1] int = R1[..,rank1+1..];
 writeln("###############");
 writeln("ker1:");
 printmatrix(ker1);
+
+//     im2 = L2inv[:,:rank2]
+var im2 : [1..L2invF.domain.high(1), 1..rank2] int = L2invF[..,1..rank2];
+var nr2 = L2invF.domain.high(2) - rank2;
+var cokernel2 : [1..L2invF.domain.high(1), 1..nr2] int = L2invF[..,rank2 + 1..];
+
+ 
 
 writeln("###############");
 writeln("L2:");
@@ -343,6 +360,8 @@ writeln("L2 dimension: " + L2.domain.high(1) :string + "X" + L2.domain.high(2):s
 writeln("ker1 dimension: " + ker1.domain.high(1) :string + "X" + ker1.domain.high(2):string);
 
 var result =  matmulreduce(LKernel);
+var slc = result.domain.high(1) - rank2;
+var proj : [1..slc, 1..result.domain.high(2)] int = result[rank2 + 1..,..];
 writeln("###############");
-writeln("Product:");
-printmatrix(result);
+writeln("Projection1:");
+printmatrix(proj);
