@@ -1,4 +1,4 @@
-module Butterfly {
+prototype module Butterfly {
   use AdjListHyperGraph;
   
   /* Calculates the maximum number of inclusions that the AdjListHyperGraph object can contain without duplicates
