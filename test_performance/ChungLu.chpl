@@ -1,7 +1,7 @@
 use AdjListHyperGraph;
 use CommDiagnostics;
 use VisualDebug;
-use Generation;
+use CHGL;
 use Time;
 
 /* Performance Test for ChungLu algorithm */

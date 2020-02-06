@@ -268,7 +268,7 @@ prototype module AdjListHyperGraph {
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
         numVertices, numEdges, verticesMappings, edgesMappings, distributeVertices, distributeEdges
-      );
+      )?;
       pid = instance.pid;
     }
 
@@ -284,7 +284,7 @@ prototype module AdjListHyperGraph {
     proc init(vPropMap : PropertyMap(?vPropType), vertexMappings, numEdges, edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         vPropMap, vertexMappings, numEdges, edgeMappings
-      );
+      )?;
       pid = instance.pid;
     }
 
@@ -301,7 +301,7 @@ prototype module AdjListHyperGraph {
     proc init(numVertices, vertexMappings, ePropMap : PropertyMap(?ePropType), edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         numVertices, vertexMappings, ePropMap, edgeMappings
-      );
+      )?;
       pid = instance.pid;
     }
 
@@ -318,7 +318,7 @@ prototype module AdjListHyperGraph {
     proc init(vPropMap : PropertyMap(?vPropType), vertexMappings, ePropMap : PropertyMap(?ePropType), edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         vPropMap, vertexMappings, ePropMap, edgeMappings
-      );
+      )?;
       pid = instance.pid;
     }
 
@@ -336,7 +336,7 @@ prototype module AdjListHyperGraph {
     // Code that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
     pragma "no doc"
     proc clone(other : this.type) {
-      instance = new unmanaged AdjListHyperGraphImpl(other._value);
+      instance = new unmanaged AdjListHyperGraphImpl(other._value)?;
       pid = instance.pid;
     }
     

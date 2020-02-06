@@ -1,7 +1,7 @@
 /*
   Compilation of common metrics to be performed on hypergraphs or graphs.
 */
-module Metrics {
+prototype module Metrics {
   use CHGL;
   use Vectors;
   use Utilities;
