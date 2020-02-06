@@ -81,7 +81,7 @@ t.clear();
 t.start();
 graph.startAggregation();
 // Aggregate fetching of keys
-var handles = new owned Vector((unmanaged PropertyHandle, unmanaged PropertyHandle));
+var handles = new owned Vector((unmanaged PropertyHandle?, unmanaged PropertyHandle?));
 for line in getLines(dataset) {
   var attrs = line.split(",");
   var qname = attrs[1];
