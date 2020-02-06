@@ -9,6 +9,7 @@ WORKSPACE=/lustre/jenkins/chgl-workspace
 export MODULEPATH=/home/firo017/softwares/modules:$MODULEPATH
 export CHPL_COMM=gasnet
 export CHPL_COMM_SUBSTRATE=ibv
+export CHPL_LAUNCHER=slurm-gasnetrun_ibv
 source util/setchplenv.bash
 module load gcc/8.2.0
 module load openmpi/3.1.3
