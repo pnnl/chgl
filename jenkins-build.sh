@@ -7,6 +7,9 @@ WORKSPACE=/lustre/jenkins/chgl-workspace
 
 # Load required modules
 export MODULEPATH=/home/firo017/softwares/modules:$MODULEPATH
+export CHPL_COMM=gasnet
+export CHPL_COMM_SUBSTRATE=ibv
+source util/setchplenv.bash
 module load gcc/8.2.0
 module load openmpi/3.1.3
 module load clang/8.0.1 
