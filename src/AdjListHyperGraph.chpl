@@ -1392,6 +1392,7 @@ prototype module AdjListHyperGraph {
       [dup in duplicateVertices] dup.write(-1);
       var newVerticesDomain = __verticesDomain;
       var vertexMappings : [__verticesDomain] int = -1;
+      var dummyNode = new unmanaged NodeData(eDescType, _vPropType);
 
       //writeln("Collapsing Vertices...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current vertex
@@ -1438,7 +1439,7 @@ prototype module AdjListHyperGraph {
           numUnique += 1;
           for follower in eqclass.getCandidates(leader) {
             delete _vertices[follower];
-            _vertices[follower] = nil;
+            _vertices[follower] = dummyNode;
             duplicateVertices[follower].write(leader);
           }
         }
@@ -1461,7 +1462,7 @@ prototype module AdjListHyperGraph {
         if Debug.ALHG_DEBUG {
           forall v in _verticesDomain {
             var vv = v;
-            while _vertices[vv] == nil {
+            while _vertices[vv] == dummyNode {
               vv = duplicateVertices[vv].read();
               assert(vv != -1, "A vertex is nil without a duplicate mapping...");
             }
@@ -1478,7 +1479,7 @@ prototype module AdjListHyperGraph {
               writeln("Broken Dual!");
               var vvv = v;
               write("Link: ", toVertex(v));
-              while _vertices[vvv] == nil {
+              while _vertices[vvv] == dummyNode {
                 vvv = duplicateVertices[vvv].read();
                 write(" -> ", toVertex(vvv));
               }
@@ -1513,7 +1514,7 @@ prototype module AdjListHyperGraph {
         // array; hence, try to first claim indices that are local in _both_ new and old arrays.
         var idx : atomic int;
         forall v in oldVertices.domain {
-          if oldVertices[v] != nil {
+          if oldVertices[v] != dummyNode {
             // TODO
             // When no RDMA atomics are supported, this will have _massive_ communication costs
             // Possibly want to perform explicit `coforall` and create explicit tasks on each
@@ -1531,7 +1532,7 @@ prototype module AdjListHyperGraph {
               delete oldVertices[v];
             }
 
-            oldVertices[v] = nil;
+            oldVertices[v] = dummyNode;
             vertexMappings[v] = ix;
           }
         }
@@ -1602,7 +1603,7 @@ prototype module AdjListHyperGraph {
       [dup in duplicateEdges] dup.write(-1);
       var newEdgesDomain = __edgesDomain;
       var edgeMappings : [__edgesDomain] int = -1;
-
+      var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
       
 
       //writeln("Collapsing Edges...");
@@ -1640,7 +1641,7 @@ prototype module AdjListHyperGraph {
           numUnique += 1;
           for follower in eqclass.getCandidates(leader) {
             delete _edges[follower];
-            _edges[follower] = nil;
+            _edges[follower] = dummyEdge;
             duplicateEdges[follower].write(leader);
           }
         }
@@ -1662,7 +1663,7 @@ prototype module AdjListHyperGraph {
         if Debug.ALHG_DEBUG {
           forall e in _edgesDomain {
             var ee = e;
-            while _edges[ee] == nil {
+            while _edges[ee] == dummyEdge {
               ee = duplicateEdges[ee].read();
               assert(ee != -1, "An edge is nil without a duplicate mapping...");
             }
@@ -1680,7 +1681,7 @@ prototype module AdjListHyperGraph {
               writeln("Broken Dual!");
               var eee = e;
               write("Link: ", toEdge(e));
-              while _edges[eee] == nil {
+              while _edges[eee] == dummyEdge {
                 eee = duplicateEdges[eee].read();
                 write(" -> ", toEdge(eee));
               }
@@ -1707,7 +1708,7 @@ prototype module AdjListHyperGraph {
       {
         var idx : atomic int;
         forall e in oldEdges.domain {
-          if oldEdges[e] != nil {
+          if oldEdges[e] != dummyEdge {
             var ix = idx.fetchAdd(1);
             
             if oldEdges[e].locale == _edges[ix].locale {
@@ -1717,7 +1718,7 @@ prototype module AdjListHyperGraph {
               delete oldEdges[e];
             }
             
-            oldEdges[e] = nil;
+            oldEdges[e] = dummyEdge;
             edgeMappings[e] = ix;
           }
         }
@@ -1786,6 +1787,7 @@ prototype module AdjListHyperGraph {
       [toplex in toplexEdges] toplex.write(-1);
       var newEdgesDomain = __edgesDomain;
       var edgeMappings : [__edgesDomain] int = -1;
+      var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
 
       writeln("Collapsing Subset...");
       {
@@ -1830,7 +1832,7 @@ prototype module AdjListHyperGraph {
         forall e in _edgesDomain with (+ reduce numToplex) {
           if toplexEdges[e].read() != -1 {
             delete _edges[e];
-            _edges[e] = nil;
+            _edges[e] = dummyEdge;
           } else {
             numToplex += 1;
           }
@@ -1856,7 +1858,7 @@ prototype module AdjListHyperGraph {
       {
         var idx : atomic int;
         forall e in oldEdges.domain {
-          if oldEdges[e] != nil {
+          if oldEdges[e] != dummyEdge {
             var ix = idx.fetchAdd(1);
             
             if oldEdges[e].locale == _edges[ix].locale {
@@ -1866,7 +1868,7 @@ prototype module AdjListHyperGraph {
               delete oldEdges[e];
             }
             
-            oldEdges[e] = nil;
+            oldEdges[e] = dummyEdge;
             edgeMappings[e] = ix;
           }
         }
@@ -2023,6 +2025,8 @@ prototype module AdjListHyperGraph {
       hyperedges. Returns the number of isolated components.
     */
     proc removeIsolatedComponents() : int {
+      var dummyNode = new unmanaged NodeData(eDescType, _vPropType);
+      var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
         // Cannot jump and return as return type is inferred by compiler.
@@ -2046,11 +2050,11 @@ prototype module AdjListHyperGraph {
             if nn == 1 {
               if _this._ePropMap.isInitialized then _this._ePropMap.setProperty(_this.getEdge(e).property, -1);
               delete _this.getEdge(e);
-              _this.getEdge(e) = nil;
+              _this.getEdge(e) = dummyEdge;
               
               if _this._vPropMap.isInitialized then _this._vPropMap.setProperty(_this.getVertex(v).property, -1);
               delete _this.getVertex(v);
-              _this.getVertex(v) = nil;
+              _this.getVertex(v) = dummyNode;
               
               numIsolatedComponents += 1;
             }
@@ -2095,7 +2099,7 @@ prototype module AdjListHyperGraph {
               delete oldVertices[v];
             }
 
-            oldVertices[v] = nil;
+            oldVertices[v] = dummyNode;
             vertexMappings[v] = ix;
           }
         }
@@ -2116,7 +2120,7 @@ prototype module AdjListHyperGraph {
               delete oldEdges[e];
             }
             
-            oldEdges[e] = nil;
+            oldEdges[e] = dummyEdge;
             edgeMappings[e] = ix;
           }
         }

@@ -287,7 +287,7 @@ prototype module PropertyMaps {
       }
     }
 
-    proc _flushGetAggregatorBuffer(buf : Buffer, loc : locale, param acquireLock = true) {
+    proc _flushGetAggregatorBuffer(buf : Buffer?, loc : locale, param acquireLock = true) {
       // Obtain separate array of properties and handles; we need to isolate properties
       // so we can do a bulk-transfer on the other locales.
       var arr = buf.getArray();
@@ -295,7 +295,7 @@ prototype module PropertyMaps {
       const arrSz = arr.size;
       var properties : [0..#arrSz] propertyType;
       var keys : [0..#arrSz] int;
-      var handles : [0..#arrSz] unmanaged PropertyHandle;
+      var handles : [0..#arrSz] unmanaged PropertyHandle?;
       forall ((prop, hndle), _prop, _hndle) in zip(arr, properties, handles) {
         _prop = prop;
         _hndle = hndle;
