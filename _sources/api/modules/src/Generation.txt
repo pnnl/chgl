@@ -40,13 +40,13 @@ Generation
 
 .. record:: DynamicArray
 
-   .. attribute:: var dom = {0..-1}
+   .. attribute:: var dom = {0..0}
 
    .. attribute:: var arr: [dom] int
 
    .. method:: proc init()
 
-   .. method:: proc init(other)
+   .. method:: proc init=(other)
 
    .. method:: proc this(idx: integral) const ref
 

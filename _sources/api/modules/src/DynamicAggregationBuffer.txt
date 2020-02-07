@@ -26,13 +26,13 @@ their own background progress task.
 
    .. attribute:: var pid = -1
 
-   .. attribute:: var instance: unmanaged DynamicAggregatorImpl(msgType)
+   .. attribute:: var instance: unmanaged nilable DynamicAggregatorImpl(msgType)
 
    .. method:: proc init(type msgType)
 
-   .. method:: proc init(type msgType, instance: unmanaged DynamicAggregatorImpl(msgType), pid: int)
+   .. method:: proc init(type msgType, instance: unmanaged nilable DynamicAggregatorImpl(msgType), pid: int)
 
-   .. method:: proc init(other)
+   .. method:: proc init=(other)
 
    .. method:: proc destroy()
 
@@ -90,11 +90,11 @@ their own background progress task.
 
    .. method:: proc aggregate(msg: msgType, locid: int): void
 
-   .. itermethod:: iter flushLocal(): (DynamicBuffer(msgType), locale)
+   .. itermethod:: iter flushLocal(): (unmanaged DynamicBuffer(msgType), locale)
 
    .. itermethod:: iter flushLocal(param tag: iterKind)
 
-   .. itermethod:: iter flushGlobal(): (DynamicBuffer(msgType), locale)
+   .. itermethod:: iter flushGlobal(): (unmanaged DynamicBuffer(msgType), locale)
 
-   .. itermethod:: iter flushGlobal(param tag: iterKind): (DynamicBuffer(msgType), locale)
+   .. itermethod:: iter flushGlobal(param tag: iterKind): (unmanaged DynamicBuffer(msgType), locale)
 

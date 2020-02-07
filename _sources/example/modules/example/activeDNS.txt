@@ -142,7 +142,7 @@ activeDNS
 
 .. data:: var graph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx = 0))
 
-.. data:: var handleWQ = new (unmanaged PropertyHandle, unmanaged PropertyHandle)WorkQueue64*1024
+.. data:: var handleWQ = new (unmanaged nilable PropertyHandle, unmanaged nilable PropertyHandle)WorkQueue64*1024
 
 .. data:: var handleTD = new TerminationDetector()
 

@@ -225,7 +225,7 @@ This will result in severe communication overhead.</p>
 <a class="reference internal" href="#AdjListHyperGraph.AdjListHyperGraphImpl" title="AdjListHyperGraph.AdjListHyperGraphImpl"><code class="xref chpl chpl-class docutils literal"><span class="pre">AdjListHyperGraphImpl</span></code></a>.</p>
 <dl class="method">
 <dt id="AdjListHyperGraph.AdjListHyperGraph.init">
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraph.init" title="Permalink to this definition">¶</a></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>param distributeVertices: bool = true</em>, <em>param distributeEdges: bool = true</em><span class="sig-paren">)</span><a class="headerlink" href="#AdjListHyperGraph.AdjListHyperGraph.init" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a new hypergraph with the desired number of vertices and edges.
 Uses the &#8216;DefaultDist&#8217;, which is normally the shared-memory &#8216;DefaultRectangularDist&#8217;.</p>
 </dd></dl>
@@ -279,7 +279,7 @@ the same distribution.</p>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>verticesMappings</em>, <em>edgesMappings</em><span class="sig-paren">)</span></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>numVertices: integral</em>, <em>numEdges: integral</em>, <em>verticesMappings</em>, <em>edgesMappings</em>, <em>param distributeVertices: bool = true</em>, <em>param distributeEdges: bool = true</em><span class="sig-paren">)</span></dt>
 <dd><p>Create a new hypergraph with the desired number of vertices and edges, and with
 their respective desired distributions.</p>
 <table class="docutils field-list" frame="void" rules="none">

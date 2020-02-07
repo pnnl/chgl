@@ -22,7 +22,7 @@ UnrolledLinkedList
 
    .. attribute:: var data: eltTypec_arraycap
 
-   .. attribute:: var next: unmanaged eltTypeUnrollBlockcap
+   .. attribute:: var next: unmanaged nilable eltTypeUnrollBlockcap
 
 .. record:: UnrolledLinkedList
 
@@ -32,7 +32,7 @@ UnrolledLinkedList
 
    .. attribute:: var sz: int
 
-   .. attribute:: var head: unmanaged eltTypeUnrollBlockunrollBlockSize
+   .. attribute:: var head: unmanaged nilable eltTypeUnrollBlockunrollBlockSize
 
    .. method:: proc init(type eltType, param unrollBlockSize: int)
 

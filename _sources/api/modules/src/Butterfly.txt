@@ -31,7 +31,7 @@ Butterfly
    :rtype: boolean
    
 
-.. method:: proc AdjListHyperGraphImpl.getVertexButterflies()
+.. function:: proc getVertexButterflies(graph: AdjListHyperGraph)
 
    Counts the number of 4-cycles for each vertex and stores that number as an int(64) in an array under the ID of that vertex
    
@@ -194,7 +194,7 @@ Butterfly
    :rtype: array of int(64)
    
 
-.. method:: proc AdjListHyperGraphImpl.getEdgeButterflies()
+.. function:: proc getEdgeButterflies(graph: AdjListHyperGraph)
 
    Counts the number of 4-cycles for each edge and stores that number as an int(64) in an array under the ID of that edge
    
@@ -202,7 +202,7 @@ Butterfly
    :rtype: array of int(64)
    
 
-.. method:: proc AdjListHyperGraphImpl.getVertexCaterpillars()
+.. function:: proc getVertexCaterpillars(graph: AdjListHyperGraph)
 
    Calcuates the number of 3-cycles that include each vertex
    
@@ -210,9 +210,9 @@ Butterfly
    :rtype: array of int(64)
    
 
-.. method:: proc AdjListHyperGraphImpl.getEdgeCaterpillars()
+.. function:: proc getEdgeCaterpillars(graph: AdjListHyperGraph)
 
-   Calcuates the number of 3-cycles that include each edge
+   Calculates the number of 3-cycles that include each edge
    
    :returns: An array of range 0..n where n is the highest ID of all edges in the AdjListHyperGraph object
    :rtype: array of int(64)

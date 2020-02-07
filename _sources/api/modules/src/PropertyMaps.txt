@@ -84,7 +84,7 @@ PropertyMaps
 
    .. method:: proc setProperty(property: propertyType, id: int, param aggregated = false, param acquireLock = true)
 
-   .. method:: proc _flushGetAggregatorBuffer(buf: Buffer, loc: locale, param acquireLock = true)
+   .. method:: proc _flushGetAggregatorBuffer(buf: nilable Buffer, loc: locale, param acquireLock = true)
 
    .. method:: proc getPropertyAsync(property: propertyType, param acquireLock = true): unmanaged PropertyHandle
 

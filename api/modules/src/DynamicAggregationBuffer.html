@@ -195,7 +195,7 @@ their own background progress task.</p>
 
 <dl class="attribute">
 <dt id="DynamicAggregationBuffer.DynamicAggregator.instance">
-<em class="property">var </em><code class="descname">instance</code>: unmanaged DynamicAggregatorImpl(msgType)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator.instance" title="Permalink to this definition">¶</a></dt>
+<em class="property">var </em><code class="descname">instance</code>: unmanaged nilable DynamicAggregatorImpl(msgType)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator.instance" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -205,12 +205,12 @@ their own background progress task.</p>
 
 <dl class="method">
 <dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em>, <em>instance: unmanaged DynamicAggregatorImpl(msgType)</em>, <em>pid: int</em><span class="sig-paren">)</span></dt>
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>type msgType</em>, <em>instance: unmanaged nilable DynamicAggregatorImpl(msgType)</em>, <em>pid: int</em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt>
-<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span></dt>
+<dt id="DynamicAggregationBuffer.DynamicAggregator.init=">
+<em class="property">proc </em><code class="descname">init=</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregator.init=" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -355,7 +355,7 @@ their own background progress task.</p>
 
 <dl class="itermethod">
 <dt id="DynamicAggregationBuffer.DynamicAggregatorImpl.flushLocal">
-<em class="property">iter </em><code class="descname">flushLocal</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (DynamicBuffer(msgType), locale)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregatorImpl.flushLocal" title="Permalink to this definition">¶</a></dt>
+<em class="property">iter </em><code class="descname">flushLocal</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (unmanaged DynamicBuffer(msgType), locale)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregatorImpl.flushLocal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="itermethod">
@@ -365,12 +365,12 @@ their own background progress task.</p>
 
 <dl class="itermethod">
 <dt id="DynamicAggregationBuffer.DynamicAggregatorImpl.flushGlobal">
-<em class="property">iter </em><code class="descname">flushGlobal</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (DynamicBuffer(msgType), locale)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregatorImpl.flushGlobal" title="Permalink to this definition">¶</a></dt>
+<em class="property">iter </em><code class="descname">flushGlobal</code><span class="sig-paren">(</span><span class="sig-paren">)</span>: (unmanaged DynamicBuffer(msgType), locale)<a class="headerlink" href="#DynamicAggregationBuffer.DynamicAggregatorImpl.flushGlobal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="itermethod">
 <dt>
-<em class="property">iter </em><code class="descname">flushGlobal</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span>: (DynamicBuffer(msgType), locale)</dt>
+<em class="property">iter </em><code class="descname">flushGlobal</code><span class="sig-paren">(</span><em>param tag: iterKind</em><span class="sig-paren">)</span>: (unmanaged DynamicBuffer(msgType), locale)</dt>
 <dd></dd></dl>
 
 </dd></dl>

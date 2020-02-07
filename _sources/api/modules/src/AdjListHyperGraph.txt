@@ -70,7 +70,7 @@ There are a few ways to create a :record:`AdjListHyperGraph`
    
 
 
-   .. method:: proc init(numVertices: integral, numEdges: integral)
+   .. method:: proc init(numVertices: integral, numEdges: integral, param distributeVertices: bool = true, param distributeEdges: bool = true)
 
       
       Create a new hypergraph with the desired number of vertices and edges. 
@@ -124,7 +124,7 @@ There are a few ways to create a :record:`AdjListHyperGraph`
       Create a hypergraph with a edge and vertex property map with the same distribution.
       
 
-   .. method:: proc init(numVertices: integral, numEdges: integral, verticesMappings, edgesMappings)
+   .. method:: proc init(numVertices: integral, numEdges: integral, verticesMappings, edgesMappings, param distributeVertices: bool = true, param distributeEdges: bool = true)
 
       
       Create a new hypergraph with the desired number of vertices and edges, and with

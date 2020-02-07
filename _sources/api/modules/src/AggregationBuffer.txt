@@ -26,15 +26,15 @@ TODO: Experiment with expanding buffer sizes
 
    .. attribute:: type msgType
 
-   .. attribute:: var instance: unmanaged AggregatorImpl(msgType)
+   .. attribute:: var instance: unmanaged nilable AggregatorImpl(msgType)
 
    .. attribute:: var pid = -1
 
    .. method:: proc init(type msgType, aggregatorBufferSize: int = AggregatorBufferSize, aggregatorMaxBuffers: int = AggregatorMaxBuffers)
 
-   .. method:: proc init(type msgType, instance: unmanaged AggregatorImpl(msgType), pid: int)
+   .. method:: proc init(type msgType, instance: unmanaged nilable AggregatorImpl(msgType), pid: int)
 
-   .. method:: proc init(other)
+   .. method:: proc init=(other)
 
    .. method:: proc destroy()
 
@@ -114,9 +114,9 @@ TODO: Experiment with expanding buffer sizes
 
    .. method:: proc sizeGlobal()
 
-   .. method:: proc aggregate(msg: msgType, loc: locale): unmanaged Buffer(msgType)
+   .. method:: proc aggregate(msg: msgType, loc: locale): unmanaged nilable Buffer(msgType)
 
-   .. method:: proc aggregate(msg: msgType, locid: int): unmanaged Buffer(msgType)
+   .. method:: proc aggregate(msg: msgType, locid: int): unmanaged nilable Buffer(msgType)
 
    .. itermethod:: iter flushGlobal(targetLocales = Locales): (unmanaged Buffer(msgType), locale)
 
