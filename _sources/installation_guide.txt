@@ -26,7 +26,7 @@ details).
 ====== ============== ======================================== =================
 Name   Version        Download Location                        Country of Origin
 ====== ============== ======================================== =================
-Chapel Release 1.19.0 https://github.com/chapel-lang/chapel    USA              
+Chapel Release 1.20.0 https://github.com/chapel-lang/chapel    USA              
 ====== ============== ======================================== =================
 
 Distribution Files
