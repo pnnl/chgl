@@ -671,7 +671,7 @@ class BagSegmentBlock {
 
   // Contiguous memory containing all elements
   var elems :  _ddata(eltType);
-  var next : unmanaged BagSegmentBlock(eltType);
+  var next : unmanaged BagSegmentBlock(eltType)?;
 
   // The capacity of this block.
   var cap : int;
@@ -747,8 +747,8 @@ record BagSegment {
   // Used as a test-and-test-and-set spinlock.
   var status : chpl__processorAtomicType(uint);
 
-  var headBlock : unmanaged BagSegmentBlock(eltType);
-  var tailBlock : unmanaged BagSegmentBlock(eltType);
+  var headBlock : unmanaged BagSegmentBlock(eltType)?;
+  var tailBlock : unmanaged BagSegmentBlock(eltType)?;
 
   var nElems : chpl__processorAtomicType(uint);
 

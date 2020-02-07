@@ -378,7 +378,7 @@ wq.flush();
 // Aggregate fetches to properties into another work queue; when we flush
 // each of the property maps, their individual PropertyHandle will be finished.
 // Also send the 'String' so that it can be reclaimed.
-var handleWQ = new WorkQueue((unmanaged PropertyHandle, unmanaged PropertyHandle), 64 * 1024);
+var handleWQ = new WorkQueue((unmanaged PropertyHandle?, unmanaged PropertyHandle?), 64 * 1024);
 var handleTD = new TerminationDetector();
 forall fileName in doWorkLoop(wq, td) {
   for line in getLines(fileName) {

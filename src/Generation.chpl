@@ -1,12 +1,13 @@
-module Generation {
+prototype module Generation {
 
   use IO;
-  use CHGL;
+  use AdjListHyperGraph;
   use Random;
   use BlockDist;
   use CyclicDist;
   use BlockDist;
   use Math;
+  use WorkQueue;
   use Sort;
   use Search;
 
@@ -237,14 +238,14 @@ module Generation {
   
   // Compute Table degrees to vertices...
   record DynamicArray {
-    var dom = {0..-1};
+    var dom = {0..0};
     var arr : [dom] int;
     
     proc init() {
 
     }
     
-    proc init(other) {
+    proc init=(other) {
       this.dom = other.dom;
       this.arr = other.arr;
     }

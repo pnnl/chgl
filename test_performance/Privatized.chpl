@@ -1,5 +1,6 @@
 use CHGL;
 use ReplicatedDist;
+use ReplicatedVar;
 use Time;
 
 config const N = 1024 * 1024;

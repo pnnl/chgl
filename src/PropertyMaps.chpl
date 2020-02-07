@@ -1,4 +1,4 @@
-module PropertyMaps {
+prototype module PropertyMaps {
   use AggregationBuffer;
   use HashedDist; // Hashed is not used, but the Mapper is
   use Utilities;
@@ -16,7 +16,7 @@ module PropertyMaps {
       // Type of mapper.
       type mapperType;
       pragma "no doc"
-      var map : unmanaged PropertyMapImpl(propertyType, mapperType);
+      var map : unmanaged PropertyMapImpl(propertyType, mapperType)?;
       pragma "no doc"
       var pid = -1;
       
@@ -51,7 +51,7 @@ module PropertyMaps {
         This initializer is used internally, as it is used to create an uninitialized version of this property map.
       */
       pragma "no doc"
-      proc init(type propertyType, type mapperType, pid : int, map : unmanaged PropertyMapImpl(propertyType, mapperType)) {
+      proc init(type propertyType, type mapperType, pid : int, map : unmanaged PropertyMapImpl(propertyType, mapperType)? ) {
         this.propertyType = propertyType;
         this.mapperType = mapperType;
         this.map = map;        
@@ -109,7 +109,7 @@ module PropertyMaps {
     var setAggregator = UninitializedAggregator((propertyType, int));
     // Aggregation used to batch up potentially remote 'fetches' of properties.
     pragma "no doc"
-    var getAggregator = UninitializedAggregator((propertyType, unmanaged PropertyHandle));
+    var getAggregator = UninitializedAggregator((propertyType, unmanaged PropertyHandle?));
     pragma "no doc"
     var terminationDetector : TerminationDetector;
 
@@ -121,7 +121,7 @@ module PropertyMaps {
       this.mapper = mapper;
       this.complete();
       this.setAggregator = new Aggregator((propertyType, int), 8 * 1024);
-      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle), 8 * 1024);
+      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle?), 8 * 1024);
       this.terminationDetector = new TerminationDetector();
       this.pid = _newPrivatizedClass(this:unmanaged);
     }
@@ -131,7 +131,7 @@ module PropertyMaps {
       this.mapper = other.mapper;
       this.complete();
       this.setAggregator = new Aggregator((propertyType, int), 8 * 1024);
-      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle), 8 * 1024);
+      this.getAggregator = new Aggregator((propertyType, unmanaged PropertyHandle?), 8 * 1024);
       this.terminationDetector = new TerminationDetector();
 
       this.pid = _newPrivatizedClass(this:unmanaged);
@@ -287,7 +287,7 @@ module PropertyMaps {
       }
     }
 
-    proc _flushGetAggregatorBuffer(buf : Buffer, loc : locale, param acquireLock = true) {
+    proc _flushGetAggregatorBuffer(buf : Buffer?, loc : locale, param acquireLock = true) {
       // Obtain separate array of properties and handles; we need to isolate properties
       // so we can do a bulk-transfer on the other locales.
       var arr = buf.getArray();
@@ -295,7 +295,7 @@ module PropertyMaps {
       const arrSz = arr.size;
       var properties : [0..#arrSz] propertyType;
       var keys : [0..#arrSz] int;
-      var handles : [0..#arrSz] unmanaged PropertyHandle;
+      var handles : [0..#arrSz] unmanaged PropertyHandle?;
       forall ((prop, hndle), _prop, _hndle) in zip(arr, properties, handles) {
         _prop = prop;
         _hndle = hndle;

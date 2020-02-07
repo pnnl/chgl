@@ -35,7 +35,7 @@
     var graph = new AdjListHyperGraph(propertyMap, new Cyclic(startIdx=0));
  
 */
-module AdjListHyperGraph {
+prototype module AdjListHyperGraph {
   use IO;
   use CyclicDist;
   use LinkedLists;
@@ -177,13 +177,14 @@ module AdjListHyperGraph {
       return chpl_getPrivatizedCopy(instance.type, pid);
     }
 
+
     /*
       Create a new hypergraph with the desired number of vertices and edges. 
       Uses the 'DefaultDist', which is normally the shared-memory 'DefaultRectangularDist'.
     */
-    proc init(numVertices : integral, numEdges : integral) {
+    proc init(numVertices : integral, numEdges : integral, param distributeVertices : bool = true, param distributeEdges : bool = true) {
       var dist = new unmanaged DefaultDist();
-      init(numVertices, numEdges, dist, dist);
+      init(numVertices, numEdges, dist, dist, distributeVertices, distributeEdges);
     }
 
     /*
@@ -259,13 +260,15 @@ module AdjListHyperGraph {
       // Number of edges
       numEdges : integral,
       // Distribution of vertices
-      verticesMappings, 
+      verticesMappings,
       // Distribution of edges
-      edgesMappings
+      edgesMappings,
+      param distributeVertices : bool = true,
+      param distributeEdges : bool = true
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
-        numVertices, numEdges, verticesMappings, edgesMappings
-      );
+        numVertices, numEdges, verticesMappings, edgesMappings, distributeVertices, distributeEdges
+      )?;
       pid = instance.pid;
     }
 
@@ -281,7 +284,7 @@ module AdjListHyperGraph {
     proc init(vPropMap : PropertyMap(?vPropType), vertexMappings, numEdges, edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         vPropMap, vertexMappings, numEdges, edgeMappings
-      );
+      )?;
       pid = instance.pid;
     }
 
@@ -298,7 +301,7 @@ module AdjListHyperGraph {
     proc init(numVertices, vertexMappings, ePropMap : PropertyMap(?ePropType), edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         numVertices, vertexMappings, ePropMap, edgeMappings
-      );
+      )?;
       pid = instance.pid;
     }
 
@@ -315,7 +318,7 @@ module AdjListHyperGraph {
     proc init(vPropMap : PropertyMap(?vPropType), vertexMappings, ePropMap : PropertyMap(?ePropType), edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         vPropMap, vertexMappings, ePropMap, edgeMappings
-      );
+      )?;
       pid = instance.pid;
     }
 
@@ -333,7 +336,7 @@ module AdjListHyperGraph {
     // Code that causes it: init(other.numVertices, other.numEdges, other.verticesDist)
     pragma "no doc"
     proc clone(other : this.type) {
-      instance = new unmanaged AdjListHyperGraphImpl(other._value);
+      instance = new unmanaged AdjListHyperGraphImpl(other._value)?;
       pid = instance.pid;
     }
     
@@ -906,7 +909,8 @@ module AdjListHyperGraph {
     /*
       The main initializer; all other initializers should call this after filling out the appropriate parameters.
     */
-    proc init(numVertices : int, vPropMap : PropertyMap(?vPropType), vertexMappings, numEdges : int,  ePropMap : PropertyMap(?ePropType), edgeMappings) {
+    proc init(numVertices : int, vPropMap : PropertyMap(?vPropType), vertexMappings, numEdges : int,  ePropMap : PropertyMap(?ePropType), edgeMappings,
+      param distributeVertices: bool = true, param distributeEdges: bool = true) {
       // Ensure that arguments are non-negative
       if numVertices < 0 { 
         halt("numVertices must be between 0..", max(int(64)), " but got ", numVertices);
@@ -917,9 +921,16 @@ module AdjListHyperGraph {
       
       // Initialize vertices and edges domain; once `this.complete()` is invoked, the
       // array itself will also be initialized.
-      this._verticesDomain = {0..#numVertices} dmapped new dmap(vertexMappings);
-      this._edgesDomain = {0..#numEdges} dmapped new dmap(edgeMappings);
-      
+       if (distributeVertices) {
+      	 this._verticesDomain = newCyclicDom({0..#numVertices});
+      } else {
+      	this._verticesDomain = {0..#numVertices};
+      }
+      if (distributeEdges) {
+      	 this._edgesDomain = newCyclicDom({0..#numEdges});
+      } else {
+         this._edgesDomain = {0..#numEdges};
+      }
       this._vPropType = vPropType;
       this._ePropType = ePropType;
       this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType), 64 * 1024);
@@ -947,11 +958,11 @@ module AdjListHyperGraph {
 
 
     pragma "no doc"
-    proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings) {
+    proc init(numVertices = 0, numEdges = 0, vertexMappings, edgeMappings, param distributeVertices: bool = true, param distributeEdges: bool = true) {
       const pmap = UninitializedPropertyMap(bool);
-      init(numVertices, pmap, vertexMappings, numEdges, pmap, edgeMappings);
+      init(numVertices, pmap, vertexMappings, numEdges, pmap, edgeMappings, distributeVertices, distributeEdges);
     }
-
+    
     pragma "no doc"
     proc init(vPropertyMap : PropertyMap(?vPropType), vertexMappings, numEdges = 0, edgeMappings) {
       const pmap = UninitializedPropertyMap(bool);
@@ -1381,6 +1392,7 @@ module AdjListHyperGraph {
       [dup in duplicateVertices] dup.write(-1);
       var newVerticesDomain = __verticesDomain;
       var vertexMappings : [__verticesDomain] int = -1;
+      var dummyNode = new unmanaged NodeData(eDescType, _vPropType);
 
       //writeln("Collapsing Vertices...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current vertex
@@ -1427,7 +1439,7 @@ module AdjListHyperGraph {
           numUnique += 1;
           for follower in eqclass.getCandidates(leader) {
             delete _vertices[follower];
-            _vertices[follower] = nil;
+            _vertices[follower] = dummyNode;
             duplicateVertices[follower].write(leader);
           }
         }
@@ -1450,7 +1462,7 @@ module AdjListHyperGraph {
         if Debug.ALHG_DEBUG {
           forall v in _verticesDomain {
             var vv = v;
-            while _vertices[vv] == nil {
+            while _vertices[vv] == dummyNode {
               vv = duplicateVertices[vv].read();
               assert(vv != -1, "A vertex is nil without a duplicate mapping...");
             }
@@ -1467,7 +1479,7 @@ module AdjListHyperGraph {
               writeln("Broken Dual!");
               var vvv = v;
               write("Link: ", toVertex(v));
-              while _vertices[vvv] == nil {
+              while _vertices[vvv] == dummyNode {
                 vvv = duplicateVertices[vvv].read();
                 write(" -> ", toVertex(vvv));
               }
@@ -1502,7 +1514,7 @@ module AdjListHyperGraph {
         // array; hence, try to first claim indices that are local in _both_ new and old arrays.
         var idx : atomic int;
         forall v in oldVertices.domain {
-          if oldVertices[v] != nil {
+          if oldVertices[v] != dummyNode {
             // TODO
             // When no RDMA atomics are supported, this will have _massive_ communication costs
             // Possibly want to perform explicit `coforall` and create explicit tasks on each
@@ -1520,7 +1532,7 @@ module AdjListHyperGraph {
               delete oldVertices[v];
             }
 
-            oldVertices[v] = nil;
+            oldVertices[v] = dummyNode;
             vertexMappings[v] = ix;
           }
         }
@@ -1591,7 +1603,7 @@ module AdjListHyperGraph {
       [dup in duplicateEdges] dup.write(-1);
       var newEdgesDomain = __edgesDomain;
       var edgeMappings : [__edgesDomain] int = -1;
-
+      var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
       
 
       //writeln("Collapsing Edges...");
@@ -1629,7 +1641,7 @@ module AdjListHyperGraph {
           numUnique += 1;
           for follower in eqclass.getCandidates(leader) {
             delete _edges[follower];
-            _edges[follower] = nil;
+            _edges[follower] = dummyEdge;
             duplicateEdges[follower].write(leader);
           }
         }
@@ -1651,7 +1663,7 @@ module AdjListHyperGraph {
         if Debug.ALHG_DEBUG {
           forall e in _edgesDomain {
             var ee = e;
-            while _edges[ee] == nil {
+            while _edges[ee] == dummyEdge {
               ee = duplicateEdges[ee].read();
               assert(ee != -1, "An edge is nil without a duplicate mapping...");
             }
@@ -1669,7 +1681,7 @@ module AdjListHyperGraph {
               writeln("Broken Dual!");
               var eee = e;
               write("Link: ", toEdge(e));
-              while _edges[eee] == nil {
+              while _edges[eee] == dummyEdge {
                 eee = duplicateEdges[eee].read();
                 write(" -> ", toEdge(eee));
               }
@@ -1696,7 +1708,7 @@ module AdjListHyperGraph {
       {
         var idx : atomic int;
         forall e in oldEdges.domain {
-          if oldEdges[e] != nil {
+          if oldEdges[e] != dummyEdge {
             var ix = idx.fetchAdd(1);
             
             if oldEdges[e].locale == _edges[ix].locale {
@@ -1706,7 +1718,7 @@ module AdjListHyperGraph {
               delete oldEdges[e];
             }
             
-            oldEdges[e] = nil;
+            oldEdges[e] = dummyEdge;
             edgeMappings[e] = ix;
           }
         }
@@ -1775,6 +1787,7 @@ module AdjListHyperGraph {
       [toplex in toplexEdges] toplex.write(-1);
       var newEdgesDomain = __edgesDomain;
       var edgeMappings : [__edgesDomain] int = -1;
+      var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
 
       writeln("Collapsing Subset...");
       {
@@ -1819,7 +1832,7 @@ module AdjListHyperGraph {
         forall e in _edgesDomain with (+ reduce numToplex) {
           if toplexEdges[e].read() != -1 {
             delete _edges[e];
-            _edges[e] = nil;
+            _edges[e] = dummyEdge;
           } else {
             numToplex += 1;
           }
@@ -1845,7 +1858,7 @@ module AdjListHyperGraph {
       {
         var idx : atomic int;
         forall e in oldEdges.domain {
-          if oldEdges[e] != nil {
+          if oldEdges[e] != dummyEdge {
             var ix = idx.fetchAdd(1);
             
             if oldEdges[e].locale == _edges[ix].locale {
@@ -1855,7 +1868,7 @@ module AdjListHyperGraph {
               delete oldEdges[e];
             }
             
-            oldEdges[e] = nil;
+            oldEdges[e] = dummyEdge;
             edgeMappings[e] = ix;
           }
         }
@@ -2012,6 +2025,8 @@ module AdjListHyperGraph {
       hyperedges. Returns the number of isolated components.
     */
     proc removeIsolatedComponents() : int {
+      var dummyNode = new unmanaged NodeData(eDescType, _vPropType);
+      var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
         // Cannot jump and return as return type is inferred by compiler.
@@ -2035,11 +2050,11 @@ module AdjListHyperGraph {
             if nn == 1 {
               if _this._ePropMap.isInitialized then _this._ePropMap.setProperty(_this.getEdge(e).property, -1);
               delete _this.getEdge(e);
-              _this.getEdge(e) = nil;
+              _this.getEdge(e) = dummyEdge;
               
               if _this._vPropMap.isInitialized then _this._vPropMap.setProperty(_this.getVertex(v).property, -1);
               delete _this.getVertex(v);
-              _this.getVertex(v) = nil;
+              _this.getVertex(v) = dummyNode;
               
               numIsolatedComponents += 1;
             }
@@ -2084,7 +2099,7 @@ module AdjListHyperGraph {
               delete oldVertices[v];
             }
 
-            oldVertices[v] = nil;
+            oldVertices[v] = dummyNode;
             vertexMappings[v] = ix;
           }
         }
@@ -2105,7 +2120,7 @@ module AdjListHyperGraph {
               delete oldEdges[e];
             }
             
-            oldEdges[e] = nil;
+            oldEdges[e] = dummyEdge;
             edgeMappings[e] = ix;
           }
         }
@@ -2288,7 +2303,7 @@ module AdjListHyperGraph {
     // but is currently being processed remotely (maybe have a counter
     // determining how many tasks are still processing the buffer), so
     // that user knows when all operations have finished/termination detection.
-    inline proc emptyBuffer(buffer : unmanaged Buffer, loc : locale) {
+    inline proc emptyBuffer(buffer : unmanaged Buffer?, loc : locale) {
       on loc {
         var buf = buffer.getArray();
         buffer.done();

@@ -2,7 +2,7 @@
 /*
   TODO: Experiment with expanding buffer sizes
 */
-module AggregationBuffer {
+prototype module AggregationBuffer {
 
   use Time;
   use Random;
@@ -16,7 +16,7 @@ module AggregationBuffer {
   pragma "always RVF"
   record Aggregator {
     type msgType;
-    var instance : unmanaged AggregatorImpl(msgType);
+    var instance : unmanaged AggregatorImpl(msgType)?;
     var pid = -1;
 
     proc init(type msgType, aggregatorBufferSize : int = AggregatorBufferSize, aggregatorMaxBuffers : int = AggregatorMaxBuffers) {
@@ -25,13 +25,13 @@ module AggregationBuffer {
       this.pid = this.instance.pid;
     }
 
-    proc init(type msgType, instance : unmanaged AggregatorImpl(msgType), pid : int) {
+    proc init(type msgType, instance : unmanaged AggregatorImpl(msgType)?, pid : int) {
       this.msgType = msgType;
       this.instance = instance;
       this.pid = pid;
     }
 
-    proc init(other) {
+    proc init=(other) {
       this.msgType = other.msgType;
       this.instance = other.instance;
       this.pid = other.pid;
@@ -65,9 +65,9 @@ module AggregationBuffer {
     type msgType;
     var lock$ : sync bool;
     // Head of list of all buffers that can be recycled.
-    var freeBufferList : unmanaged Buffer(msgType);
+    var freeBufferList : unmanaged Buffer(msgType)?;
     // Head of list of all allocated buffers.
-    var allocatedBufferList : unmanaged Buffer(msgType);
+    var allocatedBufferList : unmanaged Buffer(msgType)?;
     // Number of buffers that are available to be recycled...
     var numFreeBuffers : chpl__processorAtomicType(int);
     // Number of buffers that are currently allocated
@@ -93,24 +93,24 @@ module AggregationBuffer {
     }
 
     inline proc canAllocateBuffer() {
-      return aggregatorMaxBuffers == -1 || numAllocatedBuffers.peek() < aggregatorMaxBuffers;
+      return aggregatorMaxBuffers == -1 || numAllocatedBuffers.read() < aggregatorMaxBuffers;
     }
 
     proc getBuffer() : unmanaged Buffer(msgType) {
-      var buf : unmanaged Buffer(msgType);
+      var buf : unmanaged Buffer(msgType)?;
 
       while buf == nil {
         // Yield while we wait for a free buffer...
-        while numFreeBuffers.peek() == 0 && !canAllocateBuffer() {
+        while numFreeBuffers.read() == 0 && !canAllocateBuffer() {
           debug(here, ": waiting on free buffer..., numAllocatedBuffers(", 
-              numAllocatedBuffers.peek(), ") / maxAllocatedBuffers(", aggregatorMaxBuffers, ")");
+              numAllocatedBuffers.read(), ") / maxAllocatedBuffers(", aggregatorMaxBuffers, ")");
           chpl_task_yield();
         }
 
         lock$ = true;
         // Out of buffers, try to create a new one.
         // Note: Since we do this inside the lock we can relax all atomics
-        if numFreeBuffers.peek() == 0 {
+        if numFreeBuffers.read() == 0 {
           if canAllocateBuffer() {
             var tmp = new unmanaged Buffer(msgType, aggregatorBufferSize);
             numAllocatedBuffers.add(1, memory_order_relaxed);
@@ -128,7 +128,7 @@ module AggregationBuffer {
 
       buf.reset();
       buf._bufferPool = _to_unmanaged(this);
-      return buf;
+      return buf!;
     }
 
     proc recycleBuffer(buf : unmanaged Buffer(msgType)) {
@@ -172,11 +172,11 @@ module AggregationBuffer {
     pragma "no doc"
     var _stolen : chpl__processorAtomicType(bool);
     pragma "no doc"
-    var _nextAllocatedBuffer : unmanaged Buffer(msgType);
+    var _nextAllocatedBuffer : unmanaged Buffer(msgType)?;
     pragma "no doc"
-    var _nextFreeBuffer : unmanaged Buffer(msgType);
+    var _nextFreeBuffer : unmanaged Buffer(msgType)?;
     pragma "no doc"
-    var _bufferPool : unmanaged BufferPool(msgType);
+    var _bufferPool : unmanaged BufferPool(msgType)?;
 
     pragma "no doc"
     proc init(type msgType, aggregatorBufferSize : int) {
@@ -349,13 +349,13 @@ module AggregationBuffer {
       return sz;
     }
 
-    proc aggregate(msg : msgType, loc : locale) : unmanaged Buffer(msgType) {
+    proc aggregate(msg : msgType, loc : locale) : unmanaged Buffer(msgType)? {
       return aggregate(msg, loc.id);
     }
     
-    proc aggregate(msg : msgType, locid : int) : unmanaged Buffer(msgType) {
+    proc aggregate(msg : msgType, locid : int) : unmanaged Buffer(msgType)? {
       // Performs sanity checks to ensure that returned buffer is valid
-      proc doSanityCheck(buf : unmanaged Buffer(msgType)) where AggregatorDebug {
+      proc doSanityCheck(buf : unmanaged Buffer(msgType)?) where AggregatorDebug {
         if buf._stolen.peek() != false then halt("Buffer is still stolen!", buf);
         if buf._claimed.peek() != 0 then halt("Buffer has not had claim reset...", buf);
         if buf._filled.peek() != 0 then halt("Buffer has not had filled reset...", buf);
