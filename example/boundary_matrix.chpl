@@ -5,27 +5,6 @@ use Map;
 use List;
 use Sort;
 use Search;
-/*
-    Part 1: Global-View Distributed Data Structures
-*/
-// Question: How do we create a toy hypergraph?
-// Answer: Generate it!
-/* config const numVertices = 4; */
-/* config const numEdges = 10; */
-/* config const edgeProbability = 1; */
-/* var hypergraph = new AdjListHyperGraph(numVertices, numEdges, new unmanaged Cyclic(startIdx=0)); */
-/* var timer = new Timer(); */
-/* timer.start(); */
-/* generateErdosRenyi(hypergraph, edgeProbability); */
-/* timer.stop(); */
-/* writeln("Generated ErdosRenyi with |V|=", numVertices,  */
-/*     ", |E|=", numEdges, ", P_E=", edgeProbability, " in ", timer.elapsed(), " seconds"); */
-
-
-/* writeln("Removing duplicates: ", hypergraph.removeDuplicates()); */
-/* hypergraph.removeDuplicates(); */
-
-/*TODO: move all constants to the top of your file and all declarations of types as well. */
 
 var hypergraph = new AdjListHyperGraph(4, 1, new unmanaged Cyclic(startIdx=0));
 for v in hypergraph.getVertices() do hypergraph.addInclusion(v, 0);
@@ -123,13 +102,17 @@ sort(kCellKeys);
 // Empty record serves as comparator
 record Comparator { }
 // compare method defines how 2 elements are compared
-// Simplified comparator since we know that the strings are of the same size
 proc Comparator.compare(a :string, b :string) : int {
   var retVal : int = 0;
-  for (c1, c2) in zip (a , b) {
-    if (c1 == c2) {continue;}
-    if (c1 < c2) {retVal = -1; break;}
-    else {retVal = 1; break;}
+  var   aa =  a.split(" ") : int; 
+  var   bb = b.split(" ") : int;
+  var done : bool = false;
+  for aaa in aa {
+    for bbb in bb {
+      if (aaa < bbb) {retVal = -1; done = true; break;}
+      if (aaa > bbb) {retVal = 1; done = true; break;}
+    }
+    if (done) {break;}
   }
   return retVal;
 }

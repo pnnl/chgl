@@ -5,18 +5,162 @@ use Map;
 use List;
 use Sort;
 use Search;
+use Regexp;
+use FileSystem;
+use BigInteger;
 
-var hypergraph = new AdjListHyperGraph(4, 3, new unmanaged Cyclic(startIdx=0));
-// V = ['A','B','C','D']; 
-// E = ['AB','BC','ACD'];
-hypergraph.addInclusion(0, 0);
-hypergraph.addInclusion(1,0);
-hypergraph.addInclusion(1,1);
-hypergraph.addInclusion(2,1);
-hypergraph.addInclusion(0,2);
-hypergraph.addInclusion(2,2);
-hypergraph.addInclusion(3,2);
+/*
+  Directory containing the DNS dataset in CSV format. Each file is parsed
+  individually, in parallel, and distributed. This is liable to change to be
+  more flexible, I.E to consider binary format (preprocessed), but for now
+  it must be a directory containing files ending in ".csv".
+*/
+config const datasetDirectory = "../homology_data/";
+/*
+  Output directory.
+*/
+config const outputDirectory = "tmp/";
+// Maximum number of files to process.
+config const numMaxFiles = max(int(64));
 
+var files : [0..-1] string;
+var vPropMap = new PropertyMap(string);
+var ePropMap = new PropertyMap(string);
+var wq = new WorkQueue(string, 1024);
+var td = new TerminationDetector();
+var t = new Timer();
+
+proc printPropertyDistribution(propMap) : void {
+  var localNumProperties : [LocaleSpace] int;
+  coforall loc in Locales do on loc do localNumProperties[here.id] = propMap.numProperties();
+  var globalNumProperties = + reduce localNumProperties;
+  for locid in LocaleSpace {
+    writeln("Locale#", locid, " has ", localNumProperties[locid], "(", localNumProperties[locid] : real / globalNumProperties * 100, "%)");
+  }
+}
+
+//Need to create outputDirectory prior to opening files
+if !exists(outputDirectory) {
+   try {
+      mkdir(outputDirectory);
+   }
+   catch {
+      halt("*Unable to create directory ", outputDirectory);
+   }
+}
+// Fill work queue with files to load up
+var currLoc : int; 
+var nFiles : int;
+var fileNames : [0..-1] string;
+for fileName in listdir(datasetDirectory, dirs=false) {
+    if !fileName.endsWith(".csv") then continue;
+    if nFiles == numMaxFiles then break;
+    files.push_back(fileName);
+    fileNames.push_back(datasetDirectory + fileName);
+    currLoc += 1;
+    nFiles += 1;
+}
+
+// Spread out the work across multiple locales.
+var _currLoc : atomic int;
+forall fileName in fileNames {
+  td.started(1);
+  wq.addWork(fileName, _currLoc.fetchAdd(1) % numLocales);
+}
+wq.flush();
+
+
+// Initialize property maps; aggregation is used as properties can be remote to current locale.
+forall fileName in doWorkLoop(wq, td) {
+  for line in getLines(fileName) {
+    var attrs = line.split(",");
+    var qname = attrs[1].strip();
+    var rdata = attrs[2].strip();
+
+    vPropMap.create(rdata, aggregated=true);
+    ePropMap.create(qname, aggregated=true);
+  }
+  td.finished();  
+}
+vPropMap.flushGlobal();
+ePropMap.flushGlobal();
+// t.stop();
+writeln("Constructed Property Map with ", vPropMap.numPropertiesGlobal(), 
+    " vertex properties and ", ePropMap.numPropertiesGlobal(), 
+    " edge properties in ", t.elapsed(), "s");
+t.clear();
+
+writeln("Vertex Property Map");
+printPropertyDistribution(vPropMap);
+writeln("Edge Property Map");
+printPropertyDistribution(ePropMap);
+
+writeln("Constructing HyperGraph...");
+t.start();
+var hypergraph = new AdjListHyperGraph(vPropMap, ePropMap, new unmanaged Cyclic(startIdx=0));
+t.stop();
+writeln("Constructed HyperGraph in ", t.elapsed(), "s");
+t.clear();
+writeln("Populating HyperGraph...");
+
+t.start();
+// Spread out the work across multiple locales.
+_currLoc.write(0);
+forall fileName in fileNames {
+  td.started(1);
+  wq.addWork(fileName, _currLoc.fetchAdd(1) % numLocales);
+}
+wq.flush();
+
+// Aggregate fetches to properties into another work queue; when we flush
+// each of the property maps, their individual PropertyHandle will be finished.
+// Also send the 'String' so that it can be reclaimed.
+var handleWQ = new WorkQueue((unmanaged PropertyHandle?, unmanaged PropertyHandle?), 64 * 1024);
+var handleTD = new TerminationDetector();
+forall fileName in doWorkLoop(wq, td) {
+  for line in getLines(fileName) {
+    var attrs = line.split(",");
+    var qname = attrs[1].strip();
+    var rdata = attrs[2].strip();
+    handleTD.started(1);
+    handleWQ.addWork((vPropMap.getPropertyAsync(rdata), ePropMap.getPropertyAsync(qname)));
+  }
+  td.finished();
+}
+vPropMap.flushGlobal();
+ePropMap.flushGlobal();
+
+// Finally aggregate inclusions for the hypergraph.
+hypergraph.startAggregation();
+forall (vHandle, eHandle) in doWorkLoop(handleWQ, handleTD) {
+  hypergraph.addInclusion(vHandle.get(), eHandle.get());
+  delete vHandle;
+  delete eHandle;
+  handleTD.finished(1);
+}
+hypergraph.stopAggregation();
+hypergraph.flushBuffers();
+
+t.stop();
+writeln("Populated HyperGraph in ", t.elapsed(), "s");
+t.clear();
+writeln("Number of Inclusions: ", hypergraph.getInclusions());
+writeln("Deleting Duplicate edges: ", hypergraph.removeDuplicates());
+writeln("Number of Inclusions: ", hypergraph.getInclusions());
+
+
+/* var hypergraph = new AdjListHyperGraph(4, 3, new unmanaged Cyclic(startIdx=0)); */
+/* // V = ['A','B','C','D'];  */
+/* // E = ['AB','BC','ACD']; */
+/* hypergraph.addInclusion(0, 0); */
+/* hypergraph.addInclusion(1,0); */
+/* hypergraph.addInclusion(1,1); */
+/* hypergraph.addInclusion(2,1); */
+/* hypergraph.addInclusion(0,2); */
+/* hypergraph.addInclusion(2,2); */
+/* hypergraph.addInclusion(3,2); */
+
+t.start();
 var _vtxSubsetSet = new set(string);
 
 iter processVtxSubset(vtxSubset) {
@@ -121,7 +265,7 @@ writeln("%%%%%%%%%%%%%");
 for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
   writeln("listsize: " + kCellMap[kCellKey].size : string);
   _kCellsArray = new owned kCellsArray(kCellMap[kCellKey].size);
-  _kCellsArray.A = kCellMap[kCellKey].toArray(); 
+  _kCellsArray.A = kCellMap[kCellKey].toArray();
   sort(_kCellsArray.A, comparator=absComparator);
 }
 writeln("%%%%%%%%%%%%%");
@@ -146,7 +290,7 @@ class Matrix {
 
 var K = kCellMap.size - 1;
 var boundaryMaps : [1..K] owned Matrix?;
-var i : int = 1; 
+var i : int = 1;
 
 // Leader-follower iterator
 // Create the boundary Maps
@@ -282,15 +426,15 @@ proc _get_next_pivot(M, s1, in s2 : int = 0) {
 }
 
 
-proc swap_rows(i, j, M) {  
+proc swap_rows(i, j, M) {
   var N = M;
-  N[i, ..] <=> N[j, ..]; 
+  N[i, ..] <=> N[j, ..];
   return N;
 }
 
-proc swap_columns(i, j, M) {  
+proc swap_columns(i, j, M) {
   var N = M;
-  N[.., i] <=> N[.., j]; 
+  N[.., i] <=> N[.., j];
   return N;
 }
 
@@ -311,7 +455,7 @@ proc add_to_column(M, i, j, ci = 1, cj = 1, mod = 2) {
 proc matmultmod2 (M, N, mod = 2) {
   var nr = M.domain.high(1);
   var nc = N.domain.high(2);
-  var m  = M.domain.high(2); 
+  var m  = M.domain.high(2);
   var C : [1..nr, 1..nc] atomic int;
 
   forall i in 1..nr {
@@ -340,7 +484,7 @@ proc matmultmod (M, N, mod =2) {
 
 type listType = list(unmanaged Matrix2D?, true);
 proc matmulreduce(arr : listType, reverse = false, mod = 2) {
-  var PD: domain(2) = {1..arr(1)._arr.domain.high(1), 1..arr(1)._arr.domain.high(2)}; 
+  var PD: domain(2) = {1..arr(1)._arr.domain.high(1), 1..arr(1)._arr.domain.high(2)};
   var P : [PD] int;
   if (reverse) {
     PD = {1..arr(arr.size)._arr.domain.high(1), 1..arr(arr.size)._arr.domain.high(2)};
@@ -356,7 +500,7 @@ proc matmulreduce(arr : listType, reverse = false, mod = 2) {
     P = arr(1)._arr;
     for i in 2..arr.size {
       var tempD : domain(2) = {1..P.domain.high(1), 1..arr(i)._arr.domain.high(2)};
-      var temp : [tempD] int; 
+      var temp : [tempD] int;
       temp = matmultmod(P, arr(i)._arr);
       PD = tempD;
       P = temp;
@@ -421,7 +565,7 @@ proc smithNormalForm(b) {
       break;
     }
     else {
-      (rdx, cdx) = pivot; 
+      (rdx, cdx) = pivot;
     }
  
     // Swap rows and columns as needed so the 1 is in the s,s position
@@ -439,7 +583,7 @@ proc smithNormalForm(b) {
       var tmp = swap_columns(s, cdx, IR);
       var RM = new unmanaged Matrix2D(tmp.domain.high(1), tmp.domain.high(2));
       RM._arr = tmp;
-      Rinv.append(RM); 
+      Rinv.append(RM);
     }
 
     // add sth row to every nonzero row & sth column to every nonzero column
@@ -533,7 +677,7 @@ var cokernel2 : [1..L2invF.domain.high(1), 1..nr2] int = L2invF[..,rank2 + 1..];
 
 writeln("###############");
 writeln("Cokernel:");
-printmatrix(cokernel2); 
+printmatrix(cokernel2);
 
 writeln("###############");
 writeln("L2:");
@@ -578,6 +722,9 @@ var proj2 = matmulreduce(L2invKernel);
 writeln("###############");
 writeln("Projection2:");
 printmatrix(proj2);
+
+t.stop();
+writeln("Homology computed in ", t.elapsed(), "s");
 
 
 proc reducedRowEchelonForm(b) {
@@ -624,7 +771,7 @@ proc reducedRowEchelonForm(b) {
 	break;
       }
     }
-    // Swap rows 
+    // Swap rows
     if (rdx > s1) {
       S = swap_rows(s1, rdx, S);
       L = swap_rows(s1, rdx, L);
