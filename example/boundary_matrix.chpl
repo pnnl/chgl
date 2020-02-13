@@ -105,19 +105,31 @@ record Comparator { }
 // compare method defines how 2 elements are compared
 proc Comparator.compare(a :string, b :string) : int {
   var retVal : int = 0;
-  var   aa =  a.split(" ") : int; 
+  if (b == "") {
+    writeln("a: " + a : string + " b: " + b : string);
+    retVal = -1;
+    return retVal;
+  }
+  var   aa =  a.split(" ") : int;
   var   bb = b.split(" ") : int;
   var done : bool = false;
-  for aaa in aa {
-    for bbb in bb {
-      if (aaa < bbb) {retVal = -1; done = true; break;}
-      if (aaa > bbb) {retVal = 1; done = true; break;}
+  var ndone : bool = false;
+  for i in 1..#aa.size {
+    for j in i..#bb.size {
+      if (aa[i] == bb[j]) {
+	break;
+      }
+      if (aa[i] < bb[j]) {
+	retVal = -1; done = true; break;
+      }
+      if (aa[i] > bb[j]) {
+	retVal = 1; done = true; break;
+      }
     }
     if (done) {break;}
   }
   return retVal;
 }
-
 var absComparator: Comparator;
 
 

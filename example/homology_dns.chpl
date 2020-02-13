@@ -228,10 +228,18 @@ proc Comparator.compare(a :string, b :string) : int {
   var   aa =  a.split(" ") : int;
   var   bb = b.split(" ") : int;
   var done : bool = false;
-  for aaa in aa {
-    for bbb in bb {
-      if (aaa < bbb) {retVal = -1; done = true; break;}
-      if (aaa > bbb) {retVal = 1; done = true; break;}
+  var ndone : bool = false;
+  for i in 1..#aa.size {
+    for j in i..#bb.size {
+      if (aa[i] == bb[j]) {
+	break;
+      }
+      if (aa[i] < bb[j]) {
+	retVal = -1; done = true; break;
+      }
+      if (aa[i] > bb[j]) {
+	retVal = 1; done = true; break;
+      }
     }
     if (done) {break;}
   }
@@ -261,12 +269,12 @@ for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
 }
 /* writeln("%%%%%%%%%%%%%"); */
 
-/* /\* writeln("Printing after sorting"); *\/ */
-/* /\* writeln("^^^^^^^^^^^^^^^^^^^^^^^"); *\/ */
-/* /\* for _kCellsArray in kCellsArrayMap { *\/ */
-/* /\*   writeln(_kCellsArray.A : string); *\/ */
-/* /\* } *\/ */
-/* /\* writeln("^^^^^^^^^^^^^^^^^^^^^^^"); *\/ */
+writeln("Printing after sorting");
+writeln("^^^^^^^^^^^^^^^^^^^^^^^");
+for _kCellsArray in kCellsArrayMap {
+  writeln(_kCellsArray.A : string);
+}
+writeln("^^^^^^^^^^^^^^^^^^^^^^^");
 
 /* /\*Start of the construction of boundary matrices.*\/ */
 /* class Matrix { */
