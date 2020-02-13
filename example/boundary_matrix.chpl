@@ -1,4 +1,4 @@
-/*Boundary matrix computation with a toy example.*/
+/*Example of Boundary matrix computation with a toy example.*/
 use CHGL; // Includes all core and utility components of CHGL
 use Time; // For Timer
 use Set;
@@ -62,21 +62,21 @@ for e in hypergraph.getEdges() {
   doProcessVertices(verticesInEdge);
 }
 
-writeln("Printing all generated combination");
-/*Verify the set by printing*/
-var setContent = _vtxSubsetSet.toArray();
-for c in setContent do
-  writeln(c);
+/* writeln("Printing all generated combination"); */
+/* /\*Verify the set by printing*\/ */
+/* var setContent = _vtxSubsetSet.toArray(); */
+/* for c in setContent do */
+/*   writeln(c); */
 
-writeln("-----");
+/* writeln("-----"); */
 var _sz = 0;
-writeln("Printing bins");
+/* writeln("Printing bins"); */
 /*bin k-cells, with key as the length of the list and value is a list with all the k-cells*/
 var kCellMap = new map(int, list(string, true));
 for vtxSet in _vtxSubsetSet {
   //var _vtxSet = vtxSet.split(" ");
   var sz = + reduce [ch in vtxSet] ch == ' ';
-  writeln(sz : string + " " + vtxSet : string);
+  /* writeln(sz : string + " " + vtxSet : string); */
   kCellMap[sz].append(vtxSet);
   _sz = sz;
 }
@@ -105,8 +105,8 @@ record Comparator { }
 // compare method defines how 2 elements are compared
 proc Comparator.compare(a :string, b :string) : int {
   var retVal : int = 0;
-  if (b == "") {
-    writeln("a: " + a : string + " b: " + b : string);
+  if (b == "" || a == "") {
+    /* writeln("a: " + a : string + " b: " + b : string); */
     retVal = -1;
     return retVal;
   }
@@ -141,11 +141,11 @@ var absComparator: Comparator;
   sort(kCellsArrayMap[k].A, comparator=absComparator);
 }*/
 
-writeln("%%%%%%%%%%%%%");
+/* writeln("%%%%%%%%%%%%%"); */
 // Leader-follower iterator
 // Create the new KcellMaps for convenience of sorting
 for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
-  writeln("listsize: " + kCellMap[kCellKey].size : string);
+  /* writeln("listsize: " + kCellMap[kCellKey].size : string); */
   _kCellsArray = new owned kCellsArray(kCellMap[kCellKey].size);
   _kCellsArray.A = kCellMap[kCellKey].toArray(); 
   // compilerWarning(kCellMap[kCellKey].toArray().type : string);
@@ -155,7 +155,7 @@ for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
   /*   compilerWarning(c.type: string); */
   /* } */
 }
-writeln("%%%%%%%%%%%%%");
+/* writeln("%%%%%%%%%%%%%"); */
 
 // TODO: change the following:
 /*
@@ -163,15 +163,15 @@ for (_kCellsArray, idx) in (kCellsArrayMap, 1..K) {
   writeln((_kCellsArray.A, idx) : string);
 }
 */
-writeln("Printing after sorting");
-writeln("^^^^^^^^^^^^^^^^^^^^^^^");
-/* for (_kCellsArray, idx) in zip(kCellsArrayMap, 1..numBins) { */
-/*   writeln((_kCellsArray.A, idx) : string); */
+/* writeln("Printing after sorting"); */
+/* writeln("^^^^^^^^^^^^^^^^^^^^^^^"); */
+/* /\* for (_kCellsArray, idx) in zip(kCellsArrayMap, 1..numBins) { *\/ */
+/* /\*   writeln((_kCellsArray.A, idx) : string); *\/ */
+/* /\* } *\/ */
+/* for _kCellsArray in kCellsArrayMap { */
+/*   writeln(_kCellsArray.A : string); */
 /* } */
-for _kCellsArray in kCellsArrayMap {
-  writeln(_kCellsArray.A : string);
-}
-writeln("^^^^^^^^^^^^^^^^^^^^^^^");
+/* writeln("^^^^^^^^^^^^^^^^^^^^^^^"); */
 
 /*Start of the construction of boundary matrices.*/
 class Matrix {
@@ -191,7 +191,7 @@ var i : int = 1;
 // Leader-follower iterator
 // Create the boundary Maps
 for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
-  writeln("dimensions: " + kCellsArrayMap[dimension_k_1].numKCells: string + " " + kCellsArrayMap[dimension_k].numKCells : string);
+  /* writeln("dimensions: " + kCellsArrayMap[dimension_k_1].numKCells: string + " " + kCellsArrayMap[dimension_k].numKCells : string); */
   boundaryMap = new owned Matrix(kCellsArrayMap[dimension_k_1].numKCells, kCellsArrayMap[dimension_k].numKCells);
 }
 
@@ -238,11 +238,11 @@ writeln("####");
 for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
   var arrayOfKCells  = kCellsArrayMap[dimension_k].A; // Arrays of strings, each string being 1 kcell
   var arrayOfK_1Cells = kCellsArrayMap[dimension_k_1].A;
-  compilerWarning(arrayOfK_1Cells.type : string);
-  writeln("$$$$$$$$$$$");
-  writeln(arrayOfKCells);
-  writeln(arrayOfK_1Cells);
-  writeln("$$$$$$$$$$$");
+  /* compilerWarning(arrayOfK_1Cells.type : string); */
+  /* writeln("$$$$$$$$$$$"); */
+  /* writeln(arrayOfKCells); */
+  /* writeln(arrayOfK_1Cells); */
+  /* writeln("$$$$$$$$$$$"); */
   var i : int = 0;
   var j : int = 0;
   for SkCell in arrayOfKCells { // iterate through all the k-cells
@@ -251,24 +251,24 @@ for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
     // compilerWarning(SkCell.type : string);
     var kCell = SkCell.split(" ") : int;
     // compilerWarning(kCell.type : string);
-    writeln("#kcell: " + kCell :string);
+    /* writeln("#kcell: " + kCell :string); */
     /* writeln("Combinations generated ": string); */
     for sc in processVtxSubset(kCell) {
       compilerWarning(sc.type : string);
-      writeln(sc);
+      /* writeln(sc); */
       var st = stringify(sc);
       j = 0;
       for Sk_1Cell in arrayOfK_1Cells {
 	j = j + 1;
 	if (st == Sk_1Cell) {
-	  writeln(st :string + "matches");
+	  /* writeln(st :string + "matches"); */
 	  boundaryMap.matrix[j, i] = 1;
 	  break;
 	}
       }
     }
   }
-  writeln("$$$$$$$$$$$");
+  /* writeln("$$$$$$$$$$$"); */
 }
 
 proc printBoundaryMap(boundaryMap) {
