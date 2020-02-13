@@ -1,3 +1,4 @@
+/*Boundary matrix computation with a toy example.*/
 use CHGL; // Includes all core and utility components of CHGL
 use Time; // For Timer
 use Set;
