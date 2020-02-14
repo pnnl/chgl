@@ -1,0 +1,642 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>homology &mdash; CHGL  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="CHGL  documentation" href="../../../index.html"/>
+        <link rel="up" title="Example Documentation" href="../../index.html"/>
+        <link rel="prev" title="graphs" href="graphs.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CHGL
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <p class="caption"><span class="caption-text">Compiling and Running CHGL</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation_guide.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pnnl.github.io/chgl-perf/">Performance Results</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Developer Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coding_standards.html">Coding Standards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Example CHGL Applications</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Example Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../index.html">Example Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activeDNS.html">activeDNS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo.html">demo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graphs.html">graphs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">homology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">CHGL</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Example Documentation</a> &raquo;</li>
+      
+    <li>homology</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../../_sources/example/modules/example/homology.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-homology"></span><div class="section" id="homology">
+<h1>homology<a class="headerlink" href="#homology" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">homology</span><span class="p">;</span>
+</pre></div>
+</div>
+<dl class="data">
+<dt id="homology.hypergraph">
+<em class="property">var </em><code class="descname">hypergraph</code> = new AdjListHyperGraph(4, 3, new unmanaged Cyclic(startIdx = 0))<a class="headerlink" href="#homology.hypergraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology._vtxSubsetSet">
+<em class="property">var </em><code class="descname">_vtxSubsetSet</code> = new set(string)<a class="headerlink" href="#homology._vtxSubsetSet" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="iterfunction">
+<dt id="homology.processVtxSubset">
+<em class="property">iter </em><code class="descname">processVtxSubset</code><span class="sig-paren">(</span><em>vtxSubset</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.processVtxSubset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.doProcessVertices">
+<em class="property">proc </em><code class="descname">doProcessVertices</code><span class="sig-paren">(</span><em>verticesSet</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.doProcessVertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the permutation</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="homology.setContent">
+<em class="property">var </em><code class="descname">setContent</code> = AppendExpr.Call08<a class="headerlink" href="#homology.setContent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify the set by printing</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="homology._sz">
+<em class="property">var </em><code class="descname">_sz</code> = 0<a class="headerlink" href="#homology._sz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.kCellMap">
+<em class="property">var </em><code class="descname">kCellMap</code> = new intmapstringlisttrue<a class="headerlink" href="#homology.kCellMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>bin k-cells, with key as the length of the list and value is a list with all the k-cells</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="homology.kCellsArray">
+<em class="property">class </em><code class="descname">kCellsArray</code><a class="headerlink" href="#homology.kCellsArray" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="homology.kCellsArray.numKCells">
+<em class="property">var </em><code class="descname">numKCells</code>: int<a class="headerlink" href="#homology.kCellsArray.numKCells" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="homology.kCellsArray.D">
+<em class="property">var </em><code class="descname">D</code> = {1..numKCells}<a class="headerlink" href="#homology.kCellsArray.D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="homology.kCellsArray.A">
+<em class="property">var </em><code class="descname">A</code>: [D] string<a class="headerlink" href="#homology.kCellsArray.A" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="homology.kCellsArray.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>_N: int</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.kCellsArray.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="homology.kCellsArray.findCellIndex">
+<em class="property">proc </em><code class="descname">findCellIndex</code><span class="sig-paren">(</span><em>s: string</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.kCellsArray.findCellIndex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="data">
+<dt id="homology.numBins">
+<em class="property">var </em><code class="descname">numBins</code> = kCellMap.size-1<a class="headerlink" href="#homology.numBins" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.kCellsArrayMap">
+<em class="property">var </em><code class="descname">kCellsArrayMap</code>: [0..numBins] owned nilable kCellsArray<a class="headerlink" href="#homology.kCellsArrayMap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.kCellKeys">
+<em class="property">var </em><code class="descname">kCellKeys</code> = AppendExpr.Call08<a class="headerlink" href="#homology.kCellKeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="record">
+<dt id="homology.Comparator">
+<em class="property">record </em><code class="descname">Comparator</code><a class="headerlink" href="#homology.Comparator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="homology.Comparator.compare">
+<em class="property">proc </em><code class="descclassname">Comparator.</code><code class="descname">compare</code><span class="sig-paren">(</span><em>a: string</em>, <em>b: string</em><span class="sig-paren">)</span>: int<a class="headerlink" href="#homology.Comparator.compare" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.absComparator">
+<em class="property">var </em><code class="descname">absComparator</code>: Comparator<a class="headerlink" href="#homology.absComparator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="homology.Matrix">
+<em class="property">class </em><code class="descname">Matrix</code><a class="headerlink" href="#homology.Matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start of the construction of boundary matrices.</p>
+<dl class="attribute">
+<dt id="homology.Matrix.N">
+<em class="property">var </em><code class="descname">N</code>: int<a class="headerlink" href="#homology.Matrix.N" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="homology.Matrix.M">
+<em class="property">var </em><code class="descname">M</code>: int<a class="headerlink" href="#homology.Matrix.M" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="homology.Matrix.matrix">
+<em class="property">var </em><code class="descname">matrix</code>: [1..N, 1..M] int<a class="headerlink" href="#homology.Matrix.matrix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="homology.Matrix.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>_N: int</em>, <em>_M: int</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.Matrix.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="data">
+<dt id="homology.K">
+<em class="property">var </em><code class="descname">K</code> = kCellMap.size-1<a class="headerlink" href="#homology.K" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.boundaryMaps">
+<em class="property">var </em><code class="descname">boundaryMaps</code>: [1..K] owned nilable Matrix<a class="headerlink" href="#homology.boundaryMaps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.i">
+<em class="property">var </em><code class="descname">i</code>: int = 1<a class="headerlink" href="#homology.i" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.vs">
+<em class="property">var </em><code class="descname">vs</code> = new set(string)<a class="headerlink" href="#homology.vs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="iterfunction">
+<dt id="homology.processVtxSubset2">
+<em class="property">iter </em><code class="descname">processVtxSubset2</code><span class="sig-paren">(</span><em>vtxSubset</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.processVtxSubset2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.doProcessVertices2">
+<em class="property">proc </em><code class="descname">doProcessVertices2</code><span class="sig-paren">(</span><em>verticesSet</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.doProcessVertices2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the permutation</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="homology.printBoundaryMap">
+<em class="property">proc </em><code class="descname">printBoundaryMap</code><span class="sig-paren">(</span><em>boundaryMap</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.printBoundaryMap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.printmatrix">
+<em class="property">proc </em><code class="descname">printmatrix</code><span class="sig-paren">(</span><em>M</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.printmatrix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.IdentityMatrix">
+<em class="property">proc </em><code class="descname">IdentityMatrix</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.IdentityMatrix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="homology.Matrix2D">
+<em class="property">class </em><code class="descname">Matrix2D</code><a class="headerlink" href="#homology.Matrix2D" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="homology.Matrix2D.N">
+<em class="property">var </em><code class="descname">N</code>: int<a class="headerlink" href="#homology.Matrix2D.N" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="homology.Matrix2D.M">
+<em class="property">var </em><code class="descname">M</code>: int<a class="headerlink" href="#homology.Matrix2D.M" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="homology.Matrix2D._arr">
+<em class="property">var </em><code class="descname">_arr</code>: [1..N, 1..M] int<a class="headerlink" href="#homology.Matrix2D._arr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="homology.Matrix2D.init">
+<em class="property">proc </em><code class="descname">init</code><span class="sig-paren">(</span><em>row: int</em>, <em>col: int</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.Matrix2D.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="homology._get_next_pivot">
+<em class="property">proc </em><code class="descname">_get_next_pivot</code><span class="sig-paren">(</span><em>M</em>, <em>s1</em>, <em>in s2: int = 0</em><span class="sig-paren">)</span><a class="headerlink" href="#homology._get_next_pivot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.swap_rows">
+<em class="property">proc </em><code class="descname">swap_rows</code><span class="sig-paren">(</span><em>i</em>, <em>j</em>, <em>M</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.swap_rows" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.swap_columns">
+<em class="property">proc </em><code class="descname">swap_columns</code><span class="sig-paren">(</span><em>i</em>, <em>j</em>, <em>M</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.swap_columns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.add_to_row">
+<em class="property">proc </em><code class="descname">add_to_row</code><span class="sig-paren">(</span><em>M</em>, <em>i</em>, <em>j</em>, <em>ri = 1</em>, <em>rj = 1</em>, <em>mod = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.add_to_row" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.add_to_column">
+<em class="property">proc </em><code class="descname">add_to_column</code><span class="sig-paren">(</span><em>M</em>, <em>i</em>, <em>j</em>, <em>ci = 1</em>, <em>cj = 1</em>, <em>mod = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.add_to_column" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.matmultmod2">
+<em class="property">proc </em><code class="descname">matmultmod2</code><span class="sig-paren">(</span><em>M</em>, <em>N</em>, <em>mod = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.matmultmod2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.matmultmod3">
+<em class="property">proc </em><code class="descname">matmultmod3</code><span class="sig-paren">(</span><em>M</em>, <em>N</em>, <em>mod = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.matmultmod3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.matmultmod">
+<em class="property">proc </em><code class="descname">matmultmod</code><span class="sig-paren">(</span><em>M</em>, <em>N</em>, <em>mod = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.matmultmod" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="type">
+<dt id="homology.listType">
+<em class="property">type </em><code class="descname">listType</code> = unmanaged nilable Matrix2Dlisttrue<a class="headerlink" href="#homology.listType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.matmulreduce">
+<em class="property">proc </em><code class="descname">matmulreduce</code><span class="sig-paren">(</span><em>arr: listType</em>, <em>reverse = false</em>, <em>mod = 2</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.matmulreduce" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.calculateRank">
+<em class="property">proc </em><code class="descname">calculateRank</code><span class="sig-paren">(</span><em>M</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.calculateRank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.smithNormalForm">
+<em class="property">proc </em><code class="descname">smithNormalForm</code><span class="sig-paren">(</span><em>b</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.smithNormalForm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.computedMatrices">
+<em class="property">var </em><code class="descname">computedMatrices</code> = smithNormalForm(boundaryMaps(1).matrix)<a class="headerlink" href="#homology.computedMatrices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.computedMatrices2">
+<em class="property">var </em><code class="descname">computedMatrices2</code> = smithNormalForm(boundaryMaps(2).matrix)<a class="headerlink" href="#homology.computedMatrices2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.L1">
+<em class="property">var </em><code class="descname">L1</code> = computedMatrices(1)<a class="headerlink" href="#homology.L1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.R1">
+<em class="property">var </em><code class="descname">R1</code> = computedMatrices(2)<a class="headerlink" href="#homology.R1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.S1">
+<em class="property">var </em><code class="descname">S1</code> = computedMatrices(3)<a class="headerlink" href="#homology.S1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.L1invF">
+<em class="property">var </em><code class="descname">L1invF</code> = computedMatrices(4)<a class="headerlink" href="#homology.L1invF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.R1invF">
+<em class="property">var </em><code class="descname">R1invF</code> = computedMatrices(5)<a class="headerlink" href="#homology.R1invF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.L2">
+<em class="property">var </em><code class="descname">L2</code> = computedMatrices2(1)<a class="headerlink" href="#homology.L2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.R2">
+<em class="property">var </em><code class="descname">R2</code> = computedMatrices2(2)<a class="headerlink" href="#homology.R2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.S2">
+<em class="property">var </em><code class="descname">S2</code> = computedMatrices2(3)<a class="headerlink" href="#homology.S2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.L2invF">
+<em class="property">var </em><code class="descname">L2invF</code> = computedMatrices2(4)<a class="headerlink" href="#homology.L2invF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.R2invF">
+<em class="property">var </em><code class="descname">R2invF</code> = computedMatrices2(5)<a class="headerlink" href="#homology.R2invF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.rank1">
+<em class="property">var </em><code class="descname">rank1</code> = calculateRank(S1)<a class="headerlink" href="#homology.rank1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.rank2">
+<em class="property">var </em><code class="descname">rank2</code> = calculateRank(S2)<a class="headerlink" href="#homology.rank2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.nullity1">
+<em class="property">var </em><code class="descname">nullity1</code> = AppendExpr.Call08-rank1<a class="headerlink" href="#homology.nullity1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.betti1">
+<em class="property">var </em><code class="descname">betti1</code> = AppendExpr.Call08-rank1-rank2<a class="headerlink" href="#homology.betti1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.cokernel2_dim">
+<em class="property">var </em><code class="descname">cokernel2_dim</code> = AppendExpr.Call08-rank2<a class="headerlink" href="#homology.cokernel2_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.nr1">
+<em class="property">var </em><code class="descname">nr1</code> = AppendExpr.Call08-rank1<a class="headerlink" href="#homology.nr1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.ker1">
+<em class="property">var </em><code class="descname">ker1</code>: [1..AppendExpr.Call08, 1..nr1] int = ..R1rank1+1..<a class="headerlink" href="#homology.ker1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.im2">
+<em class="property">var </em><code class="descname">im2</code>: [1..AppendExpr.Call08, 1..rank2] int = ..L2invF1..rank2<a class="headerlink" href="#homology.im2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.nr2">
+<em class="property">var </em><code class="descname">nr2</code> = AppendExpr.Call08-rank2<a class="headerlink" href="#homology.nr2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.cokernel2">
+<em class="property">var </em><code class="descname">cokernel2</code>: [1..AppendExpr.Call08, 1..nr2] int = ..L2invFrank2+1..<a class="headerlink" href="#homology.cokernel2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.LKernel">
+<em class="property">var </em><code class="descname">LKernel</code> = new unmanaged nilable Matrix2Dlisttrue<a class="headerlink" href="#homology.LKernel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology._L2">
+<em class="property">var </em><code class="descname">_L2</code> = new unmanaged AppendExpr.Call08Matrix2DAppendExpr.Call08<a class="headerlink" href="#homology._L2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology._ker1">
+<em class="property">var </em><code class="descname">_ker1</code> = new unmanaged AppendExpr.Call08Matrix2DAppendExpr.Call08<a class="headerlink" href="#homology._ker1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.result">
+<em class="property">var </em><code class="descname">result</code> = matmulreduce(LKernel)<a class="headerlink" href="#homology.result" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.slc">
+<em class="property">var </em><code class="descname">slc</code> = AppendExpr.Call08-rank2<a class="headerlink" href="#homology.slc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.proj">
+<em class="property">var </em><code class="descname">proj</code>: [1..slc, 1..AppendExpr.Call08] int = rank2+1..result..<a class="headerlink" href="#homology.proj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.L2invKernel">
+<em class="property">var </em><code class="descname">L2invKernel</code> = new unmanaged nilable Matrix2Dlisttrue<a class="headerlink" href="#homology.L2invKernel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology._L2inv">
+<em class="property">var </em><code class="descname">_L2inv</code> = new unmanaged AppendExpr.Call08Matrix2Dnr2<a class="headerlink" href="#homology._L2inv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology._proj">
+<em class="property">var </em><code class="descname">_proj</code> = new unmanaged AppendExpr.Call08Matrix2DAppendExpr.Call08<a class="headerlink" href="#homology._proj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="homology.proj2">
+<em class="property">var </em><code class="descname">proj2</code> = matmulreduce(L2invKernel)<a class="headerlink" href="#homology.proj2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="homology.reducedRowEchelonForm">
+<em class="property">proc </em><code class="descname">reducedRowEchelonForm</code><span class="sig-paren">(</span><em>b</em><span class="sig-paren">)</span><a class="headerlink" href="#homology.reducedRowEchelonForm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="graphs.html" class="btn btn-neutral" title="graphs" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, PNNL.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

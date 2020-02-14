@@ -1,0 +1,189 @@
+.. default-domain:: chpl
+
+.. module:: homology
+
+homology
+========
+**Usage**
+
+.. code-block:: chapel
+
+   use homology;
+
+.. data:: var hypergraph = new AdjListHyperGraph(4, 3, new unmanaged Cyclic(startIdx = 0))
+
+.. data:: var _vtxSubsetSet = new set(string)
+
+.. iterfunction:: iter processVtxSubset(vtxSubset)
+
+.. function:: proc doProcessVertices(verticesSet)
+
+   Generate the permutation 
+
+.. data:: var setContent = AppendExpr.Call08
+
+   Verify the set by printing
+
+.. data:: var _sz = 0
+
+.. data:: var kCellMap = new intmapstringlisttrue
+
+   bin k-cells, with key as the length of the list and value is a list with all the k-cells
+
+.. class:: kCellsArray
+
+   .. attribute:: var numKCells: int
+
+   .. attribute:: var D = {1..numKCells}
+
+   .. attribute:: var A: [D] string
+
+   .. method:: proc init(_N: int)
+
+   .. method:: proc findCellIndex(s: string)
+
+.. data:: var numBins = kCellMap.size-1
+
+.. data:: var kCellsArrayMap: [0..numBins] owned nilable kCellsArray
+
+.. data:: var kCellKeys = AppendExpr.Call08
+
+.. record:: Comparator
+
+.. method:: proc Comparator.compare(a: string, b: string): int
+
+.. data:: var absComparator: Comparator
+
+.. class:: Matrix
+
+   Start of the construction of boundary matrices.
+
+
+   .. attribute:: var N: int
+
+   .. attribute:: var M: int
+
+   .. attribute:: var matrix: [1..N, 1..M] int
+
+   .. method:: proc init(_N: int, _M: int)
+
+.. data:: var K = kCellMap.size-1
+
+.. data:: var boundaryMaps: [1..K] owned nilable Matrix
+
+.. data:: var i: int = 1
+
+.. data:: var vs = new set(string)
+
+.. iterfunction:: iter processVtxSubset2(vtxSubset)
+
+.. function:: proc doProcessVertices2(verticesSet)
+
+   Generate the permutation 
+
+.. function:: proc printBoundaryMap(boundaryMap)
+
+.. function:: proc printmatrix(M)
+
+.. function:: proc IdentityMatrix(n)
+
+.. class:: Matrix2D
+
+   .. attribute:: var N: int
+
+   .. attribute:: var M: int
+
+   .. attribute:: var _arr: [1..N, 1..M] int
+
+   .. method:: proc init(row: int, col: int)
+
+.. function:: proc _get_next_pivot(M, s1, in s2: int = 0)
+
+.. function:: proc swap_rows(i, j, M)
+
+.. function:: proc swap_columns(i, j, M)
+
+.. function:: proc add_to_row(M, i, j, ri = 1, rj = 1, mod = 2)
+
+.. function:: proc add_to_column(M, i, j, ci = 1, cj = 1, mod = 2)
+
+.. function:: proc matmultmod2(M, N, mod = 2)
+
+.. function:: proc matmultmod3(M, N, mod = 2)
+
+.. function:: proc matmultmod(M, N, mod = 2)
+
+.. type:: type listType = unmanaged nilable Matrix2Dlisttrue
+
+.. function:: proc matmulreduce(arr: listType, reverse = false, mod = 2)
+
+.. function:: proc calculateRank(M)
+
+.. function:: proc smithNormalForm(b)
+
+.. data:: var computedMatrices = smithNormalForm(boundaryMaps(1).matrix)
+
+.. data:: var computedMatrices2 = smithNormalForm(boundaryMaps(2).matrix)
+
+.. data:: var L1 = computedMatrices(1)
+
+.. data:: var R1 = computedMatrices(2)
+
+.. data:: var S1 = computedMatrices(3)
+
+.. data:: var L1invF = computedMatrices(4)
+
+.. data:: var R1invF = computedMatrices(5)
+
+.. data:: var L2 = computedMatrices2(1)
+
+.. data:: var R2 = computedMatrices2(2)
+
+.. data:: var S2 = computedMatrices2(3)
+
+.. data:: var L2invF = computedMatrices2(4)
+
+.. data:: var R2invF = computedMatrices2(5)
+
+.. data:: var rank1 = calculateRank(S1)
+
+.. data:: var rank2 = calculateRank(S2)
+
+.. data:: var nullity1 = AppendExpr.Call08-rank1
+
+.. data:: var betti1 = AppendExpr.Call08-rank1-rank2
+
+.. data:: var cokernel2_dim = AppendExpr.Call08-rank2
+
+.. data:: var nr1 = AppendExpr.Call08-rank1
+
+.. data:: var ker1: [1..AppendExpr.Call08, 1..nr1] int = ..R1rank1+1..
+
+.. data:: var im2: [1..AppendExpr.Call08, 1..rank2] int = ..L2invF1..rank2
+
+.. data:: var nr2 = AppendExpr.Call08-rank2
+
+.. data:: var cokernel2: [1..AppendExpr.Call08, 1..nr2] int = ..L2invFrank2+1..
+
+.. data:: var LKernel = new unmanaged nilable Matrix2Dlisttrue
+
+.. data:: var _L2 = new unmanaged AppendExpr.Call08Matrix2DAppendExpr.Call08
+
+.. data:: var _ker1 = new unmanaged AppendExpr.Call08Matrix2DAppendExpr.Call08
+
+.. data:: var result = matmulreduce(LKernel)
+
+.. data:: var slc = AppendExpr.Call08-rank2
+
+.. data:: var proj: [1..slc, 1..AppendExpr.Call08] int = rank2+1..result..
+
+.. data:: var L2invKernel = new unmanaged nilable Matrix2Dlisttrue
+
+.. data:: var _L2inv = new unmanaged AppendExpr.Call08Matrix2Dnr2
+
+.. data:: var _proj = new unmanaged AppendExpr.Call08Matrix2DAppendExpr.Call08
+
+.. data:: var proj2 = matmulreduce(L2invKernel)
+
+.. function:: proc reducedRowEchelonForm(b)
+
