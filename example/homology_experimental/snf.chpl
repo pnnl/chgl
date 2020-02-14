@@ -1,3 +1,5 @@
+/*Implementation of Smith Normal Form and test with small example.*/
+
 /*Test matrix 1*/
 var b: [1..7, 1..11] int;
 b(1,1) = 1;
