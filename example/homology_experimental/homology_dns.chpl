@@ -188,19 +188,10 @@ for e in hypergraph.getEdges() {
   doProcessVertices(verticesInEdge);
 }
 
-/* writeln("Printing all generated combination"); */
-/* /\*Verify the set by printing*\/ */
-/* var setContent = _vtxSubsetSet.toArray(); */
-/* for c in setContent do */
-/*   writeln(c); */
-
-/* writeln("-----"); */
-/* writeln("Printing bins"); */
 /*bin k-cells, with key as the length of the list and value is a list with all the k-cells*/
 var kCellMap = new map(int, list(string, true));
 for vtxSet in _vtxSubsetSet {
   var sz = + reduce [ch in vtxSet] ch == ' ';
-  /* writeln(sz : string + " " + vtxSet : string); */
   kCellMap[sz].append(vtxSet);
 }
 
@@ -224,7 +215,6 @@ record Comparator { }
 proc Comparator.compare(a :string, b :string) : int {
   var retVal : int = 0;
   if (b == "" || a == "") {
-    /* writeln("a: " + a : string + " b: " + b : string); */
     retVal = -1;
     return retVal;
   }
@@ -251,24 +241,13 @@ proc Comparator.compare(a :string, b :string) : int {
 
 var absComparator: Comparator;
 
-/* /\* writeln("%%%%%%%%%%%%%"); *\/ */
 /* // Leader-follower iterator */
 /* // Create the new KcellMaps for convenience of sorting */
 for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
-  /* writeln("kCellkey:" + kCellKey : string); */
-  /* writeln("listsize: " + kCellMap[kCellKey].size : string); */
   _kCellsArray = new owned kCellsArray(kCellMap[kCellKey].size);
   _kCellsArray.A = kCellMap[kCellKey].toArray();
   sort(_kCellsArray.A, comparator=absComparator);
 }
-/* writeln("%%%%%%%%%%%%%"); */
-
-/* writeln("Printing after sorting"); */
-/* writeln("^^^^^^^^^^^^^^^^^^^^^^^"); */
-/* for _kCellsArray in kCellsArrayMap { */
-/*   writeln(_kCellsArray.A : string); */
-/* } */
-/* writeln("^^^^^^^^^^^^^^^^^^^^^^^"); */
 
 /*Start of the construction of boundary matrices.*/
 class Matrix {
@@ -288,7 +267,6 @@ var i : int = 1;
 // Leader-follower iterator
 // Create the boundary Maps
 for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
-  /* writeln("dimensions: " + kCellsArrayMap[dimension_k_1].numKCells: string + " " + kCellsArrayMap[dimension_k].numKCells : string); */
   boundaryMap = new owned Matrix(kCellsArrayMap[dimension_k_1].numKCells, kCellsArrayMap[dimension_k].numKCells);
 }
 
@@ -324,37 +302,28 @@ proc doProcessVertices2 (verticesSet) {
 }
 
 
-/* writeln("####"); */
 // Compute values for each entries in each of the boundary map
 for (dimension_k_1, dimension_k) in zip(0..2, 1..3) {
   var arrayOfKCells  = kCellsArrayMap[dimension_k].A; // Arrays of strings, each string being 1 kcell
   var arrayOfK_1Cells = kCellsArrayMap[dimension_k_1].A;
-  /* writeln("$$$$$$$$$$$"); */
-  /* writeln(arrayOfKCells); */
-  /* writeln(arrayOfK_1Cells); */
-  /* writeln("$$$$$$$$$$$"); */
   var i : int = 0;
   var j : int = 0;
   for SkCell in arrayOfKCells { // iterate through all the k-cells
     i = i + 1;
     /* Generate permutation of the current k-Cell*/
     var kCell = SkCell.split(" ") : int;
-    /* writeln("#kcell: " + kCell :string); */
-    /* writeln("Combinations generated ": string); */
     for sc in processVtxSubset(kCell) {
       var st = stringify(sc);
       j = 0;
       for Sk_1Cell in arrayOfK_1Cells {
 	j = j + 1;
 	if (st == Sk_1Cell) {
-	  // writeln(st :string + "matches");
 	  boundaryMaps[dimension_k].matrix[j, i] = 1;
 	  break;
 	}
       }
     }
   }
-  /* writeln("$$$$$$$$$$$"); */
 }
 
 proc printBoundaryMap(boundaryMap) {
@@ -367,12 +336,6 @@ proc printBoundaryMap(boundaryMap) {
     writeln();
   }
 }
-
-/* for (dimension_k_1, dimension_k) in zip(0..1, 1..2) { */
-/*   writeln("Printing boundary map for: " : string + dimension_k_1 : string + " " :string + dimension_k : string); */
-/*   printBoundaryMap(boundaryMaps[dimension_k]); */
-/* } */
-
 
 proc printmatrix(M) {
   for i in {1..M.domain.high(1)} {
@@ -538,20 +501,7 @@ proc smithNormalForm(b) {
   var L = IL;
   var R = IR;
 
-  /* writeln("###############"); */
-  /* writeln("L:"); */
-  /* printmatrix(L); */
-  /* writeln("###############"); */
-  /* writeln("R:"); */
-  /* printmatrix(R); */
-
-  // var rc = _get_next_pivot(b, 3);
-  // writeln(rc : string);
-
-
-  writeln("########");
   for s in 1..minDim {
-    /* writeln("Iteration: " +  s : string); */
     var pivot = _get_next_pivot(S,s);
     var rdx : int, cdx : int;
     if (pivot(1) == -1 && pivot(2) == -1) {
@@ -579,18 +529,9 @@ proc smithNormalForm(b) {
       Rinv.append(RM);
     }
 
-    // add sth row to every nonzero row & sth column to every nonzero column
-    // zip(S[.., s], S.dim(1)) gives you (S[i,j], 1..N)
-    // row_indices = [idx for idx in range(dimL) if idx != s and S[idx][s] == 1]
-    // var RD: domain(2) = {1..dimL, 1..dimL};
-    // var row_indices = [(x,(i,j)) in zip(S, 1..dimL)] if x == 1 && j != s then (i,j);
-    // var row_indices = [(s,idx) in zip(S, {1..dimL})] if s == 1 then idx;
-
     var row_indices = [idx in 1..dimL] if (idx != s && S(idx,s) == 1) then idx;
-    // compilerWarning(row_indices.type : string);
 
     for rdx in row_indices {
-      // writeln("rdx: " + rdx : string);
       S = add_to_row(S, rdx, s);
       L = add_to_row(L, rdx, s);
       var tmp = add_to_row(IL, rdx, s);
@@ -602,7 +543,6 @@ proc smithNormalForm(b) {
     var column_indices = [jdx in 1..dimR] if (jdx != s && S(s,jdx) == 1) then jdx;
  
     for (jdx,cdx) in zip(1..,column_indices) {// TODO: check
-      // writeln("rdx: " + rdx : string);
       S = add_to_column(S, cdx, s);
       R = add_to_column(R, cdx, s);
       var tmp = add_to_column(IR, cdx, s);
