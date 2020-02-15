@@ -68,7 +68,9 @@ record Cell {
 	}
 
 	proc writeThis(f) {
-		// NOP
+		f <~> "{";
+		for i in 0..#numVertices do f <~> " " <~> this[i] <~> " ";
+		f <~> "}";
 	}
 	iter these() ref {    
 		for i in 0..#numVertices do 
@@ -79,6 +81,14 @@ record Cell {
 	}
 
   proc size return this.numVertices;
+}
+
+proc ==(c1 : Cell, c2 : Cell) {
+	if c1.size != c2.size then return false;
+	for (a,b) in zip(c1, c2) {
+		if a != b then return false;
+	}
+	return true;
 }
 
 // Takes a kcell (k0, k1, ..., kN) and
@@ -139,7 +149,11 @@ var kCellMap = new map(int, list(Cell, parSafe=true), parSafe=true); // potentia
 forall cell in cellSet {
 	kCellMap[cell.size].append(cell);
 }
-/*
+
+// for k in kCellMap.keys {
+// 	writeln(k, " -> ", kCellMap[k]);
+// }
+
 class kCellsArray{
 	var numKCells : int;
 	var D = {1..numKCells} dmapped Cyclic(startIdx=1);
@@ -147,10 +161,8 @@ class kCellsArray{
 	proc init(_N: int) {
 		numKCells = _N;
 	}
-	proc findCellIndex(s :string) {
-		for k in A {
-
-		}
+	proc findCellIndex(cell : Cell) {
+		return search(A, cell);
 	}
 }
 
@@ -162,42 +174,27 @@ sort(kCellKeys);
 // Empty record serves as comparator
 record Comparator { }
 // compare method defines how 2 elements are compared
-proc Comparator.compare(a :string, b :string) : int {
-	var retVal : int = 0;
-	if (b == "" || a == "") {
-		retVal = -1;
-		return retVal;
+proc Comparator.compare(a : Cell, b : Cell) : int {
+	assert(a.size == b.size);
+	for (_a, _b) in zip(a,b) {
+		if (_a > _b) then return 1;
+		else if (_a < _b) then return -1;
 	}
-	var   aa =  a.split(" ") : int;
-	var   bb = b.split(" ") : int;
-	var done : bool = false;
-	var ndone : bool = false;
-	for i in 1..#aa.size {
-		for j in i..#bb.size {
-			if (aa[i] == bb[j]) {
-				break;
-			}
-			if (aa[i] < bb[j]) {
-				retVal = -1; done = true; break;
-			}
-			if (aa[i] > bb[j]) {
-				retVal = 1; done = true; break;
-			}
-		}
-		if (done) {break;}
-	}
-	return retVal;
+	return 0;
 }
+
 var absComparator: Comparator;
 
 // Leader-follower iterator
 // Create the new KcellMaps for convenience of sorting
-for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
+forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
 	_kCellsArray = new owned kCellsArray(kCellMap[kCellKey].size);
 	_kCellsArray.A = kCellMap[kCellKey].toArray(); 
 	sort(_kCellsArray.A, comparator=absComparator);
 }
-*/
+
+writeln(kCellsArrayMap);
+
 /*Start of the construction of boundary matrices.*/
 /*
 class Matrix {
