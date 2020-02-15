@@ -5,7 +5,8 @@ use Set;
 use Map;
 use List;
 use Sort;
-use Search;e
+use Search;
+use CyclicDist;
 
 var hypergraph = new AdjListHyperGraph(4, 1, new unmanaged Cyclic(startIdx=0));
 forall v in hypergraph.getVertices() do hypergraph.addInclusion(v, 0);
@@ -118,8 +119,8 @@ for vtxSet in _vtxSubsetSet {
 
 class kCellsArray{
 	var numKCells : int;
-	var D = {1..numKCells};
-	var A : [D] string;
+	var D = {1..numKCells} dmapped Cyclic(startIdx=1);
+	var A : [D] Cell;
 	proc init(_N: int) {
 		numKCells = _N;
 	}
