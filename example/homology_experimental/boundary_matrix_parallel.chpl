@@ -136,7 +136,7 @@ for cset in cellSets {
 /*bin k-cells, with key as the length of the list and value is a list with all the k-cells*/
 // TODO: Perform reduction like above...
 var kCellMap = new map(int, list(Cell, parSafe=true), parSafe=true); // potential bottleneck...
-for cell in cellSet {
+forall cell in cellSet {
 	kCellMap[cell.size].append(cell);
 }
 /*
