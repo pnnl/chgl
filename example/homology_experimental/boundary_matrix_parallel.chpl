@@ -21,6 +21,31 @@ proc Comparator.compare(a : Cell, b : Cell) : int {
 	return 0;
 }
 
+proc intersection(A : [] ?t, B : [] t) {
+	var CD = {0..#min(A.size, B.size)};
+	var C : [CD] t;
+	var idxA = A.domain.low;
+	var idxB = B.domain.low;
+	var idxC = 0;
+	while idxA <= A.domain.high && idxB <= B.domain.high {
+		const a = A[idxA];
+		const b = B[idxB];
+		if a == b { 
+		C[idxC] = a;
+		idxC += 1;
+		idxA += 1; 
+		idxB += 1; 
+		}
+		else if a > b { 
+		idxB += 1;
+		} else { 
+		idxA += 1;
+		}
+	}
+	CD = {0..#idxC};
+	return C;	
+}
+
 var absComparator : Comparator();
 var hypergraph = new AdjListHyperGraph(4, 1, new unmanaged Cyclic(startIdx=0));
 forall v in hypergraph.getVertices() do hypergraph.addInclusion(v, 0);
@@ -218,7 +243,7 @@ forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
 class Matrix {
 	var N : int;
 	var M : int;
-	var D = {1..N, 1..M} dmapped Block(boundingBox = {1..N, 1..M});
+	var D = {0..#N, 0..#M} dmapped Block(boundingBox = {1..N, 1..M});
 	var matrix : [D] int;
 	proc init(_N: int, _M:int) {
 		N = _N;
@@ -227,6 +252,12 @@ class Matrix {
 
 	proc readWriteThis(f) {
 		f <~> matrix;
+	}
+
+	proc this(i,j) ref return matrix[i,j];
+
+	iter these() ref {
+		for x in matrix do yield x;
 	}
 }
 
@@ -242,43 +273,37 @@ for (idx, k) in zip(boundaryMaps.domain, boundaryMaps) {
 	writeln(idx, ":\n", boundaryMaps[idx]);
 }
 
-// // Compute values for each entries in each of the boundary map
-// for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
-// 	var arrayOfKCells  = kCellsArrayMap[dimension_k].A; // Arrays of strings, each string being 1 kcell
-// 	var arrayOfK_1Cells = kCellsArrayMap[dimension_k_1].A;
-// 	var i : int = 0;
-// 	var j : int = 0;
-// 	for SkCell in arrayOfKCells { // iterate through all the k-cells
-// 		i = i + 1;
-// 		/* Generate permutation of the current k-Cell*/
-// 		var kCell = SkCell.split(" ") : int;
-// 		for sc in processVtxSubset(kCell) {
-// 			compilerWarning(sc.type : string);
-// 			var st = stringify(sc);
-// 			j = 0;
-// 			for Sk_1Cell in arrayOfK_1Cells {
-// 				j = j + 1;
-// 				if (st == Sk_1Cell) {
-// 					boundaryMap.matrix[j, i] = 1;
-// 					break;
-// 				}
-// 			}
-// 		}
-// 	}
-// }
+// Compute values for each entries in each of the boundary map
+forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
+	var ACells = kCellsArrayMap[dimension_k].A;
+	var BCells = kCellsArrayMap[dimension_k_1].A;
 
-// proc printBoundaryMap(boundaryMap) {
-// 	var row : int = boundaryMap.matrix.domain.high(1);
-// 	var col : int = boundaryMap.matrix.domain.high(2);
-// 	for i in 1..row {
-// 		for j in 1..col {
-// 			write(boundaryMap.matrix[i, j] : string + " ");
-// 		}
-// 		writeln();
-// 	}
-// }
+	// Mappings for permutation to index...
+	var k1Mapping : map(false, Cell, int);
+	for (k1Cell, idx) in zip(kCellMap[dimension_k_1 + 1], 0..) {
+		k1Mapping[k1Cell] = idx;
+	}
 
-// for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
-// 	writeln("Printing boundary map for: " : string + dimension_k_1 : string + " " :string + dimension_k : string);
-// 	printBoundaryMap(boundaryMap);
-// }
+	for (acell, j) in zip(ACells, 0..) {
+		var perms = splitKCell(acell);
+		for match in intersection(perms, BCells) {
+			boundaryMap[k1Mapping[match], j] = 1;
+		}
+	}
+}
+
+proc printBoundaryMap(boundaryMap) {
+	var row : int = boundaryMap.matrix.domain.high(1);
+	var col : int = boundaryMap.matrix.domain.high(2);
+	for i in 0..#row {
+		for j in 0..#col {
+			write(boundaryMap.matrix[i, j] : string + " ");
+		}
+		writeln();
+	}
+}
+
+for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
+	writeln("Printing boundary map for: " : string + dimension_k_1 : string + " " :string + dimension_k : string);
+	printBoundaryMap(boundaryMap);
+}
