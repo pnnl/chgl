@@ -148,7 +148,7 @@ proc matmulreduce(arr : listType, reverse = false, mod = 2) {
       P = temp;
     }
   } else {
-    P = arr(1)._arr;
+    P = arr(1)._arr; // Why are you doing this?
     for i in 2..arr.size {
       var tempD : domain(2) = {1..P.domain.high(1), 1..arr(i)._arr.domain.high(2)};
       var temp : [tempD] int; 

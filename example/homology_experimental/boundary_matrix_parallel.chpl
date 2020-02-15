@@ -6,23 +6,37 @@ use Map;
 use List;
 use Sort;
 use Search;
+use HashedDist;
 use CyclicDist;
 
 var hypergraph = new AdjListHyperGraph(4, 1, new unmanaged Cyclic(startIdx=0));
 forall v in hypergraph.getVertices() do hypergraph.addInclusion(v, 0);
 
+proc chpl__defaultHash(cell : Cell) {
+	var arr = makeArrayFromPtr(cell.vertices : c_void_ptr : c_ptr(int), cell.numVertices : uint(64));
+	return chpl__defaultHash(arr);
+}
+
 record Cell {  
 	var numVertices : int;  
 	var vertices : _ddata(int);
+
+	proc init() {}
 	proc init(numVertices : int) {   
 		this.numVertices = numVertices;    
-    this.vertices = _ddata_allocate(int, numVertices, initElts=false);  
-  }
+    	this.vertices = _ddata_allocate(int, numVertices, initElts=false);  
+  	}
+
+	  proc init(arr : [?D] int) {
+		  init(for a in arr do a);
+	  }
+	  
 
 	// `var kcell = new Cell(array);`                                                                                                                                                         
 	// `var kcell = new Cell(domain);`                                                                                                                                                        
 	// `var kcell = new Cell([x in 1..10] x * 2);`                                                                                                                                            
 	proc init(iterable : _iteratorRecord) {    
+		this.complete();
 		var cap : int;    
 		for x in iterable {      
 			if numVertices >= cap {        
@@ -49,20 +63,20 @@ record Cell {
 		_ddata_free(this.vertices, cap);
 		this.vertices = tmp;  
 
-    sort(this.vertices);
+		var arr = makeArrayFromPtr(this.vertices : c_void_ptr : c_ptr(int), this.numVertices : uint(64));
+    	sort(arr);
+	}
+
+	proc writeThis(f) {
+		// NOP
 	}
 	iter these() ref {    
 		for i in 0..#numVertices do 
 			yield vertices[i];  
 	}
-	proc this(idx) ref {    
-		assert(idx < numVertices, "Out of bounds!");    
+	proc this(idx : int) ref {    
 		return vertices[idx];  
 	}
-  
-  proc this(rng : range) ref {
-    return vertices[rng];
-  }
 
   proc size return this.numVertices;
 }
@@ -72,51 +86,60 @@ record Cell {
 //  (k1, k2, ..., kN), ... (k0, k1, ..., ki, ..., kN), (k0, k1, ..., kN-1)
 // }
 iter splitKCell(cell) {
-	for i in 1..#kcell.size {
-    var newCell = new Cell(kcell.size - 1);
+	for i in 1..#cell.size {
+    	var newCell = new Cell(cell.size - 1);
 		newCell[0..i - 1] = cell[0..i - 1];
-		newCell[i..] = cell[i + 1..];
-		yield tmp;
+		newCell[i..newCell.size - 1] = cell[i + 1..cell.size - 1];
+		yield newCell;
 	}
 }
 
 // Need to make parallel
 /* Generate the permutation */
-proc processCell (kcell, vertexSet) {
+proc processCell (kcell, cellSet) {
 	// If we only have one vertex in this kcell, it is a 0-cell
   // and so we recurse no further, but we do add it to the set...
   if (kcell.size == 1) {
-		vetexSet.add(kcell);
+		cellSet.add(kcell);
 	} else {
     // PRUNE!!!
-		if !vertexSet.contains(kcell) {
-			vertexSet.add(kcell);
+		if !cellSet.contains(kcell) {
+			cellSet.add(kcell);
 			for cell in splitKCell(kcell) {
-				processCell(_vtxSubset);
+				processCell(cell, cellSet);
 			}
 		}
 	}
 }
 
 /*For each of the hyperedge, do the permutation of all the vertices.*/
-var vertexSets : [0..#numLocales, 0..#here.maxTaskPar] set(Cell);
-forall e in hypergraph.getEdges() {
+var cellSets : [0..#numLocales, 0..#here.maxTaskPar] set(Cell);
+// TODO: Use Privatized to cut down communication...
+var taskIdCounts : [0..#numLocales] atomic int; 
+forall e in hypergraph.getEdges() with (var tid : int = taskIdCounts[here.id].fetchAdd(1)) {
 	var vertices = hypergraph.incidence(e); // ABCD
 	ref tmp = vertices[1..#vertices.size];
-	var verticesInEdge = tmp.id;
- 	processCell(new Cell(verticesInEdge));
+	var verticesInEdge : [1..#vertices.size] int = tmp.id;
+ 	processCell(new Cell(verticesInEdge), cellSets[here.id, tid]);
 }
 
-var _sz = 0;
+// Combine sets...
+// Might want to use PropertyMap since its significantly faster and
+// has aggregation and is concurrent... TODO!!!
+var cellSet : domain(Cell, parSafe=true) dmapped Hashed(idxType=Cell);
+for cset in cellSets {
+	forall cell in cset with (ref cellSet) {
+		cellSet += cell;
+	}
+}
+
 /*bin k-cells, with key as the length of the list and value is a list with all the k-cells*/
-var kCellMap = new map(int, list(string, true));
-for vtxSet in _vtxSubsetSet {
-	//var _vtxSet = vtxSet.split(" ");
-	var sz = + reduce [ch in vtxSet] ch == ' ';
-	kCellMap[sz].append(vtxSet);
-	_sz = sz;
+// TODO: Perform reduction like above...
+var kCellMap = new map(int, list(Cell, parSafe=true), parSafe=true); // potential bottleneck...
+for cell in cellSet {
+	kCellMap[cell.size].append(cell);
 }
-
+/*
 class kCellsArray{
 	var numKCells : int;
 	var D = {1..numKCells} dmapped Cyclic(startIdx=1);
@@ -174,8 +197,9 @@ for (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
 	_kCellsArray.A = kCellMap[kCellKey].toArray(); 
 	sort(_kCellsArray.A, comparator=absComparator);
 }
-
+*/
 /*Start of the construction of boundary matrices.*/
+/*
 class Matrix {
 	var N : int;
 	var M : int;
@@ -206,8 +230,9 @@ iter processVtxSubset2(vtxSubset) {
 		yield tmp;
 	}
 }
-
+*/
 /* Generate the permutation */
+/*
 proc doProcessVertices2 (verticesSet) {
 	if (verticesSet.size == 0) {
 		return;
@@ -235,8 +260,9 @@ for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
 	var i : int = 0;
 	var j : int = 0;
 	for SkCell in arrayOfKCells { // iterate through all the k-cells
-		i = i + 1;
+		i = i + 1; */
 		/* Generate permutation of the current k-Cell*/
+		/*
 		var kCell = SkCell.split(" ") : int;
 		for sc in processVtxSubset(kCell) {
 			compilerWarning(sc.type : string);
@@ -270,4 +296,4 @@ for (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
 }
 
 
-
+*/
