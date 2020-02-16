@@ -51,8 +51,12 @@ var hypergraph = new AdjListHyperGraph(4, 1, new unmanaged Cyclic(startIdx=0));
 forall v in hypergraph.getVertices() do hypergraph.addInclusion(v, 0);
 
 proc chpl__defaultHash(cell : Cell) {
-	var arr = makeArrayFromPtr(cell.vertices : c_void_ptr : c_ptr(int), cell.numVertices : uint(64));
-	return chpl__defaultHash(arr);
+	var hash : uint(64) = chpl__defaultHash(cell.size);
+	for (ix, a) in zip(1.., cell) {
+		// chpl__defaultHashCombine passed '17 + fieldnum' so we can only go up to 64 - 17 = 47
+		hash = chpl__defaultHashCombine(chpl__defaultHash(a), hash, ix % 47);
+	}
+	return hash;
 }
 
 record Cell {  
