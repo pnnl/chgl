@@ -10,6 +10,7 @@ use FileSystem;
 use BigInteger;
 use HashedDist;
 use CyclicDist;
+use VisualDebug;
 
 config const datasetDir = "./betti_test_data/";
 /*
@@ -390,6 +391,8 @@ class Matrix {
     M = _M;
   }
 
+  proc dom ref return D;
+
   proc readWriteThis(f) {
     f <~> matrix;
   }
@@ -429,10 +432,10 @@ forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) 
 		
     for bcell in BCells {
       for cell in perms {
-	if bcell == cell {
-	  boundaryMap[k1Mapping[cell], colidx] = 1;
-	  break;
-	}
+        if bcell == cell {
+          boundaryMap[k1Mapping[cell], colidx] = 1;
+          break;
+        }
       }
     }
   }
@@ -456,3 +459,363 @@ proc printBoundaryMap(boundaryMap) {
 t.stop();
 writeln("Boundary map calculation took ", t.elapsed(), " s");
 t.clear();
+
+t.start();
+proc IdentityMatrix(n) {
+  var A : [0..#n, 0..#n] int;
+  [i in A.domain.dim(1)] A[i,i] = 1;
+  return A;
+}
+
+proc _get_next_pivot(M, s1, in s2 : int = -1) {
+  var dims = M.domain.high;
+  var dimR = dims(1);
+  var dimC = dims(2);
+  if (s2 == -1) {
+    s2 = s1;
+  }
+  for c in s2..dimC {
+    for r in s1..dimR {
+      if (M(r,c) != 0) {
+      	return (r,c);
+      }
+    }
+  }
+  return (-1,-1); // TODO: return
+}
+
+
+proc swap_rows(i, j, M) {
+  var N = M;
+  N[i, ..] <=> N[j, ..];
+  return N;
+}
+
+proc swap_columns(i, j, M) {
+  var N = M;
+  N[.., i] <=> N[.., j];
+  return N;
+}
+
+// Replaces row i (of M) with sum ri multiple of ith row and rj multiple of jth row
+proc add_to_row(M, i, j, ri = 1, rj = 1, mod = 2) {
+  var N = M;
+  N[i, ..]  = (ri * N[i, ..] + rj * N[j, ..]) % mod;
+  return N;
+}
+
+
+proc add_to_column(M, i, j, ci = 1, cj = 1, mod = 2) {
+  var N = M;
+  N[.., i]  = (ci * N[.., i] + cj * N[..,j]) % mod;
+  return N;
+}
+
+proc matmultmod (M, N, mod =2) {
+  var CD = {M.domain.dim(1), N.domain.dim(2)} dmapped Block(boundingBox = {M.domain.dim(1), N.domain.dim(2)});
+  var C : [CD] int;
+  forall (i,j) in C.domain {
+    C[i,j] = (+ reduce (M[i, M.domain.dim(2)] * N[M.domain.dim(2), j])) % 2;
+  }
+  return C;
+}
+
+// TODO: Just work on Matrix instead of raw 2D arrays
+type listType = list(unmanaged Matrix?, true);
+proc matmulreduce(arr : listType, reverse = false, mod = 2) {
+  var PD = arr[if reverse then arr.size else 1].D;
+  var P : [PD] int;
+  if (reverse) {
+    P = arr(arr.size).matrix; // bulk copy
+    for i in 1..#arr.size - 1 by -1 {
+      ref temp = matmultmod(P, arr(i).matrix);
+      PD = temp.domain;
+      P = temp;
+    }
+  } else {
+    P = arr(1).matrix; // bulk copy
+    for i in 2..arr.size {
+      ref temp = matmultmod(P, arr(i).matrix);
+      PD = temp.domain;
+      P = temp;
+    }
+  }
+  return P;
+}
+
+// rank calculation:
+proc calculateRank(M) {
+  var rank = + reduce [i in M.domain.dim(2)] (max reduce M[.., i]);
+  return rank;
+}
+
+
+// printmatrix(b);
+
+proc smithNormalForm(b) {
+  var dims = b.domain.high;
+  var dimL = dims(1);
+  var dimR = dims(2);
+  var minDim = if dimL <= dimR then dimL else dimR;
+ 
+  // writeln(dimL : string ); // dims give me the index set but I need the max value of the index set
+  // writeln(minDim);
+
+
+  var S  = b;
+  var IL = IdentityMatrix(dimL);
+  var IR = IdentityMatrix(dimR);
+
+  var Linv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation
+  var Rinv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation
+
+  var Linit = new unmanaged Matrix(IL.domain.high(1) + 1, IL.domain.high(2) + 1);
+  Linit.matrix = IL;
+  Linv.append(Linit);
+  var Rinit = new unmanaged Matrix(IR.domain.high(1) + 1, IR.domain.high(2) + 1);
+  Rinit.matrix = IR;
+  Rinv.append(Rinit);
+
+  var L = IL;
+  var R = IR;
+
+  /* writeln("###############"); */
+  /* writeln("L:"); */
+  /* printmatrix(L); */
+  /* writeln("###############"); */
+  /* writeln("R:"); */
+  /* printmatrix(R); */
+
+  // var rc = _get_next_pivot(b, 3);
+  // writeln(rc : string);
+
+
+  writeln("########");
+  for s in 0..minDim {
+    var t = new Timer();
+    t.start();
+    /* writeln("Iteration: " +  s : string); */
+    var pivot = _get_next_pivot(S,s);
+    var rdx : int, cdx : int;
+    if (pivot(1) == -1 && pivot(2) == -1) {
+      break;
+    }
+    else {
+      (rdx, cdx) = pivot;
+    }
+ 
+    // Swap rows and columns as needed so the 1 is in the s,s position
+    if (rdx > s) {
+      S = swap_rows(s, rdx, S);
+      L = swap_rows(s, rdx, L);
+      ref tmp = swap_rows(s, rdx, IL);
+      var LM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      LM.matrix = tmp;
+      Linv.append(LM);
+    }
+    if (cdx > s) {
+      S = swap_columns(s, cdx, S);
+      R = swap_columns(s, cdx, R);
+      ref tmp = swap_columns(s, cdx, IR);
+      var RM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      RM.matrix = tmp;
+      Rinv.append(RM);
+    }
+
+    // add sth row to every nonzero row & sth column to every nonzero column
+    // zip(S[.., s], S.dim(1)) gives you (S[i,j], 1..N)
+    // row_indices = [idx for idx in range(dimL) if idx != s and S[idx][s] == 1]
+    // var RD: domain(2) = {1..dimL, 1..dimL};
+    // var row_indices = [(x,(i,j)) in zip(S, 1..dimL)] if x == 1 && j != s then (i,j);
+    // var row_indices = [(s,idx) in zip(S, {1..dimL})] if s == 1 then idx;
+
+    var row_indices = [idx in 0..dimL] if (idx != s && S(idx,s) == 1) then idx;
+    // compilerWarning(row_indices.type : string);
+
+    for rdx in row_indices {
+      // writeln("rdx: " + rdx : string);
+      S = add_to_row(S, rdx, s);
+      L = add_to_row(L, rdx, s);
+      var tmp = add_to_row(IL, rdx, s);
+      var LM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      LM.matrix = tmp;
+      Linv.append(LM);
+    }
+
+    var column_indices = [jdx in 0..dimR] if (jdx != s && S(s,jdx) == 1) then jdx;
+ 
+    for (jdx,cdx) in zip(0..,column_indices) {// TODO: check
+      // writeln("rdx: " + rdx : string);
+      S = add_to_column(S, cdx, s);
+      R = add_to_column(R, cdx, s);
+      var tmp = add_to_column(IR, cdx, s);
+      var RM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      RM.matrix = tmp;
+      Rinv.append(RM);
+    }
+    t.stop();
+    writeln("Iteration ", s, " took ", t.elapsed());
+  }
+
+
+  var timer = new Timer();
+  timer.start();
+  var LinvF = matmulreduce(Linv);
+  timer.stop();
+  writeln("LinvF took ", timer.elapsed());
+  timer.clear();
+  timer.start();
+  var RinvF = matmulreduce(Rinv, true, 2);
+  timer.stop();
+  writeln("RinvF took ", timer.elapsed());
+  return (L,R,S,LinvF,RinvF);
+}
+
+//startVdebug("SNF");
+var tt = new Timer();
+tt.start();
+var computedMatrices = smithNormalForm(boundaryMaps[1].matrix);
+tt.stop();
+writeln("computedMatrices took ", tt.elapsed());
+tt.clear();
+tt.start();
+var computedMatrices2 = smithNormalForm(boundaryMaps[2].matrix);
+tt.stop();
+writeln("computedMatrices2 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var computedMatrices3 = smithNormalForm(boundaryMaps[3].matrix);
+tt.stop();
+writeln("computedMatrices3 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var L1 = computedMatrices(1);
+tt.stop();
+writeln("L1 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var R1 = computedMatrices(2);
+tt.stop();
+writeln("R1 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var S1 = computedMatrices(3);
+tt.stop();
+writeln("S1 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var L1invF = computedMatrices(4);
+tt.stop();
+writeln("L1invf took ", tt.elapsed());
+tt.clear();
+tt.start();
+var R1invF = computedMatrices(5);
+tt.stop();
+writeln("R1nvf took ", tt.elapsed());
+tt.clear();
+tt.start();
+var L2 = computedMatrices2(1);
+tt.stop();
+writeln("L2 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var R2 = computedMatrices2(2);
+tt.stop();
+writeln("R2 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var S2 = computedMatrices2(3);
+tt.stop();
+writeln("S2 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var L2invF = computedMatrices2(4);
+tt.stop();
+writeln("L2invf took ", tt.elapsed());
+tt.clear();
+tt.start();
+var R2invF = computedMatrices2(5);
+tt.stop();
+writeln("R2invf took ", tt.elapsed());
+tt.clear();
+tt.start();
+var L3 = computedMatrices3(1);
+tt.stop();
+writeln("L3 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var R3 = computedMatrices3(2);
+tt.stop();
+writeln("R3 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var S3 = computedMatrices3(3);
+tt.stop();
+writeln("S3 took ", tt.elapsed());
+tt.clear();
+tt.start();
+var L3invF = computedMatrices3(4);
+tt.stop();
+writeln("L3invF took ", tt.elapsed());
+tt.clear();
+tt.start();
+var R3invF = computedMatrices3(5);
+tt.stop();
+writeln("R3invF took ", tt.elapsed());
+tt.clear();
+tt.start();
+/* writeln("###############"); */
+/* writeln("L1:"); */
+/* printmatrix(L1); */
+/* writeln("###############"); */
+/* writeln("R1:"); */
+/* printmatrix(R1); */
+/* writeln("###############"); */
+/* writeln("S1:"); */
+/* printmatrix(S1); */
+/* writeln("###############"); */
+/* writeln("L1inv:"); */
+/* printmatrix(L1invF); */
+/* writeln("###############"); */
+/* writeln("R1inv:"); */
+/* printmatrix(R1invF); */
+/* writeln("###############"); */
+/* writeln("L2inv:"); */
+/* printmatrix(L2invF); */
+
+var rank1 = calculateRank(S1);
+tt.stop();
+writeln("Rank 1 took ", tt.elapsed());
+tt.clear();
+tt.start();
+writeln("Rank of S1: " + rank1  : string);
+var rank2 = calculateRank(S2);
+tt.stop();
+writeln("Rank 2 took ", tt.elapsed());
+tt.clear();
+tt.start();
+writeln("Rank of S2: " + rank2  : string);
+var nullity1 = S1.domain.high(2) - rank1;
+var betti1 = S1.domain.high(2) - rank1 - rank2;
+writeln("Betti 1: " + betti1 : string);
+
+/* var rank3 = calculateRank(S2); */
+/* writeln("Rank of S2: " + rank1  : string); */
+var rank3 = calculateRank(S3);
+tt.stop();
+writeln("Rank3 took ", tt.elapsed());
+tt.clear();
+tt.start();
+writeln("Rank of S3: " + rank3  : string);
+var betti2 = S2.domain.high(2) - rank2 - rank3;
+tt.stop();
+writeln("Betti 2 took ", tt.elapsed());
+tt.clear();
+tt.start();
+writeln("Betti 2: " + betti2 : string);
+
+t.stop();
+writeln("Betti number calculation took ", t.elapsed(), " s");
+t.clear();
+writeln("Total execution time: " + total_time.elapsed() : string +  " s");
+//stopVdebug();
