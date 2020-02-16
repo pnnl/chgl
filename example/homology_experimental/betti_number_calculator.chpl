@@ -360,6 +360,10 @@ for (dimension_k_1, dimension_k) in zip(0..2, 1..3) {
   /* writeln("$$$$$$$$$$$"); */
 }
 
+t.stop();
+writeln("Boundary map calculation took ", t.elapsed(), " s");
+t.clear();
+
 proc printBoundaryMap(boundaryMap) {
   var row : int = boundaryMap.matrix.domain.high(1);
   var col : int = boundaryMap.matrix.domain.high(2);
@@ -386,7 +390,7 @@ proc printmatrix(M) {
   }
 }
 
-
+t.start();
 proc IdentityMatrix(n) {
   var A : [1..n, 1..n] int;
   [i in A.domain.dim(1)] A[i,i] = 1;
@@ -672,6 +676,10 @@ var rank3 = calculateRank(S3);
 writeln("Rank of S3: " + rank3  : string);
 var betti2 = S2.domain.high(2) - rank2 - rank3;
 writeln("Betti 2: " + betti2 : string);
+
+t.stop();
+writeln("Betti number calculation took ", t.elapsed(), " s");
+t.clear();
 writeln("Total execution time: " + total_time.elapsed() : string +  " s");
 
 
