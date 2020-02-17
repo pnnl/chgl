@@ -330,6 +330,7 @@ writeln("Rank of S2: " + rank2  : string);
 var nullity1 = S1.domain.high(2) - rank1;
 var betti1 = S1.domain.high(2) - rank1 - rank2;
 var cokernel2_dim = S1.domain.high(2) - rank2;
+writeln("Betti:", betti1);
 
 var nr1 = R1.domain.high(2) - rank1;
 var ker1 : [1..R1.domain.high(1), 1..nr1] int = R1[..,rank1+1..];

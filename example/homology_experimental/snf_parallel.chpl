@@ -1,5 +1,7 @@
 /*Implementation of Smith Normal Form and test with small example.*/
 
+use CHGL; // Includes all core and utility components of CHGL
+use CyclicDist;
 /*Test matrix 1*/
 var b: [1..7, 1..11] int;
 b(1,1) = 1;
@@ -74,12 +76,38 @@ use List;
 class Matrix2D {
   var N : int;
   var M : int;
-  var _arr : [1..N, 1..M] int;
+  var D = {1..N, 1..M} dmapped Block(boundingBox = {1..N, 1..M});
+  var matrix : [D] int;
   proc init (row : int, col : int) {
     N = row;
     M = col;
   }
 }
+
+
+class Matrix {
+  var N : int;
+  var M : int;
+  var D = {0..#N, 0..#M} dmapped Block(boundingBox = {0..#N, 0..#M});
+  var matrix : [D] int;
+  proc init(_N: int, _M:int) {
+    N = _N;
+    M = _M;
+  }
+
+  proc dom ref return D;
+
+  proc readWriteThis(f) {
+    f <~> matrix;
+  }
+
+  proc this(i,j) ref return matrix[i,j];
+
+  iter these() ref {
+    for x in matrix do yield x;
+  }
+}
+
 
 proc _get_next_pivot(M,s) {
   var dims = M.domain.high;
@@ -95,21 +123,19 @@ proc _get_next_pivot(M,s) {
   return (-1,-1); // TODO: return
 }
 
-// Is Parallel
+
 proc swap_rows(i, j, M) {  
   var N = M;
   N[i, ..] <=> N[j, ..]; 
   return N;
 }
 
-// Is Parallel
 proc swap_columns(i, j, M) {  
   var N = M;
   N[.., i] <=> N[.., j]; 
   return N;
 }
 
-// Is Parallel
 // Replaces row i (of M) with sum ri multiple of ith row and rj multiple of jth row
 proc add_to_row(M, i, j, ri = 1, rj = 1, mod = 2) {
   var N = M;
@@ -117,16 +143,46 @@ proc add_to_row(M, i, j, ri = 1, rj = 1, mod = 2) {
   return N;
 }
 
-// Is Parallel
+
 proc add_to_column(M, i, j, ci = 1, cj = 1, mod = 2) {
   var N = M;
   N[.., i]  = (ci * N[.., i] + cj * N[..,j]) % mod;
   return N;
 }
 
-// Parallel
+proc matmultmod2 (M, N, mod = 2) {
+  var nr = M.domain.high(1);
+  var nc = N.domain.high(2);
+  var m  = M.domain.high(2); 
+  var C : [1..nr, 1..nc] atomic int;
+
+  forall i in 1..nr {
+    for j in 1..nc {
+      C[i,j].write((+ reduce M[i, 1..m] * N[1..m, j]) % 2) ;
+    }
+  }
+  return C.read();
+}
+
+proc matmultmod3 (M, N, mod = 2) {
+  var C : [M.domain.dim(1), N.domain.dim(2)] atomic int;
+  forall (i,j) in C.domain {
+    C[i,j].write((+ reduce M[i, M.domain.dim(2)] * N[M.domain.dim(2), j]) % 2);
+  }
+  return C.read();
+}
+
+/* proc matmultmod (M, N, mod =2) { */
+/*   var C : [M.domain.dim(1), N.domain.dim(2)] int; */
+/*   forall (i,j) in C.domain { */
+/*     C[i,j] = (+ reduce (M[i, M.domain.dim(2)] * N[M.domain.dim(2), j])) % 2; */
+/*   } */
+/*   return C; */
+/* } */
+/*step 1: Make Matrix distributed and uncomment dmapped*/
 proc matmultmod (M, N, mod =2) {
-  var C : [M.domain.dim(1), N.domain.dim(2)] int;
+  var CD = {M.domain.dim(1), N.domain.dim(2)} dmapped Block(boundingBox = {M.domain.dim(1), N.domain.dim(2)});
+  var C : [CD] int;
   forall (i,j) in C.domain {
     C[i,j] = (+ reduce (M[i, M.domain.dim(2)] * N[M.domain.dim(2), j])) % 2;
   }
@@ -134,26 +190,22 @@ proc matmultmod (M, N, mod =2) {
 }
 
 type listType = list(unmanaged Matrix2D?, true);
+
 proc matmulreduce(arr : listType, reverse = false, mod = 2) {
-  var PD: domain(2) = {1..arr(1)._arr.domain.high(1), 1..arr(1)._arr.domain.high(2)}; 
+  var PD = arr[if reverse then arr.size else 1].D;
   var P : [PD] int;
   if (reverse) {
-    PD = {1..arr(arr.size)._arr.domain.high(1), 1..arr(arr.size)._arr.domain.high(2)};
-    P = arr(arr.size)._arr;
+    P = arr(arr.size).matrix; // bulk copy
     for i in 1..#arr.size - 1 by -1 {
-      var tempD : domain(2) = {1..P.domain.high(1), 1..arr(i)._arr.domain.high(2)};
-      var temp : [tempD] int;
-      temp = matmultmod(P, arr(i)._arr);
-      PD = tempD;
+      ref temp = matmultmod(P, arr(i).matrix);
+      PD = temp.domain;
       P = temp;
     }
   } else {
-    P = arr(1)._arr; // Why are you doing this?
+    P = arr(1).matrix; // bulk copy
     for i in 2..arr.size {
-      var tempD : domain(2) = {1..P.domain.high(1), 1..arr(i)._arr.domain.high(2)};
-      var temp : [tempD] int; 
-      temp = matmultmod(P, arr(i)._arr);
-      PD = tempD;
+      ref temp = matmultmod(P, arr(i).matrix);
+      PD = temp.domain;
       P = temp;
     }
   }
@@ -187,10 +239,10 @@ proc smithNormalForm(b) {
   var Rinv = new list(unmanaged Matrix2D?, true); // listOfMatrixTransformation
 
   var Linit = new unmanaged Matrix2D(IL.domain.high(1), IL.domain.high(2));
-  Linit._arr = IL;
+  Linit.matrix = IL;
   Linv.append(Linit);
   var Rinit = new unmanaged Matrix2D(IR.domain.high(1), IR.domain.high(2));
-  Rinit._arr = IR;
+  Rinit.matrix = IR;
   Rinv.append(Rinit);
 
   var L = IL;
@@ -225,7 +277,7 @@ proc smithNormalForm(b) {
       L = swap_rows(s, rdx, L);
       var tmp = swap_rows(s, rdx, IL);
       var LM = new unmanaged Matrix2D(tmp.domain.high(1), tmp.domain.high(2));
-      LM._arr = tmp;
+      LM.matrix = tmp;
       Linv.append(LM);
     }
     if (cdx > s) {
@@ -233,7 +285,7 @@ proc smithNormalForm(b) {
       R = swap_columns(s, cdx, R);
       var tmp = swap_columns(s, cdx, IR);
       var RM = new unmanaged Matrix2D(tmp.domain.high(1), tmp.domain.high(2));
-      RM._arr = tmp;
+      RM.matrix = tmp;
       Rinv.append(RM); 
     }
 
@@ -253,7 +305,7 @@ proc smithNormalForm(b) {
       L = add_to_row(L, rdx, s);
       var tmp = add_to_row(IL, rdx, s);
       var LM = new unmanaged Matrix2D(tmp.domain.high(1), tmp.domain.high(2));
-      LM._arr = tmp;
+      LM.matrix = tmp;
       Linv.append(LM);
     }
 
@@ -265,7 +317,7 @@ proc smithNormalForm(b) {
       R = add_to_column(R, cdx, s);
       var tmp = add_to_column(IR, cdx, s);
       var RM = new unmanaged Matrix2D(tmp.domain.high(1), tmp.domain.high(2));
-      RM._arr = tmp;
+      RM.matrix = tmp;
       Rinv.append(RM);
     }
   }
@@ -332,11 +384,11 @@ printmatrix(L2);
 var LKernel = new list(unmanaged Matrix2D?, true);
 
 var _L2 = new unmanaged Matrix2D(L2.domain.high(1), L2.domain.high(2));
-_L2._arr = L2;
+_L2.matrix = L2;
 LKernel.append(_L2);
 
 var _ker1 = new unmanaged Matrix2D(ker1.domain.high(1), ker1.domain.high(2));
-_ker1._arr = ker1;
+_ker1.matrix = ker1;
 LKernel.append(_ker1);
 
 writeln("L2 dimension: " + L2.domain.high(1) :string + "X" + L2.domain.high(2):string);

@@ -61,6 +61,10 @@ for vtxSet in _vtxSubsetSet {
   _sz = sz;
 }
 
+for k in kCellMap.keys {
+	writeln(k, " -> ", kCellMap[k]);
+}
+
 class kCellsArray{
   var numKCells : int;
   var D = {1..numKCells};

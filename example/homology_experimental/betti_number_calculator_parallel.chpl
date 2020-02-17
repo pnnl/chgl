@@ -384,7 +384,7 @@ forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
 class Matrix {
   var N : int;
   var M : int;
-  var D = {0..#N, 0..#M} dmapped Block(boundingBox = {0..#N, 0..#M});
+  var D = {1..N, 1..M} dmapped Block(boundingBox = {1..N, 1..M});
   var matrix : [D] int;
   proc init(_N: int, _M:int) {
     N = _N;
@@ -404,7 +404,9 @@ class Matrix {
   }
 }
 
-var boundaryMaps : [1..#kCellMap.size - 1] owned Matrix?;
+
+// var boundaryMaps : [1..#kCellMap.size - 1] owned Matrix?;
+var boundaryMaps : [1..3] owned Matrix?;
 
 // Leader-follower iterator
 // Create the boundary Maps
@@ -423,11 +425,11 @@ forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) 
 
   // Mappings for permutation to index...
   var k1Mapping : map(false, Cell, int);
-  for (k1Cell, idx) in zip(kCellMap[dimension_k_1], 0..) {
+  for (k1Cell, idx) in zip(kCellMap[dimension_k_1], 1..) {
     k1Mapping[k1Cell] = idx;
   }
 
-  forall (acell, colidx) in zip(ACells, 0..) {
+  forall (acell, colidx) in zip(ACells, 1..) {
     var perms = splitKCell(acell);
 		
     for bcell in BCells {
@@ -462,7 +464,7 @@ t.clear();
 
 t.start();
 proc IdentityMatrix(n) {
-  var A : [0..#n, 0..#n] int;
+  var A : [1..n, 1..n] int;
   [i in A.domain.dim(1)] A[i,i] = 1;
   return A;
 }
@@ -510,6 +512,7 @@ proc add_to_column(M, i, j, ci = 1, cj = 1, mod = 2) {
   N[.., i]  = (ci * N[.., i] + cj * N[..,j]) % mod;
   return N;
 }
+
 
 proc matmultmod (M, N, mod =2) {
   var CD = {M.domain.dim(1), N.domain.dim(2)} dmapped Block(boundingBox = {M.domain.dim(1), N.domain.dim(2)});
@@ -569,10 +572,10 @@ proc smithNormalForm(b) {
   var Linv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation
   var Rinv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation
 
-  var Linit = new unmanaged Matrix(IL.domain.high(1) + 1, IL.domain.high(2) + 1);
+  var Linit = new unmanaged Matrix(IL.domain.high(1), IL.domain.high(2));
   Linit.matrix = IL;
   Linv.append(Linit);
-  var Rinit = new unmanaged Matrix(IR.domain.high(1) + 1, IR.domain.high(2) + 1);
+  var Rinit = new unmanaged Matrix(IR.domain.high(1), IR.domain.high(2));
   Rinit.matrix = IR;
   Rinv.append(Rinit);
 
@@ -591,7 +594,7 @@ proc smithNormalForm(b) {
 
 
   writeln("########");
-  for s in 0..minDim {
+  for s in 1..minDim {
     var t = new Timer();
     t.start();
     /* writeln("Iteration: " +  s : string); */
@@ -609,7 +612,7 @@ proc smithNormalForm(b) {
       S = swap_rows(s, rdx, S);
       L = swap_rows(s, rdx, L);
       ref tmp = swap_rows(s, rdx, IL);
-      var LM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      var LM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
       LM.matrix = tmp;
       Linv.append(LM);
     }
@@ -617,7 +620,7 @@ proc smithNormalForm(b) {
       S = swap_columns(s, cdx, S);
       R = swap_columns(s, cdx, R);
       ref tmp = swap_columns(s, cdx, IR);
-      var RM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      var RM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
       RM.matrix = tmp;
       Rinv.append(RM);
     }
@@ -629,7 +632,7 @@ proc smithNormalForm(b) {
     // var row_indices = [(x,(i,j)) in zip(S, 1..dimL)] if x == 1 && j != s then (i,j);
     // var row_indices = [(s,idx) in zip(S, {1..dimL})] if s == 1 then idx;
 
-    var row_indices = [idx in 0..dimL] if (idx != s && S(idx,s) == 1) then idx;
+    var row_indices = [idx in 1..dimL] if (idx != s && S(idx,s) == 1) then idx;
     // compilerWarning(row_indices.type : string);
 
     for rdx in row_indices {
@@ -637,19 +640,19 @@ proc smithNormalForm(b) {
       S = add_to_row(S, rdx, s);
       L = add_to_row(L, rdx, s);
       var tmp = add_to_row(IL, rdx, s);
-      var LM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      var LM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
       LM.matrix = tmp;
       Linv.append(LM);
     }
 
-    var column_indices = [jdx in 0..dimR] if (jdx != s && S(s,jdx) == 1) then jdx;
+    var column_indices = [jdx in 1..dimR] if (jdx != s && S(s,jdx) == 1) then jdx;
  
-    for (jdx,cdx) in zip(0..,column_indices) {// TODO: check
+    for (jdx,cdx) in zip(1..,column_indices) {// TODO: check
       // writeln("rdx: " + rdx : string);
       S = add_to_column(S, cdx, s);
       R = add_to_column(R, cdx, s);
       var tmp = add_to_column(IR, cdx, s);
-      var RM = new unmanaged Matrix(tmp.domain.high(1) + 1, tmp.domain.high(2) + 1);
+      var RM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
       RM.matrix = tmp;
       Rinv.append(RM);
     }
