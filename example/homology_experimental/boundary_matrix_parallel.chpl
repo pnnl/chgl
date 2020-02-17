@@ -247,7 +247,7 @@ forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
 class Matrix {
   var N : int;
   var M : int;
-  var D = {0..#N, 0..#M} dmapped Block(boundingBox = {0..#N, 0..#M});
+  var D = {1..N, 1..M} dmapped Block(boundingBox = {1..N, 1..M});
   var matrix : [D] int;
   proc init(_N: int, _M:int) {
     N = _N;
@@ -284,11 +284,11 @@ forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) 
 
   // Mappings for permutation to index...
   var k1Mapping : map(false, Cell, int);
-  for (k1Cell, idx) in zip(kCellMap[dimension_k_1], 0..) {
+  for (k1Cell, idx) in zip(kCellMap[dimension_k_1], 1..) {
     k1Mapping[k1Cell] = idx;
   }
 
-  forall (acell, colidx) in zip(ACells, 0..) {
+  forall (acell, colidx) in zip(ACells, 1..) {
     var perms = splitKCell(acell);
 		
     for bcell in BCells {
