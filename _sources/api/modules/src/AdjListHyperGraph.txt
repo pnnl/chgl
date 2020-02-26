@@ -210,6 +210,8 @@ There are a few ways to create a :record:`AdjListHyperGraph`
    
    
 
+.. function:: proc neq(a: ?t1NodeData?t2, b: t1NodeDatat2)
+
 .. record:: Wrapper
 
    .. attribute:: type nodeType
