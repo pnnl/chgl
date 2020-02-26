@@ -689,6 +689,11 @@ prototype module AdjListHyperGraph {
       }
     }
   }
+
+  proc neq(a :  NodeData(?t1, ?t2), b : NodeData(t1, t2)) {
+     return a.locale.id != b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) != __primitive("cast", uint(64), __primitive("_wide_get_addr", b));
+  }
+
   
   // Bitmap representation of an incidence list. It will take the integer descriptors
   // in the incidence list, sorted in ascending order, and then compress them so that
@@ -2044,7 +2049,7 @@ prototype module AdjListHyperGraph {
           if n == 1 {
             var v = _this.getEdge(e).incident[0];
 
-            assert(_this.getVertex(v) != nil, "A neighbor of ", e, " has an invalid reference ", v);
+            assert(_this.getVertex(v) != dummyEdge, "A neighbor of ", e, " has an invalid reference ", v);
             var nn = _this.getVertex(v).degree;
             assert(nn > 0, v, " has no neighbors... nn=", nn);
             if nn == 1 {
@@ -2067,6 +2072,7 @@ prototype module AdjListHyperGraph {
       var vertexMappings : [__verticesDomain] int = -1;
       var edgeMappings : [__edgesDomain] int = -1;
       
+      writeln("Found ", numIsolatedComponents, " isolated components...");
       writeln("Moving into temporary array...");
       // Move current array into auxiliary...
       const oldVerticesDom = this._verticesDomain;
@@ -2075,7 +2081,7 @@ prototype module AdjListHyperGraph {
       var oldEdges : [oldEdgesDom] unmanaged NodeData(vDescType, _ePropType) = this._edges;
       this._verticesDomain = {0..#(oldVerticesDom.size - numIsolatedComponents)};
       this._edgesDomain = {0..#(oldEdgesDom.size - numIsolatedComponents)};
-
+      writeln("Old domain = ", (oldVerticesDom, oldEdgesDom), ", New domain = ", (this._verticesDomain, this._edgesDomain));
       
       // Pass 2: Shift down non-nil spots...
       writeln("Shifting down NodeData...");
@@ -2084,8 +2090,11 @@ prototype module AdjListHyperGraph {
         var idx : atomic int;
         forall v in oldVerticesDom {
           var _this = getPrivatizedInstance();
-          if oldVertices[v] != nil {
+          if neq(oldVertices[v], dummyNode) {
             var ix = idx.fetchAdd(1);
+            if ix >= this._verticesDomain.size {
+              continue;
+            }
             
             // If the locations in the old and new array are the same, we just move it over
             if oldVertices[v].locale == _this.getVertex(ix).locale {
@@ -2103,13 +2112,16 @@ prototype module AdjListHyperGraph {
             vertexMappings[v] = ix;
           }
         }
+        if idx.read() > this._verticesDomain.size {
+          halt("Found ", idx.read(), " dummyEdges when only supposed to find ", this._verticesDomain.size);
+        }
         writeln("Shifted down to idx ", idx.read(), " for oldVertices.domain = ", oldVertices.domain);
 
         writeln("Shifting down NodeData for Edges...");
         idx.write(0);
         forall e in oldEdgesDom {
           var _this = getPrivatizedInstance();
-          if oldEdges[e] != nil {
+          if oldEdges[e] != dummyEdge {
             var ix = idx.fetchAdd(1);
             
             if oldEdges[e].locale == _this.getEdge(ix).locale {
@@ -2132,7 +2144,7 @@ prototype module AdjListHyperGraph {
       {
         writeln("Redirecting references for Vertices...");
         forall v in _vertices {
-          assert(v != nil, "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
+          assert(v != dummyEdge, "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
           for e in v {
             e = edgeMappings[e];
           }
@@ -2140,7 +2152,7 @@ prototype module AdjListHyperGraph {
 
         writeln("Redirecting references for Edges...");
         forall e in _edges {
-          assert(e != nil, "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
+          assert(e != dummyEdge, "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
           for v in e {
             v = vertexMappings[v];
           }
@@ -2165,10 +2177,10 @@ prototype module AdjListHyperGraph {
 
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
-          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(getVertex(v) != dummyEdge, "Vertex ", v, " is nil...");
           assert(degree(v) > 0, "Vertex has 0 neighbors...");
           forall e in incidence(v) {
-            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(getEdge(e) != dummyEdge, "Edge ", e, " is nil...");
             assert(degree(e) > 0, "Edge has 0 neighbors...");
 
             var isValid : bool;
@@ -2184,10 +2196,10 @@ prototype module AdjListHyperGraph {
         }
 
         forall e in getEdges() {
-          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(getEdge(e) != dummyEdge, "Edge ", e, " is nil...");
           assert(degree(e) > 0, "Edge has 0 neighbors...");
           forall v in incidence(e) {
-            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(getVertex(v) != dummyEdge, "Vertex ", v, " is nil...");
             assert(degree(v) > 0, "Vertex has 0 neighbors...");
 
             var isValid : bool;
