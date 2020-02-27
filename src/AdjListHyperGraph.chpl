@@ -693,7 +693,6 @@ prototype module AdjListHyperGraph {
   proc neq(a :  NodeData(?t1, ?t2), b : NodeData(t1, t2)) {
      return a.locale.id != b.locale.id || __primitive("cast", uint(64), __primitive("_wide_get_addr", a)) != __primitive("cast", uint(64), __primitive("_wide_get_addr", b));
   }
-
   
   // Bitmap representation of an incidence list. It will take the integer descriptors
   // in the incidence list, sorted in ascending order, and then compress them so that
@@ -710,7 +709,8 @@ prototype module AdjListHyperGraph {
     proc init() {}
 
     // The array should be sorted in ascending order.
-    proc init(arr : [?dom] int) {
+    proc init(_arr : [?dom] int) {
+      const arr = _arr;
       this.complete();
       if dom.size != 0 {
         var arrIdx : int;
@@ -909,6 +909,9 @@ prototype module AdjListHyperGraph {
     var _privatizedEdgesPID = _edges.pid;
     pragma "no doc"
     var _useAggregation : bool;
+    pragma "no doc"
+    // Replacement for `nil`
+    //const _dummyVertex : 
 
     pragma "no doc"
     /*
@@ -1466,15 +1469,16 @@ prototype module AdjListHyperGraph {
         // Verification...
         if Debug.ALHG_DEBUG {
           forall v in _verticesDomain {
+            var _this = getPrivatizedInstance();
             var vv = v;
-            while _vertices[vv] == dummyNode {
+            while _this.getVertex(vv) == dummyNode {
               vv = duplicateVertices[vv].read();
               assert(vv != -1, "A vertex is nil without a duplicate mapping...");
             }
             var containsVV : bool;
-            label outer for e in _vertices[vv].these() {
-              for vvv in _edges[e.id] {
-                if vvv.id == vv {
+            label outer for e in _this.getVertex(vv) {
+              for vvv in _this.getEdge(e) {
+                if vvv == vv {
                   containsVV = true;
                   break outer;
                 }
@@ -1483,16 +1487,16 @@ prototype module AdjListHyperGraph {
             if !containsVV {
               writeln("Broken Dual!");
               var vvv = v;
-              write("Link: ", toVertex(v));
-              while _vertices[vvv] == dummyNode {
+              write("Link: ", _this.toVertex(v));
+              while _this.getVertex(vvv) == dummyNode {
                 vvv = duplicateVertices[vvv].read();
-                write(" -> ", toVertex(vvv));
+                write(" -> ", _this.toVertex(vvv));
               }
               writeln();
 
-              writeln("Neighborhood of ", toVertex(vv));
-              for e in getVertex(vv) {
-                writeln("\t", toEdge(e), ":", [_v in getEdge(e)] _v : string + ",");
+              writeln("Neighborhood of ", _this.toVertex(vv));
+              for e in _this.getVertex(vv) {
+                writeln("\t", _this.toEdge(e), ":", [_v in _this.getEdge(e)] _v : string + ",");
               }
             }
           }
@@ -1576,6 +1580,47 @@ prototype module AdjListHyperGraph {
       writeln("Removing duplicates: ", removeDuplicates());
       removeDuplicates();
 
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(degree(v) > 0, "Vertex has 0 neighbors...");
+          forall e in incidence(v) {
+            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
+
+            var isValid : bool;
+            for vv in incidence(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...\nNeighbors = ", incidence(e));
+          }
+        }
+
+        forall e in getEdges() {
+          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(degree(e) > 0, "Edge has 0 neighbors...");
+          forall v in incidence(e) {
+            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in incidence(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...\n"
+             + "Neighbors of ", v, " = ", incidence(v), "\nNeighbors of ", e, " = ", incidence(e));
+          }
+        }
+      }
+
       // Obtain duplicate stats...
       var numDupes : [_verticesDomain] atomic int;
       forall vDup in duplicateVertices {
@@ -1597,6 +1642,46 @@ prototype module AdjListHyperGraph {
       called from Locale #0. Returns a histogram of duplicates
     */
     proc collapseEdges() {
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(degree(v) > 0, "Vertex has 0 neighbors...");
+          forall e in incidence(v) {
+            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
+
+            var isValid : bool;
+            for vv in incidence(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...\nNeighbors = ", incidence(e));
+          }
+        }
+
+        forall e in getEdges() {
+          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(degree(e) > 0, "Edge has 0 neighbors...");
+          forall v in incidence(e) {
+            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in incidence(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...\n"
+             + "Neighbors of ", v, " = ", incidence(v), "\nNeighbors of ", e, " = ", incidence(e));
+          }
+        }
+      }
       // Enforce on Locale 0 (presumed master locale...)
       if here != Locales[0] {
         // Cannot jump and return as return type is inferred by compiler.
@@ -1610,47 +1695,129 @@ prototype module AdjListHyperGraph {
       var edgeMappings : [__edgesDomain] int = -1;
       var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
       
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(degree(v) > 0, "Vertex has 0 neighbors...");
+          forall e in incidence(v) {
+            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
 
-      //writeln("Collapsing Edges...");
+            var isValid : bool;
+            for vv in incidence(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...\nNeighbors = ", incidence(e));
+          }
+        }
+
+        forall e in getEdges() {
+          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(degree(e) > 0, "Edge has 0 neighbors...");
+          forall v in incidence(e) {
+            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in incidence(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...\n"
+             + "Neighbors of ", v, " = ", incidence(v), "\nNeighbors of ", e, " = ", incidence(e));
+          }
+        }
+      }
+
+      writeln("Collapsing Edges...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current edge
       // We impose an ordering on determining what edge is a duplicate of what. A edge e is a
       // duplicate of a edge e' if e.id > e'.id. If there is a edge e'' such that e''.id > e.id
       // and e''.id < e'.id, that is e.id < e''.id < e'.id, the duplicate marking is still preserved
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
-        //writeln("Marking and Deleting Edges...");
-        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, Bitmap);
-        coforall loc in Locales  do on loc {
-          var _this = getPrivatizedInstance();
-          var reduxLock : Lock;
-          var localeqclass = new unmanaged Equivalence(int, Bitmap);
-          forall e in _edgesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
-            var _e = _this.toEdge(e);
-            var edge = _this.getEdge(_e);
-            edge.sortIncidence();
-            var wrapper = new Bitmap(edge.incident[0..#edge.degree]);
-            reduxLock.acquire();
-            localeqclass.add(e, wrapper);
-            reduxLock.release();
+        writeln("Marking and Deleting Edges...");
+        use DistributedInterlockedHashTable;
+        use List;
+        var eqclasses = new DistributedMap(Bitmap, list(int));
+        forall e in getEdges() with (var tok = eqclasses.getToken(), var _this = getPrivatizedInstance()) {
+          var _e = _this.toEdge(e);
+          var edge = _this.getEdge(_e);
+          edge.sortIncidence();
+          const key = new Bitmap(edge.incident[0..#edge.degree]);
+
+          //Internal until actual transactional interface implemented...
+          tok.pin();
+          const defaultHash = chpl__defaultHash(key);
+          const idx = (eqclasses._rootHash(defaultHash) % (eqclasses.rootBuckets.size):uint):int;
+          on eqclasses.rootBuckets[idx].locale {
+            var (elist, keyIdx) = eqclasses.getEList(key, true, defaultHash, idx, tok);
+
+            // Not found... create new list
+            if (keyIdx == -1) {
+              var done = false;
+              var topHash = (defaultHash >> HASH_SHIFT):uint(8);
+              if (topHash == EMPTY) then topHash = 1;
+              var firstPos = -1;
+              for i in 1..BUCKET_NUM_ELEMS {
+                if elist.topHash[i] == EMPTY {
+                  if firstPos == -1 then firstPos = i;
+                }
+                else if (elist.topHash[i] == topHash) {
+                  if (elist.keys[i] == key) {
+                    elist.values[i].append(e.id);
+                    elist.lock.write(E_AVAIL);
+                    done = true;
+                    break;
+                  }
+                }
+              }
+              if (!done) {
+                elist.count += 1;
+                elist.keys[firstPos] = key;
+                elist.values[firstPos].append(e.id);
+                elist.topHash[firstPos] = topHash;
+                elist.lock.write(E_AVAIL);
+              }
+            } else if (keyIdx == 1) {
+              var topHash = (defaultHash >> HASH_SHIFT):uint(8);
+              if (topHash == EMPTY) then topHash = 1;
+              elist.keys[keyIdx] = key;
+              elist.values[keyIdx].append(e.id);
+              elist.topHash[keyIdx] = topHash;
+              elist.count += 1;
+              elist.lock.write(E_AVAIL);
+            } else {
+              elist.values[keyIdx].append(e.id);
+              elist.lock.write(E_AVAIL);
+            }
           }
-          eqclasses[here.id] = localeqclass;
+          tok.unpin();
         }
-        var eqclass = new unmanaged Equivalence(int, Bitmap);
-        for localeqclass in eqclasses {
-          eqclass.add(localeqclass);
-        }
-        delete eqclasses;
-        
+
         var numUnique : int;
-        forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
+        forall (bitmap, l) in eqclasses with (+ reduce numUnique, var _this = getPrivatizedInstance()) {
           numUnique += 1;
-          for follower in eqclass.getCandidates(leader) {
-            delete _edges[follower];
-            _edges[follower] = dummyEdge;
+          const leader = l[1];
+          var skipped : bool;
+          for follower in l {
+            if !skipped {
+              skipped = true;
+              continue;
+            }
+            delete _this.getEdge(follower);
+            _this.getEdge(follower) = dummyEdge;
             duplicateEdges[follower].write(leader);
           }
         }
-        delete eqclass;
+        eqclasses.destroy();
         
         // No duplicates, just return
         if _edgesDomain.size == numUnique {
@@ -1658,24 +1825,25 @@ prototype module AdjListHyperGraph {
           return ret;
         }
         newEdgesDomain = {0..#numUnique};
-        //writeln(
-        //  "Unique Edges: ", numUnique, 
-        //  ", Duplicate Edges: ", _edgesDomain.size - numUnique, 
-        //  ", New Edges Domain: ", newEdgesDomain
-        //);
+        writeln(
+         "Unique Edges: ", numUnique, 
+         ", Duplicate Edges: ", _edgesDomain.size - numUnique, 
+         ", New Edges Domain: ", newEdgesDomain
+        );
 
         // Verification...
         if Debug.ALHG_DEBUG {
           forall e in _edgesDomain {
             var ee = e;
-            while _edges[ee] == dummyEdge {
+            var _this = getPrivatizedInstance();
+            while _this.getEdge(ee) == dummyEdge {
               ee = duplicateEdges[ee].read();
               assert(ee != -1, "An edge is nil without a duplicate mapping...");
             }
             var containsEE : bool;
-            label outer for v in _edges[ee].these() {
-              for eee in _vertices[v.id] {
-                if eee.id == ee {
+            label outer for v in _this.getEdge(ee) {
+              for eee in _this.getVertex(v) {
+                if eee == ee {
                   containsEE = true;
                   break outer;
                 }
@@ -1685,29 +1853,29 @@ prototype module AdjListHyperGraph {
             if !containsEE {
               writeln("Broken Dual!");
               var eee = e;
-              write("Link: ", toEdge(e));
-              while _edges[eee] == dummyEdge {
+              write("Link: ", _this.toEdge(e));
+              while _this.getEdge(eee) == dummyEdge {
                 eee = duplicateEdges[eee].read();
-                write(" -> ", toEdge(eee));
+                write(" -> ", _this.toEdge(eee));
               }
               writeln();
 
-              writeln("Neighborhood of ", toEdge(ee));
-              for v in getEdge(ee) {
-                writeln("\t", toVertex(v), ":", [_e in getVertex(v)] _e : string + ",");
+              writeln("Neighborhood of ", _this.toEdge(ee));
+              for v in _this.getEdge(ee) {
+                writeln("\t", _this.toVertex(v), ":", [_e in _this.getVertex(v)] _e : string + ",");
               }
             }
           }
         }
       }
 
-      //writeln("Moving into temporary array...");
+      writeln("Moving into temporary array...");
       // Move current array into auxiliary...
       const oldEdgesDom = this._edgesDomain;
       var oldEdges : [oldEdgesDom] unmanaged NodeData(vDescType, _ePropType) = this._edges;
       this._edgesDomain = newEdgesDomain;
 
-      //writeln("Shifting down NodeData for Edges...");
+      writeln("Shifting down NodeData for Edges...");
       // Pass 2: Move down unique NodeData into 'nil' spots. In parallel we will
       // claim indices in the new array via an atomic counter.
       {
@@ -1727,10 +1895,10 @@ prototype module AdjListHyperGraph {
             edgeMappings[e] = ix;
           }
         }
-        //writeln("Shifted down to idx ", idx.read(), " for oldEdges.domain = ", oldEdges.domain);
+        writeln("Shifted down to idx ", idx.read(), " for oldEdges.domain = ", oldEdges.domain);
       }
       
-      //writeln("Redirecting references to Edges...");
+      writeln("Redirecting references to Edges...");
       // Pass 3: Redirect references to collapsed vertices and edges to new mappings
       {
         forall v in _vertices {
@@ -1747,7 +1915,7 @@ prototype module AdjListHyperGraph {
       }
       
       if _ePropMap.isInitialized {
-        //writeln("Updating PropertyMap for Edges...");
+        writeln("Updating PropertyMap for Edges...");
         // Pass 4: Update PropertyMap
         {
           forall eIdx in _ePropMap.values {
@@ -1756,8 +1924,57 @@ prototype module AdjListHyperGraph {
         }
       }
       
-      //writeln("Removing duplicates: ", removeDuplicates());
+      writeln("Removing duplicates: ", removeDuplicates());
       removeDuplicates();
+
+      if true {
+        forall v in getVertices() with (var _this = getPrivatizedInstance()) {
+          assert(_this.getVertex(v) != nil, "Vertex ", v, " is nil...");
+          assert(_this.degree(v) > 0, "Vertex has 0 neighbors...");
+          forall e in _this.incidence(v) {
+            assert(_this.getEdge(e) != nil, "Edge ", e, " is nil...");
+            assert(_this.degree(e) > 0, "Edge has 0 neighbors...");
+
+            var isValid : bool;
+            for vv in _this.incidence(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            if !isValid {
+              writeln("WARNING!!! This may invalidate pipeline, attempting to repair...");
+              writeln("Vertex ", v, " has neighbor ", e, " that violates dual property...\n" + "Neighbors of ", v, " = ", _this.incidence(v), "\nNeighbors of ", e, " = ", _this.incidence(e));
+              _this.addInclusion(v, e); 
+            }
+          }
+        }
+
+        forall e in getEdges() with (var _this = getPrivatizedInstance()) {
+          assert(_this.getEdge(e) != nil, "Edge ", e, " is nil...");
+          assert(_this.degree(e) > 0, "Edge has 0 neighbors...");
+          forall v in _this.incidence(e) {
+            assert(_this.getVertex(v) != nil, "Vertex ", v, " is nil...");
+            assert(_this.degree(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in _this.incidence(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+
+            if !isValid {
+              writeln("WARNING!!! This may invalidate pipeline, attempting to repair...");
+              writeln("Edge ", e, " has neighbor ", v, " that violates dual property...\n" + "Neighbors of ", v, " = ", _this.incidence(v), "\nNeighbors of ", e, " = ", _this.incidence(e));
+             _this.addInclusion(v, e); 
+            }
+             
+          }
+        }
+      }
 
       // Obtain duplicate stats...
       var numDupes : [_edgesDomain] atomic int;
@@ -2030,6 +2247,39 @@ prototype module AdjListHyperGraph {
       hyperedges. Returns the number of isolated components.
     */
     proc removeIsolatedComponents() : int {
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          assert(degree(v) > 0, "Vertex has 0 neighbors...");
+          forall e in incidence(v) {
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
+
+            var isValid : bool;
+            for vv in incidence(e) {
+              if vv == v {
+                isValid = true;
+                break;
+              }
+            }
+
+            assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...");
+          }
+        }
+        forall e in getEdges() {
+          assert(degree(e) > 0, "Edge has 0 neighbors...");
+          forall v in incidence(e) {
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
+
+            var isValid : bool;
+            for ee in incidence(v) {
+              if ee == e {
+                isValid = true;
+                break;
+              }
+            }
+            assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...");
+          }
+        }
+      }
       var dummyNode = new unmanaged NodeData(eDescType, _vPropType);
       var dummyEdge = new unmanaged NodeData(vDescType, _ePropType);
       // Enforce on Locale 0 (presumed master locale...)
@@ -2062,6 +2312,50 @@ prototype module AdjListHyperGraph {
               _this.getVertex(v) = dummyNode;
               
               numIsolatedComponents += 1;
+            }
+          }
+        }
+      }
+
+      if Debug.ALHG_DEBUG {
+        forall v in getVertices() {
+          if neq(getVertex(v), dummyNode) {
+            assert(neq(getVertex(v), dummyNode), "Vertex ", v, " is nil...");
+            assert(degree(v) > 0, "Vertex has 0 neighbors...");
+            forall e in incidence(v) {
+              assert(neq(getEdge(e), dummyEdge), "Edge ", e, " is nil...");
+              assert(degree(e) > 0, "Edge has 0 neighbors...");
+
+              var isValid : bool;
+              for vv in incidence(e) {
+                if vv == v {
+                  isValid = true;
+                  break;
+                }
+              }
+
+              assert(isValid, "Vertex ", v, " has neighbor ", e, " that violates dual property...");
+            }
+          }
+        }
+
+        forall e in getEdges() {
+          if neq(getEdge(e), dummyEdge) {
+            assert(neq(getEdge(e), dummyEdge), "Edge ", e, " is nil...");
+            assert(degree(e) > 0, "Edge has 0 neighbors...");
+            forall v in incidence(e) {
+              assert(neq(getVertex(v), dummyNode), "Vertex ", v, " is nil...");
+              assert(degree(v) > 0, "Vertex has 0 neighbors...");
+
+              var isValid : bool;
+              for ee in incidence(v) {
+                if ee == e {
+                  isValid = true;
+                  break;
+                }
+              }
+
+              assert(isValid, "Edge ", e, " has neighbor ", v, " that violates dual property...");
             }
           }
         }
@@ -2121,7 +2415,7 @@ prototype module AdjListHyperGraph {
         idx.write(0);
         forall e in oldEdgesDom {
           var _this = getPrivatizedInstance();
-          if oldEdges[e] != dummyEdge {
+          if neq(oldEdges[e], dummyEdge) {
             var ix = idx.fetchAdd(1);
             
             if oldEdges[e].locale == _this.getEdge(ix).locale {
@@ -2144,17 +2438,21 @@ prototype module AdjListHyperGraph {
       {
         writeln("Redirecting references for Vertices...");
         forall v in _vertices {
-          assert(v != dummyEdge, "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
+          assert(neq(v, dummyNode), "Vertex is nil... Did not appropriately shift down data...", _verticesDomain);
           for e in v {
-            e = edgeMappings[e];
+            var tmp = edgeMappings[e];
+            assert(tmp != -1, "Edge#", e, " has edgeMapping of -1!");
+            e = tmp;
           }
         }
 
         writeln("Redirecting references for Edges...");
         forall e in _edges {
-          assert(e != dummyEdge, "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
+          assert(neq(e, dummyEdge), "Edge is nil... Did not appropriately shift down data...", _edgesDomain);
           for v in e {
-            v = vertexMappings[v];
+            var tmp = vertexMappings[v]; 
+            assert(tmp != -1, "Vertex#", v, " has vertexMapping of -1!");
+            v = tmp;
           }
         }
       }
@@ -2165,19 +2463,27 @@ prototype module AdjListHyperGraph {
         {
           writeln("Updating PropertyMap for Vertices...");
           forall vIdx in _vPropMap.values {
-            if vIdx != -1 then vIdx = vertexMappings[vIdx]; 
+            if vIdx != -1 {
+              var tmp = vertexMappings[vIdx]; 
+              assert(tmp != -1, "Vertex#", vIdx, " has vertexMapping of -1!");
+              vIdx = tmp;
+            }
           }
 
           writeln("Updating PropertyMap for Edges...");
           for eIdx in _ePropMap.values {
-            if eIdx != -1 then eIdx = edgeMappings[eIdx];
+            if eIdx != -1 {
+              var tmp = edgeMappings[eIdx];
+              assert(tmp != -1, "Edge#", eIdx, " has edgeMapping of -1!");
+              eIdx = tmp;
+            }
           }
         }
       }
 
       if Debug.ALHG_DEBUG {
         forall v in getVertices() {
-          assert(getVertex(v) != dummyEdge, "Vertex ", v, " is nil...");
+          assert(neq(getVertex(v), dummyNode), "Vertex ", v, " is nil...");
           assert(degree(v) > 0, "Vertex has 0 neighbors...");
           forall e in incidence(v) {
             assert(getEdge(e) != dummyEdge, "Edge ", e, " is nil...");
@@ -2196,10 +2502,10 @@ prototype module AdjListHyperGraph {
         }
 
         forall e in getEdges() {
-          assert(getEdge(e) != dummyEdge, "Edge ", e, " is nil...");
+          assert(neq(getEdge(e), dummyEdge), "Edge ", e, " is nil...");
           assert(degree(e) > 0, "Edge has 0 neighbors...");
           forall v in incidence(e) {
-            assert(getVertex(v) != dummyEdge, "Vertex ", v, " is nil...");
+            assert(getVertex(v) != dummyNode, "Vertex ", v, " is nil...");
             assert(degree(v) > 0, "Vertex has 0 neighbors...");
 
             var isValid : bool;
