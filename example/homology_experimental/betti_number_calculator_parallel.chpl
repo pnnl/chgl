@@ -569,18 +569,19 @@ proc smithNormalForm(b) {
   var IL = IdentityMatrix(dimL);
   var IR = IdentityMatrix(dimR);
 
-  var Linv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation
-  var Rinv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation
+  /* var Linv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation */
+  /* var Rinv = new list(unmanaged Matrix?, true); // listOfMatrixTransformation */
 
-  var Linit = new unmanaged Matrix(IL.domain.high(1), IL.domain.high(2));
-  Linit.matrix = IL;
-  Linv.append(Linit);
-  var Rinit = new unmanaged Matrix(IR.domain.high(1), IR.domain.high(2));
-  Rinit.matrix = IR;
-  Rinv.append(Rinit);
+  /* var Linit = new unmanaged Matrix(IL.domain.high(1), IL.domain.high(2)); */
+  /* Linit.matrix = IL; */
+  /* Linv.append(Linit); */
+  /* var Rinit = new unmanaged Matrix(IR.domain.high(1), IR.domain.high(2)); */
+  /* Rinit.matrix = IR; */
+  /* Rinv.append(Rinit); */
 
   var L = IL;
   var R = IR;
+  var Linv = IL;
 
   /* writeln("###############"); */
   /* writeln("L:"); */
@@ -595,8 +596,8 @@ proc smithNormalForm(b) {
 
   writeln("########");
   for s in 1..minDim {
-    var t = new Timer();
-    t.start();
+    // var t = new Timer();
+    // t.start();
     /* writeln("Iteration: " +  s : string); */
     var pivot = _get_next_pivot(S,s);
     var rdx : int, cdx : int;
@@ -611,18 +612,11 @@ proc smithNormalForm(b) {
     if (rdx > s) {
       S = swap_rows(s, rdx, S);
       L = swap_rows(s, rdx, L);
-      ref tmp = swap_rows(s, rdx, IL);
-      var LM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
-      LM.matrix = tmp;
-      Linv.append(LM);
+      Linv = swap_columns(rdx, s, Linv);
     }
     if (cdx > s) {
       S = swap_columns(s, cdx, S);
       R = swap_columns(s, cdx, R);
-      ref tmp = swap_columns(s, cdx, IR);
-      var RM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
-      RM.matrix = tmp;
-      Rinv.append(RM);
     }
 
     // add sth row to every nonzero row & sth column to every nonzero column
@@ -632,172 +626,57 @@ proc smithNormalForm(b) {
     // var row_indices = [(x,(i,j)) in zip(S, 1..dimL)] if x == 1 && j != s then (i,j);
     // var row_indices = [(s,idx) in zip(S, {1..dimL})] if s == 1 then idx;
 
-    var row_indices = [idx in 1..dimL] if (idx != s && S(idx,s) == 1) then idx;
+    var row_indices = [idx in s + 1..dimL] if (S(idx,s) == 1) then idx;
     // compilerWarning(row_indices.type : string);
 
     for rdx in row_indices {
       // writeln("rdx: " + rdx : string);
       S = add_to_row(S, rdx, s);
       L = add_to_row(L, rdx, s);
-      var tmp = add_to_row(IL, rdx, s);
-      var LM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
-      LM.matrix = tmp;
-      Linv.append(LM);
+      Linv = add_to_column(Linv, s, rdx);
     }
 
-    var column_indices = [jdx in 1..dimR] if (jdx != s && S(s,jdx) == 1) then jdx;
+    var column_indices = [jdx in s + 1..dimR] if (S(s,jdx) == 1) then jdx;
  
-    for (jdx,cdx) in zip(1..,column_indices) {// TODO: check
+    for cdx in column_indices {// TODO: check
       // writeln("rdx: " + rdx : string);
       S = add_to_column(S, cdx, s);
       R = add_to_column(R, cdx, s);
-      var tmp = add_to_column(IR, cdx, s);
-      var RM = new unmanaged Matrix(tmp.domain.high(1), tmp.domain.high(2));
-      RM.matrix = tmp;
-      Rinv.append(RM);
     }
-    t.stop();
-    writeln("Iteration ", s, " took ", t.elapsed());
+    // t.stop();
+    // writeln("Iteration ", s, " took ", t.elapsed());
   }
 
 
-  var timer = new Timer();
-  timer.start();
-  var LinvF = matmulreduce(Linv);
-  timer.stop();
-  writeln("LinvF took ", timer.elapsed());
-  timer.clear();
-  timer.start();
-  var RinvF = matmulreduce(Rinv, true, 2);
-  timer.stop();
-  writeln("RinvF took ", timer.elapsed());
-  return (L,R,S,LinvF,RinvF);
+  return (L,R,S,Linv);
 }
 
-//startVdebug("SNF");
-var tt = new Timer();
-tt.start();
-var computedMatrices = smithNormalForm(boundaryMaps[1].matrix);
-tt.stop();
-writeln("computedMatrices took ", tt.elapsed());
-tt.clear();
-tt.start();
-var computedMatrices2 = smithNormalForm(boundaryMaps[2].matrix);
-tt.stop();
-writeln("computedMatrices2 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var computedMatrices3 = smithNormalForm(boundaryMaps[3].matrix);
-tt.stop();
-writeln("computedMatrices3 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var L1 = computedMatrices(1);
-tt.stop();
-writeln("L1 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var R1 = computedMatrices(2);
-tt.stop();
-writeln("R1 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var S1 = computedMatrices(3);
-tt.stop();
-writeln("S1 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var L1invF = computedMatrices(4);
-tt.stop();
-writeln("L1invf took ", tt.elapsed());
-tt.clear();
-tt.start();
-var R1invF = computedMatrices(5);
-tt.stop();
-writeln("R1nvf took ", tt.elapsed());
-tt.clear();
-tt.start();
-var L2 = computedMatrices2(1);
-tt.stop();
-writeln("L2 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var R2 = computedMatrices2(2);
-tt.stop();
-writeln("R2 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var S2 = computedMatrices2(3);
-tt.stop();
-writeln("S2 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var L2invF = computedMatrices2(4);
-tt.stop();
-writeln("L2invf took ", tt.elapsed());
-tt.clear();
-tt.start();
-var R2invF = computedMatrices2(5);
-tt.stop();
-writeln("R2invf took ", tt.elapsed());
-tt.clear();
-tt.start();
-var L3 = computedMatrices3(1);
-tt.stop();
-writeln("L3 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var R3 = computedMatrices3(2);
-tt.stop();
-writeln("R3 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var S3 = computedMatrices3(3);
-tt.stop();
-writeln("S3 took ", tt.elapsed());
-tt.clear();
-tt.start();
-var L3invF = computedMatrices3(4);
-tt.stop();
-writeln("L3invF took ", tt.elapsed());
-tt.clear();
-tt.start();
-var R3invF = computedMatrices3(5);
-tt.stop();
-writeln("R3invF took ", tt.elapsed());
-tt.clear();
-tt.start();
-/* writeln("###############"); */
-/* writeln("L1:"); */
-/* printmatrix(L1); */
-/* writeln("###############"); */
-/* writeln("R1:"); */
-/* printmatrix(R1); */
-/* writeln("###############"); */
-/* writeln("S1:"); */
-/* printmatrix(S1); */
-/* writeln("###############"); */
-/* writeln("L1inv:"); */
-/* printmatrix(L1invF); */
-/* writeln("###############"); */
-/* writeln("R1inv:"); */
-/* printmatrix(R1invF); */
-/* writeln("###############"); */
-/* writeln("L2inv:"); */
-/* printmatrix(L2invF); */
+// @TODO: typeof return type of snf function?
+/* var CM : [1..3] list(unmanaged Matrix?, true); */
+/* //startVdebug("SNF"); */
+/* var tt = new Timer(); */
+/* tt.start(); */
+/* for i in 1..3 { */
+/*   CM[i] = smithNormalForm(boundaryMaps[i].matrix); */
+/* } */
 
+var computedMatrices = smithNormalForm(boundaryMaps[1].matrix);
+var computedMatrices2 = smithNormalForm(boundaryMaps[2].matrix);
+var computedMatrices3 = smithNormalForm(boundaryMaps[3].matrix);
+var L1 = computedMatrices(1);
+var R1 = computedMatrices(2);
+var S1 = computedMatrices(3);
+var L1invF = computedMatrices(4);
+var L2 = computedMatrices2(1);
+var R2 = computedMatrices2(2);
+var S2 = computedMatrices2(3);
+var L2invF = computedMatrices2(4);
+var L3 = computedMatrices3(1);
+var R3 = computedMatrices3(2);
+var S3 = computedMatrices3(3);
+var L3invF = computedMatrices3(4);
 var rank1 = calculateRank(S1);
-tt.stop();
-writeln("Rank 1 took ", tt.elapsed());
-tt.clear();
-tt.start();
-writeln("Rank of S1: " + rank1  : string);
 var rank2 = calculateRank(S2);
-tt.stop();
-writeln("Rank 2 took ", tt.elapsed());
-tt.clear();
-tt.start();
-writeln("Rank of S2: " + rank2  : string);
 var nullity1 = S1.domain.high(2) - rank1;
 var betti1 = S1.domain.high(2) - rank1 - rank2;
 writeln("Betti 1: " + betti1 : string);
@@ -805,19 +684,8 @@ writeln("Betti 1: " + betti1 : string);
 /* var rank3 = calculateRank(S2); */
 /* writeln("Rank of S2: " + rank1  : string); */
 var rank3 = calculateRank(S3);
-tt.stop();
-writeln("Rank3 took ", tt.elapsed());
-tt.clear();
-tt.start();
-writeln("Rank of S3: " + rank3  : string);
 var betti2 = S2.domain.high(2) - rank2 - rank3;
-tt.stop();
-writeln("Betti 2 took ", tt.elapsed());
-tt.clear();
-tt.start();
 writeln("Betti 2: " + betti2 : string);
-
-t.stop();
 writeln("Betti number calculation took ", t.elapsed(), " s");
 t.clear();
 writeln("Total execution time: " + total_time.elapsed() : string +  " s");
