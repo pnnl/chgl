@@ -1744,81 +1744,39 @@ prototype module AdjListHyperGraph {
       // as we can follow e'.id's duplicate to find e''.id's duplicate to find the distinct edge e.
       {
         writeln("Marking and Deleting Edges...");
-        use DistributedInterlockedHashTable;
-        use List;
-        var eqclasses = new DistributedMap(Bitmap, list(int));
-        forall e in getEdges() with (var tok = eqclasses.getToken(), var _this = getPrivatizedInstance()) {
-          var _e = _this.toEdge(e);
-          var edge = _this.getEdge(_e);
-          edge.sortIncidence();
-          const key = new Bitmap(edge.incident[0..#edge.degree]);
-
-          //Internal until actual transactional interface implemented...
-          tok.pin();
-          const defaultHash = chpl__defaultHash(key);
-          const idx = (eqclasses._rootHash(defaultHash) % (eqclasses.rootBuckets.size):uint):int;
-          on eqclasses.rootBuckets[idx].locale {
-            var (elist, keyIdx) = eqclasses.getEList(key, true, defaultHash, idx, tok);
-
-            // Not found... create new list
-            if (keyIdx == -1) {
-              var done = false;
-              var topHash = (defaultHash >> HASH_SHIFT):uint(8);
-              if (topHash == EMPTY) then topHash = 1;
-              var firstPos = -1;
-              for i in 1..BUCKET_NUM_ELEMS {
-                if elist.topHash[i] == EMPTY {
-                  if firstPos == -1 then firstPos = i;
-                }
-                else if (elist.topHash[i] == topHash) {
-                  if (elist.keys[i] == key) {
-                    elist.values[i].append(e.id);
-                    elist.lock.write(E_AVAIL);
-                    done = true;
-                    break;
-                  }
-                }
-              }
-              if (!done) {
-                elist.count += 1;
-                elist.keys[firstPos] = key;
-                elist.values[firstPos].append(e.id);
-                elist.topHash[firstPos] = topHash;
-                elist.lock.write(E_AVAIL);
-              }
-            } else if (keyIdx == 1) {
-              var topHash = (defaultHash >> HASH_SHIFT):uint(8);
-              if (topHash == EMPTY) then topHash = 1;
-              elist.keys[keyIdx] = key;
-              elist.values[keyIdx].append(e.id);
-              elist.topHash[keyIdx] = topHash;
-              elist.count += 1;
-              elist.lock.write(E_AVAIL);
-            } else {
-              elist.values[keyIdx].append(e.id);
-              elist.lock.write(E_AVAIL);
-            }
+        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, Bitmap);
+        coforall loc in Locales  do on loc {
+          var _this = getPrivatizedInstance();
+          var reduxLock : Lock;
+          var localeqclass = new unmanaged Equivalence(int, Bitmap);
+          forall e in _this._edgesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
+            var _e = _this.toEdge(e);
+            var edge = _this.getEdge(_e);
+            edge.sortIncidence();
+            var wrapper = new Bitmap(edge.incident[0..#edge.degree]);
+            reduxLock.acquire();
+            localeqclass.add(e, wrapper);
+            reduxLock.release();
           }
-          tok.unpin();
+          eqclasses[here.id] = localeqclass;
         }
-
+        var eqclass = new unmanaged Equivalence(int, Bitmap);
+        for localeqclass in eqclasses {
+          eqclass.add(localeqclass);
+        }
+        delete eqclasses;
+        
         var numUnique : int;
-        forall (bitmap, l) in eqclasses with (+ reduce numUnique, var _this = getPrivatizedInstance()) {
+        forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
           numUnique += 1;
-          const leader = l[1];
-          var skipped : bool;
-          for follower in l {
-            if !skipped {
-              skipped = true;
-              continue;
-            }
-            delete _this.getEdge(follower);
-            _this.getEdge(follower) = dummyEdge;
+          for follower in eqclass.getCandidates(leader) {
+            delete _edges[follower];
+            _edges[follower] = dummyEdge;
             duplicateEdges[follower].write(leader);
           }
         }
-        eqclasses.destroy();
-        
+        delete eqclass;
+
         // No duplicates, just return
         if _edgesDomain.size == numUnique {
           var ret : [1..0] int;
