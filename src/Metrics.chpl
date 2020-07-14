@@ -111,6 +111,8 @@ prototype module Metrics {
     :arg s: Minimum s-connectivity.
   */
   proc getVertexComponentMappings(graph, s = 1) {
+    // var dom = graph.verticesDomain;
+    //var components : [dom] atomic int;
     var components : [graph.verticesDomain] atomic int;
     var componentId : atomic int;
     var workQueue = new WorkQueue((int,int), 8 * 1024, new ComponentCoalescer());
@@ -121,12 +123,15 @@ prototype module Metrics {
     
     // Add all edges with a degree of at least 's' to the work queue
     // so we can perform a breadth-first search.
-    forall v in graph.verticesDomain {
+    for v in graph.verticesDomain {
+      // writeln("trying to add vertex: " + v + " to the work queue");
       if graph.degree(graph.toVertex(v)) >= s {
+	// writeln("adding vertex: " + v + " to the work queue");
         terminationDetector.started(1);
         workQueue.addWork((v, 0));
-      }
-    }
+    /*   } */
+    /* } */
+    /* writeln("Added all vertices with s " + s); */
     forall (vIdx, cid) in doWorkLoop(workQueue, terminationDetector) {
       if vIdx != -1 && cid != -1 && graph.degree(graph.toVertex(vIdx)) >= s {
         const cId = if cid == 0 then componentId.fetchAdd(1) else cid;
@@ -152,7 +157,7 @@ prototype module Metrics {
           }
         }
         if shouldAddNeighbors {
-          forall neighbor in graph.walk(graph.toVertex(vIdx), s, isImmutable=true) {
+	  forall neighbor in graph.walk(graph.toVertex(vIdx), s, isImmutable=true) {
             if CHPL_NETWORK_ATOMICS != "none" {
               // Claim vertex remotely
               while true {
@@ -175,7 +180,10 @@ prototype module Metrics {
         }
       }
       terminationDetector.finished(1);
-    }    
+    }
+      }
+    }
+    
     terminationDetector.destroy();
     workQueue.destroy();
     return components.read();
@@ -199,12 +207,11 @@ prototype module Metrics {
     
     // Add all edges with a degree of at least 's' to the work queue
     // so we can perform a breadth-first search.
-    forall e in graph.edgesDomain {
+    for e in graph.edgesDomain {
       if graph.degree(graph.toEdge(e)) >= s {
         terminationDetector.started(1);
         workQueue.addWork((e, 0));
-      }
-    }
+
     forall (eIdx, cid) in doWorkLoop(workQueue, terminationDetector) {
       if eIdx != -1 && cid != -1 && graph.degree(graph.toEdge(eIdx)) >= s {
         const cId = if cid == 0 then componentId.fetchAdd(1) else cid;
@@ -255,6 +262,9 @@ prototype module Metrics {
       }
       terminationDetector.finished(1);
     }
+      }
+    }
+
     
     terminationDetector.destroy();
     workQueue.destroy();
@@ -315,4 +325,23 @@ prototype module Metrics {
   proc edgeComponentSizeDistribution(graph, s = 1) {
     return componentSizeDistribution(getEdgeComponentMappings(graph, s));
   }
+
+  proc sDistance(graph, source, target, s) {
+    const Space = graph.edgesDomain;
+    const D: domain(1) dmapped Block(boundingBox=Space) = Space;
+    var distance: [D] real = INFINITY;
+    var current_distance  = 0;
+
+    distance[graph.toEdge(source).id] = current_distance;
+    for ee in edgeBFS(graph, graph.toEdge(source), s) {
+      current_distance = current_distance + 1;
+      var old_distance = distance[graph.toEdge(ee).id];
+      if (isinf(old_distance) || old_distance > current_distance) {
+	distance[graph.toEdge(ee).id] = current_distance;
+      }
+    }
+    writeln(distance);
+    return distance[graph.toEdge(target).id];
+  }
 }
+
