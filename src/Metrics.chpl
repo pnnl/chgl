@@ -326,7 +326,7 @@ prototype module Metrics {
     return componentSizeDistribution(getEdgeComponentMappings(graph, s));
   }
 
-  proc sDistance(graph, source, target, s) {
+  proc edgeSDistance(graph, source, target, s) {
     const Space = graph.edgesDomain;
     const D: domain(1) dmapped Block(boundingBox=Space) = Space;
     var distance: [D] real = INFINITY;
@@ -342,6 +342,24 @@ prototype module Metrics {
     }
     writeln(distance);
     return distance[graph.toEdge(target).id];
+  }
+
+  proc vertexSDistance(graph, source, target, s) {
+    const Space = graph.verticesDomain;
+    const D: domain(1) dmapped Block(boundingBox=Space) = Space;
+    var distance: [D] real = INFINITY;
+    var current_distance  = 0;
+
+    distance[graph.toVertex(source).id] = current_distance;
+    for ee in vertexBFS(graph, graph.toVertex(source), s) {
+      current_distance = current_distance + 1;
+      var old_distance = distance[graph.toVertex(ee).id];
+      if (isinf(old_distance) || old_distance > current_distance) {
+	distance[graph.toVertex(ee).id] = current_distance;
+      }
+    }
+    writeln(distance);
+    return distance[graph.toVertex(target).id];
   }
 }
 

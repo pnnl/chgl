@@ -19,5 +19,8 @@ config const source = 0; //source edge
 config const s = 1;   
 config const target = 1;
 
-var s_distance =  sDistance(graph, source, target, s);
-writeln(s_distance);
+var e_s_distance =  edgeSDistance(graph, source, target, s);
+writeln(e_s_distance);
+
+var v_s_distance =  vertexSDistance(graph, source, target, s);
+writeln(v_s_distance);
