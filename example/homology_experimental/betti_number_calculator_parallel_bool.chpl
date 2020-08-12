@@ -322,7 +322,7 @@ proc processCell (kcell, cellSet) {
 }
 
 /*For each of the hyperedge, do the permutation of all the vertices.*/
-var cellSets : [0..#numLocales, 0..#here.maxTaskPar] set(Cell);
+var cellSets : [0..#numLocales, 1..here.maxTaskPar] set(Cell);
 // TODO: Use Privatized to cut down communication...
 var taskIdCounts : [0..#numLocales] atomic int; 
 forall e in hypergraph.getEdges() with (var tid : int = taskIdCounts[here.id].fetchAdd(1)) {

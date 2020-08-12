@@ -322,7 +322,7 @@ proc processCell (kcell, cellSet) {
 }
 
 /*For each of the hyperedge, do the permutation of all the vertices.*/
-var cellSets : [0..#numLocales, 0..#here.maxTaskPar] set(Cell);
+var cellSets : [0..#numLocales, 1..here.maxTaskPar] set(Cell);
 // TODO: Use Privatized to cut down communication...
 var taskIdCounts : [0..#numLocales] atomic int; 
 forall e in hypergraph.getEdges() with (var tid : int = taskIdCounts[here.id].fetchAdd(1)) {
@@ -659,6 +659,12 @@ proc smithNormalForm(b) {
 /* for i in 1..3 { */
 /*   CM[i] = smithNormalForm(boundaryMaps[i].matrix); */
 /* } */
+
+for i in 1..3 {
+  var row : int = boundaryMaps[i].matrix.domain.high(1);
+  var col : int = boundaryMaps[i].matrix.domain.high(2);
+  writeln("No rows: ", row, " No cols: ", col);
+}
 
 var computedMatrices = smithNormalForm(boundaryMaps[1].matrix);
 var computedMatrices2 = smithNormalForm(boundaryMaps[2].matrix);
