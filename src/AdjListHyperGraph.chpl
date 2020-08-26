@@ -429,6 +429,8 @@ prototype module AdjListHyperGraph {
     var property : propertyType;
     var incidentDomain = {0..1};
     var incident: [incidentDomain] int;
+    var outgoingEdgesDomain = {0..1};
+    var outgoingEdges : [outgoingEdgesDomain] int;
     var lock : Lock;
     var isSorted : bool;
     var size : atomic int;
@@ -456,9 +458,17 @@ prototype module AdjListHyperGraph {
         this.isSorted = other.isSorted;
         this.size.write(other.size.read());
         this.incident[0..#size.read()] = other.incident[0..#other.size.read()];
+        this.outgoingEdgesDomain = other.outgoingEdgesDomain;
+        this.outgoingEdges = other.outgoingEdges;        
 
         other.lock.release();
       }
+    }
+
+    proc outgoing(e : int, param acquireLock = true) {
+        if acquireLock then lock.acquire();
+        outgoingEdges.push_back(e);
+        if acquireLock then lock.release();
     }
     
     // Preallocates the incidence list to a certain size/capacity
@@ -1192,6 +1202,10 @@ prototype module AdjListHyperGraph {
       }
     }
     
+    // Adds direction e1 -> e2
+    proc addDirection(e1 : eDescType, e2 : eDescType) {
+        getEdge(e1).outgoing(e2.id);
+    } 
     
     // TODO: Marcin made an interesting suggestion on how to optimize cases where
     // s > 1, and that is to count the number of times that an edge has been queried;
@@ -1247,6 +1261,69 @@ prototype module AdjListHyperGraph {
           }
         }
       }
+    }
+    
+    // Returns |V| x |E|
+    proc getIncidenceMatrix() {
+        const Space = { 0..#numVertices, 0..numEdges };
+        const D : domain(2) dmapped Block(boundingBox=Space) = Space;
+        const SD : sparse subdomain(D);
+        var A : [SD] int(8);
+        var _pid = pid;
+
+        // Fill in vertices part of matrix
+        forall v in getVertices() {
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
+            var arr : [0..-1] (int,int);
+            for e in _this.incidence(v) {
+                arr.push_back((v.id, e.id));
+            }
+            SD.bulkAdd(arr, dataSorted=false, isUnique=true, preserveInds=false, addOn=here);
+        }
+        
+        A = 1;
+        return A;
+    }
+    
+    // Returns (|V| + |E|) x |E|
+    proc getDirectedIncidenceMatrix() {
+        const Space = { 0..#numVertices + numEdges, 0..numEdges };
+        const D : domain(2) dmapped Block(boundingBox=Space) = Space;
+        const SD : sparse subdomain(D);
+        var A : [SD] int(8);
+        var _pid = pid;
+
+        // Fill in vertices part of matrix
+        forall v in getVertices() {
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
+            var arr : [0..-1] (int,int);
+            for e in _this.incidence(v) {
+                arr.push_back((v.id, e.id));
+            }
+            SD.bulkAdd(arr, dataSorted=false, isUnique=true, preserveInds=false, addOn=here);
+        }
+        forall (i,j) in SD {
+            A[i,j] = 1;
+        }
+
+        forall e in getEdges() {
+            var arr : [0..-1] (int,int);
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
+            for _e in _this.getEdge(e).outgoingEdges {
+                arr.push_back((numVertices + e.id, _e));
+                arr.push_back((numVertices + _e, e.id));
+            }
+            SD.bulkAdd(arr, dataSorted=false, isUnique=false, preserveInds=false, addOn=here);
+        }
+        forall e in getEdges() {
+            var _this = chpl_getPrivatizedCopy(this.type, _pid);
+            for _e in _this.getEdge(e).outgoingEdges {
+                A[numVertices + e.id, _e] = 1;
+                A[numVertices + _e, e.id] = -1;
+            }
+        }
+
+        return A;
     }
     
     /*
