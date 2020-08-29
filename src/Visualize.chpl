@@ -1,5 +1,8 @@
-use Sort;
+
 use CHGL;
+
+use IO;
+use Sort;
 
 proc visualize(graph : Graph, fileName = "out.dot") throws {
   var vertexVisited : [graph.verticesDomain] bool;

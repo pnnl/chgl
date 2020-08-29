@@ -1,6 +1,10 @@
 use CHGL;
 use Time;
 
+use Privatization;
+use AggregationBuffer;
+use DynamicAggregationBuffer;
+
 // TODO: Add a bulk insertion method so aggregation can be much faster!
 
 config const workQueueMinTightSpinCount = 8;

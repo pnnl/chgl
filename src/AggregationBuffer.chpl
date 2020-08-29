@@ -6,6 +6,9 @@ prototype module AggregationBuffer {
 
   use Time;
   use Random;
+  use IO;
+
+  use UnorderedAtomics;
 
   config const AggregatorMaxBuffers = -1;
   config const AggregatorBufferSize = 64 * 1024;
@@ -22,7 +25,7 @@ prototype module AggregationBuffer {
     proc init(type msgType, aggregatorBufferSize : int = AggregatorBufferSize, aggregatorMaxBuffers : int = AggregatorMaxBuffers) {
       this.msgType = msgType;
       this.instance = new unmanaged AggregatorImpl(msgType, aggregatorBufferSize, aggregatorMaxBuffers);
-      this.pid = this.instance.pid;
+      this.pid = (this.instance!).pid;
     }
 
     proc init(type msgType, instance : unmanaged AggregatorImpl(msgType)?, pid : int) {
@@ -69,9 +72,9 @@ prototype module AggregationBuffer {
     // Head of list of all allocated buffers.
     var allocatedBufferList : unmanaged Buffer(msgType)?;
     // Number of buffers that are available to be recycled...
-    var numFreeBuffers : chpl__processorAtomicType(int);
+    var numFreeBuffers : atomic int;
     // Number of buffers that are currently allocated
-    var numAllocatedBuffers : chpl__processorAtomicType(int); 
+    var numAllocatedBuffers : atomic int;
     // Maximum number of allocated buffers
     const aggregatorMaxBuffers : int;
     // Maximum number of messages per buffer
@@ -113,27 +116,27 @@ prototype module AggregationBuffer {
         if numFreeBuffers.read() == 0 {
           if canAllocateBuffer() {
             var tmp = new unmanaged Buffer(msgType, aggregatorBufferSize);
-            numAllocatedBuffers.add(1, memory_order_relaxed);
+            numAllocatedBuffers.add(1); //, memory_order_relaxed);
             tmp._nextAllocatedBuffer = allocatedBufferList;
             allocatedBufferList = tmp;
             buf = tmp;
           }
         } else {
-          numFreeBuffers.sub(1, memory_order_relaxed);
+          numFreeBuffers.sub(1); //, memory_order_relaxed);
           buf = freeBufferList;
-          freeBufferList = buf._nextFreeBuffer;
+          freeBufferList = (buf!)._nextFreeBuffer;
         }
         lock$;
       }
 
-      buf.reset();
-      buf._bufferPool = _to_unmanaged(this);
+      (buf!).reset();
+      (buf!)._bufferPool = _to_unmanaged(this)!;
       return buf!;
     }
 
     proc recycleBuffer(buf : unmanaged Buffer(msgType)) {
       lock$ = true;
-      numFreeBuffers.add(1, memory_order_relaxed);
+      numFreeBuffers.add(1);//, memory_order_relaxed);
       buf._nextFreeBuffer = freeBufferList;
       freeBufferList = buf;
       lock$;
@@ -145,7 +148,7 @@ prototype module AggregationBuffer {
     // as the buffer list is guaranteed to not delete any buffers until the buffer pool
     // is entirely deleted...
     proc awaitFinish() {
-      var buf = allocatedBufferList;
+      var buf = unmanaged allocatedBufferList;
       while buf != nil {
         buf._stolen.waitFor(false);
         buf = buf._nextAllocatedBuffer;
@@ -166,11 +169,11 @@ prototype module AggregationBuffer {
     pragma "no doc"
     var _buf : [_bufDom] msgType;
     pragma "no doc"
-    var _claimed : chpl__processorAtomicType(int);
+    var _claimed : atomic int; //chpl__processorAtomicType(int);
     pragma "no doc"
-    var _filled : chpl__processorAtomicType(int);
+    var _filled : atomic int; // chpl__processorAtomicType(int);
     pragma "no doc"
-    var _stolen : chpl__processorAtomicType(bool);
+    var _stolen : atomic bool; //chpl__processorAtomicType(bool);
     pragma "no doc"
     var _nextAllocatedBuffer : unmanaged Buffer(msgType)?;
     pragma "no doc"
@@ -235,10 +238,10 @@ prototype module AggregationBuffer {
     */
     iter these() : msgType {
       if this.locale != here {
-        var buf = _buf[0..#_filled.peek()];
+        var buf = _buf[0..#_filled.read()]; //from peek()
         for msg in buf do yield msg;
       } else {
-        for msg in _buf[0..#_filled.peek()] do yield msg;
+        for msg in _buf[0..#_filled.read()] do yield msg;
       }
     }
 
@@ -247,19 +250,19 @@ prototype module AggregationBuffer {
        */
     iter these(param tag : iterKind) : msgType where tag == iterKind.standalone {
       if this.locale != here {
-        var buf = _buf[0..#_filled.peek()];
+        var buf = _buf[0..#_filled.read()];
         forall msg in buf do yield msg;
       } else {
-        forall msg in _buf[0..#_filled.peek()] do yield msg;
+        forall msg in _buf[0..#_filled.read()] do yield msg;
       }
     }
 
     iter these(param tag : iterKind) : msgType where tag == iterKind.leader {
       if this.locale != here {
-        var buf = _buf[0..#_filled.peek()];
+        var buf = _buf[0..#_filled.read()];
         forall x in buf.these(tag) do yield (x, buf);
       } else {
-        forall x in _buf[0..#_filled.peek()].these(tag) do yield (x, _buf);
+        forall x in _buf[0..#_filled.read()].these(tag) do yield (x, _buf);
       }
     }
 
@@ -269,7 +272,7 @@ prototype module AggregationBuffer {
     }
 
     inline proc getPtr() return c_ptrTo(_buf);
-    inline proc getDomain() return {0..#_filled.peek()};
+    inline proc getDomain() return {0..#_filled.read()};
     inline proc getArray() {
       var sz = _filled.read();
       // Copy locally (ensures domain is not made remote)
@@ -289,7 +292,7 @@ prototype module AggregationBuffer {
     pragma "no doc"
     var destinationBuffers : [LocaleSpace] unmanaged Buffer(msgType);
     pragma "no doc"
-    var bufferPools : [LocaleSpace] unmanaged BufferPool(msgType);
+    var bufferPools : [LocaleSpace]  unmanaged BufferPool(msgType);
     pragma "no doc"
     var pid = -1;
 
@@ -297,6 +300,9 @@ prototype module AggregationBuffer {
       this.msgType = msgType;
       this.aggregatorBufferSize = aggregatorBufferSize;
       this.aggregatorMaxBuffers = aggregatorMaxBuffers;
+      this.destinationBuffers = new Buffer(this.msgType, aggregatorBufferSize);
+      this.bufferPools = new BufferPool(this.msgType,aggregatorBufferSize, aggregatorMaxBuffers);
+
       complete();
 
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
@@ -306,11 +312,13 @@ prototype module AggregationBuffer {
       }
     }
 
-    proc init(other, pid : int) {
+    proc init(other: AggregatorImpl, pid : int) {
       this.msgType = other.msgType;
       this.aggregatorBufferSize = other.aggregatorBufferSize;
       this.aggregatorMaxBuffers = other.aggregatorMaxBuffers;
-      
+      this.destinationBuffers = new Buffer(this.msgType, aggregatorBufferSize);
+      this.bufferPools = new BufferPool(this.msgType,aggregatorBufferSize, aggregatorMaxBuffers);
+
       complete();
 
       forall (buf, pool) in zip (destinationBuffers, bufferPools) { 

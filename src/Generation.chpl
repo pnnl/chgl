@@ -10,7 +10,9 @@ prototype module Generation {
   use WorkQueue;
   use Sort;
   use Search;
-
+  use AggregationBuffer;
+  use TerminationDetection;
+  
   param GenerationSeedOffset = 0xDEADBEEF;
   config const GenerationUseAggregation = true;
 

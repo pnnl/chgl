@@ -3,6 +3,8 @@ use Sort;
 use AdjListHyperGraph;
 use Graph;
 use RangeChunk;
+use CyclicDist;
+use SysCTypes;
 
 // TODO: Read in the _entire_ adjacency list as a byte stream and then perform a direct memcpy into 
 // to pre-allocated buffer! Significantly faster, and it is what UPC++ did and was multiple orders

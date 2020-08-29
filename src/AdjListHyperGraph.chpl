@@ -46,7 +46,8 @@ prototype module AdjListHyperGraph {
   use PropertyMaps;
   use EquivalenceClasses;
   use DynamicAggregationBuffer;
-  
+  use Utilities;
+
   pragma "no doc"
   // Best-case approach to redistribution of properties to nodes in the hypergraph; this
   // will try to ensure as many properties remain local to node it belongs to as possible.

@@ -5,6 +5,8 @@ use Futures;
 use CommDiagnostics;
 use VisualDebug;
 use Memory;
+use SysCTypes;
+use IO;
 
 // Iterators for getting around issue with reduction on explicit 'coforall'
 iter forEachLocale() : int { halt("Serial iterator not implemented!"); }
@@ -405,10 +407,9 @@ proc get_nb(ref r1 : ?t1) : Future((t1,)) {
   }
 }
 
-
 // Random Number Generator utilities...
-var _globalIntRandomStream = makeRandomStream(int, parSafe=true);
-var _globalRealRandomStream = makeRandomStream(real, parSafe=true);
+var _globalIntRandomStream = createRandomStream(int, parSafe=true);
+var _globalRealRandomStream = createRandomStream(real, parSafe=true);
 
 proc randInt(low, high) {
   return _globalIntRandomStream.getNext(low, high);
@@ -434,6 +435,11 @@ proc randReal() {
   return randReal(0, 1);
 }
 
+/*
+
+chpl__hash_status symbol does not exist in Chapel 1.23, so this has been commented out.
+It does not appear to be used in CHGL.
+
 // Obtain random element from an associative domain
 proc getRandomAssociative(dom : domain, ref elt : dom.eltType) : bool {
   if dom.size == 0 then return false;
@@ -450,6 +456,8 @@ proc getRandomAssociative(dom : domain, ref elt : dom.eltType) : bool {
 	}
 	return false;
 }
+
+*/
 
 // Utilize the fact that a 'class' in Chapel is a heap-allocated object, and all
 // remote accesses will have to go through the host first, hence making it centralized.
