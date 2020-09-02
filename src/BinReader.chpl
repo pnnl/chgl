@@ -1,7 +1,7 @@
 use IO;
 use Sort;
-use AdjListHyperGraph;
-use Graph;
+use AdjListHyperGraphs;
+use Graphs;
 use RangeChunk;
 use CyclicDist;
 use SysCTypes;

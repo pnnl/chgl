@@ -7,7 +7,7 @@ prototype module Metrics {
   use Utilities;
   use Traversal;
   use Sort;
-  use DynamicAggregationBuffer;
+  use DynamicAggregationBuffers;
 
   // Coalescing of s-connected components. When given the
   // array of (idx, cid) pairs, we want to eliminate the

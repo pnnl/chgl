@@ -1,8 +1,8 @@
 prototype module PropertyMaps {
-  use AggregationBuffer;
+  use AggregationBuffers;
   use HashedDist; // Hashed is not used, but the Mapper is
   use Utilities;
-  use TerminationDetection;
+  use TerminationDetections;
   
   /*
     Uninitialized property map (does not initialize nor privatize).
@@ -76,7 +76,7 @@ prototype module PropertyMaps {
           halt("Attempt to use an uninitialized property map");
         }
 
-        return chpl_getPrivatizedCopy(this.map.type, this.pid);
+        return chpl_getPrivatizedCopy(this.map.type, this.pid) : unmanaged;
       }
 
       proc destroy() {

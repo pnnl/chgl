@@ -2,7 +2,7 @@
 /*
   TODO: Experiment with expanding buffer sizes
 */
-prototype module AggregationBuffer {
+prototype module AggregationBuffers {
 
   use Time;
   use Random;
@@ -256,7 +256,7 @@ prototype module AggregationBuffer {
         forall msg in _buf[0..#_filled.read()] do yield msg;
       }
     }
-
+    
     iter these(param tag : iterKind) : msgType where tag == iterKind.leader {
       if this.locale != here {
         var buf = _buf[0..#_filled.read()];
@@ -300,8 +300,8 @@ prototype module AggregationBuffer {
       this.msgType = msgType;
       this.aggregatorBufferSize = aggregatorBufferSize;
       this.aggregatorMaxBuffers = aggregatorMaxBuffers;
-      this.destinationBuffers = new Buffer(this.msgType, aggregatorBufferSize);
-      this.bufferPools = new BufferPool(this.msgType,aggregatorBufferSize, aggregatorMaxBuffers);
+      this.destinationBuffers = new unmanaged Buffer(this.msgType, aggregatorBufferSize);
+      this.bufferPools = new unmanaged BufferPool(this.msgType,aggregatorBufferSize, aggregatorMaxBuffers);
 
       complete();
 
@@ -316,8 +316,8 @@ prototype module AggregationBuffer {
       this.msgType = other.msgType;
       this.aggregatorBufferSize = other.aggregatorBufferSize;
       this.aggregatorMaxBuffers = other.aggregatorMaxBuffers;
-      this.destinationBuffers = new Buffer(this.msgType, aggregatorBufferSize);
-      this.bufferPools = new BufferPool(this.msgType,aggregatorBufferSize, aggregatorMaxBuffers);
+      this.destinationBuffers = new unmanaged Buffer(this.msgType, aggregatorBufferSize);
+      this.bufferPools = new unmanaged BufferPool(this.msgType,aggregatorBufferSize, aggregatorMaxBuffers);
 
       complete();
 

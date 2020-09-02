@@ -5,8 +5,8 @@
   called, data never gets sent, but it opens the possibility of the user creating
   their own background progress task.
 */
-prototype module DynamicAggregationBuffer {
-  use AggregationBuffer;
+prototype module DynamicAggregationBuffers {
+  use AggregationBuffers;
 
   proc UninitializedDynamicAggregator(type msgType) return new DynamicAggregator(msgType, instance=nil, pid=-1);
   

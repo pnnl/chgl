@@ -35,17 +35,17 @@
     var graph = new AdjListHyperGraph(propertyMap, new Cyclic(startIdx=0));
  
 */
-prototype module AdjListHyperGraph {
+prototype module AdjListHyperGraphs {
   use IO;
   use CyclicDist;
   use LinkedLists;
   use Sort;
   use Search;
-  use AggregationBuffer;
+  use AggregationBuffers;
   use Vectors;
   use PropertyMaps;
   use EquivalenceClasses;
-  use DynamicAggregationBuffer;
+  use DynamicAggregationBuffers;
   use Utilities;
 
   pragma "no doc"

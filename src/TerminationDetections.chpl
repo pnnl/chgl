@@ -34,7 +34,7 @@
 
 */
 
-module TerminationDetection {
+module TerminationDetections {
   use Time;
   use Utilities;
   use Random;

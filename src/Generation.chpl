@@ -1,17 +1,17 @@
 prototype module Generation {
 
   use IO;
-  use AdjListHyperGraph;
+  use AdjListHyperGraphs;
   use Random;
   use BlockDist;
   use CyclicDist;
   use BlockDist;
   use Math;
-  use WorkQueue;
+  use WorkQueues;
   use Sort;
   use Search;
-  use AggregationBuffer;
-  use TerminationDetection;
+  use AggregationBuffers;
+  use TerminationDetections;
   
   param GenerationSeedOffset = 0xDEADBEEF;
   config const GenerationUseAggregation = true;
