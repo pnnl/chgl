@@ -146,6 +146,7 @@ prototype module PropertyMaps {
 
     pragma "no doc"
     proc init(other : PropertyMapImpl(?propertyType), privatizedData) {
+      compilerWarning(privatizedData.type);
       this.propertyType = propertyType;
       this.mapper = privatizedData[3];
       this.complete();

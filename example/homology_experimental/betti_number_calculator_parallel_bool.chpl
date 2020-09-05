@@ -1,4 +1,7 @@
-use CHGL; // Includes all core and utility components of CHGL
+use PropertyMaps;
+use AdjListHyperGraphs;
+use WorkQueues;
+use TerminationDetections;
 use Time; // For Timer
 use Set;
 use Map;
