@@ -57,7 +57,7 @@ prototype module AggregationBuffers {
         halt("Aggregator: Not initialized...");
       }
 
-      return chpl_getPrivatizedCopy(instance.type, pid);
+      return chpl_getPrivatizedCopy(borrowed AggregatorImpl(msgType), pid);
     }
 
     forwarding _value;
@@ -222,7 +222,7 @@ prototype module AggregationBuffers {
           _bufDom = {0..-1};
           _bufDom = dom;
         }
-        this._bufferPool.recycleBuffer(_to_unmanaged(this));
+        this._bufferPool!.recycleBuffer(_to_unmanaged(this));
       }
     }
 

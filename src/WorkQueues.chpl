@@ -54,7 +54,7 @@ prototype module WorkQueues {
                     break;
                 } else if workQueueVerbose {
                     var tdStats = td.getStatistics();
-                    var str = "Termination Detection: { started = " + tdStats[1]:string + ", finished = " + tdStats[2]:string + " }\n";
+                    var str = "Termination Detection: { started = " + tdStats[0]:string + ", finished = " + tdStats[1]:string + " }\n";
                     var totalSz : int;
                     var totalWorkPending : int;
                     var localSizes : [LocaleSpace] int;
@@ -96,17 +96,17 @@ prototype module WorkQueues {
                     sleepTime = max(1, min(1024, sleepTime * 2));
 
                     // Correct load imbalance if we did not need to flush...
-                    if doWorkStealing && minLocSize[1] <= workQueueMinEligibleForSteal && maxLocSize[2] != minLocSize[2] && maxLocSize[1] - minLocSize[1] >= workQueueMinDifferenceForSteal {
-                        on Locales[maxLocSize[2]] {
-                            var toSteal = round((maxLocSize[1] - minLocSize[1]) / 4) : int;
+                    if doWorkStealing && minLocSize[0] <= workQueueMinEligibleForSteal && maxLocSize[1] != minLocSize[1] && maxLocSize[0] - minLocSize[0] >= workQueueMinDifferenceForSteal {
+                        on Locales[maxLocSize[1]] {
+                            var toSteal = round((maxLocSize[0] - minLocSize[0]) / 4) : int;
                             var arr = wq.getWorkBulk(toSteal);
-                            on Locales[minLocSize[2]] {
+                            on Locales[minLocSize[1]] {
                                 const _dom = arr.domain;
                                 const _arr : [_dom] arr.eltType = arr;
                                 wq.queue.addBulk(_arr);
                             }
                             if workQueueVerbose {
-                                writeln("Transferred ", toSteal, " elements from ", Locales[maxLocSize[2]], " to ", Locales[minLocSize[2]]);
+                                writeln("Transferred ", toSteal, " elements from ", Locales[maxLocSize[1]], " to ", Locales[minLocSize[1]]);
                             }
                         }
                     }
@@ -331,8 +331,8 @@ prototype module WorkQueues {
                         // to avoid communications...
                         asyncTasks.started(1);
                         begin with (in buffer) on Locales[locid] {
-                            var arr = buffer.getArray();
-                            buffer.done();
+                            var arr = buffer!.getArray();
+                            buffer!.done();
                             var _this = getPrivatizedInstance();
                             _this.coalesceFn(arr);
                             _this.queue.addBulk(arr);
@@ -762,7 +762,7 @@ prototype module WorkQueues {
             }
 
             inline proc acquireWithStatus(newStatus) {
-                return status.compareExchangeStrong(STATUS_UNLOCKED, newStatus);
+                return status.compareAndSwap(STATUS_UNLOCKED, newStatus);
             }
 
             // Set status with a test-and-test-and-set loop...
@@ -855,17 +855,17 @@ prototype module WorkQueues {
                     }
 
                     // Full? Create a new one double the previous size
-                    if block.isFull {
-                        block.next = new unmanaged BagSegmentBlock(eltType, min(workQueueMaxBlockSize, block.cap * 2));
-                        tailBlock = block.next;
-                        block = block.next;
+                    if block!.isFull {
+                        block!.next = new unmanaged BagSegmentBlock(eltType, min(workQueueMaxBlockSize, block!.cap * 2));
+                        tailBlock = block!.next;
+                        block = block!.next;
                     }
 
                     var nLeft = n - offset;
-                    var nSpace = block.cap - block.size;
+                    var nSpace = block!.cap - block!.size;
                     var nFill = min(nLeft, nSpace);
-                    __primitive("chpl_comm_array_get", block.elems[block.size], locId, ptr[offset], nFill);
-                    block.size = block.size + nFill;
+                    __primitive("chpl_comm_array_get", block!.elems[block!.size], locId, ptr[offset], nFill);
+                    block!.size = block!.size + nFill;
                     offset = offset + nFill;
                 }
 
@@ -909,17 +909,17 @@ prototype module WorkQueues {
                     return retval;
                 }
 
-                if headBlock.isEmpty {
+                if headBlock!.isEmpty {
                     halt("WorkQueue Internal Error: Iterating over 1 element with headBlock empty but nElems is ", nElems.read());
                 }
 
-                var elem = headBlock.pop();
+                var elem = headBlock!.pop();
                 nElems.sub(1);
 
                 // Fix list if we consumed last one...
-                if headBlock.isEmpty {
-                    var tmp = headBlock;
-                    headBlock = headBlock.next;
+                if headBlock!.isEmpty {
+                    var tmp = headBlock!;
+                    headBlock = headBlock!.next;
                     delete tmp;
 
                     if headBlock == nil then tailBlock = nil;
@@ -939,13 +939,13 @@ prototype module WorkQueues {
                 }
 
                 // Full? Create a new one double the previous size
-                if block.isFull {
-                    block.next = new unmanaged BagSegmentBlock(eltType, min(workQueueMaxBlockSize, block.cap * 2));
-                    tailBlock = block.next;
-                    block = block.next;
+                if block!.isFull {
+                    block!.next = new unmanaged BagSegmentBlock(eltType, min(workQueueMaxBlockSize, block!.cap * 2));
+                    tailBlock = block!.next;
+                    block = block!.next;
                 }
 
-                block.push(elt);
+                block!.push(elt);
                 nElems.add(1);
             }
 

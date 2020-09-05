@@ -52,7 +52,7 @@ prototype module DynamicAggregationBuffers {
         halt("Aggregator: Not initialized...");
       }
 
-      return chpl_getPrivatizedCopy(instance.type, pid);
+      return chpl_getPrivatizedCopy(borrowed DynamicAggregatorImpl(msgType), pid);
     }
 
     forwarding _value;
@@ -60,6 +60,7 @@ prototype module DynamicAggregationBuffers {
 
   class DynamicBuffer {
     type msgType;
+    var used = 0;
     var dom = {0..-1};
     var arr : [dom] msgType;
     var lock : atomic bool;
@@ -79,7 +80,11 @@ prototype module DynamicAggregationBuffers {
 
     proc append(buf) {
       acquire();
-      arr.push_back(buf);
+      if buf.size + used > dom.size {
+        dom = {0..#buf.size + used};
+      }
+      arr[used..#buf.size] = buf;
+      used += buf.size;
       release();
     }
   
@@ -170,8 +175,8 @@ prototype module DynamicAggregationBuffers {
     proc aggregate(msg : msgType, locid : int) : void {
       var buf = agg.aggregate(msg, locid);
       if buf != nil {
-        dynamicDestBuffers[locid].append(buf.getArray());
-        buf.done();
+        dynamicDestBuffers[locid].append(buf!.getArray());
+        buf!.done();
       }
     }
 

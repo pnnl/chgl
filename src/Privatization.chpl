@@ -80,10 +80,10 @@ class PrivatizedImpl {
   // Initialize the 'clone' slave instance
   proc init(type varType, other, privatizedData) { 
     this.varType = varType; 
-    this.privatizedArray = privatizedData[1];
+    this.privatizedArray = privatizedData[0];
     this.complete();
     this.broadcast._unowned = true;
-    this.pid = privatizedData[2]; 
+    this.pid = privatizedData[1]; 
   }
   
   proc dsiPrivatize(privatizedData) { return new unmanaged PrivatizedImpl(varType, this, privatizedData); }
