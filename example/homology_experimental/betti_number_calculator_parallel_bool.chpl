@@ -383,11 +383,15 @@ forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
   sort(_kCellsArray.A, comparator=absComparator);
 }
 
+
+config param useLocalArray = (CHPL_COMM == "none");
 /*Start of the construction of boundary matrices.*/
 class Matrix {
   var N : int;
   var M : int;
-  var D = {1..N, 1..M} dmapped Block(boundingBox = {1..N, 1..M});
+  const D = if useLocalArray then {1..N, 1..M}
+  else {1..N, 1..M} dmapped Block(boundingBox = {1..N, 1..M});
+  // var D = {1..N, 1..M} dmapped Block(boundingBox = {1..N, 1..M});
   var matrix : [D] bool;
   proc init(_N: int, _M:int) {
     N = _N;
@@ -492,27 +496,41 @@ proc _get_next_pivot(M, s1, in s2 : int = -1) {
 
 proc swap_rows(i, j, M) {
   var N = M;
-  N[i, ..] <=> N[j, ..];
+  // N[i, ..] <=> N[j, ..];
+  // N[i..i, ..] <=> N[j..j, ..];
+  forall k in N.domain.dim(2) do
+    N[i, k] <=> N[j, k];
   return N;
 }
 
 proc swap_columns(i, j, M) {
   var N = M;
-  N[.., i] <=> N[.., j];
+  // N[.., i] <=> N[.., j];
+  // N[.., i..i] <=> N[.., j..j];
+  forall k in N.domain.dim(1) do
+    N[k, i] <=> N[k, j];
   return N;
 }
 
 // Replaces row i (of M) with sum ri multiple of ith row and rj multiple of jth row
 proc add_to_row(M, i, j,  mod = 2) {
   var N = M;
-  N[i, ..]  = (N[i, ..] ^  N[j, ..]);
+  // N[i, ..]  = (N[i, ..] ^  N[j, ..]);
+  // N[i, ..]  ^=   N[j, ..];
+  forall k in N.domain.dim(2) do
+    N[i, k] ^= N[j, k];
+  // N[i..i, ..]  ^=   N[j..j, ..];
   return N;
 }
 
 
 proc add_to_column(M, i, j, mod = 2) {
   var N = M;
-  N[.., i]  = (N[.., i] ^ N[..,j]);
+  // N[.., i]  = (N[.., i] ^ N[..,j]);
+  // N[.., i]  ^=  N[..,j];
+  forall k in N.domain.dim(1) do
+    N[k, i] ^= N[k, j];
+  // N[.., i..i]  ^=  N[..,j..j];
   return N;
 }
 
