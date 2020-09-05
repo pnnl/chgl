@@ -814,26 +814,26 @@ prototype module WorkQueues {
                         halt(here, ": WorkQueue Internal Error: Attempted transfer ", n, " elements to ", locId, " but failed... destOffset=", destOffset);
                     }
 
-                    var len = headBlock.size;
+                    var len = headBlock!.size;
                     var need = n - destOffset;
                     // If the amount in this block is greater than what is left to transfer, we
                     // cannot begin transferring at the beginning, so we set our offset from the end.
                     if len > need {
                         srcOffset = len - need;
-                        headBlock.size = srcOffset;
-                        __primitive("chpl_comm_array_put", headBlock.elems[srcOffset], locId, destPtr[destOffset], need);
+                        headBlock!.size = srcOffset;
+                        __primitive("chpl_comm_array_put", headBlock!.elems[srcOffset], locId, destPtr[destOffset], need);
                         destOffset = destOffset + need;
                     } else {
                         srcOffset = 0;
-                        headBlock.size = 0;
-                        __primitive("chpl_comm_array_put", headBlock.elems[srcOffset], locId, destPtr[destOffset], len);
+                        headBlock!.size = 0;
+                        __primitive("chpl_comm_array_put", headBlock!.elems[srcOffset], locId, destPtr[destOffset], len);
                         destOffset = destOffset + len;
                     }
 
                     // Fix list if we consumed last one...
-                    if headBlock.isEmpty {
+                    if headBlock!.isEmpty {
                         var tmp = headBlock;
-                        headBlock = headBlock.next;
+                        headBlock = headBlock!.next;
                         delete tmp;
 
                         if headBlock == nil then tailBlock = nil;

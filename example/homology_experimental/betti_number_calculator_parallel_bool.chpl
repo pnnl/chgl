@@ -14,6 +14,7 @@ use BigInteger;
 use HashedDist;
 use CyclicDist;
 use VisualDebug;
+use Utilities;
 
 config const datasetDir = "./betti_test_data/";
 /*

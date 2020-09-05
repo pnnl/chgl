@@ -77,7 +77,7 @@ prototype module PropertyMaps {
           halt("Attempt to use an uninitialized property map");
         }
 
-        return chpl_getPrivatizedCopy(this.map.type, this.pid) : unmanaged;
+        return chpl_getPrivatizedCopy(borrowed PropertyMapImpl(propertyType, mapperType), this.pid) : unmanaged;
       }
 
       proc destroy() {
@@ -265,8 +265,8 @@ prototype module PropertyMaps {
         if buf != nil {
           terminationDetector.started(1);
           begin on loc {
-            var arr = buf.getArray();
-            buf.done();
+            var arr = buf!.getArray();
+            buf!.done();
             var _this = chpl_getPrivatizedCopy(this.type, _pid);
             if acquireLock then _this.lock.acquire();
             for (prop, _id) in arr {
@@ -291,8 +291,8 @@ prototype module PropertyMaps {
     proc _flushGetAggregatorBuffer(buf : Buffer?, loc : locale, param acquireLock = true) {
       // Obtain separate array of properties and handles; we need to isolate properties
       // so we can do a bulk-transfer on the other locales.
-      var arr = buf.getArray();
-      buf.done();
+      var arr = buf!.getArray();
+      buf!.done();
       const arrSz = arr.size;
       var properties : [0..#arrSz] propertyType;
       var keys : [0..#arrSz] int;
@@ -319,7 +319,7 @@ prototype module PropertyMaps {
         keys = _keys; 
       }
       forall (key, handle) in zip(keys, handles) {
-        handle.set(key);
+        handle!.set(key);
       }
     }
 

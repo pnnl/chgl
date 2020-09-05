@@ -39,6 +39,7 @@ prototype module AdjListHyperGraphs {
   use IO;
   use CyclicDist;
   use LinkedLists;
+  use List;
   use Sort;
   use Search;
   use AggregationBuffers;
@@ -55,8 +56,8 @@ prototype module AdjListHyperGraphs {
     // For each locale, handle assigning local properties to local portions of the array.
     // The number of properties and last index read of the array represent "leftover" 
     // properties and are recordered below.
-    var leftoverProperties : [0..-1] propType;
-    var leftoverIndices : [0..-1] int;
+    var leftoverProperties : list(propType);
+    var leftoverIndices : list(int);
     var propLock$ : sync bool;
     coforall loc in Locales with (ref propLock$, ref leftoverIndices, ref leftoverProperties) do on loc {
       // Counters representing the current indices of properties.
@@ -76,10 +77,10 @@ prototype module AdjListHyperGraphs {
           propLock$ = true;
           if localIndices.size > localProperties.size {
             ref localLeftoverIndices = localIndices[localProperties.size..];
-            leftoverIndices.push_back(localLeftoverIndices);
+            leftoverIndices.append(localLeftoverIndices);
           } else if localProperties.size > localIndices.size {
             ref localLeftoverProperties = localProperties[localIndices.size + localProperties.domain.low..];
-            leftoverProperties.push_back(localLeftoverProperties);
+            leftoverProperties.append(localLeftoverProperties);
           }
           propLock$;
         }
@@ -1028,20 +1029,20 @@ prototype module AdjListHyperGraphs {
       this._vPropType = other._vPropType;
       this._ePropType = other._ePropType;
       this._destBuffer = other._destBuffer;
-      this._vPropMap = privatizedData[7];
-      this._ePropMap = privatizedData[8];
+      this._vPropMap = privatizedData[6];
+      this._ePropMap = privatizedData[7];
     
       complete();
 
-      this.pid = privatizedData[1];
+      this.pid = privatizedData[0];
       if here == Locales[0] {
         halt("AdjListHyperGraph not created on Locale #0!");
       }
-      this._privatizedVerticesPID = privatizedData[3];
-      this._privatizedEdgesPID = privatizedData[5];
-      this._privatizedVertices = if _isPrivatized(_vertices._instance) then chpl_getPrivatizedCopy(privatizedData[2].type, privatizedData[3]) else privatizedData[2];
-      this._privatizedEdges = if _isPrivatized(_edges._instance) then chpl_getPrivatizedCopy(privatizedData[4].type, privatizedData[5]) else privatizedData[4];
-      this._destBuffer = privatizedData[6];
+      this._privatizedVerticesPID = privatizedData[2];
+      this._privatizedEdgesPID = privatizedData[4];
+      this._privatizedVertices = if _isPrivatized(_vertices._instance) then chpl_getPrivatizedCopy(privatizedData[1].type, privatizedData[2]) else privatizedData[1];
+      this._privatizedEdges = if _isPrivatized(_edges._instance) then chpl_getPrivatizedCopy(privatizedData[3].type, privatizedData[4]) else privatizedData[3];
+      this._destBuffer = privatizedData[5];
     }
     
     pragma "no doc"
