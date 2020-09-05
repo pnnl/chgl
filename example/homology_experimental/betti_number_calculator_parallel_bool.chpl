@@ -23,7 +23,7 @@ config const outputDirectory = "tmp/";
 // Maximum number of files to process.
 config const numMaxFiles = max(int(64));
 
-var files : [0..-1] string;
+var files : list(string);
 var vPropMap = new PropertyMap(string);
 var ePropMap = new PropertyMap(string);
 var wq = new WorkQueue(string, 1024);
@@ -53,12 +53,12 @@ if !exists(outputDirectory) {
 // Fill work queue with files to load up
 var currLoc : int; 
 var nFiles : int;
-var fileNames : [0..-1] string;
+var fileNames : list(string);
 for fileName in listdir(datasetDir, dirs=false) {
     if !fileName.endsWith(".csv") then continue;
     if nFiles == numMaxFiles then break;
-    files.push_back(fileName);
-    fileNames.push_back(datasetDir + fileName);
+    files.append(fileName);
+    fileNames.append(datasetDir + fileName);
     currLoc += 1;
     nFiles += 1;
 }

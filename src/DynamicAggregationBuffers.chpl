@@ -19,7 +19,7 @@ prototype module DynamicAggregationBuffers {
     proc init(type msgType) {
       this.msgType = msgType;
       var instance = new unmanaged DynamicAggregatorImpl(msgType);
-      this.pid = instance.pid;
+      this.pid = instance!.pid;
       this.instance = instance;
     }
 
@@ -108,23 +108,30 @@ prototype module DynamicAggregationBuffers {
     proc init(type msgType) {
       this.msgType = msgType;
       this.agg = new Aggregator(msgType, 8 * 1024);
+      var dummy = new unmanaged DynamicBuffer(msgType);
+      dynamicDestBuffers = dummy;
+
       complete();
 
       this.pid = _newPrivatizedClass(_to_unmanaged(this));
       forall buf in dynamicDestBuffers { 
         buf = new unmanaged DynamicBuffer(msgType);
       }
+      delete dummy;
     }
 
     proc init(other, pid : int) {
       this.msgType = other.msgType;
       this.pid = pid;
       this.agg = other.agg;
+      var dummy = new unmanaged DynamicBuffer(msgType);
+      dynamicDestBuffers = dummy;
       complete();
 
       forall buf in dynamicDestBuffers { 
         buf = new unmanaged DynamicBuffer(msgType);
       }
+      delete dummy;
     }
 
     proc deinit() {

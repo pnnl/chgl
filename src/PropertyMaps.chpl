@@ -29,8 +29,9 @@ prototype module PropertyMaps {
       proc init(type propertyType, mapper : ?mapperType = new DefaultMapper()) {
         this.propertyType = propertyType;
         this.mapperType = mapperType;
-        this.map = new unmanaged PropertyMapImpl(propertyType, mapper);
-        this.pid = this.map.pid;
+        var map = new unmanaged PropertyMapImpl(propertyType, mapper);
+        this.map = map;
+        this.pid = map.pid;
       }
 
 
@@ -146,14 +147,13 @@ prototype module PropertyMaps {
 
     pragma "no doc"
     proc init(other : PropertyMapImpl(?propertyType), privatizedData) {
-      compilerWarning(privatizedData.type);
       this.propertyType = propertyType;
-      this.mapper = privatizedData[3];
+      this.mapper = privatizedData[2];
       this.complete();
-      this.pid = privatizedData[1];
-      this.setAggregator = privatizedData[2];
-      this.getAggregator = privatizedData[5];
-      this.terminationDetector = privatizedData[4];
+      this.pid = privatizedData[0];
+      this.setAggregator = privatizedData[1];
+      this.getAggregator = privatizedData[4];
+      this.terminationDetector = privatizedData[3];
     }
 
     pragma "no doc"
