@@ -15,6 +15,7 @@ use HashedDist;
 use CyclicDist;
 use VisualDebug;
 use Utilities;
+use BlockDist;
 
 config const datasetDir = "./betti_test_data/";
 /*
@@ -136,7 +137,7 @@ ePropMap.flushGlobal();
 // Finally aggregate inclusions for the hypergraph.
 hypergraph.startAggregation();
 forall (vHandle, eHandle) in doWorkLoop(handleWQ, handleTD) {
-  hypergraph.addInclusion(vHandle.get(), eHandle.get());
+  hypergraph.addInclusion(vHandle!.get(), eHandle!.get());
   delete vHandle;
   delete eHandle;
   handleTD.finished(1);
@@ -380,8 +381,8 @@ sort(kCellKeys);
 // Create the new KcellMaps for convenience of sorting
 forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
   _kCellsArray = new owned kCellsArray(kCellMap[kCellKey].size);
-  _kCellsArray.A = kCellMap[kCellKey].toArray(); 
-  sort(_kCellsArray.A, comparator=absComparator);
+  _kCellsArray!.A = kCellMap[kCellKey].toArray(); 
+  sort(_kCellsArray!.A, comparator=absComparator);
 }
 
 
@@ -419,7 +420,7 @@ var boundaryMaps : [1..3] owned Matrix?;
 // Leader-follower iterator
 // Create the boundary Maps
 forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
-  boundaryMap = new owned Matrix(kCellsArrayMap[dimension_k_1].numKCells, kCellsArrayMap[dimension_k].numKCells);
+  boundaryMap = new owned Matrix(kCellsArrayMap[dimension_k_1]!.numKCells, kCellsArrayMap[dimension_k]!.numKCells);
 }
 
 /* for (idx, k) in zip(boundaryMaps.domain, boundaryMaps) { */
@@ -428,11 +429,11 @@ forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) 
 
 // Compute values for each entries in each of the boundary map
 forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) {
-  var ACells = kCellsArrayMap[dimension_k].A;
-  var BCells = kCellsArrayMap[dimension_k_1].A;
+  var ACells = kCellsArrayMap[dimension_k]!.A;
+  var BCells = kCellsArrayMap[dimension_k_1]!.A;
 
   // Mappings for permutation to index...
-  var k1Mapping : map(false, Cell, int);
+  var k1Mapping : map(Cell, int, false);
   for (k1Cell, idx) in zip(kCellMap[dimension_k_1], 1..) {
     k1Mapping[k1Cell] = idx;
   }
@@ -443,7 +444,7 @@ forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) 
     for bcell in BCells {
       for cell in perms {
         if bcell == cell {
-          boundaryMap[k1Mapping[cell], colidx] = true;
+          boundaryMap![k1Mapping[cell], colidx] = true;
           break;
         }
       }
@@ -452,11 +453,11 @@ forall (boundaryMap, dimension_k_1, dimension_k) in zip(boundaryMaps, 0.., 1..) 
 }
 
 proc printBoundaryMap(boundaryMap) {
-  var row : int = boundaryMap.matrix.domain.high(1);
-  var col : int = boundaryMap.matrix.domain.high(2);
-  for i in boundaryMap.matrix.domain.dim(1) {
-    for j in boundaryMap.matrix.domain.dim(2) {
-      write(boundaryMap.matrix[i, j] : string + " ");
+  var row : int = boundaryMap!.matrix.domain.high(0);
+  var col : int = boundaryMap!.matrix.domain.high(1);
+  for i in boundaryMap!.matrix.domain.dim(0) {
+    for j in boundaryMap!.matrix.domain.dim(1) {
+      write(boundaryMap!.matrix[i, j] : string + " ");
     }
     writeln();
   }
@@ -473,14 +474,14 @@ t.clear();
 t.start();
 proc IdentityMatrix(n) {
   var A : [1..n, 1..n] bool;
-  [i in A.domain.dim(1)] A[i,i] = true;
+  [i in A.domain.dim(0)] A[i,i] = true;
   return A;
 }
 
 proc _get_next_pivot(M, s1, in s2 : int = -1) {
   var dims = M.domain.high;
-  var dimR = dims(1);
-  var dimC = dims(2);
+  var dimR = dims(0);
+  var dimC = dims(1);
   if (s2 == -1) {
     s2 = s1;
   }
@@ -499,7 +500,7 @@ proc swap_rows(i, j, M) {
   var N = M;
   // N[i, ..] <=> N[j, ..];
   // N[i..i, ..] <=> N[j..j, ..];
-  forall k in N.domain.dim(2) do
+  forall k in N.domain.dim(1) do
     N[i, k] <=> N[j, k];
   return N;
 }
@@ -508,7 +509,7 @@ proc swap_columns(i, j, M) {
   var N = M;
   // N[.., i] <=> N[.., j];
   // N[.., i..i] <=> N[.., j..j];
-  forall k in N.domain.dim(1) do
+  forall k in N.domain.dim(0) do
     N[k, i] <=> N[k, j];
   return N;
 }
@@ -518,7 +519,7 @@ proc add_to_row(M, i, j,  mod = 2) {
   var N = M;
   // N[i, ..]  = (N[i, ..] ^  N[j, ..]);
   // N[i, ..]  ^=   N[j, ..];
-  forall k in N.domain.dim(2) do
+  forall k in N.domain.dim(1) do
     N[i, k] ^= N[j, k];
   // N[i..i, ..]  ^=   N[j..j, ..];
   return N;
@@ -529,7 +530,7 @@ proc add_to_column(M, i, j, mod = 2) {
   var N = M;
   // N[.., i]  = (N[.., i] ^ N[..,j]);
   // N[.., i]  ^=  N[..,j];
-  forall k in N.domain.dim(1) do
+  forall k in N.domain.dim(0) do
     N[k, i] ^= N[k, j];
   // N[.., i..i]  ^=  N[..,j..j];
   return N;
@@ -537,10 +538,10 @@ proc add_to_column(M, i, j, mod = 2) {
 
 
 proc matmultmod (M, N, mod = 2) {
-  var CD = {M.domain.dim(1), N.domain.dim(2)} dmapped Block(boundingBox = {M.domain.dim(1), N.domain.dim(2)});
+  var CD = {M.domain.dim(0), N.domain.dim(1)} dmapped Block(boundingBox = {M.domain.dim(0), N.domain.dim(1)});
   var C : [CD] int;
   forall (i,j) in C.domain {
-    C[i,j] = (+ reduce (M[i, M.domain.dim(2)] * N[M.domain.dim(2), j])) % 2;
+    C[i,j] = (+ reduce (M[i, M.domain.dim(1)] * N[M.domain.dim(1), j])) % 2;
   }
   return C;
 }
@@ -570,9 +571,9 @@ if len(ar1)!=len(ar2):
 
 */
 proc transpose(N) {
-  var NTD = {N.domain.dim(2), N.domain.dim(1)};
+  var NTD = {N.domain.dim(1), N.domain.dim(0)};
   var NT : [NTD] bool;
-  for i in N.domain.dim(2) {
+  for i in N.domain.dim(1) {
     NT[i,..] = N[..,i];
   }
   return NT;
@@ -583,12 +584,12 @@ proc logical_dot(a, b) {
 
 }
 proc logical_matmul(M,N) {
-  var CD = {M.domain.dim(1), N.domain.dim(2)};
+  var CD = {M.domain.dim(0), N.domain.dim(1)};
   var C : [CD] bool;
   var NT = transpose(N);
-  for i in M.domain.dim(1) {
+  for i in M.domain.dim(0) {
     //TODO: if np.any(mat1[i]):                                                                                                                                              
-    for j in N.domain.dim(2) {
+    for j in N.domain.dim(1) {
       C[i, j] = logical_dot(M[i, ..], NT[j, ..]);
     }
   }
@@ -625,7 +626,7 @@ proc matmulreduce(arr : listType, reverse = false, mod = 2) {
 /* } */
 
 proc calculateRank(M) {
-  var rank = + reduce [i in M.domain.dim(2)] ((|| reduce M[.., i]) : int);
+  var rank = + reduce [i in M.domain.dim(1)] ((|| reduce M[.., i]) : int);
   return rank;
 }
 
@@ -633,8 +634,8 @@ proc calculateRank(M) {
 
 proc smithNormalForm(b) {
   var dims = b.domain.high;
-  var dimL = dims(1);
-  var dimR = dims(2);
+  var dimL = dims(0);
+  var dimR = dims(1);
   var minDim = if dimL <= dimR then dimL else dimR;
  
   // writeln(dimL : string ); // dims give me the index set but I need the max value of the index set
@@ -677,7 +678,7 @@ proc smithNormalForm(b) {
     /* writeln("Iteration: " +  s : string); */
     var pivot = _get_next_pivot(S,s);
     var rdx : int, cdx : int;
-    if (pivot(1) == -1 && pivot(2) == -1) {
+    if (pivot(0) == -1 && pivot(1) == -1) {
       break;
     }
     else {
@@ -736,31 +737,31 @@ proc smithNormalForm(b) {
 /*   CM[i] = smithNormalForm(boundaryMaps[i].matrix); */
 /* } */
 
-var computedMatrices = smithNormalForm(boundaryMaps[1].matrix);
-var computedMatrices2 = smithNormalForm(boundaryMaps[2].matrix);
-var computedMatrices3 = smithNormalForm(boundaryMaps[3].matrix);
-var L1 = computedMatrices(1);
-var R1 = computedMatrices(2);
-var S1 = computedMatrices(3);
-var L1invF = computedMatrices(4);
-var L2 = computedMatrices2(1);
-var R2 = computedMatrices2(2);
-var S2 = computedMatrices2(3);
-var L2invF = computedMatrices2(4);
-var L3 = computedMatrices3(1);
-var R3 = computedMatrices3(2);
-var S3 = computedMatrices3(3);
-var L3invF = computedMatrices3(4);
+var computedMatrices = smithNormalForm(boundaryMaps[1]!.matrix);
+var computedMatrices2 = smithNormalForm(boundaryMaps[2]!.matrix);
+var computedMatrices3 = smithNormalForm(boundaryMaps[3]!.matrix);
+var L1 = computedMatrices(0);
+var R1 = computedMatrices(1);
+var S1 = computedMatrices(2);
+var L1invF = computedMatrices(3);
+var L2 = computedMatrices2(0);
+var R2 = computedMatrices2(1);
+var S2 = computedMatrices2(2);
+var L2invF = computedMatrices2(3);
+var L3 = computedMatrices3(0);
+var R3 = computedMatrices3(1);
+var S3 = computedMatrices3(2);
+var L3invF = computedMatrices3(3);
 var rank1 = calculateRank(S1);
 var rank2 = calculateRank(S2);
-var nullity1 = S1.domain.high(2) - rank1;
-var betti1 = S1.domain.high(2) - rank1 - rank2;
+var nullity1 = S1.domain.high(1) - rank1;
+var betti1 = S1.domain.high(1) - rank1 - rank2;
 writeln("Betti 1: " + betti1 : string);
 
 /* var rank3 = calculateRank(S2); */
 /* writeln("Rank of S2: " + rank1  : string); */
 var rank3 = calculateRank(S3);
-var betti2 = S2.domain.high(2) - rank2 - rank3;
+var betti2 = S2.domain.high(1) - rank2 - rank3;
 writeln("Betti 2: " + betti2 : string);
 writeln("Betti number calculation took ", t.elapsed(), " s");
 t.clear();

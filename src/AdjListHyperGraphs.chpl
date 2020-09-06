@@ -69,7 +69,7 @@ prototype module AdjListHyperGraphs {
       ref iterProperties = localProperties[localProperties.domain.low..#min(localIndices.size, localProperties.size)];
       forall (idx, prop) in zip(iterIndices, iterProperties) {
         M.setProperty(prop, idx);
-        A[idx].property = prop;
+        A[idx]!.property = prop;
       }
 
       if localIndices.size != localProperties.size {
@@ -93,7 +93,7 @@ prototype module AdjListHyperGraphs {
     }
     forall (prop, idx) in zip(leftoverProperties, leftoverIndices) {
       M.setProperty(prop, idx);
-      A[idx].property = prop;
+      A[idx]!.property = prop;
     }
 
     if Debug.ALHG_DEBUG || boundsChecking {
@@ -270,7 +270,7 @@ prototype module AdjListHyperGraphs {
     ) {
       instance = new unmanaged AdjListHyperGraphImpl(
         numVertices, numEdges, verticesMappings, edgesMappings, distributeVertices, distributeEdges
-      )?;
+      );
       pid = instance.pid;
     }
 
@@ -286,7 +286,7 @@ prototype module AdjListHyperGraphs {
     proc init(vPropMap : PropertyMap(?vPropType), vertexMappings, numEdges, edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         vPropMap, vertexMappings, numEdges, edgeMappings
-      )?;
+      );
       pid = instance.pid;
     }
 
@@ -303,7 +303,7 @@ prototype module AdjListHyperGraphs {
     proc init(numVertices, vertexMappings, ePropMap : PropertyMap(?ePropType), edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         numVertices, vertexMappings, ePropMap, edgeMappings
-      )?;
+      );
       pid = instance.pid;
     }
 
@@ -320,7 +320,7 @@ prototype module AdjListHyperGraphs {
     proc init(vPropMap : PropertyMap(?vPropType), vertexMappings, ePropMap : PropertyMap(?ePropType), edgeMappings) {
       instance = new unmanaged AdjListHyperGraphImpl(
         vPropMap, vertexMappings, ePropMap, edgeMappings
-      )?;
+      );
       pid = instance.pid;
     }
 
@@ -892,9 +892,9 @@ prototype module AdjListHyperGraphs {
     type eDescType = Wrapper(Edge, eIndexType);
 
     pragma "no doc"
-    var _vertices : [_verticesDomain] unmanaged NodeData(eDescType, _vPropType);
+    var _vertices : [_verticesDomain] unmanaged NodeData(eDescType, _vPropType)?;
     pragma "no doc"
-    var _edges : [_edgesDomain] unmanaged NodeData(vDescType, _ePropType);
+    var _edges : [_edgesDomain] unmanaged NodeData(vDescType, _ePropType)?;
     pragma "no doc"
     var _destBuffer = UninitializedAggregator((vIndexType, eIndexType, InclusionType));
     pragma "no doc"
@@ -946,7 +946,6 @@ prototype module AdjListHyperGraphs {
       this._destBuffer = new Aggregator((vIndexType, eIndexType, InclusionType), 64 * 1024);
       this._vPropMap = vPropMap;
       this._ePropMap = ePropMap;
-
       // Done initializing generic type fields.
       this.complete();
       
@@ -1106,12 +1105,12 @@ prototype module AdjListHyperGraphs {
 
     pragma "no doc"
     inline proc getVertex(idx : integral) ref {
-      return getVertex(toVertex(idx));
+      return getVertex(toVertex(idx))!;
     }
 
     pragma "no doc"
     inline proc getVertex(desc : vDescType) ref {
-      return vertices.dsiAccess(desc.id);
+      return vertices.dsiAccess(desc.id)!;
     }
 
     pragma "no doc"
@@ -1121,12 +1120,12 @@ prototype module AdjListHyperGraphs {
 
     pragma "no doc"
     inline proc getEdge(idx : integral) ref {
-      return getEdge(toEdge(idx));
+      return getEdge(toEdge(idx))!;
     }
 
     pragma "no doc"
     inline proc getEdge(desc : eDescType) ref {
-      return edges.dsiAccess(desc.id);
+      return edges.dsiAccess(desc.id)!;
     }
     
     pragma "no doc"
@@ -2583,8 +2582,8 @@ prototype module AdjListHyperGraphs {
     // that user knows when all operations have finished/termination detection.
     inline proc emptyBuffer(buffer : unmanaged Buffer?, loc : locale) {
       on loc {
-        var buf = buffer.getArray();
-        buffer.done();
+        var buf = buffer!.getArray();
+        buffer!.done();
         var localThis = getPrivatizedInstance();
         local do forall (srcId, destId, srcType) in buf {
           select srcType {
@@ -2866,7 +2865,7 @@ prototype module AdjListHyperGraphs {
       on Locales[0] {
         var _this = getPrivatizedInstance();
         forall (degree, v) in zip(degreeArr, _this._vertices) {
-          degree = v.degree;
+          degree = v!.degree;
         }
       }
       return degreeArr;
