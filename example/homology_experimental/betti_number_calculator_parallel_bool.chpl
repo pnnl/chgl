@@ -310,7 +310,7 @@ iter splitKCell(cell) {
 
 // Need to make parallel
 /* Generate the permutation */
-proc processCell (kcell, cellSet) {
+proc processCell (kcell, ref cellSet) {
   // If we only have one vertex in this kcell, it is a 0-cell
   // and so we recurse no further, but we do add it to the set...
   if (kcell.size == 1) {
@@ -330,7 +330,7 @@ proc processCell (kcell, cellSet) {
 var cellSets : [0..#numLocales, 1..here.maxTaskPar] set(Cell);
 // TODO: Use Privatized to cut down communication...
 var taskIdCounts : [0..#numLocales] atomic int; 
-forall e in hypergraph.getEdges() with (var tid : int = taskIdCounts[here.id].fetchAdd(1)) {
+forall e in hypergraph.getEdges() with (var tid : int = taskIdCounts[here.id].fetchAdd(1), ref cellSets) {
   var vertices = hypergraph.incidence(e); // ABCD
   ref tmp = vertices[1..#vertices.size];
   var verticesInEdge : [1..#vertices.size] int = tmp.id;
@@ -350,7 +350,7 @@ for cset in cellSets {
 /*bin k-cells, with key as the length of the list and value is a list with all the k-cells*/
 // TODO: Perform reduction like above...
 var kCellMap = new map(int, list(Cell, parSafe=true), parSafe=true); // potential bottleneck...
-forall cell in cellSet {
+forall cell in cellSet with (ref kCellMap) {
   kCellMap[cell.size - 1].append(cell);
 }
 

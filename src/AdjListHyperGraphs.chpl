@@ -77,10 +77,10 @@ prototype module AdjListHyperGraphs {
           propLock$ = true;
           if localIndices.size > localProperties.size {
             ref localLeftoverIndices = localIndices[localProperties.size..];
-            leftoverIndices.append(localLeftoverIndices);
+            for x in localLeftoverIndices do leftoverIndices.append(x);
           } else if localProperties.size > localIndices.size {
             ref localLeftoverProperties = localProperties[localIndices.size + localProperties.domain.low..];
-            leftoverProperties.append(localLeftoverProperties);
+            for x in localLeftoverProperties do leftoverProperties.append(x);
           }
           propLock$;
         }
