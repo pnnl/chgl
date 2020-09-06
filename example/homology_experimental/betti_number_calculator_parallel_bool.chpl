@@ -78,8 +78,8 @@ wq.flush();
 forall fileName in doWorkLoop(wq, td) {
   for line in getLines(fileName) {
     var attrs = line.split(",");
-    var qname = attrs[1].strip();
-    var rdata = attrs[2].strip();
+    var qname = attrs[0].strip();
+    var rdata = attrs[1].strip();
 
     vPropMap.create(rdata, aggregated=true);
     ePropMap.create(qname, aggregated=true);
@@ -124,8 +124,8 @@ var handleTD = new TerminationDetector();
 forall fileName in doWorkLoop(wq, td) {
   for line in getLines(fileName) {
     var attrs = line.split(",");
-    var qname = attrs[1].strip();
-    var rdata = attrs[2].strip();
+    var qname = attrs[0].strip();
+    var rdata = attrs[1].strip();
     handleTD.started(1);
     handleWQ.addWork((vPropMap.getPropertyAsync(rdata), ePropMap.getPropertyAsync(qname)));
   }
