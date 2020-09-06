@@ -472,7 +472,7 @@ prototype module WorkQueues {
                 var block = segment.headBlock;
                 while block != nil {
                     var tmp = block;
-                    block = block.next;
+                    block = block!.next;
                     delete tmp;
                 }
             }

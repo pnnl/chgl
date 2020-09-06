@@ -63,6 +63,11 @@ prototype module AggregationBuffers {
     forwarding _value;
   }
 
+  proc =(ref agg1 : Aggregator, agg2 : Aggregator) {
+    agg1.instance = agg2.instance;
+    agg1.pid = agg2.pid;
+  }
+
   pragma "no doc"
   class BufferPool {
     type msgType;
@@ -90,7 +95,7 @@ prototype module AggregationBuffers {
     proc deinit() {
       while allocatedBufferList != nil {
         var tmp = allocatedBufferList;
-        allocatedBufferList = tmp._nextAllocatedBuffer;
+        allocatedBufferList = tmp!._nextAllocatedBuffer;
         delete tmp;
       }
     }

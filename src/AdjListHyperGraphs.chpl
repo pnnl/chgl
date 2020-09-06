@@ -1105,12 +1105,12 @@ prototype module AdjListHyperGraphs {
 
     pragma "no doc"
     inline proc getVertex(idx : integral) ref {
-      return getVertex(toVertex(idx))!;
+      return getVertex(toVertex(idx));
     }
 
     pragma "no doc"
     inline proc getVertex(desc : vDescType) ref {
-      return vertices.dsiAccess(desc.id)!;
+      return vertices.dsiAccess(desc.id);
     }
 
     pragma "no doc"
@@ -1120,12 +1120,12 @@ prototype module AdjListHyperGraphs {
 
     pragma "no doc"
     inline proc getEdge(idx : integral) ref {
-      return getEdge(toEdge(idx))!;
+      return getEdge(toEdge(idx));
     }
 
     pragma "no doc"
     inline proc getEdge(desc : eDescType) ref {
-      return edges.dsiAccess(desc.id)!;
+      return edges.dsiAccess(desc.id);
     }
     
     pragma "no doc"
@@ -2593,7 +2593,7 @@ prototype module AdjListHyperGraphs {
               }
               ref v = localThis.getVertex(srcId);
               if v.locale != here then halt("Expected ", v.locale, ", but got ", here, ", domain = ", localThis.verticesDomain.localSubdomain(), ", with ", (srcId, destId, srcType));
-              v.addIncidence(localThis.toEdge(destId), true);
+              v!.addIncidence(localThis.toEdge(destId), true);
             }
             when InclusionType.Edge {
               if !localThis.edgesDomain.contains(srcId) {
@@ -2601,7 +2601,7 @@ prototype module AdjListHyperGraphs {
               }
               ref e = localThis.getEdge(srcId);
               if e.locale != here then halt("Expected ", e.locale, ", but got ", here, ", domain = ", localThis.edgesDomain.localSubdomain(), ", with ", (srcId, destId, srcType));
-              e.addIncidence(localThis.toVertex(destId), true);
+              e!.addIncidence(localThis.toVertex(destId), true);
             }
           }
         }
@@ -2682,7 +2682,7 @@ prototype module AdjListHyperGraphs {
       var eLoc = edgesDomain.dist.idxToLocale(eDesc.id);
       
       if vLoc == here {
-        getVertex(vDesc).addIncidence(eDesc, true);
+        getVertex(vDesc)!.addIncidence(eDesc, true);
       } else {
         var vBuf = _destBuffer.aggregate((vDesc.id, eDesc.id, InclusionType.Vertex), vLoc);
         if vBuf != nil {
@@ -2691,7 +2691,7 @@ prototype module AdjListHyperGraphs {
       }
 
       if eLoc == here {
-        getEdge(eDesc).addIncidence(vDesc, true);
+        getEdge(eDesc)!.addIncidence(vDesc, true);
       } else {
         var eBuf = _destBuffer.aggregate((eDesc.id, vDesc.id, InclusionType.Edge), eLoc);
         if eBuf != nil {
@@ -2735,8 +2735,8 @@ prototype module AdjListHyperGraphs {
         return;
       }
       
-      getVertex(vDesc).addIncidence(eDesc, true);
-      getEdge(eDesc).addIncidence(vDesc, true);
+      getVertex(vDesc)!.addIncidence(eDesc, true);
+      getEdge(eDesc)!.addIncidence(vDesc, true);
     }
     
     inline proc addInclusion(v : vIndexType, e : eIndexType) {
@@ -2799,10 +2799,10 @@ prototype module AdjListHyperGraphs {
     proc removeDuplicates() {
         var (vertexNeighborsRemoved, edgeNeighborsRemoved) : 2 * int;
         forall v in getVertices() with (+ reduce vertexNeighborsRemoved, var _this = getPrivatizedInstance()) {
-            vertexNeighborsRemoved += _this.getVertex(v).makeDistinct();
+            vertexNeighborsRemoved += _this.getVertex(v)!.makeDistinct();
         }
         forall e in getEdges() with (+ reduce edgeNeighborsRemoved, var _this = getPrivatizedInstance()) {
-            edgeNeighborsRemoved += _this.getEdge(e).makeDistinct();
+            edgeNeighborsRemoved += _this.getEdge(e)!.makeDistinct();
         }
         return (vertexNeighborsRemoved, edgeNeighborsRemoved);
     }
@@ -2968,10 +2968,10 @@ prototype module AdjListHyperGraphs {
     pragma "no doc"
     inline proc _snapshot(e : eDescType) {
       ref edge = getEdge(e);
-      edge.lock.acquire();
-      var snapshotDom = {0..#edge.degree};
-      var snapshot : [snapshotDom] int = edge.incident[0..#edge.degree];
-      edge.lock.release();
+      edge!.lock.acquire();
+      var snapshotDom = {0..#edge!.degree};
+      var snapshot : [snapshotDom] int = edge!.incident[0..#edge!.degree];
+      edge!.lock.release();
 
       return snapshot;
     }
