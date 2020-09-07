@@ -332,10 +332,12 @@ var cellSets : [0..#numLocales, 1..here.maxTaskPar] set(Cell);
 var taskIdCounts : [0..#numLocales] atomic int; 
 forall e in hypergraph.getEdges() with (var tid : int = taskIdCounts[here.id].fetchAdd(1), ref cellSets) {
   var vertices = hypergraph.incidence(e); // ABCD
-  ref tmp = vertices[1..#vertices.size];
-  var verticesInEdge : [1..#vertices.size] int = tmp.id;
+  ref tmp = vertices[0..#vertices.size-1];
+  var verticesInEdge : [0..#vertices.size-1] int = tmp.id;
   processCell(new Cell(verticesInEdge), cellSets[here.id, tid]);
 }
+
+writeln("Permutation done");
 
 // Combine sets...
 // Might want to use PropertyMap since its significantly faster and
@@ -356,6 +358,7 @@ forall cell in cellSet with (ref kCellMap) {
 
 for k in kCellMap do kCellMap[k].sort();
 
+writeln("Sort 1 done");
 /* for k in kCellMap.keys { */
 /*   writeln(k, " -> ", kCellMap[k]); */
 /* } */
@@ -376,7 +379,7 @@ var numBins = kCellMap.size - 1;
 var kCellsArrayMap : [0..numBins] owned kCellsArray?;
 var kCellKeys = kCellMap.keysToArray();
 sort(kCellKeys);
-
+writeln("Sort 2 done");
 // Leader-follower iterator
 // Create the new KcellMaps for convenience of sorting
 forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
@@ -385,6 +388,8 @@ forall (_kCellsArray, kCellKey) in zip(kCellsArrayMap, kCellKeys) {
   sort(_kCellsArray!.A, comparator=absComparator);
 }
 
+
+writeln("Starting computing boundary matrix");
 
 config param useLocalArray = (CHPL_COMM == "none");
 /*Start of the construction of boundary matrices.*/
