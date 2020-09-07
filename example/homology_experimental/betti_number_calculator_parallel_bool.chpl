@@ -377,7 +377,8 @@ class kCellsArray{
 
 var numBins = kCellMap.size - 1;
 var kCellsArrayMap : [0..numBins] owned kCellsArray?;
-var kCellKeys = kCellMap.keysToArray();
+var kCellKeys = kCellMap.keys();
+writeln("About to sort...");
 sort(kCellKeys);
 writeln("Sort 2 done");
 // Leader-follower iterator
