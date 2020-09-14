@@ -2880,7 +2880,7 @@ prototype module AdjListHyperGraphs {
       on Locales[0] {
         var _this = getPrivatizedInstance();
         forall (degree, e) in zip(degreeArr, _this._edges) {
-          degree = e.degree;
+          degree = e!.degree;
         }
       }
       return degreeArr;
@@ -2928,7 +2928,7 @@ prototype module AdjListHyperGraphs {
       :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
     proc intersectionSize(v1 : vDescType, v2 : vDescType, param isImmutable = false) {
-      return getVertex(v1).intersectionSize(getVertex(v2), acquireLock = !isImmutable);
+      return getVertex(v1)!.intersectionSize(getVertex(v2)!, acquireLock = !isImmutable);
     }
 
     /*
@@ -2939,28 +2939,28 @@ prototype module AdjListHyperGraphs {
       :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
     iter intersection(e1 : eDescType, e2 : eDescType, param isImmutable = false) {
-      for n in getEdge(e1).neighborIntersection(getEdge(e2), acquireLock = !isImmutable) do yield n; 
+      for n in getEdge(e1)!.neighborIntersection(getEdge(e2)!, acquireLock = !isImmutable) do yield n; 
     }
 
     iter intersection(e1 : eDescType, e2 : eDescType, param isImmutable = false, param tag : iterKind) where tag == iterKind.standalone {
-      for n in getEdge(e1).neighborIntersection(getEdge(e2), acquireLock = !isImmutable) do yield n; 
+      for n in getEdge(e1)!.neighborIntersection(getEdge(e2)!, acquireLock = !isImmutable) do yield n; 
     }
 
     iter intersection(v1 : vDescType, v2 : vDescType, param isImmutable = false) {
-      for n in getVertex(v1).neighborIntersection(getVertex(v2), acquireLock = !isImmutable) do yield n;
+      for n in getVertex(v1)!.neighborIntersection(getVertex(v2)!, acquireLock = !isImmutable) do yield n;
     }
 
     iter intersection(v1 : vDescType, v2 : vDescType, param isImmutable = false, param tag : iterKind) where tag == iterKind.standalone {
-      forall n in getVertex(v1).neighborIntersection(getVertex(v2), acquireLock = !isImmutable) do yield n;
+      forall n in getVertex(v1)!.neighborIntersection(getVertex(v2)!, acquireLock = !isImmutable) do yield n;
     }
     
     pragma "no doc"
     inline proc _snapshot(v : vDescType) {
       ref vertex = getVertex(v);
-      vertex.lock.acquire();
-      var snapshotDom = {0..#vertex.degree};
-      var snapshot : [snapshotDom] int = vertex.incident[0..#vertex.degree];
-      vertex.lock.release();
+      vertex!.lock.acquire();
+      var snapshotDom = {0..#vertex!.degree};
+      var snapshot : [snapshotDom] int = vertex!.incident[0..#vertex!.degree];
+      vertex!.lock.release();
 
       return snapshot;
     }
@@ -2983,11 +2983,11 @@ prototype module AdjListHyperGraphs {
       :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
     iter incidence(e : eDescType, param isImmutable = false) {
-      for v in (if isImmutable then getEdge(e) else _snapshot(e)) do yield toVertex(v);
+      for v in (if isImmutable then getEdge(e)! else _snapshot(e)) do yield toVertex(v);
     }
 
     iter incidence(e : eDescType, param isImmutable = false, param tag : iterKind) ref where tag == iterKind.standalone {
-      forall v in (if isImmutable then getEdge(e) else _snapshot(e)) do yield toVertex(v);
+      forall v in (if isImmutable then getEdge(e)! else _snapshot(e)) do yield toVertex(v);
     }
     
     /*
@@ -2997,11 +2997,11 @@ prototype module AdjListHyperGraphs {
       :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
     iter incidence(v : vDescType, param isImmutable = false) ref {
-      for e in (if isImmutable then getVertex(v) else _snapshot(v)) do yield toEdge(e);
+      for e in (if isImmutable then getVertex(v)! else _snapshot(v)) do yield toEdge(e);
     }
 
     iter incidence(v : vDescType, param isImmutable = false, param tag : iterKind) ref where tag == iterKind.standalone {
-      forall e in (if isImmutable then getVertex(v) else _snapshot(v)) do yield toEdge(e);
+      forall e in (if isImmutable then getVertex(v)! else _snapshot(v)) do yield toEdge(e);
     }
 
     pragma "no doc"

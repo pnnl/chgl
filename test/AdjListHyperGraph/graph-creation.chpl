@@ -1,4 +1,4 @@
-use AdjListHyperGraph;
+use AdjListHyperGraphs;
 use CyclicDist;
 use BlockDist;
 

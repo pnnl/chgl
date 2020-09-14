@@ -1,4 +1,4 @@
-use CHGL;
+use AdjListHyperGraphs;
 use CyclicDist;
 
 var graph = new AdjListHyperGraph(10,10);

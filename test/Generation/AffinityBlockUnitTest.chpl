@@ -1,5 +1,9 @@
-use CHGL;
+use AdjListHyperGraphs;
 use Types;
+use IO;
+use Sort;
+use Metrics;
+use Generation;
 
 var vd_file = open("../../data/condMat/dSeq_v_list.csv", iomode.r).reader();
 var ed_file = open("../../data/condMat/dSeq_E_list.csv", iomode.r).reader();

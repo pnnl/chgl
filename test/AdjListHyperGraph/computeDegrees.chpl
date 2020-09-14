@@ -1,4 +1,4 @@
-use AdjListHyperGraph;
+use AdjListHyperGraphs;
 
 const numVertices = 10;
 const numEdges = 10;
