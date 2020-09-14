@@ -1,4 +1,4 @@
-use CHGL;
+use Vectors;
 use CyclicDist;
 
 var v1 : owned Vector(int)?;

@@ -1,4 +1,4 @@
-use CHGL;
+use Privatization;
 
 var keepAlive = new Privatized(atomic bool);
 

@@ -1166,11 +1166,11 @@ prototype module AdjListHyperGraphs {
     /*
       Obtain degree of the vertex.
     */
-    inline proc degree(vDesc : vDescType) return getVertex(vDesc).degree;
+    inline proc degree(vDesc : vDescType) return getVertex(vDesc)!.degree;
     /*
       Obtain degree of the hyperedge.
     */
-    inline proc degree(eDesc : eDescType) return getEdge(eDesc).degree;
+    inline proc degree(eDesc : eDescType) return getEdge(eDesc)!.degree;
     pragma "no doc"
     inline proc degree(other) {
       Debug.badArgs(other, (vDescType, eDescType));

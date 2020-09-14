@@ -1,4 +1,4 @@
-use CHGL;
+use Generation;
 
 var arr : [1..10] real;
 arr[3..4] = 0.25;

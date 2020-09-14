@@ -12,6 +12,7 @@ prototype module Generation {
   use Search;
   use AggregationBuffers;
   use TerminationDetections;
+  use Utilities;
   
   param GenerationSeedOffset = 0xDEADBEEF;
   config const GenerationUseAggregation = true;
@@ -316,7 +317,7 @@ prototype module Generation {
 
       var currOffset = 0;
       for (size, (offset, sz)) in zip(vDegSize, vTableMeta) {
-        sz = size.peek();
+        sz = size.read();
         offset = currOffset;
         currOffset += sz;
       }
@@ -335,14 +336,14 @@ prototype module Generation {
           const loc = vTable.domain.dist.idxToLocale(idx);
           var buf = aggregator.aggregate((idx, vertex), loc);
           if buf != nil then begin on loc { 
-            [(i,v) in buf] vTable[i] = v;
-            buf.done();
+            [(i,v) in buf!] vTable[i] = v;
+            buf!.done();
           }
         }
       }
       forall (buf, loc) in aggregator.flushGlobal() {
-        on loc do [(i,v) in buf] vTable[i] = v;
-        buf.done();
+        on loc do [(i,v) in buf!] vTable[i] = v;
+        buf!.done();
       }
     }
 
@@ -356,7 +357,7 @@ prototype module Generation {
 
       var currOffset = 0;
       for (size, (offset, sz)) in zip(eDegSize, eTableMeta) {
-        sz = size.peek();
+        sz = size.read();
         offset = currOffset;
         currOffset += sz;
       }
@@ -375,14 +376,14 @@ prototype module Generation {
           const loc = eTable.domain.dist.idxToLocale(idx);
           var buf = aggregator.aggregate((idx, edge), loc);
           if buf != nil then begin on loc { 
-            [(i,e) in buf] eTable[i] = e;
-            buf.done();
+            [(i,e) in buf!] eTable[i] = e;
+            buf!.done();
           }
         }
       }
       forall (buf, loc) in aggregator.flushGlobal() {
-        on loc do [(i,e) in buf] eTable[i] = e;
-        buf.done();
+        on loc do [(i,e) in buf!] eTable[i] = e;
+        buf!.done();
       }
     }
     aggregator.destroy();

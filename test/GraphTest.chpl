@@ -1,4 +1,4 @@
-use CHGL;
+use Graphs;
 
 config const numVertices = 1024;
 config const numEdges = 1024;

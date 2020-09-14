@@ -1,4 +1,4 @@
-use CHGL;
+use Utilities;
 use BlockDist;
 use CyclicDist;
 use BlockCycDist;

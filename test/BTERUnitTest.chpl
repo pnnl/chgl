@@ -1,4 +1,5 @@
-use CHGL;
+use Generation;
+use AdjListHyperGraphs;
 
 var vertices_degree : [0..9] int = [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0, 5.0] : int;
 var edges_degree : [0..7] int = [1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0]: int;
