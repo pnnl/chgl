@@ -6,6 +6,7 @@ Contributors
 The following core team has contributed to the implementation of CHGL (alphabetically by last name):
 
 * Sinan Aksoy, `Pacific Northwest National Laboratory`_
+* Jesun Firoz, `Pacific Northwest National Laboratory`_
 * Sarah Harun, `Mississippi State University`_
 * Louis Jenkins, `Pacific Northwest National Laboratory`_ and `University of Rochester`_
 * Cliff Joslyn, `Pacific Northwest National Laboratory`_
