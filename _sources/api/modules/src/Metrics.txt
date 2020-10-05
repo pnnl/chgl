@@ -98,3 +98,7 @@ Compilation of common metrics to be performed on hypergraphs or graphs.
    :arg s: Minimum s-connectivity.
    
 
+.. function:: proc edgeSDistance(graph, source, target, s)
+
+.. function:: proc vertexSDistance(graph, source, target, s)
+

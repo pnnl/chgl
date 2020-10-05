@@ -212,6 +212,18 @@ There are a few ways to create a :record:`AdjListHyperGraph`
 
 .. function:: proc neq(a: ?t1NodeData?t2, b: t1NodeDatat2)
 
+.. record:: ArrayWrapper
+
+   .. attribute:: var dom = {0..-1}
+
+   .. attribute:: var arr: [dom] int
+
+.. function:: proc ==(a: ArrayWrapper, b: ArrayWrapper)
+
+.. function:: proc !=(a: ArrayWrapper, b: ArrayWrapper)
+
+.. function:: proc chpl__defaultHash(r: ArrayWrapper): uint
+
 .. record:: Wrapper
 
    .. attribute:: type nodeType
