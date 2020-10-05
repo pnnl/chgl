@@ -1423,7 +1423,6 @@ prototype module AdjListHyperGraph {
       var newVerticesDomain = __verticesDomain;
       var vertexMappings : [__verticesDomain] int = -1;
       var dummyNode = new unmanaged NodeData(eDescType, _vPropType);
-      // serial {
       //writeln("Collapsing Vertices...");
       // Pass 1: Locate duplicates by performing an s-walk where s is the size of current vertex
       // We impose an ordering on determining what vertex is a duplicate of what. A vertex v is a
@@ -1431,54 +1430,30 @@ prototype module AdjListHyperGraph {
       // and v''.id < v'.id, that is v.id < v''.id < v'.id, the duplicate marking is still preserved
       // as we can follow v'.id's duplicate to find v''.id's duplicate to find the distinct vertex v.
       {
-        //writeln("Marking and Deleting Vertices...");
-        // TODO: Optimize!
-        // Step 1: Optimize for Locality first! Spawn one task per core per locale, and
-        // on each task, have them create equivalence classes for the matching vertices
-        // and edges.
-        // Step 2: Take pairs of tasks and handle merging their equivalent classes into a single
-        // into a single equivalence class. This should be performed across each locale and in
-        // parallel across multiple cores if possible. 
-        // Step 3: Take pairs of locales and handle merging their equivalent classes into a single
-        // equivalence class. Then count the number of unique vertices.
-        
-        var eqclasses : [LocaleSpace] unmanaged Equivalence(int, Bitmap);
-        coforall loc in Locales  do on loc {
-          var _this = getPrivatizedInstance();
-          var reduxLock : Lock;
-          var localeqclass = new unmanaged Equivalence(int, Bitmap);
-          forall v in _verticesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
-            var _v = _this.toVertex(v);
-            var vertex = _this.getVertex(_v);
-            vertex.sortIncidence();
-            var wrapper = new Bitmap(vertex.incident[0..#vertex.degree]);
-            reduxLock.acquire();
-            localeqclass.add(v, wrapper);
-            reduxLock.release();
-          }
-          eqclasses[here.id] = localeqclass;
-        }
-        var eqclass = new unmanaged Equivalence(int, Bitmap);
-        for localeqclass in eqclasses {
-          eqclass.add(localeqclass);
-        }
-        delete eqclasses;
-        
+        writeln("Marking and Deleting Vertices...");
+	
+	var vertexSetDomain : domain(ArrayWrapper);
+        var vertexSet : [vertexSetDomain] int;
+        var l$ : sync bool;
         var numUnique : int;
-	forall leader in eqclass.getEquivalenceClasses() with (+ reduce numUnique) {
-          numUnique += 1;
-          for follower in eqclass.getCandidates(leader) {
-            delete _vertices[follower];
-            _vertices[follower] = dummyNode;
-            duplicateVertices[follower].write(leader);
+        forall v in _verticesDomain with (+ reduce numUnique, ref vertexSetDomain, ref vertexSet) {
+          var tmp = [e in _vertices[v].incident[0..#_vertices[v].degree]] e;
+          var vertexArr = new ArrayWrapper();
+          vertexArr.dom = {0..#_vertices[v].degree};
+          vertexArr.arr = tmp;
+          l$ = true;
+          vertexSetDomain.add(vertexArr);
+          var val = vertexSet[vertexArr];
+          if val != 0 {
+            delete _vertices[v];
+            _vertices[v] = dummyNode;
+            duplicateVertices[v].write(val - 1);
+            l$;
+          } else {
+            vertexSet[vertexArr] = v + 1;
+            l$;
+            numUnique += 1;
           }
-        }
-        delete eqclass;
-        
-        // No need to simplify
-        if _verticesDomain.size == numUnique {
-          var ret : [1..0] int;
-          return ret;
         }
 
         newVerticesDomain = {0..#numUnique};
@@ -1655,7 +1630,6 @@ prototype module AdjListHyperGraph {
       var dupeHistogram : [1..maxDupes] atomic int;
       forall nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
       return [n in dupeHistogram] n.read();
-      // }
     }
 
     
@@ -1667,7 +1641,6 @@ prototype module AdjListHyperGraph {
       called from Locale #0. Returns a histogram of duplicates
     */
     proc collapseEdges() {
-      // serial{
       if Debug.ALHG_DEBUG {
 	forall v in getVertices() {
           assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
@@ -1939,15 +1912,15 @@ prototype module AdjListHyperGraph {
       removeDuplicates();
 
       if true {
-        for v in getVertices() {//with (var _this = getPrivatizedInstance()) {
-          assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-          assert(degree(v) > 0, "Vertex has 0 neighbors...");
-          for e in incidence(v) {
-            assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-            assert(degree(e) > 0, "Edge has 0 neighbors...");
-
+	forall v in getVertices() with (var _this = getPrivatizedInstance()) {
+	  assert(_this.getVertex(v) != nil, "Vertex ", v, " is nil...");
+	  assert(_this.degree(v) > 0, "Vertex has 0 neighbors...");
+	  forall e in _this.incidence(v) {
+	    assert(_this.getEdge(e) != nil, "Edge ", e, " is nil...");
+	    assert(_this.degree(e) > 0, "Edge has 0 neighbors...");
+        
             var isValid : bool;
-            for vv in incidence(e) {
+	    for vv in _this.incidence(e) {
               if vv == v {
                 isValid = true;
                 break;
@@ -1956,21 +1929,21 @@ prototype module AdjListHyperGraph {
 
             if !isValid {
               writeln("WARNING!!! This may invalidate pipeline, attempting to repair...");
-              writeln("Vertex ", v, " has neighbor ", e, " that violates dual property...\n" + "Neighbors of ", v, " = ", incidence(v), "\nNeighbors of ", e, " = ", incidence(e));
-              addInclusion(v, e); 
-            }
+              writeln("Vertex ", v, " has neighbor ", e, " that violates dual property...\n" + "Neighbors of ", v, " = ", _this.incidence(v), "\nNeighbors of ", e, " = ", _this.incidence(e));
+	      _this.addInclusion(v, e);
+	    }
           }
         }
 
-        for e in getEdges() {//with (var _this = getPrivatizedInstance()) {
-          assert(getEdge(e) != nil, "Edge ", e, " is nil...");
-          assert(degree(e) > 0, "Edge has 0 neighbors...");
-          for v in incidence(e) {
-            assert(getVertex(v) != nil, "Vertex ", v, " is nil...");
-            assert(degree(v) > 0, "Vertex has 0 neighbors...");
-
+	forall e in getEdges() with (var _this = getPrivatizedInstance()) {
+	  assert(_this.getEdge(e) != nil, "Edge ", e, " is nil...");
+	  assert(_this.degree(e) > 0, "Edge has 0 neighbors...");
+	  forall v in _this.incidence(e) {
+	    assert(_this.getVertex(v) != nil, "Vertex ", v, " is nil...");
+	    assert(_this.degree(v) > 0, "Vertex has 0 neighbors...");
+        
             var isValid : bool;
-            for ee in incidence(v) {
+	    for ee in _this.incidence(v) {
               if ee == e {
                 isValid = true;
                 break;
@@ -1979,8 +1952,8 @@ prototype module AdjListHyperGraph {
 
             if !isValid {
               writeln("WARNING!!! This may invalidate pipeline, attempting to repair...");
-              writeln("Edge ", e, " has neighbor ", v, " that violates dual property...\n" + "Neighbors of ", v, " = ", incidence(v), "\nNeighbors of ", e, " = ", incidence(e));
-             addInclusion(v, e); 
+	      writeln("Edge ", e, " has neighbor ", v, " that violates dual property...\n" + "Neighbors of ", v, " = ", _this.incidence(v), "\nNeighbors of ", e, " = ", _this.incidence(e));
+	      _this.addInclusion(v, e);
             }
              
           }
@@ -1989,7 +1962,7 @@ prototype module AdjListHyperGraph {
 
       // Obtain duplicate stats...
       var numDupes : [_edgesDomain] atomic int;
-      for eDup in duplicateEdges {
+      forall eDup in duplicateEdges {
         if eDup.read() != -1 {
           numDupes[edgeMappings[eDup.read()]].add(1);
         }
@@ -1997,9 +1970,8 @@ prototype module AdjListHyperGraph {
 
       var maxDupes = max reduce [n in numDupes] n.read();
       var dupeHistogram : [1..maxDupes] atomic int;
-      for nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
+      forall nDupes in numDupes do if nDupes.read() != 0 then dupeHistogram[nDupes.read()].add(1);
       return [n in dupeHistogram] n.read();
-      //}
     }
     
     /*
