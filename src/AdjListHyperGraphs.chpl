@@ -1216,28 +1216,28 @@ prototype module AdjListHyperGraphs {
         // remote gets, we instead 'push' work to the locales.
         
         // Phase 1: Group work by target locales
-        var localeWork : [LocaleSpace] unmanaged Vector(int);
+        var localeWork : [LocaleSpace] unmanaged Vector(int)?;
         for v in incidence(eDesc, isImmutable) {
           const locid = getLocale(v).id;
           if localeWork[locid] == nil then localeWork[locid] = new unmanaged Vector(int, 1);
-          localeWork[locid].append(v.id);
+          localeWork[locid]!.append(v.id);
         }
         //Phase 2: Scatter work to respective locales.
         coforall loc in Locales do if localeWork[loc.id] != nil then on loc {
           // If the vector is local to the current locale already,
           // do not make a copy.
-          if localeWork[here.id].locale == here {
+          if localeWork[here.id]!.locale == here {
             ref vec = localeWork[here.id];
-            forall v in vec.toArray() {
+            forall v in vec!.toArray() {
               for e in incidence(toVertex(v), isImmutable) do if eDesc != e {
                 // if s == 1, no intersection needed
                 if s == 1 || isConnected(eDesc, e, s, isImmutable) then yield e;
               }
             }
           } else {
-            const sz = localeWork[here.id].size;
+            const sz = localeWork[here.id]!.size;
             var dom = {0..#sz};
-            var arr : [dom] int = localeWork[here.id].toArray();
+            var arr : [dom] int = localeWork[here.id]!.toArray();
             var _this = chpl_getPrivatizedCopy(this.type, _pid);
             forall v in arr {
               for e in _this.incidence(_this.toVertex(v), isImmutable) do if eDesc != e {
@@ -1366,7 +1366,7 @@ prototype module AdjListHyperGraphs {
     */
     proc getProperty(vDesc : vDescType) : _vPropType {
       if !_vPropMap.isInitialized then halt("No vertex property map is created for this hypergraph!");
-      return getVertex(vDesc).property;
+      return getVertex(vDesc)!.property;
     }
 
     /*
@@ -1376,7 +1376,7 @@ prototype module AdjListHyperGraphs {
     */
     proc getProperty(eDesc : eDescType) : _ePropType {
       if !_ePropMap.isInitialized then halt("No edge property map is created for this hypergraph");
-      return getEdge(eDesc).property;
+      return getEdge(eDesc)!.property;
     }
 
     pragma "no doc"
@@ -2504,7 +2504,7 @@ prototype module AdjListHyperGraphs {
       :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
     proc isConnected(v1 : vDescType, v2 : vDescType, s, param isImmutable = false) {
-      return getVertex(v1).canWalk(getVertex(v2), s, acquireLock = !isImmutable);
+      return getVertex(v1)!.canWalk(getVertex(v2)!, s, acquireLock = !isImmutable);
     }
 
     /*
@@ -2515,7 +2515,7 @@ prototype module AdjListHyperGraphs {
       :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
     proc isConnected(e1 : eDescType, e2 : eDescType, s, param isImmutable = false) {
-      return getEdge(e1).canWalk(getEdge(e2), s, acquireLock = !isImmutable);
+      return getEdge(e1)!.canWalk(getEdge(e2)!, s, acquireLock = !isImmutable);
     }
     
     /*

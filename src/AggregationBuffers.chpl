@@ -369,9 +369,9 @@ prototype module AggregationBuffers {
     proc aggregate(msg : msgType, locid : int) : unmanaged Buffer(msgType)? {
       // Performs sanity checks to ensure that returned buffer is valid
       proc doSanityCheck(buf : unmanaged Buffer(msgType)?) where AggregatorDebug {
-        if buf._stolen.peek() != false then halt("Buffer is still stolen!", buf);
-        if buf._claimed.peek() != 0 then halt("Buffer has not had claim reset...", buf);
-        if buf._filled.peek() != 0 then halt("Buffer has not had filled reset...", buf);
+        if buf!._stolen.peek() != false then halt("Buffer is still stolen!", buf);
+        if buf!._claimed.peek() != 0 then halt("Buffer has not had claim reset...", buf);
+        if buf!._filled.peek() != 0 then halt("Buffer has not had filled reset...", buf);
       }
       proc doSanityCheck(buf : unmanaged Buffer(msgType)) where !AggregatorDebug {}
       

@@ -122,9 +122,9 @@ prototype module Generation {
   proc histogram(probabilities, numRandoms) {
     var indices : [1..#numRandoms] int;
     var rngArr : [1..#numRandoms] real;
-    var newProbabilities : [1..1] real;
+    var newProbabilities : [1..probabilities.size + 1] real;
     if numRandoms == 0 then return indices;
-    newProbabilities.push_back(probabilities);
+    newProbabilities[2..] = probabilities;
     fillRandom(rngArr);
     const lo = newProbabilities.domain.low;
     const hi = newProbabilities.domain.high;
@@ -259,6 +259,9 @@ prototype module Generation {
   /*
     Generates a graph from the desired vertex and edge degree sequence. 
 
+    BUG: After upgrading from Chapel 1.20 to 1.23, this fails due to out-of-bounds processing... this now
+    forwards to SMP version.
+
     :arg graph: Mutable graph to generate.
     :arg vDegSeq: Vertex degree sequence. Must be sorted.
     :arg eDegSeq: HyperEdge degree sequence. Must be sorted.
@@ -267,9 +270,16 @@ prototype module Generation {
     :arg edgesDomain: Subset of hyperedges to generate edges between. Defaults to the entire set of hyperedges.
     :arg targetLoc: Locales to perform computation over. Defaults to Locales, which includes all locales.
   */
+  config param experimentalChungLu = false;
   proc generateChungLu(
       graph, vDegSeq : [?vDegSeqDom] int, eDegSeq : [?eDegSeqDom] int, inclusionsToAdd : int(64),
-      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLoc = Locales) {
+      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLoc = Locales) where !experimentalChungLu {
+    return generateChungLuSMP(graph, verticesDomain, edgesDomain, vDegSeq, eDegSeq, inclusionsToAdd);
+  }
+
+  proc generateChungLu(
+      graph, vDegSeq : [?vDegSeqDom] int, eDegSeq : [?eDegSeqDom] int, inclusionsToAdd : int(64),
+      verticesDomain = graph.verticesDomain, edgesDomain = graph.edgesDomain, targetLoc = Locales) where experimentalChungLu {
     // Check if empty...
     if inclusionsToAdd == 0 || graph.verticesDomain.size == 0 || graph.edgesDomain.size == 0 then return graph;
    
@@ -278,6 +288,7 @@ prototype module Generation {
     var eDegTableDom = {0..-1};
     var vDegTable : [vDegTableDom] real;
     var eDegTable : [eDegTableDom] real;
+
     var vMaxDeg = max reduce vDegSeq; 
     var eMaxDeg = max reduce eDegSeq;
    
@@ -303,6 +314,7 @@ prototype module Generation {
     var eTableDom = {0..-1} dmapped Cyclic(startIdx=0);
     var vTable : [vTableDom] int;
     var eTable : [eTableDom] int;
+    writeln("vTableDom = ", vTableDom, ", vTable.domain = ", vTable.domain);
     // Holds beginning of offset into each distributed array table; (offset, size) pairs
     var vTableMeta : [1..vMaxDeg] (int, int);
     var eTableMeta : [1..eMaxDeg] (int, int);

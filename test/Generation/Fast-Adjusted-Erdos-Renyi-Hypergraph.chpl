@@ -1,4 +1,5 @@
 use AdjListHyperGraphs;
+use Generation;
 
 var prob = 0.6: real;
 var num_vertices = 10: int;

@@ -3,6 +3,7 @@
 */
 prototype module Metrics {
   use CHGL;
+  use List;
   use Vectors;
   use Utilities;
   use Traversal;
@@ -57,16 +58,16 @@ prototype module Metrics {
 
     for v in graph.getVertices() {
       if components[v.id] != 0 then continue;
-      var sequence : [0..-1] graph._value.vDescType;
+      var sequence : list(graph._value.vDescType);
       component += 1;
       components[v.id] = component;
-      sequence.push_back(v);
+      sequence.append(v);
       for vv in vertexBFS(graph, v, s) {
         if boundsChecking then assert(components[vv.id] == 0, "Already visited a vertex during BFS...", vv);
         components[vv.id] = component;
-        sequence.push_back(vv);
+        sequence.append(vv);
       }
-      yield sequence;
+      yield sequence.toArray();
     }
   }
 
@@ -89,16 +90,16 @@ prototype module Metrics {
 
     for e in graph.getEdges() {
       if components[e.id] != 0 then continue;
-      var sequence : [0..-1] graph._value.eDescType;
+      var sequence : list(graph._value.eDescType);
       component += 1;
       components[e.id] = component;
-      sequence.push_back(e);
+      sequence.append(e);
       for ee in edgeBFS(graph, e, s) {
         if boundsChecking then assert(components[ee.id] == 0, "Already visited an edge during BFS...", ee);
         components[ee.id] = component;
-        sequence.push_back(ee);
+        sequence.append(ee);
       }
-      yield sequence;
+      yield sequence.toArray();
     }
   }
 

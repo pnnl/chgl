@@ -97,8 +97,11 @@ prototype module Graphs {
         insertAggregator = new Aggregator((hg.vDescType, hg.vDescType, int), 64 * 1024);
       }
       this.cachedNeighborListDom = hg.verticesDomain;
+      var tmp = new unmanaged Vector(hg.vDescType);
+      this.cachedNeighborList = tmp;
       complete();
       forall vec in cachedNeighborList do vec = new unmanaged Vector(hg.vDescType);
+      delete tmp;
       this.pid = _newPrivatizedClass(this:unmanaged); 
     }
 
@@ -109,6 +112,8 @@ prototype module Graphs {
       this.edgeCounter = other.edgeCounter;
       this.vDescType = other.vDescType;
       this.insertAggregator = other.insertAggregator;
+      var tmp = new unmanaged Vector(hg.vDescType);
+      cachedNeighborList = tmp;
       if other.locale == Locales[0] {
         this.privatizedCachedNeighborListInstance = other.cachedNeighborList._value;
         this.privatizedCachedNeighborListPID = other.cachedNeighborList._pid;
@@ -117,6 +122,7 @@ prototype module Graphs {
           chpl_getPrivatizedCopy(other.privatizedCachedNeighborListInstance.type, other.privatizedCachedNeighborListPID);
         this.privatizedCachedNeighborListPID = other.privatizedCachedNeighborListPID;
       }
+      delete tmp;
     }
 
     pragma "no doc"
@@ -139,8 +145,8 @@ prototype module Graphs {
       var buf = insertAggregator.aggregate((v1, v2, -1), Locales[0]);
       if buf != nil {
         begin with (in buf) {
-          var arr = buf.getArray();
-          buf.done();
+          var arr = buf!.getArray();
+          buf!.done();
           var startIdx = edgeCounter.fetchAdd(arr.size);
           var endIdx = startIdx + arr.size - 1;
           if endIdx >= hg.edgesDomain.size {
@@ -234,15 +240,15 @@ prototype module Graphs {
         }
       } else {
         for e in hg.getEdges() {
-          var sz = hg.getEdge(e).size.read();
+          var sz = hg.getEdge(e)!.size.read();
           if sz > 2 {
-            halt("Edge ", e, " has more than two vertices: ", hg.getEdge(e).incident);
+            halt("Edge ", e, " has more than two vertices: ", hg.getEdge(e)!.incident);
           }
           if sz == 0 {
             continue;
           }
 
-          yield (hg.toVertex(hg.getEdge(e).incident[0]), hg.toVertex(hg.getEdge(e).incident[1]));
+          yield (hg.toVertex(hg.getEdge(e)!.incident[0]), hg.toVertex(hg.getEdge(e)!.incident[1]));
         }
       }
     }
@@ -256,15 +262,15 @@ prototype module Graphs {
       } else {
       	 forall e in hg.getEdges() {
           var __this = getPrivatizedInstance();
-          var sz = __this.hg.getEdge(e).size.read();
+          var sz = __this.hg.getEdge(e)!.size.read();
           if sz > 2 {
-            halt("Edge ", e, " is has more than two vertices: ", __this.hg.getEdge(e).incident);
+            halt("Edge ", e, " is has more than two vertices: ", __this.hg.getEdge(e)!.incident);
           }
           if sz == 0 {
             continue;
           }
 
-          yield (__this.hg.toVertex(__this.hg.getEdge(e).incident[0]), __this.hg.toVertex(__this.hg.getEdge(e).incident[1]));
+          yield (__this.hg.toVertex(__this.hg.getEdge(e)!.incident[0]), __this.hg.toVertex(__this.hg.getEdge(e)!.incident[1]));
         }
       }
     }

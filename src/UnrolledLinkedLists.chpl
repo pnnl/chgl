@@ -22,13 +22,13 @@ prototype module UnrolledLinkedLists {
         proc append(elt : eltType) {
             if head == nil {
                 this.head = new unmanaged UnrollBlock(eltType, unrollBlockSize);
-            } else if head.end == unrollBlockSize {
+            } else if head!.end == unrollBlockSize {
                 var newHead = new unmanaged UnrollBlock(eltType, unrollBlockSize);
                 newHead.next = this.head;
                 this.head = newHead;
             }
-            this.head.data[this.head.end] = elt;
-            this.head.end += 1;
+            this.head!.data[this.head!.end] = elt;
+            this.head!.end += 1;
             this.sz += 1;
         }
 
@@ -38,14 +38,14 @@ prototype module UnrolledLinkedLists {
             if head == nil {
                 return false;
             }
-            if head.start == head.end {
-                head = head.next;
+            if head!.start == head!.end {
+                head = head!.next;
                 if head == nil {
                     return false;
                 }
             }
-            elt = this.head.data[this.head.start];
-            this.head.start += 1;
+            elt = this.head!.data[this.head!.start];
+            this.head!.start += 1;
             this.sz -= 1;
             return true;
         }
@@ -53,46 +53,71 @@ prototype module UnrolledLinkedLists {
         iter these() : eltType {
             var block = this.head;
             while block != nil {
-                for i in block.start..block.end {
-                    yield block.data[i];
+                for i in block!.start..block!.end {
+                    yield block!.data[i];
                 }
-                block = block.next;
+                block = block!.next;
             }
         }
 
         proc deinit() {
             var block = this.head;
             while block != nil {
-                var tmp = block.next;
+                var tmp = block!.next;
                 delete block;
                 block = tmp;
             }
         }
     }
 
+    // Proves that UnrolledLinkedList is faster than basic LinkedList and new List
+    // Also shows that List is significantly slower than LinkedList and, which has already
+    // been established is almost an order of magnitude slower than the naive push-back implementation.
     proc main() {
         use LinkedLists;
         use Time;
+        use Vectors;
+        use List;
 
-        const numElems = 64 * 1024 * 1024;
+        const numElems = 256 * 1024 * 1024;
         var timer = new Timer();
 
-        timer.start();
-        var linkedList = new LinkedList(int);
-        for i in 1..numElems {
-            linkedList.push_back(i);
+        {
+            timer.start();
+            var linkedList = new LinkedList(int);
+            for i in 1..numElems {
+                linkedList.push_back(i);
+            }
+            var total = 0;
+            for i in linkedList do {
+                total += i;
+            }
+            for i in 1..numElems {
+                var x = linkedList.pop_front();
+            }
+            timer.stop();
+            writeln("LinkedList finished in ", timer.elapsed(), "s");
+            timer.clear();
         }
-        var total = 0;
-        for i in linkedList do {
-            total += i;
+        
+        {
+            var l : list(int);
+            timer.start();
+            for i in 1..numElems {
+                l.append(i);
+            }
+            var total = 0;
+            for i in l do {
+                total += i;
+            }
+            for i in 1..numElems {
+                var x = l.pop();
+            }
+            timer.stop();
+            writeln("List finished in ", timer.elapsed(), "s");
+            timer.clear();
         }
-        for i in 1..numElems {
-            var x = linkedList.pop_front();
-        }
-        timer.stop();
-        writeln("LinkedList finished in ", timer.elapsed(), "s");
-
-
+        
         for param i in 1..10 {
             timer.clear();
             timer.start();
