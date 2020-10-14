@@ -1,10 +1,11 @@
-use Graph;
-use WorkQueue;
+use Graphs;
+use WorkQueues;
 use CyclicDist;
 use BinReader;
 use Visualize;
 use Time;
 use VisualDebug;
+use TerminationDetections;
 use CommDiagnostics;
 use Utilities;
 

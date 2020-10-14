@@ -5,6 +5,7 @@ use Graphs;
 use RangeChunk;
 use CyclicDist;
 use SysCTypes;
+use Utilities;
 
 // TODO: Read in the _entire_ adjacency list as a byte stream and then perform a direct memcpy into 
 // to pre-allocated buffer! Significantly faster, and it is what UPC++ did and was multiple orders
@@ -82,8 +83,8 @@ proc binToGraph(dataset : string) {
     var numEdges : uint(64);
     reader.read(numVertices);
     reader.read(numEdges);
-    debug("|V| = " + numVertices);
-    debug("|E| = " + numEdges);
+    debug("|V| = " + numVertices:string);
+    debug("|E| = " + numEdges:string);
     reader.close();
     f.close();
 

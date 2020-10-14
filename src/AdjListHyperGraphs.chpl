@@ -1430,8 +1430,8 @@ prototype module AdjListHyperGraphs {
           forall v in _verticesDomain.localSubdomain() with (ref reduxLock, ref localeqclass) {
             var _v = _this.toVertex(v);
             var vertex = _this.getVertex(_v);
-            vertex.sortIncidence();
-            var wrapper = new Bitmap(vertex.incident[0..#vertex.degree]);
+            vertex!.sortIncidence();
+            var wrapper = new Bitmap(vertex!.incident[0..#vertex!.degree]);
             reduxLock.acquire();
             localeqclass.add(v, wrapper);
             reduxLock.release();
@@ -1508,7 +1508,7 @@ prototype module AdjListHyperGraphs {
       writeln("Moving into temporary array...");
       // Move current array into auxiliary...
       const oldVerticesDom = this._verticesDomain;
-      var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices;
+      var oldVertices : [oldVerticesDom] unmanaged NodeData(eDescType, _vPropType) = this._vertices!;
       this._verticesDomain = newVerticesDomain;
       
       // TODO
@@ -1554,7 +1554,7 @@ prototype module AdjListHyperGraphs {
       // Pass 3: Redirect references to collapsed vertices to new mappings
       {
         forall e in _edges {
-          for v in e {
+          for v in e! {
             // If the vertex has been collapsed, first obtain the id of the vertex it was collapsed
             // into, and then obtain the mapping for the collapsed vertex. Otherwise just
             // get the mapping for the unique vertex.
