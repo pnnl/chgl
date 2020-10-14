@@ -1,4 +1,6 @@
-use CHGL;
+use AdjListHyperGraphs;
+use CyclicDist;
+use Utilities;
 use Time;
 
 config const dataset = "DNS/tinyDNS.txt";
@@ -25,8 +27,8 @@ var localeWork : [LocaleSpace] domain(2*int);
 // Fill up keys and values from file.
 for line in getLines(dataset) {
   var attrs = line.split(",");
-  var qname = attrs[1]; 
-  var rdata = attrs[2];
+  var qname = attrs[0]; 
+  var rdata = attrs[1];
   
   // If the qname and rdata are unique, then we
   // update vIdx and eIdx respectively and round-robin

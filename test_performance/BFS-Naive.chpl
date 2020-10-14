@@ -2,6 +2,10 @@ use CyclicDist;
 use ReplicatedDist;
 use Time;
 use Sort;
+use IO;
+use SysCTypes;
+use Utilities;
+use RangeChunk;
 
 config const dataset = "../data/karate.mtx_csr.bin";
 config const numEdgesPresent = true;
@@ -151,10 +155,10 @@ try! {
   // Read in |V| and |E|
   
   reader.read(numVertices);
-  if debugBFS then writeln("|V| = " + numVertices);
+  if debugBFS then writeln("|V| = " + numVertices : string);
   if numEdgesPresent {
     reader.read(numEdges);
-    if debugBFS then writeln("|E| = " + numEdges);
+    if debugBFS then writeln("|E| = " + numEdges : string);
   }
   reader.close();
   f.close();
@@ -288,10 +292,12 @@ if !isOptimized {
 } else {
   // Use aggregation via pre-allocated communication buffer to fetch purely via GET, no active message
   // globalCommMatrix[i,j]: CommunicationBuffer from i to j; i -> j
-  var globalCommMatrix : [0..#numLocales, 0..#numLocales] unmanaged CommunicationBuffer;
+  var tmp = new unmanaged CommunicationBuffer();
+  var globalCommMatrix : [0..#numLocales, 0..#numLocales] unmanaged CommunicationBuffer = tmp;
   forall (i,j) in globalCommMatrix.domain do on Locales[i] {
     globalCommMatrix[i,j] = new unmanaged CommunicationBuffer();
   }
+  delete tmp;
   // Replicate a work queue on each locale.
   var globalWorkDom = {0..0} dmapped Replicated();
   var globalWork : [globalWorkDom] Array(int);

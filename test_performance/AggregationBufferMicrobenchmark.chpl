@@ -2,8 +2,10 @@ use Time;
 use CyclicDist;
 use BlockDist;
 use Random;
-use CHGL;
+use AggregationBuffers;
 use UnorderedAtomics;
+use DynamicAggregationBuffers;
+use Utilities;
 
 /*
 	Note: Always compile without bounds checking unless doing correctness testing!
@@ -71,8 +73,8 @@ proc main() {
 	if doAggregation {
 		proc flushBuffer(buf, loc) {
 			on loc {
-				var arr = buf.getArray();
-				buf.done();
+				var arr = buf!.getArray();
+				buf!.done();
 				for idx in arr {
 					local do _A[idx].add(1);
 				} 

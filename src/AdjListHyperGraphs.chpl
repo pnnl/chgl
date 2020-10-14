@@ -356,7 +356,8 @@ prototype module AdjListHyperGraphs {
         delete chpl_getPrivatizedCopy(instance.type, pid);
       }
       pid = -1;
-      instance = nil;
+      // instance = nil;
+      // Risk undefined behavior but oh well
     }
     
     // Forwards to privatized instance
@@ -2917,7 +2918,7 @@ prototype module AdjListHyperGraphs {
       :arg isImmutable: Contract that the graph will not be modified during this operation.
     */
     proc intersectionSize(e1 : eDescType, e2 : eDescType, param isImmutable = false) {
-      return getEdge(e1).intersectionSize(getEdge(e2), acquireLock = !isImmutable);
+      return getEdge(e1)!.intersectionSize(getEdge(e2)!, acquireLock = !isImmutable);
     }
     
     /*

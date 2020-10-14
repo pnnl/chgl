@@ -1,4 +1,4 @@
-use CHGL;
+use AdjListHyperGraphs;
 use Time;
 use Regexp;
 use ReplicatedDist;
